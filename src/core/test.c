@@ -216,18 +216,12 @@ Test(core, test_obj) {
 	cr_assert_eq($int(v3), 101);
 }
 
-// test_files.c
-#include <sys/stat.h>
-
-#include "stat.h"
-
 // Constants
 #define O_RDWR 0x0002
 #define O_CREAT 0x0040
 #define MODE_0644 0644
 
 // test_files.c
-#include <stat.h>
 #include <sys/mman.h>
 
 #define MODE_0644 0644
@@ -238,12 +232,14 @@ Test(core, files) {
 	int fd = open("/tmp/testfile.dat", O_RDWR | O_CREAT, MODE_0644);
 	cr_assert(fd >= 0);
 
-	/*
-		void *ret = mmap(NULL, 16384, PROT_READ | PROT_WRITE,
-				 MAP_PRIVATE | MAP_ANONYMOUS, fd, 16384);
-		printf("ret=%lli\n", (int64_t)ret);
-		print_error("mmap");
-		*/
+	char *ret =
+	    mmap(NULL, 16384, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	printf("ret1=%lli\n", (int64_t)ret);
+	// ret[0] = 1;
+
+	off_t file_size = lseek(fd, 0, SEEK_END);
+	cr_assert_eq(file_size, 0);
+	printf("filesize=%i\n", file_size);
 
 	printf("fd=%i\n", fd);
 	print_error("ftruncate1");
@@ -251,6 +247,15 @@ Test(core, files) {
 	print_error("ftruncate");
 	printf("res=%i\n", ftruncate_res);
 	cr_assert(ftruncate_res == 0);
+
+	ret = mmap(NULL, 16384, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	ret[0] = 1;
+
+	file_size = lseek(fd, 0, SEEK_END);
+	cr_assert_eq(file_size, 16384);
+	printf("filesize=%i\n", file_size);
+
+	printf("ret=%lli\n", (int64_t)ret);
 
 	// Write data
 	const char *data = "Hello";

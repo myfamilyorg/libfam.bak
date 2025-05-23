@@ -26,8 +26,6 @@
 #include <error.h>
 #include <types.h>
 
-extern int errno;
-
 #ifdef __linux__
 #define DECLARE_SYSCALL(ret_type, name, linux_num, macos_num, ...) \
 	ret_type syscall_##name(__VA_ARGS__);                      \
@@ -135,15 +133,11 @@ DECLARE_SYSCALL_OPEN(int, open, 2, 5, const char *pathname, int flags,
 
 DECLARE_SYSCALL(int, close, 3, 6, int fd)
 
-DECLARE_SYSCALL(int, ftruncate, 77, 200, int fd, long length)
+DECLARE_SYSCALL(int, ftruncate, 77, 201, int fd, long length)
 
 DECLARE_SYSCALL(int, msync, 26, 65, void *addr, unsigned long length, int flags)
 
-struct stat {
-	byte padding[512];
-};
-
-DECLARE_SYSCALL(int, fstat, 5, 189, int fd, struct stat *buf)
+DECLARE_SYSCALL(int, lseek, 8, 199, int fd, off_t offset, int whence)
 
 int sched_yield(void) {
 	int v = syscall_sched_yield();
@@ -172,12 +166,14 @@ int ftruncate(int fd, off_t length) { IMPL_WRAPPER(int, ftruncate, fd, length) }
 int msync(void *addr, size_t length, int flags) {
 	IMPL_WRAPPER(int, msync, addr, length, flags)
 }
-int fstat(int fd, struct stat *buf) { IMPL_WRAPPER(int, fstat, fd, buf) }
+
+int lseek(int fd, off_t offset, int whence) {
+	IMPL_WRAPPER(int, lseek, fd, offset, whence)
+}
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	   off_t offset) {
 	void *v = syscall_mmap(addr, length, prot, flags, fd, offset);
-	if ((size_t)v == (size_t)-1) err = -errno;
 	return v;
 }
 

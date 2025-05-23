@@ -26,7 +26,6 @@
 #ifndef _SYS_H__
 #define _SYS_H__
 
-#include <sys/stat.h>
 #include <types.h>
 
 ssize_t write(int fd, const void *buf, size_t length);
@@ -40,6 +39,6 @@ int open(const char *pathname, int flags, mode_t mode);
 int close(int fd);
 int ftruncate(int fd, off_t length);
 int msync(void *addr, size_t length, int flags);
-int fstat(int fd, struct stat *buf);
+off_t lseek(int fd, off_t offset, int whence);
 
 #endif /* _SYS_H__ */
