@@ -228,40 +228,23 @@ Test(core, test_obj) {
 
 Test(core, files) {
 	remove("/tmp/testfile.dat");
-	// Open file for writing
+
 	int fd = open("/tmp/testfile.dat", O_RDWR | O_CREAT, MODE_0644);
 	cr_assert(fd >= 0);
 
-	char *ret =
-	    mmap(NULL, 16384, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	printf("ret1=%lli\n", (int64_t)ret);
-	// ret[0] = 1;
-
 	off_t file_size = lseek(fd, 0, SEEK_END);
 	cr_assert_eq(file_size, 0);
-	printf("filesize=%i\n", file_size);
 
-	printf("fd=%i\n", fd);
-	print_error("ftruncate1");
 	int ftruncate_res = ftruncate(fd, 16384);
-	print_error("ftruncate");
-	printf("res=%i\n", ftruncate_res);
 	cr_assert(ftruncate_res == 0);
 
-	ret = mmap(NULL, 16384, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	char *ret =
+	    mmap(NULL, 16384, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	cr_assert_eq(ret[0], 0);
 	ret[0] = 1;
 
 	file_size = lseek(fd, 0, SEEK_END);
 	cr_assert_eq(file_size, 16384);
-	printf("filesize=%i\n", file_size);
-
-	printf("ret=%lli\n", (int64_t)ret);
-
-	// Write data
-	const char *data = "Hello";
-	unsigned long data_len = 5;  // Length of "Hello"
-	long written = write(fd, data, data_len);
-	cr_assert_eq(written, (long)data_len);
 
 	// Close file
 	cr_assert(close(fd) >= 0);
@@ -270,17 +253,11 @@ Test(core, files) {
 	fd = open("/tmp/testfile.dat", O_RDWR, 0);
 	cr_assert(fd > 0);
 
-	/*
-	// Check size
-	// char stat_buf[256];  // Conservative buffer for struct stat
-	struct stat stat_buf;
+	file_size = lseek(fd, 0, SEEK_END);
+	cr_assert_eq(file_size, 16384);
 
-	fstat(fd, &stat_buf);
-	printf("st->size=%i\n", stat_buf.st_size);
-	long size = stat_get_size((struct stat *)&stat_buf);
-	printf("size=%i,data_len=%i\n", size, data_len);
-	cr_assert(size == (long)data_len);
+	ret = mmap(NULL, 16384, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	cr_assert_eq(ret[0], 1);
 
-	cr_assert(close(fd) >= 0);
-	*/
+	remove("/tmp/testfile.dat");
 }

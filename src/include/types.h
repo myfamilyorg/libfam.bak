@@ -160,9 +160,11 @@ typedef long ssize_t;
 #ifdef __linux__
 typedef long off_t;
 typedef unsigned int mode_t;
-#else
+#elif defined(__APPLE__)
 typedef long long off_t;
 typedef short unsigned int mode_t;
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 
 #endif /* _TYPES_H__ */
