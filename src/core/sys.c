@@ -38,6 +38,7 @@
 		"    syscall\n"                                    \
 		"    ret\n");
 #elif defined(__APPLE__)
+
 #define DECLARE_SYSCALL(ret_type, name, linux_num, macos_num, ...) \
 	ret_type syscall_##name(__VA_ARGS__);                      \
 	__asm__(".global _syscall_" #name                          \
@@ -55,6 +56,23 @@
 		"1:  ldp x29, x30, [sp, #16]\n"                    \
 		"    add sp, sp, #32\n"                            \
 		"    ret\n");
+
+#define DECLARE_SYSCALL_OPEN(ret_type, name, linux_num, macos_num, ...) \
+	ret_type syscall_##name(__VA_ARGS__);                           \
+	__asm__(".global _syscall_" #name                               \
+		"\n"                                                    \
+		"_syscall_" #name                                       \
+		":\n"                                                   \
+		"    mov x0, x0\n"	/* pathname */                  \
+		"    mov w1, #0x0202\n" /* O_RDWR | O_CREAT */          \
+		"    mov w2, #0x0180\n" /* mode=600*/                   \
+		"    mov x16, #" #macos_num                             \
+		"\n"                                                    \
+		"    orr x16, x16, #0x2000000\n"                        \
+		"    svc #0x80\n"                                       \
+		"    b.cc 1f\n"                                         \
+		"    neg x0, x0\n"                                      \
+		"1:  ret\n");
 #endif
 
 #ifdef __linux__
@@ -100,7 +118,8 @@ DECLARE_SYSCALL(void *, mmap, 9, 197, void *addr, size_t length, int prot,
 
 DECLARE_SYSCALL(int, munmap, 11, 73, void *addr, size_t length)
 
-DECLARE_SYSCALL(int, open, 2, 5, const char *pathname, int flags, mode_t mode)
+DECLARE_SYSCALL_OPEN(int, open, 2, 5, const char *pathname, int flags,
+		     mode_t mode)
 
 DECLARE_SYSCALL(int, close, 3, 6, int fd)
 

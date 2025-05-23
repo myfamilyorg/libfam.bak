@@ -230,11 +230,11 @@ Test(core, test_obj) {
 // Constants
 // #define O_RDWR 0x0002
 // #define O_CREAT 0x0040
-// #define MODE_0644 0644
+#define MODE_0644 0644
 
 Test(core, files) {
 	// Open file for writing
-	int fd = open("testfile.dat", O_RDWR | O_CREAT, MODE_0644);
+	int fd = open("/tmp/testfile.dat", O_RDWR | O_CREAT, MODE_0644);
 	print_error("testfile");
 	cr_assert(fd >= 0);
 

@@ -28,6 +28,8 @@
 
 #include <types.h>
 
+struct stat;
+
 uint64_t stat_get_size(struct stat *s);
 
 #endif /* _MISC_H__ */
