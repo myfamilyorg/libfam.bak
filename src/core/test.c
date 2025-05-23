@@ -104,3 +104,79 @@ Test(core, obj2) {
 	object_cleanup(&ms1);
 }
 
+typedef struct {
+	Object (*clone)(const Object *obj);
+} Clone;
+
+Object Clone_clone(const Object *obj) {
+	void *vtable = object_get_vtable(obj);
+	return ((Clone *)vtable)->clone(obj);
+}
+
+typedef struct {
+	Object (*get_x)(const Object *);
+	void (*set_x)(Object *, int x);
+} TestObjImpl;
+
+Object TestObjImpl_get_x(const Object *obj) {
+	void *vtable = object_get_vtable(obj);
+	return ((TestObjImpl *)vtable)->get_x(obj);
+}
+
+void TestObjImpl_set_x(Object *obj, int x) {
+	void *vtable = object_get_vtable(obj);
+	((TestObjImpl *)vtable)->set_x(obj, x);
+}
+
+typedef struct {
+	int x;
+	int y;
+} TestObj;
+
+void TestObj_drop(Object *obj);
+static ObjectDescriptor TestObj_Descriptor = {
+    .type_name = "TestObj",
+    .drop = TestObj_drop,
+    .table = NULL,
+
+};
+
+Object TestObj_Clone_clone(const Object *obj);
+static Clone TestObj_Clone = {.clone = TestObj_Clone_clone};
+
+Object TestObj_TestObjImpl_get_x(const Object *obj) {
+	return object_create_int(((TestObj *)object_get_data(obj))->x);
+}
+void TestObj_TestObjImpl_set_x(Object *obj, int x) {
+	((TestObj *)object_get_data(obj))->x = x;
+}
+static TestObjImpl TestObj_TestObjImpl = {.get_x = TestObj_TestObjImpl_get_x,
+					  .set_x = TestObj_TestObjImpl_set_x};
+
+void TestObj_drop(Object *obj) { void *data = object_get_data(obj); }
+Object TestObj_Clone_clone(const Object *obj) {
+	int x = ((TestObj *)object_get_data(obj))->x;
+	int y = ((TestObj *)object_get_data(obj))->y;
+	ObjectImpl n = $object(TestObj, (TestObj){.x = x, .y = y});
+	return n;
+}
+
+Test(core, test_obj) {
+	var a = $object(TestObj, (TestObj){.x = 1, .y = 2});
+	object_set_vtable(&a, &TestObj_TestObjImpl);
+	let v = TestObjImpl_get_x(&a);
+	cr_assert($is_int(v));
+	cr_assert(!$is_uint(v));
+	cr_assert_eq($int(v), 1);
+	TestObjImpl_set_x(&a, 101);
+	var v2 = TestObjImpl_get_x(&a);
+	cr_assert($is_int(v2));
+	cr_assert(!$is_uint(v2));
+	cr_assert_eq($int(v2), 101);
+
+	object_set_vtable(&a, &TestObj_Clone);
+	let b = Clone_clone(&a);
+	object_set_vtable(&b, &TestObj_TestObjImpl);
+	let v3 = TestObjImpl_get_x(&b);
+	cr_assert_eq($int(v3), 101);
+}

@@ -13,6 +13,7 @@ CFLAGS  = -fPIC \
           -DSTATIC=static
 TFLAGS  = -g -I/usr/local/include -Wno-attributes -Wno-dollar-in-identifier-extension
 LDFLAGS = -shared
+FILTER ="*"
 
 # Directories
 OBJDIR  = .obj
@@ -56,7 +57,7 @@ $(OBJDIR) $(TOBJDIR) $(LIBDIR) $(BINDIR):
 
 # Run tests
 test: $(TEST_BIN)
-	LD_LIBRARY_PATH=$(LIBDIR) $(TEST_BIN)
+	export CRITERION_TEST_PATTERN=$(FILTER); LD_LIBRARY_PATH=$(LIBDIR) $(TEST_BIN)
 
 # Clean up
 clean:

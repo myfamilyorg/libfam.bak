@@ -169,3 +169,24 @@ void *object_resize_data(const Object *obj, size_t nsize) {
 	}
 	return tmp;
 }
+
+int64_t object_int_value(const Object *obj) {
+	ObjectData *data = (ObjectData *)(uint64_t)(obj);
+	return data->value.int_value;
+}
+uint64_t object_uint_value(const Object *obj) {
+	ObjectData *data = (ObjectData *)(uint64_t)(obj);
+	return data->value.uint_value;
+}
+double object_double_value(const Object *obj) {
+	ObjectData *data = (ObjectData *)(uint64_t)(obj);
+	return data->value.float_value;
+}
+bool object_bool_value(const Object *obj) {
+	ObjectData *data = (ObjectData *)(uint64_t)(obj);
+	return data->value.bool_value;
+}
+int object_err_value(const Object *obj) {
+	ObjectData *data = (ObjectData *)(uint64_t)(obj);
+	return data->value.err;
+}

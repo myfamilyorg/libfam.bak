@@ -46,6 +46,7 @@ void object_cleanup(const ObjectImpl *obj);
 typedef struct {
 	const char *type_name;
 	void (*drop)(Object *);
+	Object (*build)(__builtin_va_list args);
 	void *table;
 } ObjectDescriptor;
 
@@ -61,11 +62,14 @@ void *object_get_vtable(const Object *obj);
 void *object_get_data(const Object *obj);
 void *object_resize_data(const Object *obj, size_t nsize);
 
+int64_t object_int_value(const Object *obj);
+uint64_t object_uint_value(const Object *obj);
+double object_double_value(const Object *obj);
+bool object_bool_value(const Object *obj);
+int object_err_value(const Object *obj);
+
 #define let const Object
 #define var Object
-
-#define CATI(x, y) x##y
-#define CAT(x, y) CATI(x, y)
 
 #define $object(type, ...)                                                    \
 	({                                                                    \
@@ -73,13 +77,26 @@ void *object_resize_data(const Object *obj, size_t nsize);
 		ObjectImpl _ret__;                                            \
 		if (_data__) {                                                \
 			*_data__ = (type)(__VA_ARGS__);                       \
-			_ret__ = object_create_boxed(&CAT(type, _Descriptor), \
-						     _data__);                \
+			_ret__ =                                              \
+			    object_create_boxed(&type##_Descriptor, _data__); \
 		} else {                                                      \
-			_ret__ = object_create_err(ENOMEM);                   \
+			_ret__ = object_create_err(err);                      \
 		}                                                             \
 		_ret__;                                                       \
 	})
+
+#define $int(v) object_int_value(&v)
+#define $uint(v) object_uint_value(&v)
+#define $float(v) object_float_value(&v)
+#define $bool(v) object_bool_value(&v)
+#define $err(v) object_err_value(&v)
+
+#define $is_int(v) (object_type(&v) == ObjectTypeInt)
+#define $is_uint(v) (object_type(&v) == ObjectTypeUint)
+#define $is_float(v) (object_type(&v) == ObjectTypeFloat)
+#define $is_bool(v) (object_type(&v) == ObjectTypeBool)
+#define $is_err(v) (object_type(&v) == ObjectTypeErr)
+#define $is_box(v) (object_type(&v) == ObjectTypeBox)
 
 #endif /* _OBJECT_H__ */
 
