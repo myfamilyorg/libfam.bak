@@ -26,6 +26,7 @@
 #include <criterion/criterion.h>
 #include <object.h>
 #include <stdio.h>
+#include <sys/mman.h>
 #include <types.h>
 
 Test(core, core1) {
@@ -220,9 +221,6 @@ Test(core, test_obj) {
 #define O_RDWR 0x0002
 #define O_CREAT 0x0040
 #define MODE_0644 0644
-
-// test_files.c
-#include <sys/mman.h>
 
 #define MODE_0644 0644
 
