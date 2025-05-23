@@ -57,12 +57,6 @@
 #error "Unsupported platform"
 #endif
 
-#ifndef TEST
-#define STATIC static
-#else
-#define STATIC
-#endif
-
 #define SET_BITMAP(chunk, index)                                               \
 	do {                                                                   \
 		byte *tmp;                                                     \

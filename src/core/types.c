@@ -31,6 +31,7 @@
 static int write_u64(int fd, uint64_t value) {
 	char buffer[20];
 	int len = 0;
+	int i, j;
 
 	if (value == 0) {
 		buffer[0] = '0';
@@ -46,7 +47,7 @@ static int write_u64(int fd, uint64_t value) {
 		}
 	}
 
-	for (int i = 0, j = len - 1; i < j; i++, j--) {
+	for (i = 0, j = len - 1; i < j; i++, j--) {
 		char temp = buffer[i];
 		buffer[i] = buffer[j];
 		buffer[j] = temp;
