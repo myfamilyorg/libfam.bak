@@ -159,10 +159,11 @@ typedef unsigned long size_t;
 typedef long ssize_t;
 #ifdef __linux__
 typedef long off_t;
+typedef unsigned int mode_t;
 #else
 typedef long long off_t;
-#endif
 typedef short unsigned int mode_t;
+#endif
 
 #endif /* _TYPES_H__ */
 
