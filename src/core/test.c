@@ -217,6 +217,8 @@ Test(core, test_obj) {
 }
 
 // test_files.c
+#include <sys/stat.h>
+
 #include "stat.h"
 
 // Constants
@@ -227,46 +229,35 @@ Test(core, test_obj) {
 // test_files.c
 #include <stat.h>
 
-// Constants
-// #define O_RDWR 0x0002
-// #define O_CREAT 0x0040
 #define MODE_0644 0644
 
 Test(core, files) {
 	// Open file for writing
 	int fd = open("/tmp/testfile.dat", O_RDWR | O_CREAT, MODE_0644);
-	print_error("testfile");
 	cr_assert(fd >= 0);
 
-	/*
 	// Write data
 	const char *data = "Hello";
 	unsigned long data_len = 5;  // Length of "Hello"
 	long written = write(fd, data, data_len);
-	if (written != (long)data_len) {
-		close(fd);
-		return 1;  // Fail: write error or incomplete
-	}
+	cr_assert_eq(written, (long)data_len);
 
 	// Close file
-	if (close(fd) < 0) {
-		return 1;  // Fail: close error
-	}
+	cr_assert(close(fd) >= 0);
 
 	// Reopen file for size check
-	fd = open("testfile.dat", O_RDWR, 0);
-	if (fd < 0) {
-		return 1;  // Fail: reopen error
-	}
+	fd = open("/tmp/testfile.dat", O_RDWR, 0);
+	cr_assert(fd > 0);
 
 	// Check size
-	char stat_buf[256];  // Conservative buffer for struct stat
-	long size = get_st_size(fd, (struct stat *)stat_buf);
-	if (size != (long)data_len) {
-		close(fd);
-		return 1;  // Fail: size mismatch (expected 5)
-	}
+	// char stat_buf[256];  // Conservative buffer for struct stat
+	struct stat stat_buf;
+
+	fstat(fd, &stat_buf);
+	printf("st->size=%i\n", stat_buf.st_size);
+	long size = stat_get_size((struct stat *)&stat_buf);
+	printf("size=%i,data_len=%i\n", size, data_len);
+	cr_assert(size == (long)data_len);
 
 	cr_assert(close(fd) >= 0);
-	*/
 }
