@@ -26,6 +26,8 @@
 #include <error.h>
 #include <types.h>
 
+extern int errno;
+
 #ifdef __linux__
 #define DECLARE_SYSCALL(ret_type, name, linux_num, macos_num, ...) \
 	ret_type syscall_##name(__VA_ARGS__);                      \
@@ -38,15 +40,15 @@
 		"    syscall\n"                                    \
 		"    ret\n");
 #define DECLARE_SYSCALL_OPEN(ret_type, name, linux_num, macos_num, ...) \
-        ret_type syscall_##name(__VA_ARGS__);                      \
-        __asm__(".global syscall_" #name                           \
-                "\n"                                               \
-                "syscall_" #name                                   \
-                ":\n"                                              \
-                "    movq $" #linux_num                            \
-                ", %rax\n"                                         \
-                "    syscall\n"                                    \
-                "    ret\n");
+	ret_type syscall_##name(__VA_ARGS__);                           \
+	__asm__(".global syscall_" #name                                \
+		"\n"                                                    \
+		"syscall_" #name                                        \
+		":\n"                                                   \
+		"    movq $" #linux_num                                 \
+		", %rax\n"                                              \
+		"    syscall\n"                                         \
+		"    ret\n");
 #elif defined(__APPLE__)
 
 #define DECLARE_SYSCALL(ret_type, name, linux_num, macos_num, ...) \
@@ -175,6 +177,7 @@ int fstat(int fd, struct stat *buf) { IMPL_WRAPPER(int, fstat, fd, buf) }
 void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	   off_t offset) {
 	void *v = syscall_mmap(addr, length, prot, flags, fd, offset);
+	if ((size_t)v == (size_t)-1) err = -errno;
 	return v;
 }
 
