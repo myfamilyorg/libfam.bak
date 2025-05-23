@@ -23,27 +23,16 @@
  *
  *******************************************************************************/
 
-#ifndef _LOCK_H__
-#define _LOCK_H__
+#ifndef _SYS_H__
+#define _SYS_H__
 
 #include <types.h>
 
-typedef uint64_t Lock;
+ssize_t write(int fd, const void *buf, size_t length);
+int sched_yield(void);
+void exit(int);
+void *mmap(void *addr, size_t length, int prot, int flags, int fd,
+	   off_t offset);
+int munmap(void *addr, size_t length);
 
-#define LOCK_INIT 0
-
-typedef struct {
-	Lock *lock;
-	unsigned char is_write;
-} LockGuardImpl;
-
-void lockguard_cleanup(LockGuardImpl *lg);
-
-#define LockGuard \
-	LockGuardImpl __attribute__((unused, cleanup(lockguard_cleanup)))
-
-void lock_init(Lock *lock);
-LockGuardImpl lock_read(Lock *lock);
-LockGuardImpl lock_write(Lock *lock);
-
-#endif /* _LOCK_H__ */
+#endif /* _SYS_H__ */
