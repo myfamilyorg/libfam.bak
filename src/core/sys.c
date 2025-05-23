@@ -82,7 +82,7 @@ void *syscall_mmap(void *addr, size_t length, int prot, int flags, int fd,
 #define IMPL_WRAPPER(ret_type, name, ...)         \
 	ret_type v = syscall_##name(__VA_ARGS__); \
 	if (v < 0) {                              \
-		err = -v;                       \
+		err = -v;                         \
 		return -1;                        \
 	}                                         \
 	return v;
@@ -99,6 +99,20 @@ DECLARE_SYSCALL(void *, mmap, 9, 197, void *addr, size_t length, int prot,
 #endif
 
 DECLARE_SYSCALL(int, munmap, 11, 73, void *addr, size_t length)
+
+DECLARE_SYSCALL(int, open, 2, 5, const char *pathname, int flags, mode_t mode)
+
+DECLARE_SYSCALL(int, close, 3, 6, int fd)
+
+DECLARE_SYSCALL(int, ftruncate, 77, 200, int fd, long length)
+
+DECLARE_SYSCALL(int, msync, 26, 65, void *addr, unsigned long length, int flags)
+
+struct stat {
+	byte padding[512];
+};
+
+DECLARE_SYSCALL(int, fstat, 5, 189, int fd, struct stat *buf)
 
 int sched_yield(void) {
 	int v = syscall_sched_yield();
@@ -117,6 +131,17 @@ void exit(int code) {
 	syscall_exit(code);
 	while (true);
 }
+
+int open(const char *pathname, int flags, mode_t mode) {
+	IMPL_WRAPPER(int, open, pathname, flags, mode)
+}
+
+int close(int fd) { IMPL_WRAPPER(int, close, fd) }
+int ftruncate(int fd, off_t length) { IMPL_WRAPPER(int, ftruncate, fd, length) }
+int msync(void *addr, size_t length, int flags) {
+	IMPL_WRAPPER(int, msync, addr, length, flags)
+}
+int fstat(int fd, struct stat *buf) { IMPL_WRAPPER(int, fstat, fd, buf) }
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	   off_t offset) {

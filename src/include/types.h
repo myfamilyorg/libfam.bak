@@ -162,6 +162,7 @@ typedef long off_t;
 #else
 typedef long long off_t;
 #endif
+typedef short unsigned int mode_t;
 
 #endif /* _TYPES_H__ */
 

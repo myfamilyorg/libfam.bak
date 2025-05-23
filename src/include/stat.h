@@ -23,22 +23,11 @@
  *
  *******************************************************************************/
 
-#ifndef _SYS_H__
-#define _SYS_H__
+#ifndef _MISC_H__
+#define _MISC_H__
 
 #include <types.h>
 
-ssize_t write(int fd, const void *buf, size_t length);
-int sched_yield(void);
-void exit(int);
-void *mmap(void *addr, size_t length, int prot, int flags, int fd,
-	   off_t offset);
-int munmap(void *addr, size_t length);
+uint64_t stat_get_size(struct stat *s);
 
-int open(const char *pathname, int flags, mode_t mode);
-int close(int fd);
-int ftruncate(int fd, off_t length);
-int msync(void *addr, size_t length, int flags);
-int fstat(int fd, void *buf);
-
-#endif /* _SYS_H__ */
+#endif /* _MISC_H__ */

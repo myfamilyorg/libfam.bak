@@ -215,3 +215,57 @@ Test(core, test_obj) {
 	let v3 = TestObjImpl_get_x(&b);
 	cr_assert_eq($int(v3), 101);
 }
+
+// test_files.c
+#include "stat.h"
+
+// Constants
+#define O_RDWR 0x0002
+#define O_CREAT 0x0040
+#define MODE_0644 0644
+
+// test_files.c
+#include <stat.h>
+
+// Constants
+#define O_RDWR 0x0002
+#define O_CREAT 0x0040
+#define MODE_0644 0644
+
+Test(core, files) {
+	// Open file for writing
+	int fd = open("testfile.dat", O_RDWR | O_CREAT, MODE_0644);
+	cr_assert(fd >= 0);
+
+	/*
+	// Write data
+	const char *data = "Hello";
+	unsigned long data_len = 5;  // Length of "Hello"
+	long written = write(fd, data, data_len);
+	if (written != (long)data_len) {
+		close(fd);
+		return 1;  // Fail: write error or incomplete
+	}
+
+	// Close file
+	if (close(fd) < 0) {
+		return 1;  // Fail: close error
+	}
+
+	// Reopen file for size check
+	fd = open("testfile.dat", O_RDWR, 0);
+	if (fd < 0) {
+		return 1;  // Fail: reopen error
+	}
+
+	// Check size
+	char stat_buf[256];  // Conservative buffer for struct stat
+	long size = get_st_size(fd, (struct stat *)stat_buf);
+	if (size != (long)data_len) {
+		close(fd);
+		return 1;  // Fail: size mismatch (expected 5)
+	}
+
+	cr_assert(close(fd) >= 0);
+	*/
+}
