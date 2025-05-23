@@ -76,26 +76,6 @@ ObjectImpl object_call_build(BuildFn build, ...);
 
 #define $object(type, ...) \
 	object_call_build(type##_Descriptor.build, __VA_ARGS__)
-/*
-#define $object(type, ...)                                                  \
-	({                                                                  \
-		ObjectImpl _ret__;                                          \
-		if (type##_Descriptor.build) {                              \
-			_ret__ = object_call_build(type##_Descriptor.build, \
-						   __VA_ARGS__);            \
-		} else {                                                    \
-			typeof(__VA_ARGS__) *_data__ = alloc(sizeof(type)); \
-			if (_data__) {                                      \
-				*_data__ = (type)(__VA_ARGS__);             \
-				_ret__ = object_create_boxed(               \
-				    &type##_Descriptor, _data__);           \
-			} else {                                            \
-				_ret__ = object_create_err(err);            \
-			}                                                   \
-		}                                                           \
-		_ret__;                                                     \
-	})
-	*/
 
 #define $int(v) object_int_value(&v)
 #define $uint(v) object_uint_value(&v)

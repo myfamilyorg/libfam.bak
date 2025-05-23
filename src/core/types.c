@@ -23,24 +23,65 @@
  *
  *******************************************************************************/
 
+#include <error.h>
+#include <misc.h>
 #include <sys.h>
 #include <types.h>
 
-int printf(const char *, ...);
+static int write_u64(int fd, uint64_t value) {
+	char buffer[20];
+	int len = 0;
 
-#define CheckType(t, exp)                                                 \
-	if (sizeof(t) != exp) {                                           \
-		printf("expected sizeof(%s) == %d, Found %lu\n", #t, exp, \
-		       sizeof(t));                                        \
-		exit(-1);                                                 \
+	if (value == 0) {
+		buffer[0] = '0';
+		len = 1;
+	} else {
+		while (value > 0) {
+			if (len >= 20) {
+				err = EOVERFLOW;
+				return -1;
+			}
+			buffer[len++] = '0' + (value % 10);
+			value /= 10;
+		}
 	}
 
-#define CheckEndian()                                                \
-	uint16_t test = 0x1234;                                      \
-	uint8_t *bytes = (uint8_t *)&test;                           \
-	if (bytes[0] != 0x34) {                                      \
-		printf("Error: Big-endian systems not supported\n"); \
-		exit(-1);                                            \
+	for (int i = 0, j = len - 1; i < j; i++, j--) {
+		char temp = buffer[i];
+		buffer[i] = buffer[j];
+		buffer[j] = temp;
+	}
+
+	ssize_t bytes_written = write(fd, buffer, len);
+	if (bytes_written == -1) return -1;
+	if (bytes_written != len) {
+		err = EIO;
+		return -1;
+	}
+
+	return 0;
+}
+
+#define CheckType(t, exp)                             \
+	if (sizeof(t) != exp) {                       \
+		const char *msg = "expected sizeof("; \
+		write(2, msg, strlen(msg));           \
+		write(2, #t, strlen(#t));             \
+		write(2, ") == ", 5);                 \
+		write_u64(2, exp);                    \
+		write(2, ", Found ", 8);              \
+		write_u64(2, sizeof(t));              \
+		write(2, "\n", 1);                    \
+		exit(-1);                             \
+	}
+
+#define CheckEndian()                                                          \
+	uint16_t test = 0x1234;                                                \
+	uint8_t *bytes = (uint8_t *)&test;                                     \
+	if (bytes[0] != 0x34) {                                                \
+		const char *msg = "Error: Big-endian systems not supported\n"; \
+		write(2, msg, strlen(msg));                                    \
+		exit(-1);                                                      \
 	}
 
 static __attribute__((constructor)) void check_sizes(void) {
@@ -59,16 +100,18 @@ static __attribute__((constructor)) void check_sizes(void) {
 	CheckType(unsigned long, 8);
 	CheckType(size_t, 8);
 	CheckType(ssize_t, 8);
+
+	const char *bool_err = "expected true to be true\n";
 	if (!true) {
-		printf("expected true to be true\n");
+		write(2, bool_err, strlen(bool_err));
 		exit(-1);
 	}
 	if (false) {
-		printf("expected false to be false\n");
+		write(2, bool_err, strlen(bool_err));
 		exit(-1);
 	}
 	if (!true) {
-		printf("expected true to be true\n");
+		write(2, bool_err, strlen(bool_err));
 		exit(-1);
 	}
 }

@@ -104,16 +104,26 @@ Object MyStruct_build(va_list args) {
 void MyStruct_speak(const Object *obj);
 static Speak MyStruct_Speak = {.speak = MyStruct_speak};
 
-void MyStruct_drop(Object *obj) { printf("drop MyStruct\n"); }
-void MyStruct_speak(const Object *obj) { printf("bark\n"); }
+static int drop_count = 0;
+void MyStruct_drop(Object *obj) { drop_count++; };
+static int speak_count = 0;
+void MyStruct_speak(const Object *obj) { speak_count++; }
 
 Test(core, obj2) {
-	let ms1 = $object(MyStruct, 4, 7);
-	object_set_vtable(&ms1, &MyStruct_Speak);
-	speak(&ms1);
-	object_cleanup(&ms1);
-	object_cleanup(&ms1);
-	object_cleanup(&ms1);
+	{
+		let ms1 = $object(MyStruct, 4, 7);
+		object_set_vtable(&ms1, &MyStruct_Speak);
+		cr_assert_eq(speak_count, 0);
+		speak(&ms1);
+		cr_assert_eq(speak_count, 1);
+		cr_assert_eq(drop_count, 0);
+		object_cleanup(&ms1);
+		cr_assert_eq(drop_count, 1);
+		object_cleanup(&ms1);
+		object_cleanup(&ms1);
+		cr_assert_eq(drop_count, 1);
+	}
+	cr_assert_eq(drop_count, 1);
 }
 
 typedef struct {
@@ -156,7 +166,6 @@ static ObjectDescriptor TestObj_Descriptor = {
 };
 
 Object TestObj_build(va_list args) {
-	printf("testobj build\n");
 	void *data = alloc(sizeof(TestObj));
 	if (data) {
 		((TestObj *)data)->x = va_arg(args, int);
@@ -179,10 +188,7 @@ void TestObj_TestObjImpl_set_x(Object *obj, int x) {
 static TestObjImpl TestObj_TestObjImpl = {.get_x = TestObj_TestObjImpl_get_x,
 					  .set_x = TestObj_TestObjImpl_set_x};
 
-void TestObj_drop(Object *obj) {
-	printf("test_obj drop\n");
-	void *data = object_get_data(obj);
-}
+void TestObj_drop(Object *obj) { void *data = object_get_data(obj); }
 Object TestObj_Clone_clone(const Object *obj) {
 	int x = ((TestObj *)object_get_data(obj))->x;
 	int y = ((TestObj *)object_get_data(obj))->y;
