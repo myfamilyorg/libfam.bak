@@ -190,3 +190,12 @@ int object_err_value(const Object *obj) {
 	ObjectData *data = (ObjectData *)(uint64_t)(obj);
 	return data->value.err;
 }
+
+ObjectImpl object_call_build(BuildFn build, ...) {
+	__builtin_va_list args;
+	__builtin_va_start(args, build);
+	ObjectImpl ret = build(args);
+	__builtin_va_end(args);
+	return ret;
+}
+
