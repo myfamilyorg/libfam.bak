@@ -1,4 +1,4 @@
-CC      = clang
+CC      = gcc
 CFLAGS  = -fPIC \
           -std=c99 \
           -pedantic \
@@ -8,8 +8,10 @@ CFLAGS  = -fPIC \
           -fno-stack-protector \
           -fno-builtin \
 	  -ffreestanding \
+	  -Wno-attributes \
+	  -Wno-dollar-in-identifier-extension \
           -DSTATIC=static
-TFLAGS  = -g -I/usr/local/include
+TFLAGS  = -g -I/usr/local/include -Wno-attributes -Wno-dollar-in-identifier-extension
 LDFLAGS = -shared
 
 # Directories

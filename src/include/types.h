@@ -67,7 +67,8 @@
 #endif
 
 #ifndef UINT128_MAX
-#define UINT128_MAX ((__uint128_t) - 1)
+#define UINT128_MAX \
+	(((__uint128_t)0xFFFFFFFFFFFFFFFFULL << 64) | 0xFFFFFFFFFFFFFFFFULL)
 #endif
 
 #ifndef INT8_MIN
@@ -86,9 +87,14 @@
 #define INT64_MIN (-0x7FFFFFFFFFFFFFFF - 1)
 #endif
 
-#ifndef INT128_MIN
-#define INT128_MIN (-(((__int128_t)1 << 127) - 1) - 1)
-#endif
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Woverflow"
+static inline __int128_t get_int128_min(void) {
+	return -((__int128_t)1 << 127);
+}
+#pragma GCC diagnostic pop
+
+#define INT128_MIN get_int128_min()
 
 #ifndef INT8_MAX
 #define INT8_MAX 0x7F
@@ -107,7 +113,9 @@
 #endif
 
 #ifndef INT128_MAX
-#define INT128_MAX (((__int128_t)1 << 127) - 1)
+#define INT128_MAX                           \
+	(((__int128_t)0x7FFFFFFFULL << 96) | \
+	 ((__int128_t)0xFFFFFFFFULL << 64) | 0xFFFFFFFFULL)
 #endif
 
 #ifndef SIZE_MAX
