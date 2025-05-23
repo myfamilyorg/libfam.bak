@@ -5,12 +5,9 @@ CFLAGS  = -fPIC \
           -Wall \
           -Wextra \
           -O3 \
-          -Wno-variadic-macros \
-          -Wno-long-long \
           -fno-stack-protector \
           -fno-builtin \
 	  -ffreestanding \
-	  -Wno-ignored-attributes \
           -DSTATIC=static
 TFLAGS  = -g
 LDFLAGS = -shared
