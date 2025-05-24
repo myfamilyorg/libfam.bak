@@ -7,10 +7,10 @@ CFLAGS  = -fPIC \
           -O3 \
           -fno-stack-protector \
           -fno-builtin \
-	  -ffreestanding \
-	  -Wno-attributes \
-	  -Wno-dollar-in-identifier-extension \
-	  -Wno-long-long \
+          -ffreestanding \
+          -Wno-attributes \
+          -Wno-dollar-in-identifier-extension \
+          -Wno-long-long \
           -DSTATIC=static
 TFLAGS  = -g -I/usr/local/include -Wno-attributes -Wno-dollar-in-identifier-extension
 LDFLAGS = -shared
@@ -23,13 +23,17 @@ LIBDIR  = lib
 BINDIR  = bin
 INCLDIR = src/include
 SRCDIR  = src
+CORE_SRCDIR = $(SRCDIR)/core
+STORE_SRCDIR = $(SRCDIR)/store
 
 # Source files, excluding test.c
-SOURCES = $(filter-out $(SRCDIR)/core/test.c, $(wildcard $(SRCDIR)/core/*.c))
-OBJECTS = $(patsubst $(SRCDIR)/core/%.c,$(OBJDIR)/%.o,$(SOURCES))
+CORE_SOURCES = $(filter-out $(CORE_SRCDIR)/test.c, $(wildcard $(CORE_SRCDIR)/*.c))
+STORE_SOURCES = $(wildcard $(STORE_SRCDIR)/*.c)
+SOURCES = $(CORE_SOURCES) $(STORE_SOURCES)
+OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
 
 # Test source file
-TEST_SRC = $(SRCDIR)/core/test.c
+TEST_SRC = $(CORE_SRCDIR)/test.c
 TEST_OBJ = $(TOBJDIR)/test.o
 TEST_BIN = $(BINDIR)/runtests
 
@@ -37,11 +41,13 @@ TEST_BIN = $(BINDIR)/runtests
 all: $(LIBDIR)/libfam.so
 
 # Rule for library objects
-$(OBJDIR)/%.o: $(SRCDIR)/core/%.c $(INCLDIR)/%.h | $(OBJDIR)
+$(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
+	@mkdir -p $(@D)
 	$(CC) -I$(INCLDIR) $(CFLAGS) -c $< -o $@
 
 # Rule for test object
-$(TOBJDIR)/%.o: $(SRCDIR)/core/test.c | $(TOBJDIR)
+$(TOBJDIR)/%.o: $(CORE_SRCDIR)/test.c | $(TOBJDIR)
+	@mkdir -p $(@D)
 	$(CC) -I$(INCLDIR) $(TFLAGS) -c $< -o $@
 
 # Build shared library (excludes test.o)
@@ -50,7 +56,7 @@ $(LIBDIR)/libfam.so: $(OBJECTS) | $(LIBDIR)
 
 # Build test binary
 $(TEST_BIN): $(TEST_OBJ) $(LIBDIR)/libfam.so | $(BINDIR)
-	$(CC) -L/usr/local/lib -Wno-overflow -lcriterion -I$(INCLDIR) $(TEST_OBJ) -L$(LIBDIR) -lfam -o $@
+	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) -lfam -L/usr/local/lib -lcriterion -Wno-overflow -o $@
 
 # Create directories if they don't exist
 $(OBJDIR) $(TOBJDIR) $(LIBDIR) $(BINDIR):
@@ -62,7 +68,7 @@ test: $(TEST_BIN)
 
 # Clean up
 clean:
-	rm -fr $(OBJDIR)/*.o $(TOBJDIR)/*.o $(LIBDIR)/*.so $(TEST_BIN)
+	rm -fr $(OBJDIR) $(TOBJDIR) $(LIBDIR)/*.so $(TEST_BIN)
 
 # Phony targets
 .PHONY: all test clean
