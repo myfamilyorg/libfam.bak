@@ -10,7 +10,6 @@ CFLAGS  = -fPIC \
           -ffreestanding \
           -Wno-attributes \
           -Wno-dollar-in-identifier-extension \
-          -Wno-long-long \
           -DSTATIC=static
 TFLAGS  = -g -Isrc/include -Wno-attributes -Wno-dollar-in-identifier-extension
 LDFLAGS = -shared

@@ -171,7 +171,11 @@ int lseek(int fd, off_t offset, int whence) {
 	IMPL_WRAPPER(int, lseek, fd, offset, whence)
 }
 
-// to get the error code
+int munmap(void *addr, size_t length) {
+	IMPL_WRAPPER(int, munmap, addr, length)
+}
+
+// to get the error code in mmap
 #include <errno.h>
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd,
@@ -179,9 +183,5 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	void *v = syscall_mmap(addr, length, prot, flags, fd, offset);
 	err = errno;
 	return v;
-}
-
-int munmap(void *addr, size_t length) {
-	IMPL_WRAPPER(int, munmap, addr, length)
 }
 
