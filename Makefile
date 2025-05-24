@@ -32,9 +32,11 @@ STORE_SOURCES = $(filter-out $(STORE_SRCDIR)/test.c, $(wildcard $(STORE_SRCDIR)/
 SOURCES = $(CORE_SOURCES) $(STORE_SOURCES)
 OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
 
-# Test source file
-TEST_SRC = $(CORE_SRCDIR)/test.c
-TEST_OBJ = $(TOBJDIR)/test.o
+# Test source files
+CORE_TEST_SRC = $(CORE_SRCDIR)/test.c
+STORE_TEST_SRC = $(STORE_SRCDIR)/test.c
+TEST_SRC = $(CORE_TEST_SRC) $(STORE_TEST_SRC)
+TEST_OBJ = $(patsubst $(SRCDIR)/%.c,$(TOBJDIR)/%.o,$(TEST_SRC))
 TEST_BIN = $(BINDIR)/runtests
 
 # Default target
@@ -45,8 +47,8 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
 	@mkdir -p $(@D)
 	$(CC) -I$(INCLDIR) $(CFLAGS) -c $< -o $@
 
-# Rule for test object
-$(TOBJDIR)/%.o: $(CORE_SRCDIR)/test.c | $(TOBJDIR)
+# Rule for test objects
+$(TOBJDIR)/%.o: $(SRCDIR)/%.c | $(TOBJDIR)
 	@mkdir -p $(@D)
 	$(CC) -I$(INCLDIR) $(TFLAGS) -c $< -o $@
 
