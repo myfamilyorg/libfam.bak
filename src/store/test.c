@@ -17,7 +17,7 @@ int test_search(Txn *txn, const void *key, uint16_t key_len,
 	retval->self_page_id = txn->new_root;
 	retval->parent_page_id = txn->new_root;
 	BpTreeNode *n = NODE(txn->tree, txn->new_root);
-	retval->key_index = 0;
+	retval->key_index = n->data.leaf.num_entries;
 	printf("numentries=%u\n", n->data.leaf.num_entries);
 	for (int i = 0; i < n->data.leaf.num_entries; i++) {
 		uint16_t offset = n->data.leaf.entry_offsets[i];
@@ -34,12 +34,14 @@ int test_search(Txn *txn, const void *key, uint16_t key_len,
 			res = key_len < cmp_len ? -1 : 1;
 		printf("i=%i,len=%u,offset=%u,res=%i\n", i, cmp_len, offset,
 		       res);
-		retval->key_index = i;
 		if (res < 0) {
+			retval->key_index = i;
+			printf("break!");
 			break;
 		}
 	}
-	printf("retval->key_index=%i\n", retval->key_index);
+	printf("----------------------------------retval->key_index=%i\n",
+	       retval->key_index);
 	return 0;
 }
 
@@ -80,6 +82,12 @@ Test(core, store1) {
 	cr_assert(!bptree_put(&txn, "c01234567", 9, "123", 3, test_search));
 	cr_assert(!bptree_put(&txn, "d0123456", 8, "123", 3, test_search));
 	cr_assert(!bptree_put(&txn, "e012345", 7, "123", 3, test_search));
+	cr_assert(!bptree_put(&txn, "f01234", 6, "123", 3, test_search));
+	cr_assert(!bptree_put(&txn, "g0123", 5, "123", 3, test_search));
+	cr_assert(!bptree_put(&txn, "h012", 4, "123", 3, test_search));
+
+	cr_assert(!bptree_put(&txn, "e1", 2, "11111", 5, test_search));
+	cr_assert(!bptree_put(&txn, "i01", 3, "123", 3, test_search));
 
 	close(fd);
 	remove("/tmp/store1.dat");

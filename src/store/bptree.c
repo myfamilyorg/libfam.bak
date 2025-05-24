@@ -61,6 +61,8 @@ STATIC int bptree_insert_at(Txn *txn, uint64_t node_id, const void *key,
 	BpTreeNode *n = NODE(txn->tree, node_id);
 	BpTreeLeafNode *leaf = &n->data.leaf;
 	uint64_t needed = NEEDED_KEY_VALUE(key_len, value_len);
+	printf("insert_at needed=%u,key_index=%u,num_entries=%u\n", needed,
+	       key_index, leaf->num_entries);
 	if (needed + leaf->used_bytes < ENTRY_ARRAY_SIZE) {
 		if (key_index < leaf->num_entries) {
 			uint64_t move_len =
@@ -70,16 +72,14 @@ STATIC int bptree_insert_at(Txn *txn, uint64_t node_id, const void *key,
 				leaf->entries + leaf->entry_offsets[key_index],
 				move_len);
 			uint16_t noffsets[MAX_ENTRIES];
-			for (int i = key_index + 1; i <= leaf->num_entries;
-			     i++) {
+			for (int i = key_index + 1; i <= leaf->num_entries; i++)
 				noffsets[i] =
 				    leaf->entry_offsets[i - 1] + needed;
-			}
-			for (int i = key_index + 1; i <= leaf->num_entries;
-			     i++) {
+
+			for (int i = key_index + 1; i <= leaf->num_entries; i++)
 				leaf->entry_offsets[i] = noffsets[i];
-			}
-		}
+		} else
+			leaf->entry_offsets[key_index] = leaf->used_bytes;
 		COPY_KEY_VALUE_LEAF(leaf, key, key_len, value, value_len,
 				    key_index);
 		leaf->used_bytes += needed;
