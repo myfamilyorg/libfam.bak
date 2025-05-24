@@ -35,6 +35,7 @@ int strcmpn(const char *s1, const char *s2, size_t n);
 const char *strstr(const char *X, const char *Y);
 void *memset(void *ptr, int x, size_t n);
 void *memcpy(void *dst, const void *src, size_t n);
+void *memmove(void *dst, const void *src, size_t n);
 void bzero(void *dst, size_t n);
 size_t uint128_t_to_string(char *buf, uint128_t v);
 size_t int128_t_to_string(char *buf, int128_t v);

@@ -222,8 +222,6 @@ Test(core, test_obj) {
 #define O_CREAT 0x0040
 #define MODE_0644 0644
 
-#define MODE_0644 0644
-
 Test(core, files) {
 	remove("/tmp/testfile.dat");
 
@@ -257,5 +255,5 @@ Test(core, files) {
 	ret = mmap(NULL, 16384, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	cr_assert_eq(ret[0], 1);
 
-	remove("/tmp/testfile.dat");
+	// remove("/tmp/testfile.dat");
 }

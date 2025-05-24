@@ -72,8 +72,8 @@ const char *strstr(const char *s, const char *sub) {
 }
 
 void *memset(void *dest, int c, size_t n) {
-	__attribute__((aligned(16))) byte *s = (byte *)dest;
-	__attribute__((aligned(16))) size_t i;
+	byte *s = (byte *)dest;
+	size_t i;
 
 	if (dest == NULL || n == 0) {
 		return dest;
@@ -86,9 +86,9 @@ void *memset(void *dest, int c, size_t n) {
 }
 
 void *memcpy(void *dest, const void *src, size_t n) {
-	__attribute__((aligned(16))) byte *d = (byte *)dest;
-	__attribute__((aligned(16))) const byte *s = (byte *)src;
-	__attribute__((aligned(16))) size_t i;
+	byte *d = (byte *)dest;
+	const byte *s = (byte *)src;
+	size_t i;
 
 	if (dest == NULL || src == NULL || n == 0) {
 		return dest;
@@ -97,6 +97,28 @@ void *memcpy(void *dest, const void *src, size_t n) {
 	for (i = 0; i < n; i++) {
 		d[i] = s[i];
 	}
+	return dest;
+}
+
+void *memmove(void *dest, const void *src, size_t n) {
+	byte *d = (byte *)dest;
+	const byte *s = (byte *)src;
+	size_t i;
+
+	if (dest == NULL || src == NULL || n == 0) {
+		return dest;
+	}
+
+	if (d <= s || d >= s + n) {
+		for (i = 0; i < n; i++) {
+			d[i] = s[i];
+		}
+	} else {
+		for (i = n; i > 0; i--) {
+			d[i - 1] = s[i - 1];
+		}
+	}
+
 	return dest;
 }
 
@@ -125,25 +147,26 @@ size_t uint128_t_to_string(char *buf, __uint128_t v) {
 }
 
 size_t int128_t_to_string(char *buf, __int128_t v) {
-	 #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Woverflow"
-    const __int128_t int128_min = -((__int128_t)1 << 127);
-    #pragma GCC diagnostic pop
-    const __uint128_t int128_min_abs = (__uint128_t)0x8000000000000000ULL << 64;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Woverflow"
+	const __int128_t int128_min = -((__int128_t)1 << 127);
+#pragma GCC diagnostic pop
+	const __uint128_t int128_min_abs = (__uint128_t)0x8000000000000000ULL
+					   << 64;
 
-    int is_negative = v < 0;
-    __uint128_t abs_v;
+	int is_negative = v < 0;
+	__uint128_t abs_v;
 
-    if (is_negative) {
-        *buf = '-';
-        buf++;
-        abs_v = v == int128_min ? int128_min_abs : (__uint128_t)(-v);
-    } else {
-        abs_v = (__uint128_t)v;
-    }
+	if (is_negative) {
+		*buf = '-';
+		buf++;
+		abs_v = v == int128_min ? int128_min_abs : (__uint128_t)(-v);
+	} else {
+		abs_v = (__uint128_t)v;
+	}
 
-    size_t len = uint128_t_to_string(buf, abs_v);
-    return is_negative ? len + 1 : len;
+	size_t len = uint128_t_to_string(buf, abs_v);
+	return is_negative ? len + 1 : len;
 }
 
 /* Convert a double to a decimal string in buf.

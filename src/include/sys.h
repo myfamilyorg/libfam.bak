@@ -35,7 +35,7 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	   off_t offset);
 int munmap(void *addr, size_t length);
 
-int open(const char *pathname, int flags, mode_t mode);
+int open(const char *pathname, int flags, ...);
 int close(int fd);
 int ftruncate(int fd, off_t length);
 int msync(void *addr, size_t length, int flags);
