@@ -28,7 +28,7 @@ STORE_SRCDIR = $(SRCDIR)/store
 
 # Source files, excluding test.c
 CORE_SOURCES = $(filter-out $(CORE_SRCDIR)/test.c, $(wildcard $(CORE_SRCDIR)/*.c))
-STORE_SOURCES = $(wildcard $(STORE_SRCDIR)/*.c)
+STORE_SOURCES = $(filter-out $(STORE_SRCDIR)/test.c, $(wildcard $(STORE_SRCDIR)/*.c))
 SOURCES = $(CORE_SOURCES) $(STORE_SOURCES)
 OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
 
