@@ -11,8 +11,9 @@
 #define O_CREAT 0x0040
 #define MODE_0644 0644
 
-int test_search(Txn *txn, const void *key, uint16_t key_len,
-		const BpTreeNode *node, BpTreeNodePair *retval) {
+void test_search(Txn *txn, const void *key, uint16_t key_len,
+		 const BpTreeNode *node, BpTreeNodePair *retval) {
+	retval->found = false;
 	printf("search %llu\n", txn->new_root);
 	retval->self_page_id = txn->new_root;
 	retval->parent_page_id = txn->new_root;
@@ -34,15 +35,15 @@ int test_search(Txn *txn, const void *key, uint16_t key_len,
 			res = key_len < cmp_len ? -1 : 1;
 		printf("i=%i,len=%u,offset=%u,res=%i\n", i, cmp_len, offset,
 		       res);
-		if (res < 0) {
+		if (res <= 0) {
+			if (res == 0) retval->found = true;
 			retval->key_index = i;
-			printf("break!");
+			printf("break!\n");
 			break;
 		}
 	}
 	printf("----------------------------------retval->key_index=%i\n",
 	       retval->key_index);
-	return 0;
 }
 
 Test(core, store1) {
@@ -77,6 +78,7 @@ Test(core, store1) {
 	cr_assert(!bptree_put(&txn, "aaa", 3, "ok1", 3, test_search));
 	*/
 
+	BpTreeNodePair retval;
 	cr_assert(!bptree_put(&txn, "a0123456789", 11, "123", 3, test_search));
 	cr_assert(!bptree_put(&txn, "b012345678", 10, "123", 3, test_search));
 	cr_assert(!bptree_put(&txn, "c01234567", 9, "123", 3, test_search));
@@ -85,9 +87,18 @@ Test(core, store1) {
 	cr_assert(!bptree_put(&txn, "f01234", 6, "123", 3, test_search));
 	cr_assert(!bptree_put(&txn, "g0123", 5, "123", 3, test_search));
 	cr_assert(!bptree_put(&txn, "h012", 4, "123", 3, test_search));
-
 	cr_assert(!bptree_put(&txn, "e1", 2, "11111", 5, test_search));
+
+	test_search(&txn, "i01", 3, NODE(txn.tree, txn.new_root), &retval);
+	cr_assert(!retval.found);
 	cr_assert(!bptree_put(&txn, "i01", 3, "123", 3, test_search));
+	cr_assert(!bptree_put(&txn, "i01", 3, "444", 3, test_search));
+
+	test_search(&txn, "i01", 3, NODE(txn.tree, txn.new_root), &retval);
+	cr_assert(retval.found);
+
+	test_search(&txn, "i03", 3, NODE(txn.tree, txn.new_root), &retval);
+	cr_assert(!retval.found);
 
 	close(fd);
 	remove("/tmp/store1.dat");

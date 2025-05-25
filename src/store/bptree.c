@@ -148,10 +148,9 @@ int bptree_put(Txn *txn, const void *key, uint16_t key_len, const void *value,
 	if (!txn->new_root) bptree_set_root(txn);
 	BpTreeNode *node = NODE(txn->tree, txn->new_root);
 	BpTreeNodePair retval;
-	res = search(txn, key, key_len, node, &retval);
-	if (!res)
-		res = bptree_insert_node(txn, key, key_len, value, value_len,
-					 retval.self_page_id, retval.key_index);
+	search(txn, key, key_len, node, &retval);
+	res = bptree_insert_node(txn, key, key_len, value, value_len,
+				 retval.self_page_id, retval.key_index);
 	return res;
 }
 

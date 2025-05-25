@@ -79,6 +79,7 @@ typedef struct BpTreeNodePair {
 	uint64_t parent_page_id;  // Page ID of parent node (e.g., 4)
 	uint64_t self_page_id;	  // Page ID of current node (e.g., 7)
 	uint16_t key_index;	  // Index of key in parent’s children array
+	bool found;  // whether or not the entry was found in the search
 } BpTreeNodePair;
 
 typedef struct {
@@ -91,8 +92,8 @@ typedef struct {
 	size_t modified_pages_count;
 } Txn;
 
-typedef int (*BpTreeSearch)(Txn *txn, const void *key, uint16_t key_len,
-			    const BpTreeNode *node, BpTreeNodePair *retval);
+typedef void (*BpTreeSearch)(Txn *txn, const void *key, uint16_t key_len,
+			     const BpTreeNode *node, BpTreeNodePair *retval);
 
 int bptree_init(BpTree *tree);
 int bptree_put(Txn *txn, const void *key, uint16_t key_len, const void *value,
