@@ -1,6 +1,7 @@
 #include <bptree.h>
 #include <criterion/criterion.h>
 #include <misc.h>
+#include <stdio.h>
 
 Test(core, store1) {
 	const char *dat_file = "/tmp/store1.dat";

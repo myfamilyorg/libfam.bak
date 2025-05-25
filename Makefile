@@ -1,9 +1,9 @@
 CC      = gcc
 CFLAGS  = -fPIC \
-          -std=c99 \
           -pedantic \
           -Wall \
           -Wextra \
+	  -std=c99 \
           -O3 \
           -fno-stack-protector \
           -fno-builtin \
@@ -14,6 +14,7 @@ CFLAGS  = -fPIC \
 TFLAGS  = -g -Isrc/include -Wno-attributes -Wno-dollar-in-identifier-extension
 LDFLAGS = -shared
 FILTER ="*"
+PAGE_SIZE=16384
 
 # Directories
 OBJDIR  = .obj
@@ -44,12 +45,12 @@ all: $(LIBDIR)/libfam.so
 # Rule for library objects
 $(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
 	@mkdir -p $(@D)
-	$(CC) -I$(INCLDIR) $(CFLAGS) -c $< -o $@
+	$(CC)  -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(CFLAGS) -c $< -o $@
 
 # Rule for test objects
 $(TOBJDIR)/%.o: $(SRCDIR)/%.c | $(TOBJDIR)
 	@mkdir -p $(@D)
-	$(CC) -I$(INCLDIR) $(TFLAGS) -c $< -o $@
+	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(TFLAGS) -c $< -o $@
 
 # Build shared library (excludes test.o)
 $(LIBDIR)/libfam.so: $(OBJECTS) | $(LIBDIR)
