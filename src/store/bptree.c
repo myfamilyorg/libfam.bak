@@ -6,8 +6,10 @@
 
 #ifdef __linux__
 #define MS_SYNC 4
+#define MS_ASYNC 1
 #elif defined(__APPLE__)
-#define MS_SYNC 4
+#define MS_SYNC 10
+#define MS_ASYNC 1
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
@@ -96,7 +98,8 @@ STATIC uint64_t bptree_allocate_node(BpTree *tree) {
 		ret = freelist->next_file_page;
 		freelist->next_file_page++;
 	}
-	if (msync(freelist, PAGE_SIZE, MS_SYNC) == -1) {
+	if (TREE_IS_FILE_BACKED(tree) &&
+	    msync(freelist, PAGE_SIZE, MS_ASYNC) == -1) {
 		freelist->head = old_head;
 		freelist->next_file_page = old_next_file_page;
 		return 0;
