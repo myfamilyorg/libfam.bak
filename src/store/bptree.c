@@ -152,10 +152,8 @@ STATIC uint64_t bptree_allocate_node(BpTreeImpl *tree) {
 	return ret;
 }
 
-STATIC int bptree_split_add(BpTxn *txn, uint64_t node_id, uint16_t key_index,
-			    const void *key, uint16_t key_len,
-			    const void *value, uint32_t value_len,
-			    uint64_t needed) {
+STATIC uint16_t bptree_find_midpoint(BpTxn *txn, uint64_t node_id,
+				     uint16_t key_index, uint64_t needed) {
 	BpTxnImpl *impl = (BpTxnImpl *)txn;
 	BpTreeNode *node = NODE(impl->tree, node_id);
 	BpTreeLeafNode *leaf = &node->data.leaf;
@@ -166,8 +164,83 @@ STATIC int bptree_split_add(BpTxn *txn, uint64_t node_id, uint16_t key_index,
 	// if overflow is needed, use overflow for the newly inserted entry
 	uint16_t ideal_midpoint = ENTRY_ARRAY_SIZE / 2;
 	uint16_t num_entries = node->num_entries;
-	printf("=========ideal_midpoint %u, num=%u\n", ideal_midpoint,
-	       num_entries);
+	uint16_t *entry_offsets = node->data.leaf.entry_offsets;
+	printf("=========ideal_midpoint %u, num=%u, key_index=%u\n",
+	       ideal_midpoint, num_entries + 1, key_index);
+	uint16_t noffsets[num_entries + 1];
+	uint16_t j = 0;
+	for (int i = 0; i < num_entries; i++) {
+		if (j == key_index) {
+			noffsets[j++] = entry_offsets[i];
+			noffsets[j++] = entry_offsets[i] + needed;
+		} else if (j > key_index) {
+			noffsets[j++] = entry_offsets[i] + needed;
+		} else {
+			noffsets[j++] = entry_offsets[i];
+		}
+		printf("entry_off(pre)[%i]=%u\n", i, entry_offsets[i]);
+	}
+	if (key_index == num_entries) noffsets[num_entries] = leaf->used_bytes;
+	for (int i = 0; i < num_entries + 1; i++)
+		printf("offsets[%i]=%u\n", i, noffsets[i]);
+
+	uint16_t mid_point_index = 0;
+	uint16_t left = 0;
+	uint16_t right = num_entries;
+
+	if (noffsets[right] < ideal_midpoint)
+		// edge case: the far right entry is still less than the ideal
+		// midpoint. We use it
+		mid_point_index = right;
+	else {
+		// otherwise iterate through
+		while (left < right) {
+			uint16_t mid = left + (right - left) / 2;
+			if (mid == 0) {
+				if (num_entries >= 1 &&
+				    noffsets[1] <= ideal_midpoint) {
+					mid_point_index = 1;
+				} else {
+					mid_point_index = 0;
+				}
+				break;
+			}
+
+			if (noffsets[mid - 1] > ideal_midpoint) {
+				right = mid;
+			} else if (noffsets[mid] < ideal_midpoint) {
+				left = mid + 1;
+			} else {
+				uint16_t diff_mid =
+				    noffsets[mid] - ideal_midpoint;
+				uint16_t diff_mid_minus_1 =
+				    ideal_midpoint - noffsets[mid - 1];
+				if (diff_mid < diff_mid_minus_1)
+					mid_point_index = mid;
+				else
+					mid_point_index = mid - 1;
+				break;
+			}
+		}
+	}
+	return mid_point_index;
+}
+
+STATIC int bptree_split_add(BpTxn *txn, uint64_t node_id, uint16_t key_index,
+			    const void *key, uint16_t key_len,
+			    const void *value, uint32_t value_len,
+			    uint64_t needed) {
+	BpTxnImpl *impl = (BpTxnImpl *)txn;
+	BpTreeNode *node = NODE(impl->tree, node_id);
+	BpTreeLeafNode *leaf = &node->data.leaf;
+	BpTreeImpl *tree = TREE(txn);
+	uint16_t mid_point_index =
+	    bptree_find_midpoint(txn, node_id, key_index, needed);
+	printf("mid_point_index=%u\n", mid_point_index);
+
+	uint64_t split_id = bptree_allocate_node(tree);
+	BpTreeNode *split = NODE(impl->tree, split_id);
+
 	return 0;
 }
 
@@ -182,12 +255,18 @@ STATIC int bptree_add_to_node(BpTxn *txn, uint64_t node_id, uint16_t key_index,
 	    key_len + value_len + sizeof(uint32_t) + sizeof(uint16_t);
 
 	BpTreeLeafNode *leaf = &node->data.leaf;
-	if (leaf->used_bytes + needed < ENTRY_ARRAY_SIZE &&
-	    node->num_entries < MAX_ENTRIES) {
+	if (needed > ENTRY_ARRAY_SIZE) {
+		// TODO: handle overflow
+	} else if (leaf->used_bytes + needed < ENTRY_ARRAY_SIZE &&
+		   node->num_entries < MAX_ENTRIES) {
 		if (key_index < node->num_entries) {
+			printf("shift ki=%i ent=%i\n", key_index,
+			       node->num_entries);
 			SHIFT_LEAF(node, needed, key_index);
-		} else
+		} else {
+			printf("noshift\n");
 			leaf->entry_offsets[key_index] = leaf->used_bytes;
+		}
 		COPY_KEY_VALUE_LEAF(leaf, key, key_len, value, value_len,
 				    key_index);
 		leaf->used_bytes += needed;

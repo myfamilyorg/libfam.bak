@@ -30,6 +30,11 @@ void test_search(BpTxn *txn, const void *key, uint16_t key_len,
 		const char *key_ptr = KEY_PTR_LEAF(node, i);
 		uint16_t key_ptr_len = KEY_PTR_LEN_LEAF(node, i);
 
+		char buf[key_ptr_len + 1];
+		for (int j = 0; j < key_ptr_len + 1; j++) buf[i] = 0;
+		strncpy(buf, key_ptr, key_ptr_len);
+		printf("key=%s\n", buf);
+
 		int res;
 		if (key_ptr_len < key_len)
 			res = strncmp(key, key_ptr, key_ptr_len);
@@ -118,6 +123,44 @@ Test(store, store1) {
 	cr_assert(!bptree_put(&txn, "f113", 4, big, 4096, test_search));
 	printf("last insert\n");
 	cr_assert(!bptree_put(&txn, "f114", 4, big, 4096, test_search));
+
+	remove(dat_file);
+}
+
+Test(store, store2) {
+	const char *dat_file = "/tmp/store2.dat";
+	size_t size = 1024 * 16384;
+	remove(dat_file);
+	int fd = open_create(dat_file);
+	int ftruncate_res = ftruncate(fd, size);
+	cr_assert(ftruncate_res == 0);
+
+	char *base =
+	    mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	cr_assert(base != MAP_FAILED);
+
+	BpTree tree;
+	cr_assert_eq(bptree_init(&tree, base, size, FileBacked), 0);
+
+	BpTxn txn;
+	bptxn_start(&txn, &tree);
+
+	BpTreeNodeSearchResult result;
+
+	char big[16384];
+	memset(big, '1', sizeof(big));
+
+	cr_assert(!bptree_put(&txn, "aaa", 3, big, 3, test_search));
+	cr_assert(!bptree_put(&txn, "bbb", 3, big, 3, test_search));
+	cr_assert(!bptree_put(&txn, "ccc", 3, big, 3, test_search));
+	cr_assert(!bptree_put(&txn, "ddd", 3, big, 3, test_search));
+	cr_assert(!bptree_put(&txn, "abc", 3, big, 3, test_search));
+	cr_assert(!bptree_put(&txn, "eee", 3, big, 3, test_search));
+
+	cr_assert(!bptree_put(&txn, "ccc1", 4, big, 4096, test_search));
+	cr_assert(!bptree_put(&txn, "ccc2", 4, big, 4096, test_search));
+	cr_assert(!bptree_put(&txn, "ccc3", 4, big, 4096, test_search));
+	cr_assert(!bptree_put(&txn, "bcad", 4, big, 4096, test_search));
 
 	remove(dat_file);
 }
