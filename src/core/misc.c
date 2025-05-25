@@ -26,6 +26,11 @@
 #include <misc.h>
 #include <types.h>
 
+// Constants
+#define O_RDWR 0x0002
+#define O_CREAT 0x0040
+#define MODE_0644 0644
+
 size_t strlen(const char *X) {
 	const char *Y;
 	if (X == NULL) return 0;
@@ -58,7 +63,7 @@ int strcmpn(const char *X, const char *Y, size_t n) {
 	return (byte)*X - (byte)*Y;
 }
 
-const char *strstr(const char *s, const char *sub) {
+char *strstr(const char *s, const char *sub) {
 	if (s == NULL || sub == NULL) return NULL;
 	for (; *s; s++) {
 		const char *tmps = s, *tmpsub = sub;
@@ -66,7 +71,7 @@ const char *strstr(const char *s, const char *sub) {
 			tmps++;
 			tmpsub++;
 		}
-		if (*tmpsub == '\0') return s;
+		if (*tmpsub == '\0') return (char *)s;
 	}
 	return NULL;
 }
@@ -304,4 +309,8 @@ __uint128_t __udivti3(__uint128_t a, __uint128_t b) {
 	}
 
 	return quotient;
+}
+
+int open_create(const char *path) {
+	return open(path, O_CREAT | O_RDWR, MODE_0644);
 }

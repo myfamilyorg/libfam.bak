@@ -123,7 +123,7 @@ static inline __int128_t get_int128_min(void) {
 #endif
 
 #ifndef bool
-#define bool byte
+#define bool _Bool
 #endif
 
 #ifndef false
