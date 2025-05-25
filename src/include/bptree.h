@@ -66,8 +66,9 @@ typedef struct BpTreeLeafNode {
 } BpTreeLeafNode;
 
 typedef struct BpTreeNode {
-	uint64_t page_id;  // Unique page ID (e.g., 1007), for mmap offset
-	uint8_t is_leaf;   // 1 for leaf, 0 for internal
+	uint64_t page_id;    // Unique page ID (e.g., 1007), for mmap offset
+	uint64_t parent_id;  // id for parrent
+	uint8_t is_leaf;     // 1 for leaf, 0 for internal
 	uint64_t free_list_next;  // next free node
 	union {
 		BpTreeInternalNode internal;

@@ -84,6 +84,91 @@ STATIC int bptree_insert_at(Txn *txn, uint64_t node_id, const void *key,
 				    key_index);
 		leaf->used_bytes += needed;
 		leaf->num_entries++;
+	} else {
+		uint64_t split_id = bptree_allocate_node(txn->tree);
+		if (split_id == 0) return -1;
+		if (n->parent_id == 0) {
+			// this is the root node we'll need to create a new root
+			// to point to the split
+			uint64_t nroot = bptree_allocate_node(txn->tree);
+			if (nroot == 0) return -1;  // TODO: release split_id
+		}
+		BpTreeNode *split = NODE(txn->tree, split_id);
+		split->is_leaf = true;
+		split->page_id = split_id;
+		split->free_list_next = 0;
+
+		uint16_t needed_left;
+		if (key_index == leaf->num_entries)
+			needed_left = leaf->used_bytes;
+		else
+			needed_left = leaf->entry_offsets[key_index];
+		uint16_t needed_right =
+		    (needed + leaf->used_bytes) - needed_left;
+
+		if (needed_left + needed < ENTRY_ARRAY_SIZE) {
+			// add to left side and split off the right
+			uint16_t right_count = leaf->num_entries - key_index;
+			uint16_t left_count = key_index;
+			split->data.leaf.num_entries =
+			    leaf->num_entries - key_index;
+			split->data.leaf.used_bytes = needed_right;
+			memmove(split->data.leaf.entry_offsets,
+				leaf->entry_offsets + left_count,
+				right_count * sizeof(uint16_t));
+			memmove(split->data.leaf.is_overflow,
+				leaf->is_overflow + left_count,
+				right_count * sizeof(uint8_t)
+
+			);
+			memmove(split->data.leaf.entries,
+				leaf->entries + needed_left, needed_right);
+			for (uint16_t i = 0; i < right_count; i++) {
+				split->data.leaf.entry_offsets[i] -=
+				    needed_left;
+			}
+			COPY_KEY_VALUE_LEAF(leaf, key, key_len, value,
+					    value_len, key_index);
+			leaf->entry_offsets[key_index] = needed_left;
+			leaf->used_bytes = needed_left + needed;
+			leaf->num_entries = left_count + 1;
+
+		} else if (needed_right + needed < ENTRY_ARRAY_SIZE) {
+			// add to right side and split off the left
+			uint16_t right_count = leaf->num_entries - key_index;
+			uint16_t left_count = key_index;
+			split->data.leaf.num_entries =
+			    leaf->num_entries - key_index;
+			split->data.leaf.used_bytes = needed_right;
+			memmove(
+			    split->data.leaf.entry_offsets + sizeof(uint16_t),
+			    leaf->entry_offsets + left_count,
+			    right_count * sizeof(uint16_t));
+			memmove(split->data.leaf.is_overflow + sizeof(uint8_t),
+				leaf->is_overflow + left_count,
+				right_count * sizeof(uint8_t));
+			memmove(split->data.leaf.entries + needed,
+				leaf->entries + needed_left, needed_right);
+
+			for (uint16_t i = 1; i < right_count + 1; i++) {
+				split->data.leaf.entry_offsets[i] -=
+				    needed_left;
+				split->data.leaf.entry_offsets[i] += needed;
+			}
+			COPY_KEY_VALUE_LEAF((&split->data.leaf), key, key_len,
+					    value, value_len, 0);
+			split->data.leaf.entry_offsets[0] = 0;
+			split->data.leaf.used_bytes = needed_right + needed;
+			split->data.leaf.num_entries = right_count + 1;
+			leaf->num_entries = left_count;
+			leaf->used_bytes = needed_left;
+		} else {
+			if (needed_left < needed_right) {
+				// overflow on the left side
+			} else {
+				// overflow on the right side
+			}
+		}
 	}
 	return 0;
 }
