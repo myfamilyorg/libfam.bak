@@ -4,6 +4,8 @@
 #include <misc.h>
 #include <sys.h>
 
+int printf(const char *, ...);
+
 #ifdef __linux__
 #define MS_SYNC 4
 #define MS_ASYNC 1
@@ -16,17 +18,58 @@
 
 #define TREE(txn) ((BpTreeImpl *)(((BpTxnImpl *)(txn))->tree))
 
-#define METADATA1(txn) (Metadata *)((char *)(TREE(txn)->base))
-#define METADATA2(txn) \
-	(Metadata *)((char *)(((size_t)(TREE(txn))->base) + PAGE_SIZE))
-#define FREE_LIST(txn) \
-	(FreeList *)((char *)(((size_t)(TREE(txn))->base) + 2 * PAGE_SIZE))
-#define NODE(txn, index)                                      \
-	(BpTreeNode *)((char *)(((size_t)(TREE(txn))->base) + \
-				index * PAGE_SIZE))
+#define METADATA1(tree) (((BpTreeImpl *)tree)->base)
+#define METADATA2(tree) \
+	(Metadata *)(PAGE_SIZE + (size_t)(((BpTreeImpl *)tree)->base))
+#define FREE_LIST(tree)                                              \
+	(FreeList *)((char *)(((size_t)((BpTreeImpl *)tree)->base) + \
+			      2 * PAGE_SIZE))
+#define NODE(tree, index)                                               \
+	((BpTreeNode *)((char *)(((size_t)((BpTreeImpl *)tree)->base) + \
+				 index * PAGE_SIZE)))
 
 #define TREE_IS_FILE_BACKED(tree) (((BpTreeImpl *)(tree))->btype == FileBacked)
 #define MIN_PAGE 3
+
+#define COPY_NODE(tree, dst, src) \
+	memcpy(NODE(tree, dst), NODE(tree, src), PAGE_SIZE)
+
+#define IS_ROOT(tree, node_id) (NODE(tree, node_id)->parent_id == 0)
+
+#define COPY_KEY_LEAF(leaf, key, key_len, key_index)                    \
+	do {                                                            \
+		memcpy(leaf->entries + leaf->entry_offsets[key_index],  \
+		       &key_len, sizeof(uint16_t));                     \
+		memcpy(leaf->entries + leaf->entry_offsets[key_index] + \
+			   sizeof(uint16_t),                            \
+		       key, key_len);                                   \
+	} while (false);
+#define COPY_KEY_VALUE_LEAF(leaf, key, key_len, value, value_len, key_index) \
+	do {                                                                 \
+		COPY_KEY_LEAF(leaf, key, key_len, key_index);                \
+		memcpy(leaf->entries + leaf->entry_offsets[key_index] +      \
+			   sizeof(uint16_t) + key_len,                       \
+		       &value_len, sizeof(uint32_t));                        \
+		memcpy(leaf->entries + leaf->entry_offsets[key_index] +      \
+			   sizeof(uint32_t) + sizeof(uint16_t) + key_len,    \
+		       value, value_len);                                    \
+	} while (false);
+
+#define SHIFT_LEAF(node, needed, key_index)                                    \
+	do {                                                                   \
+		BpTreeLeafNode *_leaf__ = &node->data.leaf;                    \
+		uint64_t move_len =                                            \
+		    _leaf__->used_bytes - _leaf__->entry_offsets[key_index];   \
+		memmove(_leaf__->entries + _leaf__->entry_offsets[key_index] + \
+			    needed,                                            \
+			_leaf__->entries + _leaf__->entry_offsets[key_index],  \
+			move_len);                                             \
+		uint16_t noffsets[MAX_ENTRIES];                                \
+		for (int i = key_index + 1; i <= node->num_entries; i++)       \
+			noffsets[i] = _leaf__->entry_offsets[i - 1] + needed;  \
+		for (int i = key_index + 1; i <= node->num_entries; i++)       \
+			_leaf__->entry_offsets[i] = noffsets[i];               \
+	} while (false);
 
 uint64_t __bptxn_next_id = 0;
 
@@ -58,7 +101,7 @@ typedef struct {
 	Lock lock;
 } FreeList;
 
-STATIC void __attribute__((constructor)) test() {
+STATIC void __attribute__((constructor)) bptree_test() {
 	if (sizeof(BpTree) != sizeof(BpTreeImpl)) {
 		const char *s =
 		    "BpTree and BpTreeImpl must have the same size!\n";
@@ -81,7 +124,7 @@ STATIC void __attribute__((constructor)) test() {
 	}
 }
 
-STATIC uint64_t bptree_allocate_node(BpTree *tree) {
+STATIC uint64_t bptree_allocate_node(BpTreeImpl *tree) {
 	FreeList *freelist = FREE_LIST(tree);
 	LockGuard lg = lock_write(&freelist->lock);
 	uint64_t ret = 0, old_head = freelist->head,
@@ -107,9 +150,83 @@ STATIC uint64_t bptree_allocate_node(BpTree *tree) {
 	return ret;
 }
 
-int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
-	       uint64_t value_len, const BpTreeSearch search) {
+STATIC int bptree_split_add(BpTxn *txn, uint64_t node_id, uint16_t key_index,
+			    const void *key, uint16_t key_len,
+			    const void *value, uint32_t value_len) {
 	return 0;
+}
+
+STATIC int bptree_add_to_node(BpTxn *txn, uint64_t node_id, uint16_t key_index,
+			      const void *key, uint16_t key_len,
+			      const void *value, uint32_t value_len) {
+	BpTxnImpl *impl = (BpTxnImpl *)txn;
+	BpTreeNode *node = NODE(impl->tree, node_id);
+	BpTreeImpl *tree = TREE(txn);
+
+	uint64_t needed =
+	    key_len + value_len + sizeof(uint32_t) + sizeof(uint16_t);
+
+	if (needed < ENTRY_ARRAY_SIZE && node->num_entries < MAX_ENTRIES) {
+		BpTreeLeafNode *leaf = &node->data.leaf;
+		if (key_index < node->num_entries) {
+			SHIFT_LEAF(node, needed, key_index);
+		} else
+			leaf->entry_offsets[key_index] = leaf->used_bytes;
+		COPY_KEY_VALUE_LEAF(leaf, key, key_len, value, value_len,
+				    key_index);
+		leaf->used_bytes += needed;
+		node->num_entries++;
+	} else {
+		if (bptree_split_add(txn, node_id, key_index, key, key_len,
+				     value, value_len))
+			return -1;
+	}
+
+	return 0;
+}
+
+STATIC int bptree_insert_node(BpTxn *txn, const void *key, uint16_t key_len,
+			      const void *value, uint64_t value_len,
+			      uint64_t page_id, uint16_t key_index) {
+	BpTxnImpl *impl = (BpTxnImpl *)txn;
+	BpTreeImpl *tree = TREE(txn);
+	uint64_t node_id = bptree_allocate_node(tree);
+	if (node_id == 0) return -1;
+
+	COPY_NODE(tree, node_id, page_id);
+	if (IS_ROOT(tree, page_id)) {
+		impl->new_root = node_id;
+		BpTreeNode *nroot = NODE(tree, node_id);
+		nroot->page_id = node_id;
+	}
+	int res = bptree_add_to_node(txn, node_id, key_index, key, key_len,
+				     value, value_len);
+
+	return res;
+}
+
+BpTreeNode *bptxn_get_node(BpTxn *txn, uint64_t node_id) {
+	BpTxnImpl *impl = (BpTxnImpl *)txn;
+	return NODE(impl->tree, node_id);
+}
+
+BpTreeNode *bptree_root(BpTxn *txn) {
+	BpTxnImpl *impl = (BpTxnImpl *)txn;
+	return NODE(impl->tree, impl->new_root);
+}
+
+int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
+	       uint32_t value_len, const BpTreeSearch search) {
+	BpTxnImpl *impl = (BpTxnImpl *)txn;
+	BpTreeNode *node = NODE(impl->tree, impl->new_root);
+	BpTreeNodeSearchResult result;
+	printf("search with new_root=%lu, page_id=%lu\n", impl->new_root,
+	       node->page_id);
+	search(txn, key, key_len, node, &result);
+	if (result.found) return -1;
+	int res = bptree_insert_node(txn, key, key_len, value, value_len,
+				     result.page_id, result.key_index);
+	return res;
 }
 void *bptree_remove(BpTxn *txn, const void *key, uint16_t key_len,
 		    const void *value, uint64_t value_len,
@@ -129,16 +246,23 @@ int bptree_init(BpTree *tree, void *base, uint64_t capacity, BpTreeType btype) {
 	Metadata *metadata1 = METADATA1(tree);
 	Metadata *metadata2 = METADATA2(tree);
 	metadata1->lock = LOCK_INIT;
+
 	FreeList *freelist = FREE_LIST(tree);
 	freelist->lock = LOCK_INIT;
 
 	if (metadata1->counter == 0) {
+		printf("init with counter = 0\n");
 		metadata1->counter = 1;
 		metadata2->counter = 0;
 		metadata1->root = metadata2->root = MIN_PAGE;
 		FreeList *freelist = FREE_LIST(tree);
 		freelist->head = 0;
 		freelist->next_file_page = MIN_PAGE + 1;
+
+		BpTreeNode *root = NODE(tree, metadata1->root);
+		root->is_leaf = true;
+		root->page_id = MIN_PAGE;
+
 		if (TREE_IS_FILE_BACKED(tree) &&
 		    msync(metadata1, 2 * PAGE_SIZE, MS_SYNC) == -1) {
 			metadata1->counter = 0;
@@ -149,19 +273,22 @@ int bptree_init(BpTree *tree, void *base, uint64_t capacity, BpTreeType btype) {
 	return 0;
 }
 
-void bptxn_start(BpTxn *txn, BpTree *tree) {
-	((BpTxnImpl *)txn)->tree = tree;
+void bptxn_start(BpTxn *txn, BpTree *t) {
+	((BpTxnImpl *)txn)->tree = t;
 	((BpTxnImpl *)txn)->txn_id =
 	    __atomic_fetch_add(&__bptxn_next_id, 1, __ATOMIC_SEQ_CST);
 
-	Metadata *metadata1 = METADATA1(txn);
-	Metadata *metadata2 = METADATA2(txn);
+	BpTreeImpl *tree = TREE(txn);
+	Metadata *metadata1 = METADATA1(tree);
+	Metadata *metadata2 = METADATA2(tree);
 	LockGuard lg = lock_read(&metadata1->lock);
 
 	if (metadata1->counter > metadata2->counter)
 		((BpTxnImpl *)txn)->new_root = metadata1->root;
 	else
 		((BpTxnImpl *)txn)->new_root = metadata2->root;
+	printf("newr= %lu\n", ((BpTxnImpl *)txn)->new_root);
 }
 int bptxn_commit(BpTxn *txn) { return 0; }
 int bptxn_abort(BpTxn *txn) { return 0; }
+
