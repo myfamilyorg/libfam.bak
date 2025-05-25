@@ -8,14 +8,8 @@
 #endif /* PAGE_SIZE */
 
 #define MAX_ENTRIES (PAGE_SIZE / 32)
-#define KEY_ARRAY_SIZE ((11 * PAGE_SIZE - 640) / 16)
+#define KEY_ARRAY_SIZE (((11 * PAGE_SIZE - 640) / 16) - 8)
 #define ENTRY_ARRAY_SIZE ((29 * PAGE_SIZE - 1280) / 32)
-
-/*
-#define MAX_ENTRIES (PAGE_SIZE / 32)
-#define KEY_ARRAY_SIZE ((11 * PAGE_SIZE - 608) / 16)
-#define ENTRY_ARRAY_SIZE ((29 * PAGE_SIZE - 1216) / 32)
-*/
 
 #define KEY_PTR_LEAF(node, index)                                         \
 	(node->data.leaf.entries + node->data.leaf.entry_offsets[index] + \
@@ -43,7 +37,6 @@ typedef struct {
 } BpTreeInternalNode;
 
 typedef struct {
-	uint16_t used_bytes;
 	uint16_t entry_offsets[MAX_ENTRIES];
 	uint8_t entries[ENTRY_ARRAY_SIZE];
 	uint8_t is_overflow[MAX_ENTRIES];
@@ -56,6 +49,7 @@ typedef struct {
 	uint64_t free_list_next : 48;
 	uint16_t num_entries;
 	uint8_t is_leaf;
+	uint16_t used_bytes;
 	union {
 		BpTreeInternalNode internal;
 		BpTreeLeafNode leaf;

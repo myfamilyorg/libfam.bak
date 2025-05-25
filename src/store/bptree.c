@@ -59,7 +59,7 @@ int printf(const char *, ...);
 	do {                                                                   \
 		BpTreeLeafNode *_leaf__ = &node->data.leaf;                    \
 		uint64_t move_len =                                            \
-		    _leaf__->used_bytes - _leaf__->entry_offsets[key_index];   \
+		    node->used_bytes - _leaf__->entry_offsets[key_index];      \
 		memmove(_leaf__->entries + _leaf__->entry_offsets[key_index] + \
 			    needed,                                            \
 			_leaf__->entries + _leaf__->entry_offsets[key_index],  \
@@ -102,6 +102,8 @@ typedef struct {
 } FreeList;
 
 STATIC void __attribute__((constructor)) bptree_test() {
+	printf("sizeof(BpTreeNode)=%lu %lu %lu\n", sizeof(BpTreeNode),
+	       sizeof(BpTreeLeafNode), sizeof(BpTreeInternalNode));
 	if (sizeof(BpTree) != sizeof(BpTreeImpl)) {
 		const char *s =
 		    "BpTree and BpTreeImpl must have the same size!\n";
@@ -180,7 +182,7 @@ STATIC uint16_t bptree_find_midpoint(BpTxn *txn, uint64_t node_id,
 		}
 		printf("entry_off(pre)[%i]=%u\n", i, entry_offsets[i]);
 	}
-	if (key_index == num_entries) noffsets[num_entries] = leaf->used_bytes;
+	if (key_index == num_entries) noffsets[num_entries] = node->used_bytes;
 	for (int i = 0; i < num_entries + 1; i++)
 		printf("offsets[%i]=%u\n", i, noffsets[i]);
 
@@ -257,7 +259,7 @@ STATIC int bptree_add_to_node(BpTxn *txn, uint64_t node_id, uint16_t key_index,
 	BpTreeLeafNode *leaf = &node->data.leaf;
 	if (needed > ENTRY_ARRAY_SIZE) {
 		// TODO: handle overflow
-	} else if (leaf->used_bytes + needed < ENTRY_ARRAY_SIZE &&
+	} else if (node->used_bytes + needed < ENTRY_ARRAY_SIZE &&
 		   node->num_entries < MAX_ENTRIES) {
 		if (key_index < node->num_entries) {
 			printf("shift ki=%i ent=%i\n", key_index,
@@ -265,11 +267,11 @@ STATIC int bptree_add_to_node(BpTxn *txn, uint64_t node_id, uint16_t key_index,
 			SHIFT_LEAF(node, needed, key_index);
 		} else {
 			printf("noshift\n");
-			leaf->entry_offsets[key_index] = leaf->used_bytes;
+			leaf->entry_offsets[key_index] = node->used_bytes;
 		}
 		COPY_KEY_VALUE_LEAF(leaf, key, key_len, value, value_len,
 				    key_index);
-		leaf->used_bytes += needed;
+		node->used_bytes += needed;
 		node->num_entries++;
 		return 0;
 	} else {
