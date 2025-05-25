@@ -86,18 +86,33 @@ STATIC int bptree_insert_at(Txn *txn, uint64_t node_id, const void *key,
 		leaf->num_entries++;
 	} else {
 		uint64_t split_id = bptree_allocate_node(txn->tree);
+		uint64_t parent_id = n->parent_id;
 		if (split_id == 0) return -1;
 		if (n->parent_id == 0) {
 			// this is the root node we'll need to create a new root
 			// to point to the split
 			uint64_t nroot = bptree_allocate_node(txn->tree);
+			parent_id = nroot;
+			/*
 			if (nroot == 0) return -1;  // TODO: release split_id
+
+			nroot->page_id = nroot;
+			nroot->parent_id = 0;
+			nroot->is_leaf = false;
+			nroot->data.internal.num_entries = 1;
+			nroot->data.internal.entry_offsets[0] = 0;
+			nroot->children[0] = node_id;
+			nroot->children[1] = split_id;
+
+			txn->new_root = nroot;
+			*/
 		}
 		BpTreeNode *split = NODE(txn->tree, split_id);
 		split->is_leaf = true;
 		split->page_id = split_id;
 		split->free_list_next = 0;
 
+		uint16_t last_entry;
 		uint16_t needed_left;
 		if (key_index == leaf->num_entries)
 			needed_left = leaf->used_bytes;
@@ -108,6 +123,7 @@ STATIC int bptree_insert_at(Txn *txn, uint64_t node_id, const void *key,
 
 		if (needed_left + needed < ENTRY_ARRAY_SIZE) {
 			// add to left side and split off the right
+			last_entry = key_index;
 			uint16_t right_count = leaf->num_entries - key_index;
 			uint16_t left_count = key_index;
 			split->data.leaf.num_entries =
@@ -135,6 +151,7 @@ STATIC int bptree_insert_at(Txn *txn, uint64_t node_id, const void *key,
 
 		} else if (needed_right + needed < ENTRY_ARRAY_SIZE) {
 			// add to right side and split off the left
+			last_entry = key_index - 1;
 			uint16_t right_count = leaf->num_entries - key_index;
 			uint16_t left_count = key_index;
 			split->data.leaf.num_entries =
@@ -169,6 +186,28 @@ STATIC int bptree_insert_at(Txn *txn, uint64_t node_id, const void *key,
 				// overflow on the right side
 			}
 		}
+
+		// update parent
+		BpTreeNode *parent = NODE(txn->tree, parent_id);
+		parent->page_id = parent_id;
+		parent->parent_id = 0;
+		parent->is_leaf = false;
+		parent->data.internal.num_entries = 1;
+		parent->data.internal.children[0] = node_id;
+		parent->data.internal.children[1] = split_id;
+		txn->new_root = parent_id;
+		uint16_t key_len;
+		memcpy(&key_len,
+		       n->data.leaf.entries +
+			   n->data.leaf.entry_offsets[last_entry],
+		       sizeof(uint16_t));
+		parent->data.internal.entry_offsets[0] = key_len;
+		memcpy(parent->data.internal.key_data,
+		       n->data.leaf.entries +
+			   n->data.leaf.entry_offsets[last_entry] +
+			   sizeof(uint16_t),
+		       key_len);
+		txn->new_root = parent_id;
 	}
 	return 0;
 }
