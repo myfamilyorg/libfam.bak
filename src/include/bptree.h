@@ -11,6 +11,12 @@
 #define KEY_ARRAY_SIZE ((11 * PAGE_SIZE - 640) / 16)
 #define ENTRY_ARRAY_SIZE ((29 * PAGE_SIZE - 1280) / 32)
 
+/*
+#define MAX_ENTRIES (PAGE_SIZE / 32)
+#define KEY_ARRAY_SIZE ((11 * PAGE_SIZE - 608) / 16)
+#define ENTRY_ARRAY_SIZE ((29 * PAGE_SIZE - 1216) / 32)
+*/
+
 #define KEY_PTR_LEAF(node, index)                                         \
 	(node->data.leaf.entries + node->data.leaf.entry_offsets[index] + \
 	 sizeof(uint16_t))

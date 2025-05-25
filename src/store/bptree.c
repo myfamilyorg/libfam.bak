@@ -135,6 +135,7 @@ STATIC uint64_t bptree_allocate_node(BpTreeImpl *tree) {
 		freelist->head = node->free_list_next;
 	} else if (freelist->next_file_page * PAGE_SIZE >=
 		   ((BpTreeImpl *)tree)->capacity) {
+		printf("1\n");
 		err = ENOMEM;
 		return 0;
 	} else {
@@ -145,6 +146,7 @@ STATIC uint64_t bptree_allocate_node(BpTreeImpl *tree) {
 	    msync(freelist, PAGE_SIZE, MS_ASYNC) == -1) {
 		freelist->head = old_head;
 		freelist->next_file_page = old_next_file_page;
+		printf("2\n");
 		return 0;
 	}
 	return ret;
@@ -152,7 +154,20 @@ STATIC uint64_t bptree_allocate_node(BpTreeImpl *tree) {
 
 STATIC int bptree_split_add(BpTxn *txn, uint64_t node_id, uint16_t key_index,
 			    const void *key, uint16_t key_len,
-			    const void *value, uint32_t value_len) {
+			    const void *value, uint32_t value_len,
+			    uint64_t needed) {
+	BpTxnImpl *impl = (BpTxnImpl *)txn;
+	BpTreeNode *node = NODE(impl->tree, node_id);
+	BpTreeLeafNode *leaf = &node->data.leaf;
+	BpTreeImpl *tree = TREE(txn);
+
+	// find point closest to midpoint after insertion
+	// if we can split without overflow do so
+	// if overflow is needed, use overflow for the newly inserted entry
+	uint16_t ideal_midpoint = ENTRY_ARRAY_SIZE / 2;
+	uint16_t num_entries = node->num_entries;
+	printf("=========ideal_midpoint %u, num=%u\n", ideal_midpoint,
+	       num_entries);
 	return 0;
 }
 
@@ -166,8 +181,9 @@ STATIC int bptree_add_to_node(BpTxn *txn, uint64_t node_id, uint16_t key_index,
 	uint64_t needed =
 	    key_len + value_len + sizeof(uint32_t) + sizeof(uint16_t);
 
-	if (needed < ENTRY_ARRAY_SIZE && node->num_entries < MAX_ENTRIES) {
-		BpTreeLeafNode *leaf = &node->data.leaf;
+	BpTreeLeafNode *leaf = &node->data.leaf;
+	if (leaf->used_bytes + needed < ENTRY_ARRAY_SIZE &&
+	    node->num_entries < MAX_ENTRIES) {
 		if (key_index < node->num_entries) {
 			SHIFT_LEAF(node, needed, key_index);
 		} else
@@ -176,13 +192,11 @@ STATIC int bptree_add_to_node(BpTxn *txn, uint64_t node_id, uint16_t key_index,
 				    key_index);
 		leaf->used_bytes += needed;
 		node->num_entries++;
+		return 0;
 	} else {
-		if (bptree_split_add(txn, node_id, key_index, key, key_len,
-				     value, value_len))
-			return -1;
+		return bptree_split_add(txn, node_id, key_index, key, key_len,
+					value, value_len, needed);
 	}
-
-	return 0;
 }
 
 STATIC int bptree_insert_node(BpTxn *txn, const void *key, uint16_t key_len,
@@ -191,6 +205,7 @@ STATIC int bptree_insert_node(BpTxn *txn, const void *key, uint16_t key_len,
 	BpTxnImpl *impl = (BpTxnImpl *)txn;
 	BpTreeImpl *tree = TREE(txn);
 	uint64_t node_id = bptree_allocate_node(tree);
+	printf("node_id=%lu\n", node_id);
 	if (node_id == 0) return -1;
 
 	COPY_NODE(tree, node_id, page_id);
@@ -226,6 +241,7 @@ int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
 	if (result.found) return -1;
 	int res = bptree_insert_node(txn, key, key_len, value, value_len,
 				     result.page_id, result.key_index);
+	printf("insert-node=%i\n", res);
 	return res;
 }
 void *bptree_remove(BpTxn *txn, const void *key, uint16_t key_len,

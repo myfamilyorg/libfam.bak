@@ -110,5 +110,14 @@ Test(store, store1) {
 	strncat(value, value_data, value_len);
 	cr_assert(!strcmp(value, "12345"));
 
+	// insert a few larger entries
+	char big[16384];
+	memset(big, '1', sizeof(big));
+	cr_assert(!bptree_put(&txn, "f111", 4, big, 4096, test_search));
+	cr_assert(!bptree_put(&txn, "f112", 4, big, 4096, test_search));
+	cr_assert(!bptree_put(&txn, "f113", 4, big, 4096, test_search));
+	printf("last insert\n");
+	cr_assert(!bptree_put(&txn, "f114", 4, big, 4096, test_search));
+
 	remove(dat_file);
 }
