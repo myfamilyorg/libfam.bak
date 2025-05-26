@@ -3,79 +3,61 @@
 
 #include <types.h>
 
-#ifndef PAGE_SIZE
-#define PAGE_SIZE (4096 * 4)
-#endif /* PAGE_SIZE */
-
-#define MAX_ENTRIES (PAGE_SIZE / 32)
-#define KEY_ARRAY_SIZE (((11 * PAGE_SIZE - 640) / 16) - 8)
-#define ENTRY_ARRAY_SIZE ((29 * PAGE_SIZE - 1280) / 32)
-
-#define KEY_PTR_LEAF(node, index)                                         \
-	(node->data.leaf.entries + node->data.leaf.entry_offsets[index] + \
-	 sizeof(uint16_t))
-#define KEY_PTR_LEN_LEAF(node, index)           \
-	*(uint16_t *)(node->data.leaf.entries + \
-		      node->data.leaf.entry_offsets[index])
-
-#define VALUE_PTR_LEAF(node, index)                                       \
-	(node->data.leaf.entries + node->data.leaf.entry_offsets[index] + \
-	 sizeof(uint16_t) + sizeof(uint32_t) + KEY_PTR_LEN_LEAF(node, index))
-#define VALUE_PTR_LEN_LEAF(node, index)                      \
-	*(uint32_t *)(node->data.leaf.entries +              \
-		      node->data.leaf.entry_offsets[index] + \
-		      sizeof(uint16_t) + KEY_PTR_LEN_LEAF(node, index))
+#define MAX_LEAF_ENTRIES (PAGE_SIZE / 32)
+#define MAX_INTERNAL_ENTRIES (PAGE_SIZE / 16)
+#define INTERNAL_ARRAY_SIZE ((28 * PAGE_SIZE - 1024) / 32)
+#define LEAF_ARRAY_SIZE ((30 * PAGE_SIZE - 1280) / 32)
 
 typedef struct {
 	byte opaque[24];
 } BpTree;
 
 typedef struct {
-	uint16_t entry_offsets[MAX_ENTRIES];
-	uint64_t children[MAX_ENTRIES + 1];
-	uint8_t key_data[KEY_ARRAY_SIZE];
+	byte opaque[40];
+} BpTxn;
+
+typedef struct {
+	uint64_t page_id;
+	uint16_t key_index;
+	bool found;
+} BpTreeSearchResult;
+
+typedef struct {
+	uint32_t value_len;
+	uint16_t key_len;
+	uint8_t flags;
+	byte data[];
+} BpTreeNode;
+
+typedef struct {
+	uint16_t entry_offsets[MAX_INTERNAL_ENTRIES];
+	uint8_t key_entries[INTERNAL_ARRAY_SIZE];
 } BpTreeInternalNode;
 
 typedef struct {
-	uint16_t entry_offsets[MAX_ENTRIES];
-	uint8_t entries[ENTRY_ARRAY_SIZE];
-	uint8_t is_overflow[MAX_ENTRIES];
-	uint64_t next_leaf : 48;
+	uint64_t next_leaf;
+	uint16_t entry_offsets[MAX_LEAF_ENTRIES];
+	uint8_t entries[LEAF_ARRAY_SIZE];
 } BpTreeLeafNode;
 
 typedef struct {
-	uint64_t page_id : 48;
-	uint64_t parent_id : 48;
-	uint64_t free_list_next : 48;
+	uint64_t page_id;
+	uint64_t parent_id;
+	uint64_t free_list_next;
 	uint16_t num_entries;
-	uint8_t is_leaf;
 	uint16_t used_bytes;
+	uint8_t is_leaf;
 	union {
 		BpTreeInternalNode internal;
 		BpTreeLeafNode leaf;
 	} data;
-} BpTreeNode;
-
-typedef struct {
-	uint64_t page_id : 48;
-	uint16_t key_index;
-	bool found;
-} BpTreeNodeSearchResult;
-
-typedef struct {
-	byte opaque[56];
-} BpTxn;
-
-typedef enum {
-	FileBacked = 0,
-	InMemory = 1,
-} BpTreeType;
+} BpTreePage;
 
 typedef void (*BpTreeSearch)(BpTxn *txn, const void *key, uint16_t key_len,
 			     const BpTreeNode *node,
-			     BpTreeNodeSearchResult *retval);
+			     BpTreeSearchResult *retval);
 
-int bptree_init(BpTree *tree, void *base, uint64_t capacity, BpTreeType btype);
+int bptree_init(BpTree *, void *base, int fd, uint64_t capacity);
 int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
 	       uint32_t value_len, const BpTreeSearch search);
 void *bptree_remove(BpTxn *txn, const void *key, uint16_t key_len,

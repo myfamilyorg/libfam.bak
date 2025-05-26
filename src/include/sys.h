@@ -40,5 +40,6 @@ int close(int fd);
 int ftruncate(int fd, off_t length);
 int msync(void *addr, size_t length, int flags);
 off_t lseek(int fd, off_t offset, int whence);
+int fdatasync(int fd);
 
 #endif /* _SYS_H__ */

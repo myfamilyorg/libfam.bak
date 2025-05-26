@@ -139,6 +139,8 @@ DECLARE_SYSCALL(int, msync, 26, 65, void *addr, unsigned long length, int flags)
 
 DECLARE_SYSCALL(int, lseek, 8, 199, int fd, off_t offset, int whence)
 
+DECLARE_SYSCALL(int, fdatasync, 187, 75, int fd)
+
 int sched_yield(void) {
 	int v = syscall_sched_yield();
 	if (v < 0) {
@@ -174,6 +176,8 @@ int lseek(int fd, off_t offset, int whence) {
 int munmap(void *addr, size_t length) {
 	IMPL_WRAPPER(int, munmap, addr, length)
 }
+
+int fdatasync(int fd) { IMPL_WRAPPER(int, fdatasync, fd) }
 
 // to get the error code in mmap
 #include <errno.h>
