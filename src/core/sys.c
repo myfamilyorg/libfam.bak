@@ -175,6 +175,82 @@ static int syscall_pipe(int *fds) {
 	return (int)result;
 }
 
+static void syscall_exit(int status) {
+	__asm__ volatile(
+	    "movq $60, %%rax\n" /* exit syscall number (Linux) */
+	    "movq %0, %%rdi\n"	/* status */
+	    "syscall\n"
+	    :
+	    : "r"((long)status)			       /* Input */
+	    : "%rax", "%rdi", "%rcx", "%r11", "memory" /* Clobbered */
+	);
+}
+
+static void *syscall_mmap(void *addr, size_t length, int prot, int flags,
+			  int fd, long offset) {
+	long result;
+	__asm__ volatile(
+	    "movq $9, %%rax\n" /* mmap syscall number (Linux) */
+	    "movq %1, %%rdi\n" /* addr */
+	    "movq %2, %%rsi\n" /* length */
+	    "movq %3, %%rdx\n" /* prot */
+	    "movq %4, %%r10\n" /* flags */
+	    "movq %5, %%r8\n"  /* fd */
+	    "movq %6, %%r9\n"  /* offset */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result) /* Output */
+	    : "r"((long)addr), "r"((long)length), "r"((long)prot),
+	      "r"((long)flags), "r"((long)fd), "r"(offset) /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rdx", "%r10", "%r8", "%r9", "%rcx",
+	      "%r11", "memory" /* Clobbered */
+	);
+	return (void *)result;
+}
+
+static int syscall_close(int fd) {
+	long result;
+	__asm__ volatile(
+	    "movq $3, %%rax\n" /* close syscall number (Linux) */
+	    "movq %1, %%rdi\n" /* fd */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)			       /* Output */
+	    : "r"((long)fd)			       /* Input */
+	    : "%rax", "%rdi", "%rcx", "%r11", "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
+static int syscall_ftruncate(int fd, long length) {
+	long result;
+	__asm__ volatile(
+	    "movq $77, %%rax\n" /* ftruncate syscall number (Linux) */
+	    "movq %1, %%rdi\n"	/* fd */
+	    "movq %2, %%rsi\n"	/* length */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)				       /* Output */
+	    : "r"((long)fd), "r"(length)		       /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rcx", "%r11", "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
+static int syscall_fdatasync(int fd) {
+	long result;
+	__asm__ volatile(
+	    "movq $75, %%rax\n" /* fdatasync syscall number (Linux) */
+	    "movq %1, %%rdi\n"	/* fd */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)			       /* Output */
+	    : "r"((long)fd)			       /* Input */
+	    : "%rax", "%rdi", "%rcx", "%r11", "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
 #endif /* __linux__ */
 
 int sched_yield(void) {
@@ -303,6 +379,81 @@ off_t lseek(int fd, off_t offset, int whence) {
 
 	if (ret < 0) {
 		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
+void exit(int status) {
+#ifdef __linux__
+	syscall_exit(status);
+#elif defined(__APPLE__)
+	syscall(1, status);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+}
+
+void *mmap(void *addr, size_t length, int prot, int flags, int fd,
+	   off_t offset) {
+	void *ret;
+#ifdef __linux__
+	ret = syscall_mmap(addr, length, prot, flags, fd, offset);
+#elif defined(__APPLE__)
+	ret = (void *)syscall(197, addr, length, prot, flags, fd, offset);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+	if ((long)ret == -1) {
+		err = -(long)ret;
+		return (void *)-1;
+	}
+	return ret;
+}
+
+int close(int fd) {
+	int ret;
+#ifdef __linux__
+	ret = syscall_close(fd);
+#elif defined(__APPLE__)
+	ret = syscall(6, fd);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+	if (ret < 0) {
+		err = -ret; /* Set custom err */
+		return -1;
+	}
+	return ret;
+}
+
+int ftruncate(int fd, off_t length) {
+	int ret;
+#ifdef __linux__
+	ret = syscall_ftruncate(fd, length);
+#elif defined(__APPLE__)
+	ret = syscall(200, fd, length);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+	if (ret < 0) {
+		err = -ret; /* Set custom err */
+		return -1;
+	}
+	return ret;
+}
+
+int fdatasync(int fd) {
+	int ret;
+#ifdef __linux__
+	ret = syscall_fdatasync(fd);
+#elif defined(__APPLE__)
+	ret = syscall(20, fd);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+	if (ret < 0) {
+		err = -ret; /* Set custom err */
 		return -1;
 	}
 	return ret;

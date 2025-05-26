@@ -28,20 +28,20 @@
 
 #include <types.h>
 
-ssize_t write(int fd, const void *buf, size_t length);
-ssize_t read(int fd, void *buf, size_t length);
-int sched_yield(void);
-void exit(int);
-void *mmap(void *addr, size_t length, int prot, int flags, int fd,
-	   off_t offset);
-int munmap(void *addr, size_t length);
-int close(int fd);
-int ftruncate(int fd, off_t length);
-off_t lseek(int fd, off_t offset, int whence);
-int fdatasync(int fd);
 int fork(void);
 int pipe(int fds[2]);
 int unlink(const char *path);
+ssize_t write(int fd, const void *buf, size_t length);
+ssize_t read(int fd, void *buf, size_t length);
+int sched_yield(void);
+off_t lseek(int fd, off_t offset, int whence);
+
+void exit(int);
+void *mmap(void *addr, size_t length, int prot, int flags, int fd,
+	   off_t offset);
+int close(int fd);
+int ftruncate(int fd, off_t length);
+int fdatasync(int fd);
 
 int ocreate(const char *path);
 int64_t micros(void);

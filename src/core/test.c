@@ -63,10 +63,8 @@ Test(core, testforkpipe) {
 	int fds[2], fdsback[2];
 	pipe(fds);
 	pipe(fdsback);
-	printf("fd0=%i,fd1=%i\n", fds[0], fds[1]);
 
 	int pid = fork();
-	printf("pid=%i\n", pid);
 
 	if (pid == 0) {
 		char buf[10] = {0};
