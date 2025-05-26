@@ -143,7 +143,7 @@ DECLARE_SYSCALL(int, fdatasync, 187, 75, int fd)
 
 DECLARE_SYSCALL(int, fork, 57, 2, void)
 
-DECLARE_SYSCALL(int, pipe, 42, 22, int fd[2])
+DECLARE_SYSCALL(int, pipe, 22, 42, int fd[2])
 
 int sched_yield(void) {
 	int v = syscall_sched_yield();
@@ -185,6 +185,7 @@ int fdatasync(int fd) { IMPL_WRAPPER(int, fdatasync, fd) }
 
 #ifdef __APPLE__
 int fork();
+int pipe(int fds[2]);
 #endif
 
 int famfork(void) {
@@ -201,8 +202,12 @@ int famfork(void) {
 }
 
 int fampipe(int fds[2]) {
+#ifdef __APPLE__
+	int v = pipe(fds);
+#elif defined(__linux__)
 	int v = syscall_pipe(fds);
-	// int v = pipe(fds);
+#endif /* __APPLE__ */
+
 	if (v < 0) {
 		err = -v;
 		return -1;
