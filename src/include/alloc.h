@@ -26,7 +26,7 @@
 #ifndef _ALLOC_H__
 #define _ALLOC_H__
 
-#include <fam.h>
+#include <sys.h>
 #include <types.h>
 
 void *alloc(size_t size);

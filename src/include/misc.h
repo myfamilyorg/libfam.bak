@@ -26,7 +26,7 @@
 #ifndef _MISC_H__
 #define _MISC_H__
 
-#include <fam.h>
+#include <sys.h>
 #include <types.h>
 
 #ifdef memset

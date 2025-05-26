@@ -24,7 +24,7 @@
  *******************************************************************************/
 
 #include <error.h>
-#include <fam.h>
+#include <sys.h>
 #include <misc.h>
 #include <types.h>
 

@@ -25,7 +25,7 @@
 
 #include <alloc.h>
 #include <error.h>
-#include <fam.h>
+#include <sys.h>
 #include <lock.h>
 #include <misc.h>
 #include <types.h>
