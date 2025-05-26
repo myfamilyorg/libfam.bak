@@ -26,6 +26,7 @@
 #ifndef _SYS_H__
 #define _SYS_H__
 
+#include <sys/time.h>
 #include <time.h>
 #include <types.h>
 
@@ -44,5 +45,7 @@ int fdatasync(int fd);
 int nanosleep(const struct timespec *duration, struct timespec *rem);
 int famfork(void);
 int fampipe(int fds[2]);
+int famgettimeofday(struct timeval *tv, struct timezone *tz);
+int famsettimeofday(const struct timeval *tv, const struct timezone *tz);
 
 #endif /* _SYS_H__ */

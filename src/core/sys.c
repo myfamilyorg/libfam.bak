@@ -24,6 +24,7 @@
  *******************************************************************************/
 
 #include <error.h>
+#include <sys.h>
 #include <time.h>
 #include <types.h>
 
@@ -129,8 +130,7 @@ DECLARE_SYSCALL(void *, mmap, 9, 197, void *addr, size_t length, int prot,
 
 DECLARE_SYSCALL(int, munmap, 11, 73, void *addr, size_t length)
 
-DECLARE_SYSCALL_OPEN(int, open, 2, 5, const char *pathname, int flags,
-		     mode_t mode)
+DECLARE_SYSCALL_OPEN(int, open, 2, 5, const char *pathname, int flags, ...)
 
 DECLARE_SYSCALL(int, close, 3, 6, int fd)
 
@@ -138,7 +138,7 @@ DECLARE_SYSCALL(int, ftruncate, 77, 201, int fd, long length)
 
 DECLARE_SYSCALL(int, msync, 26, 65, void *addr, unsigned long length, int flags)
 
-DECLARE_SYSCALL(int, lseek, 8, 199, int fd, off_t offset, int whence)
+DECLARE_SYSCALL(off_t, lseek, 8, 199, int fd, off_t offset, int whence)
 
 DECLARE_SYSCALL(int, fdatasync, 187, 75, int fd)
 
@@ -148,7 +148,13 @@ DECLARE_SYSCALL(int, pipe, 22, 42, int fd[2])
 
 #ifdef __linux__
 DECLARE_SYSCALL(int, nanosleep, 35, 35, const struct timespec *duration,
-		    struct timespec *rem)
+		struct timespec *rem)
+
+DECLARE_SYSCALL(int, gettimeofday, 96, 96, struct timeval *tv, void *tz)
+
+DECLARE_SYSCALL(int, settimeofday, 170, 170, const struct timeval *tv,
+		const void *tz)
+
 #endif /* __linux__ */
 
 int sched_yield(void) {
@@ -169,17 +175,16 @@ void exit(int code) {
 	while (true);
 }
 
-int open(const char *pathname, int flags, mode_t mode) {
-	IMPL_WRAPPER(int, open, pathname, flags, mode)
+int open(const char *pathname, int flags, ...) {
+	IMPL_WRAPPER(int, open, pathname, flags, 0600)
 }
 
 int close(int fd) { IMPL_WRAPPER(int, close, fd) }
 int ftruncate(int fd, off_t length) { IMPL_WRAPPER(int, ftruncate, fd, length) }
-int msync(void *addr, size_t length, int flags) {
-	IMPL_WRAPPER(int, msync, addr, length, flags)
-}
+int msync(void *addr, size_t length,
+	  int flags){IMPL_WRAPPER(int, msync, addr, length, flags)}
 
-int lseek(int fd, off_t offset, int whence) {
+off_t lseek(int fd, off_t offset, int whence) {
 	IMPL_WRAPPER(int, lseek, fd, offset, whence)
 }
 
@@ -193,6 +198,8 @@ int fdatasync(int fd) { IMPL_WRAPPER(int, fdatasync, fd) }
 int fork();
 int pipe(int fds[2]);
 int nanosleep(const struct timespec *duration, struct timespec *buf);
+int gettimeofday(struct timeval *tv, void *tz);
+int settimeofday(const struct timeval *tv, const struct timezone *tz);
 #endif
 
 int famfork(void) {
@@ -228,6 +235,24 @@ int famnanosleep(const struct timespec *duration, struct timespec *rem) {
 #elif defined(__linux__)
 	int v = syscall_nanosleep(duration, rem);
 #endif /* __APPLE__ */
+	return v;
+}
+
+int famgettimeofday(struct timeval *tv, struct timezone *tz) {
+#ifdef __APPLE__
+	int v = gettimeofday(tv, tz);
+#elif defined(__linux__)
+	int v = syscall_gettimeofday(duration, rem);
+#endif /* __APPLE__ */
+	return v;
+}
+int famsettimeofday(const struct timeval *tv, const struct timezone *tz) {
+#ifdef __APPLE__
+	int v = settimeofday(tv, tz);
+#elif defined(__linux__)
+	int v = syscall_settimeofday(duration, rem);
+#endif /* __APPLE__ */
+	return v;
 }
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd,
