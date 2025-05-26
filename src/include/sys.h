@@ -42,7 +42,7 @@ int close(int fd);
 int ftruncate(int fd, off_t length);
 int fdatasync(int fd);
 
-int ocreate(const char *path);
+int file(const char *path);
 int64_t micros(void);
 int set_micros(int64_t);
 int sleepm(uint64_t millis);

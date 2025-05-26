@@ -1,4 +1,5 @@
 #include <criterion/criterion.h>
+#include <error.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys.h>
@@ -35,7 +36,7 @@ Test(core, types) {
 Test(core, sys1) {
 	unlink("/tmp/data.dat");
 	sched_yield();
-	int fd = ocreate("/tmp/data.dat");
+	int fd = file("/tmp/data.dat");
 	int file_size = lseek(fd, 0, SEEK_END);
 	cr_assert_eq(file_size, 0);
 
@@ -49,7 +50,7 @@ Test(core, sys1) {
 	file_size = lseek(fd, 0, SEEK_END);
 	cr_assert_eq(file_size, 3);
 
-	int fd2 = ocreate("/tmp/data.dat");
+	int fd2 = file("/tmp/data.dat");
 	char buf[4] = {0};
 	cr_assert_eq(read(fd2, buf, 4), 3);
 	cr_assert_eq(buf[0], 'a');
@@ -63,7 +64,7 @@ Test(core, sys1) {
 Test(core, ftrunate) {
 	const char *path = "/tmp/data2.dat";
 	unlink(path);
-	int fd = ocreate(path);
+	int fd = file(path);
 	int file_size = lseek(fd, 0, SEEK_END);
 	cr_assert_eq(file_size, 0);
 
@@ -81,7 +82,7 @@ Test(core, ftrunate) {
 Test(core, mmap) {
 	const char *path = "/tmp/data3.dat";
 	unlink(path);
-	int fd = ocreate(path);
+	int fd = file(path);
 	ftruncate(fd, 1024 * 1024);
 	char *base =
 	    mmap(NULL, 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
@@ -94,7 +95,7 @@ Test(core, mmap) {
 
 	close(fd);
 
-	int fd2 = ocreate(path);
+	int fd2 = file(path);
 	char *base2 =
 	    mmap(NULL, 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	cr_assert_eq(base2[1], 'a');
@@ -134,4 +135,12 @@ Test(core, testforkpipe) {
 		cr_assert_eq(buf[3], 'd');
 		cr_assert_eq(buf[4], '\0');
 	}
+}
+
+Test(core, testsettime) {
+	int64_t time_now = micros();
+	cr_assert(time_now > 0);
+	set_micros(time_now + 1000 * 1000 * 60 * 60);
+	sleepm(1000 * 10);
+	set_micros(time_now);
 }

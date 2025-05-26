@@ -289,37 +289,6 @@ ssize_t write(int fd, const void *buf, size_t count) {
 	return ret;
 }
 
-int gettimeofday(struct timeval *tv, void *tz) {
-#ifdef __linux__
-	int ret = syscall_gettimeofday(tv, tz);
-#elif defined(__APPLE__)
-	int ret = syscall(116, tv, tz);
-#else
-#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
-#endif
-
-	if (ret < 0) {
-		err = -ret;
-		return -1;
-	}
-	return ret;
-}
-int settimeofday(const struct timeval *tv, const struct timezone *tz) {
-#ifdef __linux__
-	int ret = syscall_settimeofday(tv, tz);
-#elif defined(__APPLE__)
-	int ret = syscall(122, tv, tz);
-#else
-#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
-#endif
-
-	if (ret < 0) {
-		err = -ret;
-		return -1;
-	}
-	return ret;
-}
-
 int unlink(const char *path) {
 #ifdef __linux__
 	int ret = syscall_unlink(path);
@@ -476,6 +445,26 @@ int nanosleep(const struct timespec *req, struct timespec *rem) {
 	}
 	return ret;
 }
+
+int gettimeofday(struct timeval *tv, void *tz) {
+	int ret = syscall_gettimeofday(tv, tz);
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+int settimeofday(const struct timeval *tv, const struct timezone *tz) {
+	int ret = syscall_settimeofday(tv, tz);
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
 #endif /* __linux__ */
 
 #pragma GCC diagnostic pop
@@ -496,7 +485,7 @@ int set_micros(int64_t v) {
 	return 0;
 }
 
-int ocreate(const char *path) { return open(path, O_CREAT | O_RDWR, 0644); }
+int file(const char *path) { return open(path, O_CREAT | O_RDWR, 0644); }
 
 int64_t micros(void) {
 	struct timeval tv;
