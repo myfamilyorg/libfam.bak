@@ -32,24 +32,6 @@
 
 #include <types.h>
 
-#ifdef __linux__
-#include <sys/epoll.h>
-#elif defined(__APPLE__)
-#include <sys/event.h>
-#else
-#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
-#endif
-
-typedef struct {
-#ifdef __linux__
-	struct epoll_event event;
-#elif defined(__APPLE__)
-	struct kevent event;
-#else
-#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
-#endif
-} Event;
-
 ssize_t sys_write(int fd, const void *buf, size_t length);
 int sys_sched_yield(void);
 void sys_exit(int);
@@ -68,12 +50,4 @@ int ocreate(const char *path);
 int64_t micros(void);
 int sleep_millis(uint64_t millis);
 
-int multiplex();
-int multiplex_register(int multiplex, int fd, int flags, void *attach);
-int multiplex_wait(int multiplex, Event events[], int max_events,
-		   int64_t timeout);
-int event_fd(Event *event);
-bool event_is_read(Event *event);
-bool event_is_write(Event *event);
-void *event_attachment(Event *event);
 #endif /* _SYS_H__ */
