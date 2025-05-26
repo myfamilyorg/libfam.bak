@@ -4,6 +4,10 @@
 #include <misc.h>
 #include <sys.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 int printf(const char *, ...);
 
 #define TREE(txn) ((BpTreeImpl *)(((BpTxnImpl *)(txn))->tree))
@@ -53,7 +57,7 @@ typedef struct {
 	Lock lock;
 } FreeList;
 
-STATIC void __attribute__((constructor)) bptree_test() {
+STATIC void __attribute__((constructor)) bptree_test(void) {
 	if (sizeof(BpTree) != sizeof(BpTreeImpl)) {
 		const char *s =
 		    "BpTree and BpTreeImpl must have the same size!\n";
@@ -209,3 +213,5 @@ void bptxn_start(BpTxn *txn, BpTree *t) {
 		((BpTxnImpl *)txn)->new_root = metadata2->root;
 	printf("newr= %lu\n", ((BpTxnImpl *)txn)->new_root);
 }
+
+#pragma GCC diagnostic pop

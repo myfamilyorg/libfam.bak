@@ -195,7 +195,7 @@ int munmap(void *addr, size_t length) {
 int fdatasync(int fd) { IMPL_WRAPPER(int, fdatasync, fd) }
 
 #ifdef __APPLE__
-int fork();
+int fork(void);
 int pipe(int fds[2]);
 int nanosleep(const struct timespec *duration, struct timespec *buf);
 int gettimeofday(struct timeval *tv, void *tz);

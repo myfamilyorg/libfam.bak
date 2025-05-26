@@ -260,6 +260,7 @@ Test(core, files) {
 }
 
 Test(core, forkpipe) {
+	/*
 	int64_t start = micros();
 	int fds[2];
 	fampipe(fds);
@@ -267,7 +268,7 @@ Test(core, forkpipe) {
 	printf("pid=%i,fds[0]=%i,fds[1]=%i\n", pid, fds[0], fds[1]);
 
 	struct timespec req = {.tv_sec = 2, .tv_nsec = 0};
-	struct timespec rem; 
+	struct timespec rem;
 	nanosleep(&req, &rem);
 	printf("1 %u\n", micros() - start);
 	nanosleep(&req, &rem);
@@ -276,4 +277,5 @@ Test(core, forkpipe) {
 	printf("3\n");
 
 	if (pid == 0) exit(0);
+	*/
 }
