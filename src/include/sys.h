@@ -60,6 +60,7 @@ off_t lseek(int fd, off_t offset, int whence);
 void exit(int);
 void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	   off_t offset);
+int munmap(void *addr, size_t len);
 int close(int fd);
 int ftruncate(int fd, off_t length);
 int fdatasync(int fd);

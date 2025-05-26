@@ -195,6 +195,21 @@ static void *syscall_mmap(void *addr, size_t length, int prot, int flags,
 	return (void *)result;
 }
 
+static int syscall_munmap(void *addr, size_t length) {
+	long result;
+	__asm__ volatile(
+	    "movq $11, %%rax\n" /* munmap syscall number (Linux) */
+	    "movq %1, %%rdi\n"	/* addr */
+	    "movq %2, %%rsi\n"	/* length */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)				       /* Output */
+	    : "r"((long)addr), "r"((long)length)	       /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rcx", "%r11", "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
 static int syscall_close(int fd) {
 	long result;
 	__asm__ volatile(
@@ -426,6 +441,22 @@ int fdatasync(int fd) {
 	ret = syscall_fdatasync(fd);
 #elif defined(__APPLE__)
 	ret = syscall(187, fd);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+	if (ret < 0) {
+		err = -ret; /* Set custom err */
+		return -1;
+	}
+	return ret;
+}
+
+int munmap(void *addr, size_t len) {
+	int ret;
+#ifdef __linux__
+	ret = syscall_munmap(addr, len);
+#elif defined(__APPLE__)
+	ret = syscall(73, addr, len);
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
