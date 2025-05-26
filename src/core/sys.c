@@ -394,23 +394,6 @@ void exit(int status) {
 #endif
 }
 
-void *mmap(void *addr, size_t length, int prot, int flags, int fd,
-	   off_t offset) {
-	void *ret;
-#ifdef __linux__
-	ret = syscall_mmap(addr, length, prot, flags, fd, offset);
-#elif defined(__APPLE__)
-	ret = (void *)syscall(197, addr, length, prot, flags, fd, offset);
-#else
-#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
-#endif
-	if ((long)ret == -1) {
-		err = -(long)ret;
-		return (void *)-1;
-	}
-	return ret;
-}
-
 int close(int fd) {
 	int ret;
 #ifdef __linux__
@@ -476,6 +459,18 @@ int pipe(int fds[2]) {
 	if (ret < 0) {
 		err = -ret;
 		return -1;
+	}
+	return ret;
+}
+
+void *mmap(void *addr, size_t length, int prot, int flags, int fd,
+	   off_t offset) {
+	void *ret;
+	ret = syscall_mmap(addr, length, prot, flags, fd, offset);
+
+	if ((long)ret == -1) {
+		err = -(long)ret;
+		return (void *)-1;
 	}
 	return ret;
 }

@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys.h>
+#include <sys/mman.h>
 #include <types.h>
 
 Test(core, types) {
@@ -57,6 +58,35 @@ Test(core, sys1) {
 	cr_assert_eq(buf[3], '\0');
 
 	unlink("/tmp/data.dat");
+}
+
+Test(core, ftrunate) {
+	const char *path = "/tmp/data2.dat";
+	unlink(path);
+	int fd = ocreate(path);
+	int file_size = lseek(fd, 0, SEEK_END);
+	cr_assert_eq(file_size, 0);
+
+	ftruncate(fd, 1024 * 1024);
+
+	file_size = lseek(fd, 0, SEEK_END);
+	cr_assert_eq(file_size, 1024 * 1024);
+
+	close(fd);
+	cr_assert_eq(write(fd, "abc", 3), -1);
+
+	unlink(path);
+}
+
+Test(core, mmap) {
+	const char *path = "/tmp/data3.dat";
+	unlink(path);
+	int fd = ocreate(path);
+	ftruncate(fd, 1024 * 1024);
+	char *base =
+	    mmap(NULL, 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	base[1] = 'a';
+	unlink(path);
 }
 
 Test(core, testforkpipe) {
