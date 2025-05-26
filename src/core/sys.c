@@ -248,6 +248,22 @@ ssize_t read(int fd, void *buf, size_t count) {
 	return ret;
 }
 
+off_t lseek(int fd, off_t offset, int whence) {
+#ifdef __linux__
+	int ret = syscall_lseek(fd, offset, whence);
+#elif defined(__APPLE__)
+	int ret = syscall(199, fd, offset, whence);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
 #ifdef __linux__
 int nanosleep(const struct timespec *req, struct timespec *rem) {
 	int ret = syscall_nanosleep(req, rem);
@@ -289,7 +305,7 @@ int64_t micros(void) {
 	return (int64_t)tv.tv_sec * 1000000 + tv.tv_usec;
 }
 
-int sleep_millis(uint64_t millis) {
+int sleepm(uint64_t millis) {
 	struct timespec req;
 	req.tv_sec = millis / 1000;
 	req.tv_nsec = (millis % 1000) * 1000000;

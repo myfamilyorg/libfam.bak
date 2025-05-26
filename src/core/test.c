@@ -30,15 +30,21 @@ Test(core, types) {
 }
 
 Test(core, sys1) {
+	unlink("/tmp/data.dat");
 	sched_yield();
-	write(2, "test\n", 5);
 	int fd = ocreate("/tmp/data.dat");
+	int file_size = lseek(fd, 0, SEEK_END);
+	cr_assert_eq(file_size, 0);
+
 	write(fd, "abc", 3);
 	int64_t start = micros();
-	sleep_millis(100);
+	sleepm(100);
 	int64_t diff = micros() - start;
 	cr_assert(diff >= 100 * 1000);
 	cr_assert(diff <= 1000 * 1000);
+
+	file_size = lseek(fd, 0, SEEK_END);
+	cr_assert_eq(file_size, 3);
 
 	int fd2 = ocreate("/tmp/data.dat");
 	char buf[4] = {0};
