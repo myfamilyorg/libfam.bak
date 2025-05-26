@@ -23,12 +23,12 @@
  *
  *******************************************************************************/
 
+#define _GNU_SOURCE
+
 #include <error.h>
 #include <sys/time.h>
 #include <time.h>
 #include <types.h>
-
-#define _GNU_SOURCE
 
 // Constants
 #define O_RDWR 0x0002
