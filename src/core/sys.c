@@ -186,20 +186,16 @@ int settimeofday(const struct timeval *tv, const struct timezone *tz) {
 	return ret;
 }
 
-int nanosleep(const struct timespec *req, struct timespec *rem) {
 #ifdef __linux__
+int nanosleep(const struct timespec *req, struct timespec *rem) {
 	int ret = syscall_nanosleep(req, rem);
-#elif defined(__APPLE__)
-	int ret = syscall(199, req, rem);
-#else
-#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
-#endif
 	if (ret < 0) {
 		err = -ret; /* Set custom err */
 		return -1;
 	}
 	return ret;
 }
+#endif /* __linux__ */
 
 #pragma GCC diagnostic pop
 

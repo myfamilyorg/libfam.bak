@@ -33,4 +33,9 @@ Test(core, sys1) {
 	sched_yield();
 	write(2, "test\n", 5);
 	ocreate("/tmp/data.dat");
+	int64_t start = micros();
+	sleep_millis(100);
+	int64_t diff = micros() - start;
+	cr_assert(diff >= 100 * 1000);
+	cr_assert(diff <= 1000 * 1000);
 }
