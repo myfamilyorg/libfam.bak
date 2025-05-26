@@ -183,8 +183,16 @@ int munmap(void *addr, size_t length) {
 
 int fdatasync(int fd) { IMPL_WRAPPER(int, fdatasync, fd) }
 
+#ifdef __APPLE__
+int fork();
+#endif
+
 int famfork(void) {
+#ifdef __APPLE__
+	int v = fork();
+#elif defined(__linux__)
 	int v = syscall_fork();
+#endif
 	if (v < 0) {
 		err = -v;
 		return -1;

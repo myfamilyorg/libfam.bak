@@ -261,4 +261,5 @@ Test(core, files) {
 Test(core, forkpipe) {
 	int fd = famfork();
 	printf("fd=%i\n", fd);
+	if (fd == 0) exit(0);
 }
