@@ -308,14 +308,9 @@ off_t lseek(int fd, off_t offset, int whence) {
 	return ret;
 }
 
-int fork(void) {
 #ifdef __linux__
+int fork(void) {
 	int ret = syscall_fork();
-#elif defined(__APPLE__)
-	int ret = syscall(2);
-#else
-#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
-#endif
 
 	if (ret < 0) {
 		err = -ret;
@@ -324,7 +319,6 @@ int fork(void) {
 	return ret;
 }
 
-#ifdef __linux__
 int pipe(int fds[2]) {
 	int ret = syscall_pipe(fds);
 

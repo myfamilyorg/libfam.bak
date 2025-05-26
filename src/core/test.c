@@ -1,5 +1,6 @@
 #include <criterion/criterion.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <sys.h>
 #include <types.h>
 
@@ -59,16 +60,34 @@ Test(core, sys1) {
 }
 
 Test(core, testforkpipe) {
-	int fds[2];
+	int fds[2], fdsback[2];
 	pipe(fds);
+	pipe(fdsback);
 	printf("fd0=%i,fd1=%i\n", fds[0], fds[1]);
 
-	/*
 	int pid = fork();
+	printf("pid=%i\n", pid);
 
 	if (pid == 0) {
+		char buf[10] = {0};
+		cr_assert_eq(read(fds[0], buf, 10), 5);
+		cr_assert_eq(buf[0], '0');
+		cr_assert_eq(buf[1], '1');
+		cr_assert_eq(buf[2], '2');
+		cr_assert_eq(buf[3], '3');
+		cr_assert_eq(buf[4], '4');
+		cr_assert_eq(buf[5], '\0');
+
+		cr_assert_eq(write(fdsback[1], "abcd", 4), 4);
 		exit(0);
 	} else {
+		char buf[10] = {0};
+		cr_assert_eq(write(fds[1], "01234", 5), 5);
+		cr_assert_eq(read(fdsback[0], buf, 10), 4);
+		cr_assert_eq(buf[0], 'a');
+		cr_assert_eq(buf[1], 'b');
+		cr_assert_eq(buf[2], 'c');
+		cr_assert_eq(buf[3], 'd');
+		cr_assert_eq(buf[4], '\0');
 	}
-	*/
 }
