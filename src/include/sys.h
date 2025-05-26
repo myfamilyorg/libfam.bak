@@ -26,25 +26,21 @@
 #ifndef _SYS_H__
 #define _SYS_H__
 
-#define REGISTER_NONE 0
-#define REGISTER_READ 0x1
-#define REGISTER_WRITE (0x1 << 1)
-
 #include <types.h>
 
-ssize_t sys_write(int fd, const void *buf, size_t length);
-int sys_sched_yield(void);
-void sys_exit(int);
-void *sys_mmap(void *addr, size_t length, int prot, int flags, int fd,
-	       off_t offset);
-int sys_munmap(void *addr, size_t length);
-int sys_close(int fd);
-int sys_ftruncate(int fd, off_t length);
-int sys_msync(void *addr, size_t length, int flags);
-off_t sys_lseek(int fd, off_t offset, int whence);
-int sys_fdatasync(int fd);
-int sys_fork(void);
-int sys_pipe(int fds[2]);
+ssize_t write(int fd, const void *buf, size_t length);
+int sched_yield(void);
+void exit(int);
+void *mmap(void *addr, size_t length, int prot, int flags, int fd,
+	   off_t offset);
+int munmap(void *addr, size_t length);
+int close(int fd);
+int ftruncate(int fd, off_t length);
+int msync(void *addr, size_t length, int flags);
+off_t lseek(int fd, off_t offset, int whence);
+int fdatasync(int fd);
+int fork(void);
+int pipe(int fds[2]);
 
 int ocreate(const char *path);
 int64_t micros(void);

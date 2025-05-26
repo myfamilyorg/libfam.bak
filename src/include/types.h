@@ -87,14 +87,7 @@
 #define INT64_MIN (-0x7FFFFFFFFFFFFFFF - 1)
 #endif
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Woverflow"
-static inline __int128_t get_int128_min(void) {
-	return -((__int128_t)1 << 127);
-}
-#pragma GCC diagnostic pop
-
-#define INT128_MIN get_int128_min()
+#define INT128_MIN (((__int128_t)0x80000000ULL << 96))
 
 #ifndef INT8_MAX
 #define INT8_MAX 0x7F
