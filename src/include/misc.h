@@ -23,28 +23,37 @@
  *
  *******************************************************************************/
 
-#ifndef _SYS_H__
-#define _SYS_H__
+#ifndef _MISC_H__
+#define _MISC_H__
 
+#include <sys.h>
 #include <types.h>
 
-ssize_t write(int fd, const void *buf, size_t length);
-int sched_yield(void);
-void exit(int);
-void *mmap(void *addr, size_t length, int prot, int flags, int fd,
-	   off_t offset);
-int munmap(void *addr, size_t length);
-int close(int fd);
-int ftruncate(int fd, off_t length);
-off_t lseek(int fd, off_t offset, int whence);
-int fdatasync(int fd);
-int fork(void);
-int pipe(int fds[2]);
-int remove(const char *path);
+#ifdef memset
+#undef memset
+#endif
+#ifdef memcpy
+#undef memcpy
+#endif
+#ifdef memmove
+#undef memmove
+#endif
+#ifdef bzero
+#undef bzero
+#endif
 
+size_t strlen(const char *S);
+int strcmp(const char *s1, const char *s2);
+int strcmpn(const char *s1, const char *s2, size_t n);
+char *strstr(const char *X, const char *Y);
+void *memset(void *ptr, int x, size_t n);
+void *memcpy(void *dst, const void *src, size_t n);
+void *memmove(void *dst, const void *src, size_t n);
+void bzero(void *dst, size_t n);
+size_t uint128_t_to_string(char *buf, uint128_t v);
+size_t int128_t_to_string(char *buf, int128_t v);
+size_t double_to_string(char *buf, double v, int max_decimals);
 int ocreate(const char *path);
 int64_t micros(void);
-int set_micros(int64_t);
-int sleep_millis(uint64_t millis);
 
-#endif /* _SYS_H__ */
+#endif /* _MISC_H__ */

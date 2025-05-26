@@ -1,7 +1,8 @@
 #include <criterion/criterion.h>
+#include <sys.h>
 #include <types.h>
 
-Test(core, core1) {
+Test(core, types) {
 	cr_assert_eq(UINT8_MAX, UINT8_MAX);
 	cr_assert_eq(UINT16_MAX, UINT16_MAX);
 	cr_assert_eq(UINT32_MAX, UINT32_MAX);
@@ -24,4 +25,8 @@ Test(core, core1) {
 	cr_assert_eq(INT64_MIN, INT64_MIN);
 	cr_assert_eq(INT128_MIN, INT128_MIN);
 	cr_assert_eq(SIZE_MAX, SIZE_MAX);
+	cr_assert_eq(false, false);
+	cr_assert_eq(true, true);
 }
+
+Test(core, sys1) { sched_yield(); }
