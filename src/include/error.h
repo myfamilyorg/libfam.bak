@@ -27,7 +27,6 @@
 #define _ERROR_H__
 
 /* Error codes for libfam */
-#ifndef EAGAIN		    /* Prevent errno redefines */
 #define SUCCESS 0	    /* Success */
 #define EPERM 1		    /* Operation not permitted */
 #define ENOENT 2	    /* No such file or directory */
@@ -159,7 +158,6 @@
 #define EKEYREJECTED 129    /* Key was rejected by service */
 #define EOWNERDEAD 130	    /* Owner died */
 #define ENOTRECOVERABLE 131 /* State not recoverable */
-#endif			    /* EAGAIN */
 
 extern int err;
 

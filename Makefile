@@ -9,7 +9,7 @@ CFLAGS  = -fPIC \
           -fno-builtin \
           -ffreestanding \
           -DSTATIC=static
-TFLAGS  = -g -Isrc/include -Wno-attributes -Wno-dollar-in-identifier-extension
+TFLAGS  = -g -Isrc/include -Wno-attributes
 LDFLAGS = -shared
 FILTER ="*"
 PAGE_SIZE=16384

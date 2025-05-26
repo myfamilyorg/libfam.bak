@@ -26,9 +26,6 @@
 #ifndef _TYPES_H__
 #define _TYPES_H__
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wlong-long"
-
 #ifndef NULL
 #define NULL ((void *)0)
 #endif
@@ -129,6 +126,9 @@
 #ifndef true
 #define true ((bool)1)
 #endif
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlong-long"
 
 typedef __int128_t int128_t;
 typedef __uint128_t uint128_t;
