@@ -153,6 +153,24 @@ int sys_munmap(void *addr, size_t length) {
 
 int sys_fdatasync(int fd) { IMPL_WRAPPER(int, fdatasync, fd) }
 
+int sys_fork(void) {
+	int v = syscall_fork();
+	if (v < 0) {
+		err = -v;
+		return -1;
+	}
+	return v;
+}
+
+int sys_pipe(int fds[2]) {
+	int v = syscall_pipe(fds);
+	if (v < 0) {
+		err = -v;
+		return -1;
+	}
+	return v;
+}
+
 int sys_nanosleep(const struct timespec *duration, struct timespec *buf) {
 	IMPL_WRAPPER(int, nanosleep, duration, buf)
 }

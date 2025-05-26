@@ -260,22 +260,15 @@ Test(core, files) {
 }
 
 Test(core, forkpipe) {
-	/*
 	int64_t start = micros();
 	int fds[2];
-	fampipe(fds);
-	int pid = famfork();
-	printf("pid=%i,fds[0]=%i,fds[1]=%i\n", pid, fds[0], fds[1]);
+	sys_pipe(fds);
+	int pid = sys_fork();
 
-	struct timespec req = {.tv_sec = 2, .tv_nsec = 0};
+	struct timespec req = {.tv_sec = 0, .tv_nsec = 100000000};
 	struct timespec rem;
 	nanosleep(&req, &rem);
-	printf("1 %u\n", micros() - start);
-	nanosleep(&req, &rem);
-	printf("2\n");
-	nanosleep(&req, &rem);
-	printf("3\n");
+	cr_assert(micros() - start >= 100000);
 
 	if (pid == 0) exit(0);
-	*/
 }
