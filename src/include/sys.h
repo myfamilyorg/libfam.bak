@@ -23,8 +23,8 @@
  *
  *******************************************************************************/
 
-#ifndef _FAM_H__
-#define _FAM_H__
+#ifndef _SYS_H__
+#define _SYS_H__
 
 #include <types.h>
 
@@ -46,4 +46,4 @@ int ocreate(const char *path);
 int64_t micros(void);
 int sleep_millis(uint64_t millis);
 
-#endif /* _FAM_H__ */
+#endif /* _SYS_H__ */
