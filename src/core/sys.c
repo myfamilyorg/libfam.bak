@@ -242,7 +242,7 @@ int famgettimeofday(struct timeval *tv, struct timezone *tz) {
 #ifdef __APPLE__
 	int v = gettimeofday(tv, tz);
 #elif defined(__linux__)
-	int v = syscall_gettimeofday(duration, rem);
+	int v = syscall_gettimeofday(tv, tz);
 #endif /* __APPLE__ */
 	return v;
 }
@@ -250,7 +250,7 @@ int famsettimeofday(const struct timeval *tv, const struct timezone *tz) {
 #ifdef __APPLE__
 	int v = settimeofday(tv, tz);
 #elif defined(__linux__)
-	int v = syscall_settimeofday(duration, rem);
+	int v = syscall_settimeofday(tv, tz);
 #endif /* __APPLE__ */
 	return v;
 }

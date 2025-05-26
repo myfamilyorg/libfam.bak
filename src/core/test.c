@@ -24,6 +24,7 @@
  *******************************************************************************/
 
 #include <criterion/criterion.h>
+#include <misc.h>
 #include <object.h>
 #include <stdio.h>
 #include <sys/mman.h>
@@ -259,15 +260,16 @@ Test(core, files) {
 }
 
 Test(core, forkpipe) {
+	int64_t start = micros();
 	int fds[2];
 	fampipe(fds);
 	int pid = famfork();
 	printf("pid=%i,fds[0]=%i,fds[1]=%i\n", pid, fds[0], fds[1]);
 
-	struct timespec req = {.tv_sec = 1, .tv_nsec = 0};  // 1 second
-	struct timespec rem;  // For remaining time if interrupted
+	struct timespec req = {.tv_sec = 2, .tv_nsec = 0};
+	struct timespec rem; 
 	nanosleep(&req, &rem);
-	printf("1\n");
+	printf("1 %u\n", micros() - start);
 	nanosleep(&req, &rem);
 	printf("2\n");
 	nanosleep(&req, &rem);

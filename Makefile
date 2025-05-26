@@ -10,8 +10,9 @@ CFLAGS  = -fPIC \
           -ffreestanding \
           -Wno-attributes \
           -Wno-dollar-in-identifier-extension \
+	  -D_GNU_SOURCE \
           -DSTATIC=static
-TFLAGS  = -g -Isrc/include -Wno-attributes -Wno-dollar-in-identifier-extension
+TFLAGS  = -g -D_GNU_SOURCE -Isrc/include -Wno-attributes -Wno-dollar-in-identifier-extension
 LDFLAGS = -shared
 FILTER ="*"
 PAGE_SIZE=16384

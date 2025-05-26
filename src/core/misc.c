@@ -25,6 +25,7 @@
 
 #include <misc.h>
 #include <types.h>
+#include <time.h>
 
 // Constants
 #define O_RDWR 0x0002
@@ -313,4 +314,18 @@ __uint128_t __udivti3(__uint128_t a, __uint128_t b) {
 
 int open_create(const char *path) {
 	return open(path, O_CREAT | O_RDWR, MODE_0644);
+}
+
+int64_t micros(void) {
+ struct timeval tv;
+
+    // Get current time
+    if (gettimeofday(&tv, NULL) == -1) {
+        return -1;
+    }
+
+    // Calculate microseconds since epoch
+    int64_t microseconds = (int64_t)tv.tv_sec * 1000000 + tv.tv_usec;
+
+    return microseconds;
 }
