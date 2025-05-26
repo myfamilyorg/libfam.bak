@@ -42,7 +42,7 @@ int sys_fdatasync(int fd);
 int sys_fork(void);
 int sys_pipe(int fds[2]);
 
-int open_create(const char *path);
+int ocreate(const char *path);
 int64_t micros(void);
 int sleep_millis(uint64_t millis);
 

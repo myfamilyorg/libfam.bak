@@ -226,7 +226,7 @@ Test(core, test_obj) {
 Test(core, files) {
 	remove("/tmp/testfile.dat");
 
-	int fd = open_create("/tmp/testfile.dat");
+	int fd = ocreate("/tmp/testfile.dat");
 	cr_assert(fd >= 0);
 
 	off_t file_size = sys_lseek(fd, 0, SEEK_END);
@@ -247,7 +247,7 @@ Test(core, files) {
 	cr_assert(sys_close(fd) >= 0);
 
 	// Reopen file for size check
-	fd = open_create("/tmp/testfile.dat");
+	fd = ocreate("/tmp/testfile.dat");
 	cr_assert(fd > 0);
 
 	file_size = sys_lseek(fd, 0, SEEK_END);

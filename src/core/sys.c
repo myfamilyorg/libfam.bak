@@ -219,7 +219,7 @@ int sys_open(const char *pathname, int flags, ...) {
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 
-int open_create(const char *path) {
+int ocreate(const char *path) {
 	return sys_open(path, O_CREAT | O_RDWR, 0644);
 }
 
