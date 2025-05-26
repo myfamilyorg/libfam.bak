@@ -24,7 +24,7 @@
  *******************************************************************************/
 
 #include <error.h>
-#include <sys.h>
+#include <sys/time.h>
 #include <time.h>
 #include <types.h>
 
