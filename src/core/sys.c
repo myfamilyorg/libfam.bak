@@ -538,6 +538,54 @@ int mwait(int multiplex, void *events, int max_events, int64_t timeout_millis) {
 #endif
 }
 
+int eventfd(Event event) {
+#ifdef __linux__
+	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
+	return epoll_ev->data.fd;
+#elif defined(__APPLE__)
+	struct kevent *kv = (struct kevent *)&event;
+	return kv->ident;
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+}
+
+int event_is_read(Event event) {
+#ifdef __linux__
+	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
+	return epoll_ev->events & EPOLLIN;
+#elif defined(__APPLE__)
+	struct kevent *kv = (struct kevent *)&event;
+	return kv->filter == EVFILT_READ;
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+}
+
+int event_is_write(Event event) {
+#ifdef __linux__
+	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
+	return epoll_ev->events & EPOLLOUT;
+#elif defined(__APPLE__)
+	struct kevent *kv = (struct kevent *)&event;
+	return kv->filter == EVFILT_WRITE;
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+}
+
+void *event_attachment(Event event) {
+#ifdef __linux__
+	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
+	return epoll_ev->data.ptr;
+#elif defined(__APPLE__)
+	struct kevent *kv = (struct kevent *)&event;
+	return kv->udata;
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+}
+
 int file(const char *path) { return open(path, O_CREAT | O_RDWR, 0600); }
 
 int64_t micros(void) {

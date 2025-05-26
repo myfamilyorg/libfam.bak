@@ -138,14 +138,34 @@ Test(core, testforkpipe) {
 }
 
 Test(core, multiplex) {
+	int my_data = 101;
 	Event events[10];
 	int m = multiplex();
-	int fds;
+	int fds[2];
+	char buf[10];
 
 	cr_assert(m > 0);
 	cr_assert_eq(mwait(m, events, 10, 1), 0);
 
 	pipe(fds);
+	cr_assert(fds[0] > 0);
+	cr_assert(fds[1] > 0);
+	mregister(m, fds[0], MULTIPLEX_FLAG_READ, &my_data);
+	write(fds[1], "test", 4);
+
+	cr_assert_eq(mwait(m, events, 10, 1), 1);
+	cr_assert_eq(eventfd(events[0]), fds[0]);
+	cr_assert(event_is_read(events[0]));
+	cr_assert(!event_is_write(events[0]));
+	cr_assert_eq(event_attachment(events[0]), &my_data);
+	cr_assert_eq(read(fds[0], buf, 10), 4);
+	cr_assert_eq(buf[0], 't');
+	cr_assert_eq(buf[1], 'e');
+	cr_assert_eq(buf[2], 's');
+	cr_assert_eq(buf[3], 't');
+
+	close(fds[0]);
+	close(fds[1]);
 
 	close(m);
 }
