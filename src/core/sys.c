@@ -28,6 +28,8 @@
 #include <time.h>
 #include <types.h>
 
+#define _GNU_SOURCE
+
 // Constants
 #define O_RDWR 0x0002
 #define O_CREAT 0x0040
@@ -289,8 +291,8 @@ off_t sys_lseek(int fd, off_t offset, int whence) {
 	return lseek(fd, offset, whence);
 }
 int sys_fdatasync(int fd) { return fdatasync(fd); }
-int sys_fork(void) { return fork(); }
-int sys_pipe(int fds[2]) { return pipe(fds); }
+int sys_fork(void) { return famfork(); }
+int sys_pipe(int fds[2]) { return fampipe(fds); }
 
 int open_create(const char *path) {
 	return open(path, O_CREAT | O_RDWR, MODE_0644);

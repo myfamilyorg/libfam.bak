@@ -26,6 +26,8 @@
 #ifndef _SYS_H__
 #define _SYS_H__
 
+#define _GNU_SOURCE
+
 #include <sys/time.h>
 #include <time.h>
 #include <types.h>
