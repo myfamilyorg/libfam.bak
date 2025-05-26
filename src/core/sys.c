@@ -426,7 +426,7 @@ int sched_yield(void) {
 int nanosleep(const struct timespec *req, struct timespec *rem) {
 	int ret = syscall_nanosleep(req, rem);
 	if (ret < 0) {
-		err = -ret; /* Set custom err */
+		err = -ret;
 		return -1;
 	}
 	return ret;
@@ -445,6 +445,98 @@ int gettimeofday(struct timeval *tv, void *tz) {
 #endif /* __linux__ */
 
 #pragma GCC diagnostic pop
+
+int multiplex(void) {
+#ifdef __linux__
+	return epoll_create1(0);
+#elif defined(__APPLE__)
+	return kqueue();
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+}
+
+#include <errno.h>
+
+int mregister(int multiplex, int fd, int flags, void *attach) {
+#ifdef __linux__
+	struct epoll_event ev;
+	int event_flags = 0;
+
+	if (flags & MULTIPLEX_FLAG_READ) {
+		event_flags |= EPOLLIN;
+	}
+
+	if (flags & MULTIPLEX_FLAG_WRITE) {
+		event_flags |= EPOLLOUT;
+	}
+
+	ev.events = event_flags;
+	if (attach == NULL)
+		ev.data.fd = fd;
+	else
+		ev.data.ptr = attach;
+
+	if (epoll_ctl(multiplex, EPOLL_CTL_ADD, fd, &ev) < 0) {
+		if (errno == EEXIST) {
+			if (epoll_ctl(multiplex, EPOLL_CTL_MOD, fd, &ev) < 0) {
+				err = -errno;
+				return -1;
+			}
+		} else {
+			err = -errno;
+			return -1;
+		}
+	}
+
+	return 0;
+#elif defined(__APPLE__)
+	struct kevent change_event[2];
+	int event_count = 0, res;
+
+	if (flags & MULTIPLEX_FLAG_READ) {
+		EV_SET(&change_event[event_count], fd, EVFILT_READ,
+		       EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, attach);
+		event_count++;
+	}
+
+	if (flags & MULTIPLEX_FLAG_WRITE) {
+		EV_SET(&change_event[event_count], fd, EVFILT_WRITE,
+		       EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, attach);
+		event_count++;
+	}
+
+	res = kevent(multiplex, change_event, event_count, NULL, 0, NULL);
+	if (res < 0) err = -errno;
+	if (res < 0) return -1;
+	return 0;
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+}
+
+int mwait(int multiplex, void *events, int max_events, int64_t timeout_millis) {
+#ifdef __linux__
+	int timeout = (timeout_millis >= 0) ? (int)timeout_millis : -1;
+
+	return epoll_wait(multiplex, (struct epoll_event *)events, max_events,
+			  timeout);
+#elif defined(__APPLE__)
+	struct timespec ts;
+	struct timespec *timeout_ptr = NULL;
+
+	if (timeout_millis >= 0) {
+		ts.tv_sec = timeout_millis / 1000;
+		ts.tv_nsec = (timeout_millis % 1000) * 1000000;
+		timeout_ptr = &ts;
+	}
+
+	return kevent(multiplex, NULL, 0, (struct kevent *)events, max_events,
+		      timeout_ptr);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+}
 
 int file(const char *path) { return open(path, O_CREAT | O_RDWR, 0600); }
 

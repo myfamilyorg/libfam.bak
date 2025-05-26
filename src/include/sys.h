@@ -28,6 +28,28 @@
 
 #include <types.h>
 
+#ifdef __linux__
+#include <sys/epoll.h>
+#elif defined(__APPLE__)
+#include <sys/event.h>
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+typedef struct {
+#ifdef __linux__
+	struct epoll_event event;
+#elif defined(__APPLE__)
+	struct kevent event;
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+} Event;
+
+#define MULTIPLEX_FLAG_NONE 0
+#define MULTIPLEX_FLAG_READ 0x1
+#define MULTIPLEX_FLAG_WRITE (0x1 << 1)
+
 int fork(void);
 int pipe(int fds[2]);
 int unlink(const char *path);
@@ -42,8 +64,12 @@ int close(int fd);
 int ftruncate(int fd, off_t length);
 int fdatasync(int fd);
 
+int setnonblocking(int fd);
 int file(const char *path);
 int64_t micros(void);
 int sleepm(uint64_t millis);
+int multiplex(void);
+int mregister(int multiplex, int fd, int flags, void *attach);
+int mwait(int multiplex, void *events, int max_events, int64_t timeout);
 
 #endif /* _SYS_H__ */

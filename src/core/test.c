@@ -136,3 +136,16 @@ Test(core, testforkpipe) {
 		cr_assert_eq(buf[4], '\0');
 	}
 }
+
+Test(core, multiplex) {
+	Event events[10];
+	int m = multiplex();
+	int fds;
+
+	cr_assert(m > 0);
+	cr_assert_eq(mwait(m, events, 10, 1), 0);
+
+	pipe(fds);
+
+	close(m);
+}
