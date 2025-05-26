@@ -57,20 +57,6 @@ static int syscall_open(const char *path, int flags, mode_t mode) {
 	return (int)result;
 }
 
-static int syscall_settimeofday(const struct timeval *tv, const void *tz) {
-	long result;
-	__asm__ volatile(
-	    "movq $170, %%rax\n"
-	    "movq %1, %%rdi\n"
-	    "movq %2, %%rsi\n"
-	    "syscall\n"
-	    "movq %%rax, %0\n"
-	    : "=r"(result)
-	    : "r"((long)tv), "r"((long)tz)
-	    : "%rax", "%rdi", "%rsi", "%rcx", "%r11", "memory");
-	return (int)result;
-}
-
 static int syscall_gettimeofday(struct timeval *tv, void *tz) {
 	long result;
 	__asm__ volatile(
@@ -455,35 +441,10 @@ int gettimeofday(struct timeval *tv, void *tz) {
 	}
 	return ret;
 }
-int settimeofday(const struct timeval *tv, const struct timezone *tz) {
-	int ret = syscall_settimeofday(tv, tz);
-
-	if (ret < 0) {
-		err = -ret;
-		return -1;
-	}
-	return ret;
-}
 
 #endif /* __linux__ */
 
 #pragma GCC diagnostic pop
-
-int set_micros(int64_t v) {
-	struct timeval tv;
-
-	if (v < 0) {
-		err = EINVAL;
-		return -1;
-	}
-
-	tv.tv_sec = v / 1000000;
-	tv.tv_usec = v % 1000000;
-
-	if (settimeofday(&tv, NULL) == -1) return -1;
-
-	return 0;
-}
 
 int file(const char *path) { return open(path, O_CREAT | O_RDWR, 0644); }
 

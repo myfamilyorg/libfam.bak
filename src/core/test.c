@@ -136,11 +136,3 @@ Test(core, testforkpipe) {
 		cr_assert_eq(buf[4], '\0');
 	}
 }
-
-Test(core, testsettime) {
-	int64_t time_now = micros();
-	cr_assert(time_now > 0);
-	set_micros(time_now + 1000 * 1000 * 60 * 60);
-	sleepm(1000 * 10);
-	set_micros(time_now);
-}

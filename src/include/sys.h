@@ -44,7 +44,6 @@ int fdatasync(int fd);
 
 int file(const char *path);
 int64_t micros(void);
-int set_micros(int64_t);
 int sleepm(uint64_t millis);
 
 #endif /* _SYS_H__ */
