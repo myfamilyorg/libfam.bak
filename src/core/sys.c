@@ -6,7 +6,6 @@
 #include <fcntl.h>
 #include <sys.h>
 #include <sys/time.h>
-/*#include <time.h>*/
 
 #ifdef __APPLE__
 #include <unistd.h>
@@ -101,6 +100,37 @@ static int syscall_nanosleep(const struct timespec *req, struct timespec *rem) {
 	return (int)result;
 }
 
+static int syscall_unlink(const char *pathname) {
+	long result;
+	__asm__ volatile(
+	    "movq $87, %%rax\n" /* unlink syscall number */
+	    "movq %1, %%rdi\n"	/* pathname */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)			       /* Output */
+	    : "r"((long)pathname)		       /* Input */
+	    : "%rax", "%rdi", "%rcx", "%r11", "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
+static ssize_t syscall_read(int fd, void *buf, size_t count) {
+	long result;
+	__asm__ volatile(
+	    "movq $0, %%rax\n" /* read syscall number */
+	    "movq %1, %%rdi\n" /* fd */
+	    "movq %2, %%rsi\n" /* buf */
+	    "movq %3, %%rdx\n" /* count */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)				      /* Output */
+	    : "r"((long)fd), "r"((long)buf), "r"((long)count) /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r11",
+	      "memory" /* Clobbered */
+	);
+	return (ssize_t)result;
+}
+
 #endif /* __linux__ */
 
 int sched_yield(void) {
@@ -175,6 +205,38 @@ int settimeofday(const struct timeval *tv, const struct timezone *tz) {
 	int ret = syscall_settimeofday(tv, tz);
 #elif defined(__APPLE__)
 	int ret = syscall(122, tv, tz);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
+int unlink(const char *path) {
+#ifdef __linux__
+	int ret = syscall_unlink(path);
+#elif defined(__APPLE__)
+	int ret = syscall(10, path);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
+ssize_t read(int fd, void *buf, size_t count) {
+#ifdef __linux__
+	int ret = syscall_read(fd, buf, count);
+#elif defined(__APPLE__)
+	int ret = syscall(3, fd, buf, count);
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif

@@ -29,6 +29,7 @@
 #include <types.h>
 
 ssize_t write(int fd, const void *buf, size_t length);
+ssize_t read(int fd, void *buf, size_t length);
 int sched_yield(void);
 void exit(int);
 void *mmap(void *addr, size_t length, int prot, int flags, int fd,
@@ -40,7 +41,7 @@ off_t lseek(int fd, off_t offset, int whence);
 int fdatasync(int fd);
 int fork(void);
 int pipe(int fds[2]);
-int remove(const char *path);
+int unlink(const char *path);
 
 int ocreate(const char *path);
 int64_t micros(void);

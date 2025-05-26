@@ -32,10 +32,21 @@ Test(core, types) {
 Test(core, sys1) {
 	sched_yield();
 	write(2, "test\n", 5);
-	ocreate("/tmp/data.dat");
+	int fd = ocreate("/tmp/data.dat");
+	write(fd, "abc", 3);
 	int64_t start = micros();
 	sleep_millis(100);
 	int64_t diff = micros() - start;
 	cr_assert(diff >= 100 * 1000);
 	cr_assert(diff <= 1000 * 1000);
+
+	int fd2 = ocreate("/tmp/data.dat");
+	char buf[4] = {0};
+	cr_assert_eq(read(fd2, buf, 4), 3);
+	cr_assert_eq(buf[0], 'a');
+	cr_assert_eq(buf[1], 'b');
+	cr_assert_eq(buf[2], 'c');
+	cr_assert_eq(buf[3], '\0');
+
+	unlink("/tmp/data.dat");
 }
