@@ -259,7 +259,9 @@ Test(core, files) {
 }
 
 Test(core, forkpipe) {
-	int fd = famfork();
-	printf("fd=%i\n", fd);
-	if (fd == 0) exit(0);
+	int fds[2];
+	fampipe(fds);
+	int pid = famfork();
+	printf("pid=%i,fds[0]=%i,fds[1]=%i\n", pid, fds[0], fds[1]);
+	if (pid == 0) exit(0);
 }

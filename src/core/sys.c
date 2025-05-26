@@ -202,6 +202,7 @@ int famfork(void) {
 
 int fampipe(int fds[2]) {
 	int v = syscall_pipe(fds);
+	// int v = pipe(fds);
 	if (v < 0) {
 		err = -v;
 		return -1;
@@ -212,9 +213,9 @@ int fampipe(int fds[2]) {
 void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	   off_t offset) {
 	void *v = syscall_mmap(addr, length, prot, flags, fd, offset);
-	if ((long)v>= -4095 && (long)v< 0) {
+	if ((long)v >= -4095 && (long)v < 0) {
 		err = -(long)v;
-		return (void*)-1;
+		return (void *)-1;
 	}
 	return v;
 }
