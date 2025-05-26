@@ -209,13 +209,13 @@ int fampipe(int fds[2]) {
 	return v;
 }
 
-// to get the error code in mmap
-#include <errno.h>
-
 void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	   off_t offset) {
 	void *v = syscall_mmap(addr, length, prot, flags, fd, offset);
-	err = errno;
+	if ((long)v>= -4095 && (long)v< 0) {
+		err = -(long)v;
+		return (void*)-1;
+	}
 	return v;
 }
 
