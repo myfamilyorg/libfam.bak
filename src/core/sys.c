@@ -8,6 +8,7 @@
 #include <sys/time.h>
 
 #ifdef __APPLE__
+#include <errno.h>
 #include <unistd.h>
 #endif /* __APPLE__ */
 
@@ -237,6 +238,60 @@ static int syscall_fdatasync(int fd) {
 	return (int)result;
 }
 
+static int syscall_epoll_create1(int flags) {
+	long result;
+	__asm__ volatile(
+	    "movq $291, %%rax\n" /* epoll_create1 syscall number (Linux) */
+	    "movq %1, %%rdi\n"	 /* flags */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)			       /* Output */
+	    : "r"((long)flags)			       /* Input */
+	    : "%rax", "%rdi", "%rcx", "%r11", "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
+static int syscall_epoll_ctl(int epfd, int op, int fd,
+			     struct epoll_event *event) {
+	long result;
+	__asm__ volatile(
+	    "movq $233, %%rax\n" /* epoll_ctl syscall number (Linux) */
+	    "movq %1, %%rdi\n"	 /* epfd */
+	    "movq %2, %%rsi\n"	 /* op */
+	    "movq %3, %%rdx\n"	 /* fd */
+	    "movq %4, %%r10\n"	 /* event */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result) /* Output */
+	    : "r"((long)epfd), "r"((long)op), "r"((long)fd),
+	      "r"((long)event) /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rdx", "%r10", "%rcx", "%r11",
+	      "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
+static int syscall_epoll_wait(int epfd, struct epoll_event *events,
+			      int maxevents, int timeout) {
+	long result;
+	__asm__ volatile(
+	    "movq $232, %%rax\n" /* epoll_wait syscall number (Linux) */
+	    "movq %1, %%rdi\n"	 /* epfd */
+	    "movq %2, %%rsi\n"	 /* events */
+	    "movq %3, %%rdx\n"	 /* maxevents */
+	    "movq %4, %%r10\n"	 /* timeout */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result) /* Output */
+	    : "r"((long)epfd), "r"((long)events), "r"((long)maxevents),
+	      "r"((long)timeout) /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rdx", "%r10", "%rcx", "%r11",
+	      "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
 #endif /* __linux__ */
 
 int open(const char *path, int flags, ...) {
@@ -442,10 +497,37 @@ int gettimeofday(struct timeval *tv, void *tz) {
 	return ret;
 }
 
+int epoll_create1(int ign) {
+	int ret = syscall_epoll_create1(ign);
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
+int epoll_wait(int epfd, struct epoll_event *events, int maxevents,
+	       int timeout) {
+	int ret = syscall_epoll_wait(epfd, events, maxevents, timeout);
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
+int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
+	int ret = syscall_epoll_ctl(epfd, op, fd, event);
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
 #endif /* __linux__ */
 
 #pragma GCC diagnostic pop
-
 
 int multiplex(void) {
 #ifdef __linux__
@@ -456,9 +538,6 @@ int multiplex(void) {
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 }
-
-
-#include <errno.h>
 
 int mregister(int multiplex, int fd, int flags, void *attach) {
 #ifdef __linux__
@@ -480,13 +559,11 @@ int mregister(int multiplex, int fd, int flags, void *attach) {
 		ev.data.ptr = attach;
 
 	if (epoll_ctl(multiplex, EPOLL_CTL_ADD, fd, &ev) < 0) {
-		if (errno == EEXIST) {
+		if (err == EEXIST) {
 			if (epoll_ctl(multiplex, EPOLL_CTL_MOD, fd, &ev) < 0) {
-				err = -errno;
 				return -1;
 			}
 		} else {
-			err = -errno;
 			return -1;
 		}
 	}
@@ -517,7 +594,6 @@ int mregister(int multiplex, int fd, int flags, void *attach) {
 #endif
 }
 
-
 int mwait(int multiplex, void *events, int max_events, int64_t timeout_millis) {
 #ifdef __linux__
 	int timeout = (timeout_millis >= 0) ? (int)timeout_millis : -1;
@@ -541,8 +617,6 @@ int mwait(int multiplex, void *events, int max_events, int64_t timeout_millis) {
 #endif
 }
 
-
-
 int event_getfd(Event event) {
 #ifdef __linux__
 	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
@@ -555,7 +629,6 @@ int event_getfd(Event event) {
 #endif
 }
 
-
 int event_is_read(Event event) {
 #ifdef __linux__
 	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
@@ -567,7 +640,6 @@ int event_is_read(Event event) {
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 }
-
 
 int event_is_write(Event event) {
 #ifdef __linux__
@@ -592,7 +664,6 @@ void *event_attachment(Event event) {
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 }
-
 
 int file(const char *path) { return open(path, O_CREAT | O_RDWR, 0600); }
 
