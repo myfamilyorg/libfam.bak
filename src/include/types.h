@@ -26,6 +26,9 @@
 #ifndef _TYPES_H__
 #define _TYPES_H__
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlong-long"
+
 #ifndef NULL
 #define NULL ((void *)0)
 #endif
@@ -68,7 +71,7 @@
 
 #ifndef UINT128_MAX
 #define UINT128_MAX \
-	(((__uint128_t)0xFFFFFFFFFFFFFFFFULL << 64) | 0xFFFFFFFFFFFFFFFFULL)
+	(((__uint128_t)0xFFFFFFFFFFFFFFFFUL << 64) | 0xFFFFFFFFFFFFFFFFUL)
 #endif
 
 #ifndef INT8_MIN
@@ -87,7 +90,7 @@
 #define INT64_MIN (-0x7FFFFFFFFFFFFFFF - 1)
 #endif
 
-#define INT128_MIN (((__int128_t)0x80000000ULL << 96))
+#define INT128_MIN (((__int128_t)0x80000000UL << 96))
 
 #ifndef INT8_MAX
 #define INT8_MAX 0x7F
@@ -106,9 +109,9 @@
 #endif
 
 #ifndef INT128_MAX
-#define INT128_MAX                           \
-	(((__int128_t)0x7FFFFFFFULL << 96) | \
-	 ((__int128_t)0xFFFFFFFFULL << 64) | 0xFFFFFFFFULL)
+#define INT128_MAX                                                             \
+	(((__int128_t)0x7FFFFFFFUL << 96) | ((__int128_t)0xFFFFFFFFUL << 64) | \
+	 0xFFFFFFFFUL)
 #endif
 
 #ifndef SIZE_MAX
@@ -159,6 +162,8 @@ typedef short unsigned int mode_t;
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
+
+#pragma GCC diagnostic pop
 
 #endif /* _TYPES_H__ */
 

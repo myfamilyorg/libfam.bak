@@ -132,19 +132,47 @@ static ssize_t syscall_read(int fd, void *buf, size_t count) {
 }
 
 static long syscall_lseek(int fd, long offset, int whence) {
-    long result;
-    __asm__ volatile (
-        "movq $8, %%rax\n"     /* lseek syscall number */
-        "movq %1, %%rdi\n"     /* fd */
-        "movq %2, %%rsi\n"     /* offset */
-        "movq %3, %%rdx\n"     /* whence */
-        "syscall\n"
-        "movq %%rax, %0\n"
-        : "=r"(result)         /* Output */
-        : "r"((long)fd), "r"(offset), "r"((long)whence) /* Inputs */
-        : "%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r11", "memory" /* Clobbered */
-    );
-    return result;
+	long result;
+	__asm__ volatile(
+	    "movq $8, %%rax\n" /* lseek syscall number */
+	    "movq %1, %%rdi\n" /* fd */
+	    "movq %2, %%rsi\n" /* offset */
+	    "movq %3, %%rdx\n" /* whence */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)				    /* Output */
+	    : "r"((long)fd), "r"(offset), "r"((long)whence) /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r11",
+	      "memory" /* Clobbered */
+	);
+	return result;
+}
+
+static int syscall_fork(void) {
+	long result;
+	__asm__ volatile(
+	    "movq $57, %%rax\n" /* fork syscall number */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)		       /* Output */
+	    :				       /* No inputs */
+	    : "%rax", "%rcx", "%r11", "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
+static int syscall_pipe(int *fds) {
+	long result;
+	__asm__ volatile(
+	    "movq $22, %%rax\n" /* pipe syscall number */
+	    "movq %1, %%rdi\n"	/* fds */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)			       /* Output */
+	    : "r"((long)fds)			       /* Input */
+	    : "%rax", "%rdi", "%rcx", "%r11", "memory" /* Clobbered */
+	);
+	return (int)result;
 }
 
 #endif /* __linux__ */
@@ -269,6 +297,38 @@ off_t lseek(int fd, off_t offset, int whence) {
 	int ret = syscall_lseek(fd, offset, whence);
 #elif defined(__APPLE__)
 	int ret = syscall(199, fd, offset, whence);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
+int fork(void) {
+#ifdef __linux__
+	int ret = syscall_fork();
+#elif defined(__APPLE__)
+	int ret = syscall(2);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
+int pipe(int fds[2]) {
+#ifdef __linux__
+	int ret = syscall_pipe(fds);
+#elif defined(__APPLE__)
+	int ret = syscall(42, fds);
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif

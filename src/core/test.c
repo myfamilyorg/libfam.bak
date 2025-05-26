@@ -1,6 +1,6 @@
 #include <criterion/criterion.h>
-#include <sys.h>
 #include <fcntl.h>
+#include <sys.h>
 #include <types.h>
 
 Test(core, types) {
@@ -56,4 +56,19 @@ Test(core, sys1) {
 	cr_assert_eq(buf[3], '\0');
 
 	unlink("/tmp/data.dat");
+}
+
+Test(core, testforkpipe) {
+	int fds[2];
+	pipe(fds);
+	printf("fd0=%i,fd1=%i\n", fds[0], fds[1]);
+
+	/*
+	int pid = fork();
+
+	if (pid == 0) {
+		exit(0);
+	} else {
+	}
+	*/
 }
