@@ -147,7 +147,7 @@ DECLARE_SYSCALL(int, fork, 57, 2, void)
 DECLARE_SYSCALL(int, pipe, 22, 42, int fd[2])
 
 #ifdef __linux__
-DECLARE_SYSTEM_CALL(int, nanosleep, 35, 35, const struct timespec *duration,
+DECLARE_SYSCALL(int, nanosleep, 35, 35, const struct timespec *duration,
 		    struct timespec *rem)
 #endif /* __linux__ */
 
@@ -226,7 +226,7 @@ int famnanosleep(const struct timespec *duration, struct timespec *rem) {
 #ifdef __APPLE__
 	int v = nanosleep(duration, rem);
 #elif defined(__linux__)
-	int v = syscall_nanosleep(fds);
+	int v = syscall_nanosleep(duration, rem);
 #endif /* __APPLE__ */
 }
 
