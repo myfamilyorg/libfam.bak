@@ -259,6 +259,6 @@ Test(core, files) {
 }
 
 Test(core, forkpipe) {
-	int fd = fork();
+	int fd = famfork();
 	printf("fd=%i\n", fd);
 }

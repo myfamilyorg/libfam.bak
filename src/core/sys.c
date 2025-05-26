@@ -141,7 +141,7 @@ DECLARE_SYSCALL(int, lseek, 8, 199, int fd, off_t offset, int whence)
 
 DECLARE_SYSCALL(int, fdatasync, 187, 75, int fd)
 
-DECLARE_SYSCALL(int, fork, 2, 57, void)
+DECLARE_SYSCALL(int, fork, 57, 2, void)
 
 DECLARE_SYSCALL(int, pipe, 42, 22, int fd[2])
 
@@ -183,7 +183,7 @@ int munmap(void *addr, size_t length) {
 
 int fdatasync(int fd) { IMPL_WRAPPER(int, fdatasync, fd) }
 
-int fork(void) {
+int famfork(void) {
 	int v = syscall_fork();
 	if (v < 0) {
 		err = -v;
@@ -192,7 +192,7 @@ int fork(void) {
 	return v;
 }
 
-int pipe(int fds[2]) {
+int fampipe(int fds[2]) {
 	int v = syscall_pipe(fds);
 	if (v < 0) {
 		err = -v;
