@@ -23,10 +23,13 @@
  *
  *******************************************************************************/
 
+#define _GNU_SOURCE
+
 #include <fcntl.h>
 #include <sys.h>
 #include <sys/time.h>
 #include <time.h>
+#include <error.h>
 #include <types.h>
 
 #ifdef __linux__
@@ -69,36 +72,36 @@ void *syscall_mmap(void *addr, size_t length, int prot, int flags, int fd,
 	}                                         \
 	return v;
 
-DECLARE_SYSCALL(int, sched_yield, 24, 158, void)
+DECLARE_SYSCALL(int, sched_yield, 24,  void)
 
-DECLARE_SYSCALL(ssize_t, write, 1, 4, int fd, const void *buf, size_t length)
+DECLARE_SYSCALL(ssize_t, write, 1,  int fd, const void *buf, size_t length)
 
-DECLARE_SYSCALL(void, exit, 60, 1, int code)
+DECLARE_SYSCALL(void, exit, 60,  int code)
 
-DECLARE_SYSCALL(int, munmap, 11, 73, void *addr, size_t length)
+DECLARE_SYSCALL(int, munmap, 11,  void *addr, size_t length)
 
-DECLARE_SYSCALL_OPEN(int, open, 2, 5, const char *pathname, int flags, ...)
+DECLARE_SYSCALL(int, open, 2,  const char *pathname, int flags, ...)
 
-DECLARE_SYSCALL(int, close, 3, 6, int fd)
+DECLARE_SYSCALL(int, close, 3,  int fd)
 
-DECLARE_SYSCALL(int, ftruncate, 77, 201, int fd, long length)
+DECLARE_SYSCALL(int, ftruncate, 77,  int fd, long length)
 
-DECLARE_SYSCALL(int, msync, 26, 65, void *addr, unsigned long length, int flags)
+DECLARE_SYSCALL(int, msync, 26, void *addr, unsigned long length, int flags)
 
-DECLARE_SYSCALL(off_t, lseek, 8, 199, int fd, off_t offset, int whence)
+DECLARE_SYSCALL(off_t, lseek, 8, int fd, off_t offset, int whence)
 
-DECLARE_SYSCALL(int, fdatasync, 187, 75, int fd)
+DECLARE_SYSCALL(int, fdatasync, 187, int fd)
 
-DECLARE_SYSCALL(int, fork, 57, 2, void)
+DECLARE_SYSCALL(int, fork, 57,  void)
 
-DECLARE_SYSCALL(int, pipe, 22, 42, int fd[2])
+DECLARE_SYSCALL(int, pipe, 22, int fd[2])
 
-DECLARE_SYSCALL(int, nanosleep, 35, 35, const struct timespec *duration,
+DECLARE_SYSCALL(int, nanosleep, 35,  const struct timespec *duration,
 		struct timespec *rem)
 
-DECLARE_SYSCALL(int, gettimeofday, 96, 96, struct timeval *tv, void *tz)
+DECLARE_SYSCALL(int, gettimeofday, 96,  struct timeval *tv, void *tz)
 
-DECLARE_SYSCALL(int, settimeofday, 170, 170, const struct timeval *tv,
+DECLARE_SYSCALL(int, settimeofday, 170,  const struct timeval *tv,
 		const void *tz)
 
 int sys_sched_yield(void) {
@@ -117,6 +120,16 @@ ssize_t sys_write(int fd, const void *buf, size_t length) {
 void sys_exit(int code) {
 	syscall_exit(code);
 	while (true);
+}
+
+void *sys_mmap(void *addr, size_t length, int prot, int flags, int fd,
+           off_t offset) {
+        void *v = syscall_mmap(addr, length, prot, flags, fd, offset);
+        if ((long)v >= -4095 && (long)v < 0) {
+                err = -(long)v;
+                return (void *)-1;
+        }
+        return v;
 }
 
 int sys_open(const char *pathname, int flags, ...) {
@@ -181,6 +194,10 @@ off_t sys_lseek(int fd, off_t offset, int whence) {
 int sys_fdatasync(int fd) { return fdatasync(fd); }
 int sys_fork(void) { return fork(); }
 int sys_pipe(int fds[2]) { return pipe(fds); }
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
 int open_create(const char *path) { return open(path, O_CREAT | O_RDWR, 0644); }
 
 int64_t micros(void) {
@@ -204,6 +221,3 @@ int sleep_millis(uint64_t millis) {
 	return nanosleep(&req, &req);
 }
 
-#else
-#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
-#endif
