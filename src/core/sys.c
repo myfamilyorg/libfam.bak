@@ -243,11 +243,11 @@ int open(const char *path, int flags, ...) {
 #ifdef __linux__
 	int ret = syscall_open(
 	    path, flags,
-	    0644); /* note: hard coded 0644 which is ok for our purposes */
+	    0600); /* note: hard coded 0600 which is ok for our purposes */
 #elif defined(__APPLE__)
 	int ret = syscall(
 	    5, path, flags,
-	    0644); /* note: hard coded 0644 which is ok for our purposes */
+	    0600); /* note: hard coded 0600 which is ok for our purposes */
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
@@ -446,7 +446,7 @@ int gettimeofday(struct timeval *tv, void *tz) {
 
 #pragma GCC diagnostic pop
 
-int file(const char *path) { return open(path, O_CREAT | O_RDWR, 0644); }
+int file(const char *path) { return open(path, O_CREAT | O_RDWR, 0600); }
 
 int64_t micros(void) {
 	struct timeval tv;
