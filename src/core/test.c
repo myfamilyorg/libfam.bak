@@ -1,6 +1,6 @@
 #include <criterion/criterion.h>
 #include <error.h>
-#include <fcntl.h>
+#include <lock.h>
 #include <stdio.h>
 #include <sys.h>
 #include <sys/mman.h>
@@ -144,7 +144,6 @@ Test(core, multiplex) {
 	int fds[2];
 	char buf[10];
 
-	
 	cr_assert(m > 0);
 	cr_assert_eq(mwait(m, events, 10, 1), 0);
 
@@ -168,4 +167,22 @@ Test(core, multiplex) {
 	close(fds[1]);
 
 	close(m);
+}
+
+Test(core, lock) {
+	Lock l1 = LOCK_INIT;
+	{
+		LockGuard lg1 = lock_read(&l1);
+		cr_assert_eq(l1, 1);
+		LockGuard lg2 = lock_read(&l1);
+		cr_assert_eq(l1, 2);
+	}
+	cr_assert_eq(l1, 0);
+
+	{
+		LockGuard lg1 = lock_write(&l1);
+		// write flag is set (highest bit)
+		cr_assert_eq(l1, (0x1UL << 63));
+	}
+	cr_assert_eq(l1, 0);
 }

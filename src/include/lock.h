@@ -23,57 +23,26 @@
  *
  *******************************************************************************/
 
-#ifndef _SYS_H__
-#define _SYS_H__
+#ifndef _LOCK_H__
+#define _LOCK_H__
 
 #include <types.h>
 
-#ifdef __linux__
-#include <sys/epoll.h>
-#elif defined(__APPLE__)
-#include <sys/event.h>
-#else
-#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
-#endif
+typedef uint64_t Lock;
+
+#define LOCK_INIT 0
 
 typedef struct {
-#ifdef __linux__
-	struct epoll_event event;
-#elif defined(__APPLE__)
-	struct kevent event;
-#else
-#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
-#endif
-} Event;
+	Lock *lock;
+	unsigned char is_write;
+} LockGuardImpl;
 
-#define MULTIPLEX_FLAG_NONE 0
-#define MULTIPLEX_FLAG_READ 0x1
-#define MULTIPLEX_FLAG_WRITE (0x1 << 1)
+void lockguard_cleanup(LockGuardImpl *lg);
 
-int fork(void);
-int pipe(int fds[2]);
-int unlink(const char *path);
-ssize_t write(int fd, const void *buf, size_t length);
-ssize_t read(int fd, void *buf, size_t length);
-int sched_yield(void);
-off_t lseek(int fd, off_t offset, int whence);
-void exit(int);
-void *mmap(void *addr, size_t length, int prot, int flags, int fd,
-	   off_t offset);
-int close(int fd);
-int ftruncate(int fd, off_t length);
-int fdatasync(int fd);
+#define LockGuard \
+	LockGuardImpl __attribute__((unused, cleanup(lockguard_cleanup)))
 
-int file(const char *path);
-int64_t micros(void);
-int sleepm(uint64_t millis);
-int multiplex(void);
-int mregister(int multiplex, int fd, int flags, void *attach);
-int mwait(int multiplex, void *events, int max_events, int64_t timeout);
+LockGuardImpl lock_read(Lock *lock);
+LockGuardImpl lock_write(Lock *lock);
 
-int event_getfd(Event event);
-int event_is_read(Event event);
-int event_is_write(Event event);
-void *event_attachment(Event event);
-
-#endif /* _SYS_H__ */
+#endif /* _LOCK_H__ */
