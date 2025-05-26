@@ -1,5 +1,6 @@
 #include <criterion/criterion.h>
 #include <sys.h>
+#include <fcntl.h>
 #include <types.h>
 
 Test(core, types) {

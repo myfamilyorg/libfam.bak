@@ -131,6 +131,22 @@ static ssize_t syscall_read(int fd, void *buf, size_t count) {
 	return (ssize_t)result;
 }
 
+static long syscall_lseek(int fd, long offset, int whence) {
+    long result;
+    __asm__ volatile (
+        "movq $8, %%rax\n"     /* lseek syscall number */
+        "movq %1, %%rdi\n"     /* fd */
+        "movq %2, %%rsi\n"     /* offset */
+        "movq %3, %%rdx\n"     /* whence */
+        "syscall\n"
+        "movq %%rax, %0\n"
+        : "=r"(result)         /* Output */
+        : "r"((long)fd), "r"(offset), "r"((long)whence) /* Inputs */
+        : "%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r11", "memory" /* Clobbered */
+    );
+    return result;
+}
+
 #endif /* __linux__ */
 
 int sched_yield(void) {
