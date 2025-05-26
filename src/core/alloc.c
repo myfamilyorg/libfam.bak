@@ -25,9 +25,9 @@
 
 #include <alloc.h>
 #include <error.h>
+#include <fam.h>
 #include <lock.h>
 #include <misc.h>
-#include <sys.h>
 #include <types.h>
 
 #define CHUNK_SIZE (256 * 1024)
@@ -143,8 +143,8 @@ Lock __alloc_global_lock = LOCK_INIT;
 Chunk *__alloc_head_ptrs[MAX_SLAB_PTRS] = {0};
 
 STATIC void panic(const char *msg) {
-	write(2, msg, strlen(msg));
-	exit(-1);
+	sys_write(2, msg, strlen(msg));
+	sys_exit(-1);
 }
 
 /* Return an aligned memory location using specified alignment. */
@@ -155,8 +155,8 @@ STATIC void *alloc_aligned_memory(size_t size, size_t alignment) {
 	alloc_size = size + alignment;
 
 	/* Call mmap with a large enough allocation so we can align properly. */
-	base = mmap(NULL, alloc_size, PROT_READ | PROT_WRITE,
-		    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	base = sys_mmap(NULL, alloc_size, PROT_READ | PROT_WRITE,
+			MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (base == MAP_FAILED) return NULL;
 
 	/* Align the pointer */
@@ -165,12 +165,12 @@ STATIC void *alloc_aligned_memory(size_t size, size_t alignment) {
 
 	/* Unmap prefix pages */
 	prefix_size = (size_t)aligned_ptr - (size_t)base;
-	if (prefix_size) munmap(base, prefix_size);
+	if (prefix_size) sys_munmap(base, prefix_size);
 
 	/* Unmap suffix pages */
 	suffix_size = alloc_size - (prefix_size + size);
 	suffix_start = (void *)((size_t)aligned_ptr + size);
-	if (suffix_size) munmap(suffix_start, suffix_size);
+	if (suffix_size) sys_munmap(suffix_start, suffix_size);
 
 	return aligned_ptr;
 }
@@ -289,7 +289,7 @@ STATIC void free_slab(void *ptr) {
 	}
 
 	/* Finally, there are no more bits here, free the chunk */
-	munmap(chunk, CHUNK_SIZE);
+	sys_munmap(chunk, CHUNK_SIZE);
 }
 
 void *alloc(size_t size) {
@@ -328,7 +328,7 @@ void release(void *ptr) {
 			panic(
 			    "Memory corruption: MAGIC not correct. Halting!\n");
 		actual_size = *(size_t *)aligned_ptr;
-		munmap(aligned_ptr, actual_size);
+		sys_munmap(aligned_ptr, actual_size);
 	} else { /* slab alloc */
 		free_slab(ptr);
 	}

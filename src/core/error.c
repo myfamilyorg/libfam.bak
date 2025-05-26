@@ -24,8 +24,8 @@
  *******************************************************************************/
 
 #include <error.h>
+#include <fam.h>
 #include <misc.h>
-#include <sys.h>
 
 int err = 0;
 
@@ -41,12 +41,12 @@ int print_error(const char *s) {
 	}
 
 	len = strlen(s);
-	if (len) v = write(2, s, len);
-	if (len && v == len) v = write(2, ": ", 2);
+	if (len) v = sys_write(2, s, len);
+	if (len && v == len) v = sys_write(2, ": ", 2);
 	if (v == 2) err_msg = error_string(err);
 	if (v == 2) len = strlen(err_msg);
-	if (v == 2) v = write(2, err_msg, len);
-	if (v == len) v = write(2, "\n", 1);
+	if (v == 2) v = sys_write(2, err_msg, len);
+	if (v == len) v = sys_write(2, "\n", 1);
 	if (v == 1) return 0;
 	return -1;
 }

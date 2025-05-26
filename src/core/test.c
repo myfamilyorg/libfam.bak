@@ -226,13 +226,13 @@ Test(core, test_obj) {
 Test(core, files) {
 	remove("/tmp/testfile.dat");
 
-	int fd = open("/tmp/testfile.dat", O_RDWR | O_CREAT, MODE_0644);
+	int fd = open_create("/tmp/testfile.dat");
 	cr_assert(fd >= 0);
 
-	off_t file_size = lseek(fd, 0, SEEK_END);
+	off_t file_size = sys_lseek(fd, 0, SEEK_END);
 	cr_assert_eq(file_size, 0);
 
-	int ftruncate_res = ftruncate(fd, 16384);
+	int ftruncate_res = sys_ftruncate(fd, 16384);
 	cr_assert(ftruncate_res == 0);
 
 	char *ret =
@@ -240,17 +240,17 @@ Test(core, files) {
 	cr_assert_eq(ret[0], 0);
 	ret[0] = 1;
 
-	file_size = lseek(fd, 0, SEEK_END);
+	file_size = sys_lseek(fd, 0, SEEK_END);
 	cr_assert_eq(file_size, 16384);
 
 	// Close file
-	cr_assert(close(fd) >= 0);
+	cr_assert(sys_close(fd) >= 0);
 
 	// Reopen file for size check
-	fd = open("/tmp/testfile.dat", O_RDWR, 0);
+	fd = open_create("/tmp/testfile.dat");
 	cr_assert(fd > 0);
 
-	file_size = lseek(fd, 0, SEEK_END);
+	file_size = sys_lseek(fd, 0, SEEK_END);
 	cr_assert_eq(file_size, 16384);
 
 	ret = mmap(NULL, 16384, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);

@@ -28,6 +28,11 @@
 #include <time.h>
 #include <types.h>
 
+// Constants
+#define O_RDWR 0x0002
+#define O_CREAT 0x0040
+#define MODE_0644 0644
+
 #ifdef __linux__
 #define DECLARE_SYSCALL(ret_type, name, linux_num, macos_num, ...) \
 	ret_type syscall_##name(__VA_ARGS__);                      \
@@ -265,3 +270,44 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	return v;
 }
 
+ssize_t sys_write(int fd, const void *buf, size_t length) {
+	return write(fd, buf, length);
+}
+int sys_sched_yield(void) { return sched_yield(); }
+void sys_exit(int code) { exit(code); }
+void *sys_mmap(void *addr, size_t length, int prot, int flags, int fd,
+	       off_t offset) {
+	return mmap(addr, length, prot, flags, fd, offset);
+}
+int sys_munmap(void *addr, size_t length) { return munmap(addr, length); }
+int sys_close(int fd) { return close(fd); }
+int sys_ftruncate(int fd, off_t length) { return ftruncate(fd, length); }
+int sys_msync(void *addr, size_t length, int flags) {
+	return msync(addr, length, flags);
+}
+off_t sys_lseek(int fd, off_t offset, int whence) {
+	return lseek(fd, offset, whence);
+}
+int sys_fdatasync(int fd) { return fdatasync(fd); }
+int sys_fork(void) { return fork(); }
+int sys_pipe(int fds[2]) { return pipe(fds); }
+
+int open_create(const char *path) {
+	return open(path, O_CREAT | O_RDWR, MODE_0644);
+}
+
+int64_t micros(void) {
+	struct timeval tv;
+
+	// Get current time
+	if (gettimeofday(&tv, NULL) == -1) {
+		return -1;
+	}
+
+	// Calculate microseconds since epoch
+	int64_t microseconds = (int64_t)tv.tv_sec * 1000000 + tv.tv_usec;
+
+	return microseconds;
+}
+
+int sleep_millis(uint64_t millis);

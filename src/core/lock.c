@@ -23,8 +23,8 @@
  *
  *******************************************************************************/
 
+#include <fam.h>
 #include <lock.h>
-#include <sys.h>
 
 #define WFLAG (0x1UL << 63)
 #define WREQUEST (0x1UL << 62)
@@ -42,7 +42,7 @@ LockGuardImpl lock_read(Lock *lock) {
 	uint64_t state, desired, do_yield = 0;
 	LockGuardImpl ret;
 	do {
-		if (do_yield++) sched_yield();
+		if (do_yield++) sys_sched_yield();
 		state = __atomic_load_n(lock, __ATOMIC_ACQUIRE) &
 			~(WFLAG | WREQUEST);
 		desired = state + 1;
@@ -57,7 +57,7 @@ LockGuardImpl lock_write(Lock *lock) {
 	uint64_t state, desired, do_yield = 0;
 	LockGuardImpl ret;
 	do {
-		if (do_yield++) sched_yield();
+		if (do_yield++) sys_sched_yield();
 		state = __atomic_load_n(lock, __ATOMIC_ACQUIRE) &
 			~(WFLAG | WREQUEST);
 		desired = state | WREQUEST;
@@ -68,7 +68,7 @@ LockGuardImpl lock_write(Lock *lock) {
 	do {
 		state = __atomic_load_n(lock, __ATOMIC_ACQUIRE);
 		if (state != WREQUEST) {
-			sched_yield();
+			sys_sched_yield();
 			continue;
 		}
 

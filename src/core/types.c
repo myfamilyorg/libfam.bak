@@ -24,8 +24,8 @@
  *******************************************************************************/
 
 #include <error.h>
+#include <fam.h>
 #include <misc.h>
-#include <sys.h>
 #include <types.h>
 
 static int write_u64(int fd, uint64_t value) {
@@ -53,7 +53,7 @@ static int write_u64(int fd, uint64_t value) {
 		buffer[j] = temp;
 	}
 
-	ssize_t bytes_written = write(fd, buffer, len);
+	ssize_t bytes_written = sys_write(fd, buffer, len);
 	if (bytes_written == -1) return -1;
 	if (bytes_written != len) {
 		err = EIO;
@@ -66,14 +66,14 @@ static int write_u64(int fd, uint64_t value) {
 #define CheckType(t, exp)                             \
 	if (sizeof(t) != exp) {                       \
 		const char *msg = "expected sizeof("; \
-		write(2, msg, strlen(msg));           \
-		write(2, #t, strlen(#t));             \
-		write(2, ") == ", 5);                 \
+		sys_write(2, msg, strlen(msg));       \
+		sys_write(2, #t, strlen(#t));         \
+		sys_write(2, ") == ", 5);             \
 		write_u64(2, exp);                    \
-		write(2, ", Found ", 8);              \
+		sys_write(2, ", Found ", 8);          \
 		write_u64(2, sizeof(t));              \
-		write(2, "\n", 1);                    \
-		exit(-1);                             \
+		sys_write(2, "\n", 1);                \
+		sys_exit(-1);                         \
 	}
 
 #define CheckEndian()                                                          \
@@ -81,8 +81,8 @@ static int write_u64(int fd, uint64_t value) {
 	uint8_t *bytes = (uint8_t *)&test;                                     \
 	if (bytes[0] != 0x34) {                                                \
 		const char *msg = "Error: Big-endian systems not supported\n"; \
-		write(2, msg, strlen(msg));                                    \
-		exit(-1);                                                      \
+		sys_write(2, msg, strlen(msg));                                \
+		sys_exit(-1);                                                  \
 	}
 
 static __attribute__((constructor)) void check_sizes(void) {
@@ -104,16 +104,16 @@ static __attribute__((constructor)) void check_sizes(void) {
 
 	const char *bool_err = "expected true to be true\n";
 	if (!true) {
-		write(2, bool_err, strlen(bool_err));
-		exit(-1);
+		sys_write(2, bool_err, strlen(bool_err));
+		sys_exit(-1);
 	}
 	if (false) {
-		write(2, bool_err, strlen(bool_err));
-		exit(-1);
+		sys_write(2, bool_err, strlen(bool_err));
+		sys_exit(-1);
 	}
 	if (!true) {
-		write(2, bool_err, strlen(bool_err));
-		exit(-1);
+		sys_write(2, bool_err, strlen(bool_err));
+		sys_exit(-1);
 	}
 }
 

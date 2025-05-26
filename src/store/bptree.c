@@ -1,8 +1,8 @@
 #include <bptree.h>
 #include <error.h>
+#include <fam.h>
 #include <lock.h>
 #include <misc.h>
-#include <sys.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -61,30 +61,30 @@ STATIC void __attribute__((constructor)) bptree_test(void) {
 	if (sizeof(BpTree) != sizeof(BpTreeImpl)) {
 		const char *s =
 		    "BpTree and BpTreeImpl must have the same size!\n";
-		write(2, s, strlen(s));
-		exit(-1);
+		sys_write(2, s, strlen(s));
+		sys_exit(-1);
 	}
 
 	if (sizeof(BpTreePage) != PAGE_SIZE) {
 		const char *s =
 		    "sizeof(BpTreePage) must be equal to PAGE_SIZE!\n";
-		write(2, s, strlen(s));
-		exit(-1);
+		sys_write(2, s, strlen(s));
+		sys_exit(-1);
 	}
 
 	if (sizeof(BpTreeInternalPage) != sizeof(BpTreeLeafPage)) {
 		const char *s =
 		    "sizeof(BpTreeInternalPage) must be equal "
 		    "sizeof(BpTreeLeafPage)!\n";
-		write(2, s, strlen(s));
-		exit(-1);
+		sys_write(2, s, strlen(s));
+		sys_exit(-1);
 	}
 
 	if (sizeof(BpTxn) != sizeof(BpTxnImpl)) {
 		const char *s =
 		    "BpTxn and BpTxnImpl must have the same size!\n";
-		write(2, s, strlen(s));
-		exit(-1);
+		sys_write(2, s, strlen(s));
+		sys_exit(-1);
 	}
 }
 
@@ -181,7 +181,7 @@ int bptree_init(BpTree *tree, void *base, int fd, uint64_t capacity) {
 		root->is_leaf = true;
 		root->page_id = MIN_PAGE;
 
-		fdatasync(fd);
+		sys_fdatasync(fd);
 	}
 
 	return 0;
