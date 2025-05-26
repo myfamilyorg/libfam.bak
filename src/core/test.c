@@ -99,6 +99,8 @@ Test(core, mmap) {
 	    mmap(NULL, 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	cr_assert_eq(base2[1], 'a');
 	cr_assert_eq(base2[1024 * 990], 'b');
+	cr_assert_eq(base2[1024 * 991], 0);
+
 	close(fd2);
 	unlink(path);
 }

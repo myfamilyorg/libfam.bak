@@ -253,22 +253,6 @@ static int syscall_fdatasync(int fd) {
 
 #endif /* __linux__ */
 
-int sched_yield(void) {
-#ifdef __linux__
-	int ret = syscall_sched_yield();
-#elif defined(__APPLE__)
-	int ret = syscall(21);
-#else
-#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
-#endif
-
-	if (ret < 0) {
-		err = -ret;
-		return -1;
-	}
-	return ret;
-}
-
 int open(const char *path, int flags, ...) {
 #ifdef __linux__
 	int ret = syscall_open(
@@ -471,6 +455,15 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	if ((long)ret == -1) {
 		err = -(long)ret;
 		return (void *)-1;
+	}
+	return ret;
+}
+
+int sched_yield(void) {
+	int ret = syscall_sched_yield();
+	if (ret < 0) {
+		err = -ret;
+		return -1;
 	}
 	return ret;
 }
