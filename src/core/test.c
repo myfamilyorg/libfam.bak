@@ -259,6 +259,21 @@ Test(core, files) {
 	// remove("/tmp/testfile.dat");
 }
 
+Test(core, event1) {
+	int value = 77;
+	int fds[2];
+	Event events[10];
+	int m1 = multiplex();
+	sys_pipe(fds);
+	sys_write(fds[1], "test", 4);
+	multiplex_register(m1, fds[0], REGISTER_READ, &value);
+	cr_assert_eq(multiplex_wait(m1, events, 10, -1), 1);
+	cr_assert_eq(multiplex_wait(m1, events, 10, 1), 0);
+	sys_close(m1);
+	sys_close(fds[0]);
+	sys_close(fds[1]);
+}
+
 Test(core, forkpipe) {
 	/*
 	int64_t start = micros();

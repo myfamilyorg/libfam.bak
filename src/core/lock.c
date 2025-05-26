@@ -23,8 +23,8 @@
  *
  *******************************************************************************/
 
-#include <sys.h>
 #include <lock.h>
+#include <sys.h>
 
 #define WFLAG (0x1UL << 63)
 #define WREQUEST (0x1UL << 62)

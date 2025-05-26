@@ -1,8 +1,8 @@
 #include <bptree.h>
 #include <error.h>
-#include <sys.h>
 #include <lock.h>
 #include <misc.h>
+#include <sys.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -137,6 +137,20 @@ STATIC int bptree_insert_node(BpTxn *txn, const void *key, uint16_t key_len,
 	return res;
 }
 
+STATIC int bptree_fsync_proc(BpTree *tree) {
+	int pid = sys_fork();
+	if (pid == 0) {
+		sys_exit(0);
+		/*
+		while (true) {
+			printf("1\n");
+			sleep_millis(100);
+		}
+		*/
+	}
+	return 0;
+}
+
 int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
 	       uint32_t value_len, const BpTreeSearch search) {
 	BpTxnImpl *impl = (BpTxnImpl *)txn;
@@ -183,6 +197,8 @@ int bptree_init(BpTree *tree, void *base, int fd, uint64_t capacity) {
 
 		sys_fdatasync(fd);
 	}
+
+	bptree_fsync_proc(tree);
 
 	return 0;
 }
