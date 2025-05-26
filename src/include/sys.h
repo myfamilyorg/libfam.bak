@@ -26,6 +26,7 @@
 #ifndef _SYS_H__
 #define _SYS_H__
 
+#include <time.h>
 #include <types.h>
 
 ssize_t write(int fd, const void *buf, size_t length);
@@ -40,6 +41,7 @@ int ftruncate(int fd, off_t length);
 int msync(void *addr, size_t length, int flags);
 off_t lseek(int fd, off_t offset, int whence);
 int fdatasync(int fd);
+int nanosleep(const struct timespec *duration, struct timespec *rem);
 int famfork(void);
 int fampipe(int fds[2]);
 

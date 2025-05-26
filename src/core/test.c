@@ -263,5 +263,15 @@ Test(core, forkpipe) {
 	fampipe(fds);
 	int pid = famfork();
 	printf("pid=%i,fds[0]=%i,fds[1]=%i\n", pid, fds[0], fds[1]);
+
+	struct timespec req = {.tv_sec = 1, .tv_nsec = 0};  // 1 second
+	struct timespec rem;  // For remaining time if interrupted
+	nanosleep(&req, &rem);
+	printf("1\n");
+	nanosleep(&req, &rem);
+	printf("2\n");
+	nanosleep(&req, &rem);
+	printf("3\n");
+
 	if (pid == 0) exit(0);
 }

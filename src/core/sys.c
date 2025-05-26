@@ -24,6 +24,7 @@
  *******************************************************************************/
 
 #include <error.h>
+#include <time.h>
 #include <types.h>
 
 #ifdef __linux__
@@ -145,6 +146,11 @@ DECLARE_SYSCALL(int, fork, 57, 2, void)
 
 DECLARE_SYSCALL(int, pipe, 22, 42, int fd[2])
 
+#ifdef __linux__
+DECLARE_SYSTEM_CALL(int, nanosleep, 35, 35, const struct timespec *duration,
+		    struct timespec *rem)
+#endif /* __linux__ */
+
 int sched_yield(void) {
 	int v = syscall_sched_yield();
 	if (v < 0) {
@@ -186,6 +192,7 @@ int fdatasync(int fd) { IMPL_WRAPPER(int, fdatasync, fd) }
 #ifdef __APPLE__
 int fork();
 int pipe(int fds[2]);
+int nanosleep(const struct timespec *duration, struct timespec *buf);
 #endif
 
 int famfork(void) {
@@ -213,6 +220,14 @@ int fampipe(int fds[2]) {
 		return -1;
 	}
 	return v;
+}
+
+int famnanosleep(const struct timespec *duration, struct timespec *rem) {
+#ifdef __APPLE__
+	int v = nanosleep(duration, rem);
+#elif defined(__linux__)
+	int v = syscall_nanosleep(fds);
+#endif /* __APPLE__ */
 }
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd,
