@@ -86,15 +86,19 @@ Test(core, mmap) {
 	char *base =
 	    mmap(NULL, 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	cr_assert_eq(base[1], 0);
+	cr_assert_eq(base[1024 * 990], 0);
 	base[1] = 'a';
+	base[1024 * 990] = 'b';
 	cr_assert_eq(base[1], 'a');
+	cr_assert_eq(base[1024 * 990], 'b');
 
 	close(fd);
 
 	int fd2 = ocreate(path);
 	char *base2 =
 	    mmap(NULL, 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	cr_assert_eq(base[1], 'a');
+	cr_assert_eq(base2[1], 'a');
+	cr_assert_eq(base2[1024 * 990], 'b');
 	close(fd2);
 	unlink(path);
 }
