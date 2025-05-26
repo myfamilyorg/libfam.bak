@@ -257,3 +257,8 @@ Test(core, files) {
 
 	// remove("/tmp/testfile.dat");
 }
+
+Test(core, forkpipe) {
+	int fd = fork();
+	printf("fd=%i\n", fd);
+}

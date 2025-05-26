@@ -34,12 +34,13 @@ void exit(int);
 void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	   off_t offset);
 int munmap(void *addr, size_t length);
-
 int open(const char *pathname, int flags, ...);
 int close(int fd);
 int ftruncate(int fd, off_t length);
 int msync(void *addr, size_t length, int flags);
 off_t lseek(int fd, off_t offset, int whence);
 int fdatasync(int fd);
+int fork(void);
+int pipe(int fds[2]);
 
 #endif /* _SYS_H__ */

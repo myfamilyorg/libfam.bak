@@ -141,6 +141,10 @@ DECLARE_SYSCALL(int, lseek, 8, 199, int fd, off_t offset, int whence)
 
 DECLARE_SYSCALL(int, fdatasync, 187, 75, int fd)
 
+DECLARE_SYSCALL(int, fork, 2, 57, void)
+
+DECLARE_SYSCALL(int, pipe, 42, 22, int fd[2])
+
 int sched_yield(void) {
 	int v = syscall_sched_yield();
 	if (v < 0) {
@@ -178,6 +182,24 @@ int munmap(void *addr, size_t length) {
 }
 
 int fdatasync(int fd) { IMPL_WRAPPER(int, fdatasync, fd) }
+
+int fork(void) {
+	int v = syscall_fork();
+	if (v < 0) {
+		err = -v;
+		return -1;
+	}
+	return v;
+}
+
+int pipe(int fds[2]) {
+	int v = syscall_pipe(fds);
+	if (v < 0) {
+		err = -v;
+		return -1;
+	}
+	return v;
+}
 
 // to get the error code in mmap
 #include <errno.h>
