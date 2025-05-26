@@ -324,14 +324,9 @@ int fork(void) {
 	return ret;
 }
 
-int pipe(int fds[2]) {
 #ifdef __linux__
+int pipe(int fds[2]) {
 	int ret = syscall_pipe(fds);
-#elif defined(__APPLE__)
-	int ret = syscall(42, fds);
-#else
-#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
-#endif
 
 	if (ret < 0) {
 		err = -ret;
@@ -340,7 +335,6 @@ int pipe(int fds[2]) {
 	return ret;
 }
 
-#ifdef __linux__
 int nanosleep(const struct timespec *req, struct timespec *rem) {
 	int ret = syscall_nanosleep(req, rem);
 	if (ret < 0) {
