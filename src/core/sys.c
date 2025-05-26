@@ -432,7 +432,7 @@ int ftruncate(int fd, off_t length) {
 #ifdef __linux__
 	ret = syscall_ftruncate(fd, length);
 #elif defined(__APPLE__)
-	ret = syscall(200, fd, length);
+	ret = syscall(201, fd, length);
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
@@ -448,7 +448,7 @@ int fdatasync(int fd) {
 #ifdef __linux__
 	ret = syscall_fdatasync(fd);
 #elif defined(__APPLE__)
-	ret = syscall(20, fd);
+	ret = syscall(187, fd);
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
