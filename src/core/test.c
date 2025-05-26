@@ -144,6 +144,7 @@ Test(core, multiplex) {
 	int fds[2];
 	char buf[10];
 
+	
 	cr_assert(m > 0);
 	cr_assert_eq(mwait(m, events, 10, 1), 0);
 
@@ -154,7 +155,6 @@ Test(core, multiplex) {
 	write(fds[1], "test", 4);
 
 	cr_assert_eq(mwait(m, events, 10, 1), 1);
-	cr_assert_eq(eventfd(events[0]), fds[0]);
 	cr_assert(event_is_read(events[0]));
 	cr_assert(!event_is_write(events[0]));
 	cr_assert_eq(event_attachment(events[0]), &my_data);

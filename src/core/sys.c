@@ -446,6 +446,7 @@ int gettimeofday(struct timeval *tv, void *tz) {
 
 #pragma GCC diagnostic pop
 
+
 int multiplex(void) {
 #ifdef __linux__
 	return epoll_create1(0);
@@ -455,6 +456,7 @@ int multiplex(void) {
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 }
+
 
 #include <errno.h>
 
@@ -515,6 +517,7 @@ int mregister(int multiplex, int fd, int flags, void *attach) {
 #endif
 }
 
+
 int mwait(int multiplex, void *events, int max_events, int64_t timeout_millis) {
 #ifdef __linux__
 	int timeout = (timeout_millis >= 0) ? (int)timeout_millis : -1;
@@ -538,7 +541,9 @@ int mwait(int multiplex, void *events, int max_events, int64_t timeout_millis) {
 #endif
 }
 
-int eventfd(Event event) {
+
+
+int event_getfd(Event event) {
 #ifdef __linux__
 	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
 	return epoll_ev->data.fd;
@@ -549,6 +554,7 @@ int eventfd(Event event) {
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 }
+
 
 int event_is_read(Event event) {
 #ifdef __linux__
@@ -561,6 +567,7 @@ int event_is_read(Event event) {
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 }
+
 
 int event_is_write(Event event) {
 #ifdef __linux__
@@ -585,6 +592,7 @@ void *event_attachment(Event event) {
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 }
+
 
 int file(const char *path) { return open(path, O_CREAT | O_RDWR, 0600); }
 
