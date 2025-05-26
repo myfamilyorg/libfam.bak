@@ -32,13 +32,13 @@ typedef struct {
 typedef struct {
 	uint16_t entry_offsets[MAX_INTERNAL_ENTRIES];
 	uint8_t key_entries[INTERNAL_ARRAY_SIZE];
-} BpTreeInternalNode;
+} BpTreeInternalPage;
 
 typedef struct {
 	uint64_t next_leaf;
 	uint16_t entry_offsets[MAX_LEAF_ENTRIES];
 	uint8_t entries[LEAF_ARRAY_SIZE];
-} BpTreeLeafNode;
+} BpTreeLeafPage;
 
 typedef struct {
 	uint64_t page_id;
@@ -48,13 +48,13 @@ typedef struct {
 	uint16_t used_bytes;
 	uint8_t is_leaf;
 	union {
-		BpTreeInternalNode internal;
-		BpTreeLeafNode leaf;
+		BpTreeInternalPage internal;
+		BpTreeLeafPage leaf;
 	} data;
 } BpTreePage;
 
 typedef void (*BpTreeSearch)(BpTxn *txn, const void *key, uint16_t key_len,
-			     const BpTreeNode *node,
+			     const BpTreePage *page,
 			     BpTreeSearchResult *retval);
 
 int bptree_init(BpTree *, void *base, int fd, uint64_t capacity);
@@ -68,7 +68,7 @@ void bptxn_start(BpTxn *txn, BpTree *tree);
 int bptxn_commit(BpTxn *txn);
 int bptxn_abort(BpTxn *txn);
 
-BpTreeNode *bptxn_get_node(BpTxn *txn, uint64_t node_id);
-BpTreeNode *bptree_root(BpTxn *tree);
+BpTreePage *bptxn_get_page(BpTxn *txn, uint64_t page_id);
+BpTreePage *bptree_root(BpTxn *tree);
 
 #endif /* _BPTREE_H__ */
