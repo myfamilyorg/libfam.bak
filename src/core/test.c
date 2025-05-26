@@ -29,4 +29,8 @@ Test(core, types) {
 	cr_assert_eq(true, true);
 }
 
-Test(core, sys1) { sched_yield(); }
+Test(core, sys1) {
+	sched_yield();
+	write(2, "test\n", 5);
+	ocreate("/tmp/data.dat");
+}
