@@ -27,6 +27,7 @@
 #include <misc.h>
 #include <object.h>
 #include <stdio.h>
+#include <sys.h>
 #include <sys/mman.h>
 #include <types.h>
 
@@ -267,7 +268,7 @@ Test(core, forkpipe) {
 
 	struct timespec req = {.tv_sec = 0, .tv_nsec = 100000000};
 	struct timespec rem;
-	nanosleep(&req, &rem);
+	sleep_millis(100);
 	cr_assert(micros() - start >= 100000);
 
 	if (pid == 0) exit(0);

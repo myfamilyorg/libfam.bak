@@ -1,6 +1,7 @@
 #include <bptree.h>
 #include <criterion/criterion.h>
 #include <sys.h>
+#include <stdio.h>
 #include <sys/mman.h>
 
 Test(store, bptree1) {
