@@ -88,5 +88,6 @@ int listen(int sockfd, int backlog);
 int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
 int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
 int shutdown(int sockfd, int how);
+int socket(int domain, int type, int protocol);
 
 #endif /* _SYS_H__ */

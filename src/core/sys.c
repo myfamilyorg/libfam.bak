@@ -461,7 +461,154 @@ static int syscall_shutdown(int sockfd, int how) {
 	return (int)result;
 }
 
+/* socket(2): Create a new socket */
+static int syscall_socket(int domain, int type, int protocol) {
+	long result;
+	__asm__ volatile(
+	    "movq $41, %%rax\n" /* socket syscall number */
+	    "movq %1, %%rdi\n"	/* domain */
+	    "movq %2, %%rsi\n"	/* type */
+	    "movq %3, %%rdx\n"	/* protocol */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result) /* Output */
+	    : "r"((long)domain), "r"((long)type),
+	      "r"((long)protocol) /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r11",
+	      "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
 #endif /* __linux__ */
+
+int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen) {
+#ifdef __linux__
+	int ret = syscall_connect(sockfd, addr, addrlen);
+#elif defined(__APPLE__)
+	int ret = syscall(98, sockfd, addr, addrlen);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
+int setsockopt(int sockfd, int level, int optname, const void *optval,
+	       unsigned int optlen) {
+#ifdef __linux__
+	int ret = syscall_setsockopt(sockfd, level, optname, optval, optlen);
+#elif defined(__APPLE__)
+	int ret = syscall(105, sockfd, level, optname, optval, optlen);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
+int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen) {
+#ifdef __linux__
+	int ret = syscall_bind(sockfd, addr, addrlen);
+#elif defined(__APPLE__)
+	int ret = syscall(104, sockfd, addr, addrlen);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
+int listen(int sockfd, int backlog) {
+#ifdef __linux__
+	int ret = syscall_listen(sockfd, backlog);
+#elif defined(__APPLE__)
+	int ret = syscall(106, sockfd, backlog);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
+int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen) {
+#ifdef __linux__
+	int ret = syscall_getsockname(sockfd, addr, addrlen);
+#elif defined(__APPLE__)
+	int ret = syscall(32, sockfd, addr, addrlen);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
+int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen) {
+#ifdef __linux__
+	int ret = syscall_accept(sockfd, addr, addrlen);
+#elif defined(__APPLE__)
+	int ret = syscall(30, sockfd, addr, addrlen);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+
+int shutdown(int sockfd, int how) {
+#ifdef __linux__
+	int ret = syscall_shutdown(sockfd, how);
+#elif defined(__APPLE__)
+	int ret = syscall(134, sockfd, how);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
+int socket(int domain, int type, int protocol) {
+#ifdef __linux__
+	int ret = syscall_socket(domain, type, protocol);
+#elif defined(__APPLE__)
+	int ret = syscall(97, domain, type, protocol);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
 
 int fcntl(int fd, int op, ...) {
 	__builtin_va_list ap;
