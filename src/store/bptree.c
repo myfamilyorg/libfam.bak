@@ -4,6 +4,9 @@
 #include <misc.h>
 #include <sys.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 #define TREE(txn) ((BpTreeImpl *)(((BpTxnImpl *)(txn))->tree))
 
 #define METADATA1(tree) (((BpTreeImpl *)tree)->base)
@@ -133,8 +136,6 @@ int bptree_init(BpTree *tree, void *base, int fd, uint64_t capacity) {
 
 	Metadata *metadata1 = METADATA1(tree);
 	Metadata *metadata2 = METADATA2(tree);
-
-	FreeList *freelist = FREE_LIST(tree);
 
 	if (metadata1->counter == 0) {
 		metadata1->counter = 1;

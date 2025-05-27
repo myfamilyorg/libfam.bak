@@ -27,17 +27,20 @@ INCLDIR = src/include
 SRCDIR  = src
 CORE_SRCDIR = $(SRCDIR)/core
 STORE_SRCDIR = $(SRCDIR)/store
+NET_SRCDIR = $(SRCDIR)/net
 
 # Source files, excluding test.c
 CORE_SOURCES = $(filter-out $(CORE_SRCDIR)/test.c, $(wildcard $(CORE_SRCDIR)/*.c))
 STORE_SOURCES = $(filter-out $(STORE_SRCDIR)/test.c, $(wildcard $(STORE_SRCDIR)/*.c))
-SOURCES = $(CORE_SOURCES) $(STORE_SOURCES)
+NET_SOURCES = $(filter-out $(NET_SRCDIR)/test.c, $(wildcard $(NET_SRCDIR)/*.c))
+SOURCES = $(CORE_SOURCES) $(STORE_SOURCES) $(NET_SOURCES)
 OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
 
 # Test source files
 CORE_TEST_SRC = $(CORE_SRCDIR)/test.c
 STORE_TEST_SRC = $(STORE_SRCDIR)/test.c
-TEST_SRC = $(CORE_TEST_SRC) $(STORE_TEST_SRC)
+NET_TEST_SRC = $(NET_SRCDIR)/test.c
+TEST_SRC = $(CORE_TEST_SRC) $(STORE_TEST_SRC) $(NET_TEST_SRC)
 TEST_OBJ = $(patsubst $(SRCDIR)/%.c,$(TOBJDIR)/%.o,$(TEST_SRC))
 TEST_BIN = $(BINDIR)/runtests
 
