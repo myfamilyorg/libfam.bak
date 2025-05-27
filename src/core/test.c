@@ -235,6 +235,85 @@ Test(core, lock2) {
 	}
 }
 
+typedef struct {
+	Lock lock;
+	int value;
+} SharedState;
+
+Test(core, lock3) {
+	void *base = mmap(NULL, sizeof(SharedState), PROT_READ | PROT_WRITE,
+			  MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+	SharedState *state = (SharedState *)base;
+	state->lock = LOCK_INIT;
+	state->value = 0;
+
+	int pid = fork();
+	if (pid == 0) {
+		{
+			while (true) {
+				sleepm(1);
+				LockGuard lg = lock_write(&state->lock);
+				if (state->value) {
+					state->value = 2;
+					sleepm(100);
+					break;
+				}
+			}
+			state->value = 3;
+		}
+		exit(0);
+	} else {
+		sleepm(10);
+		{
+			LockGuard lg = lock_write(&state->lock);
+			state->value = 1;
+		}
+		while (true) {
+			sleepm(1);
+			LockGuard lg = lock_write(&state->lock);
+			if (state->value == 3) break;
+		}
+	}
+}
+
+Test(core, lock4) {
+	void *base = mmap(NULL, sizeof(SharedState), PROT_READ | PROT_WRITE,
+			  MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+	SharedState *state = (SharedState *)base;
+	state->lock = LOCK_INIT;
+	state->value = 0;
+
+	if (fork()) {
+		while (true) {
+			LockGuard lg = lock_write(&state->lock);
+			if (state->value % 2 == 0) state->value++;
+			if (state->value >= 10) break;
+		}
+
+		{
+			LockGuard lg = lock_write(&state->lock);
+			state->value = -1;
+		}
+
+		while (true) {
+			LockGuard lg = lock_write(&state->lock);
+			if (state->value == 0) break;
+		}
+	} else {
+		while (true) {
+			LockGuard lg = lock_write(&state->lock);
+			if (state->value % 2 == 1) state->value++;
+			if (state->value == -1) break;
+		}
+
+		{
+			LockGuard lg = lock_write(&state->lock);
+			state->value = 0;
+		}
+		exit(0);
+	}
+}
+
 #ifndef MEMSAN
 #define MEMSAN 0
 #endif /* MEMSAN */
@@ -272,8 +351,8 @@ Test(core, alloc1) {
 	last_address = 0;
 	for (int i = 0; i < size; i++) {
 		values[i] = alloc(32);
-		// after first loop, we should be incrementing by 32 with each
-		// address
+		// after first loop, we should be incrementing by 32
+		// with each address
 		if (last_address)
 			cr_assert_eq((size_t)values[i], last_address + 32);
 		last_address = (size_t)values[i];
@@ -291,6 +370,49 @@ Test(core, alloc1) {
 #endif /* MEMSAN */
 }
 
+Test(alloc, up_and_down) {
+#if MEMSAN == 1
+	cr_assert_eq(get_mmaped_bytes(), 0);
+#endif /* MEMSAN */
+
+	size_t last_address;
+	char *test1 = alloc(1000 * 1000 * 5);
+	release(test1);
+
+	void *a = alloc(10);
+
+	a = resize(a, 1000 * 1000 * 5 * 10);
+
+	release(a);
+
+	last_address = 0;
+	for (int i = 0; i < 32000; i++) {
+		char *test2 = alloc(10);
+		// after first loop, we should just be reusing addresses
+		if (last_address)
+			cr_assert_eq((size_t)test2, last_address);
+		else
+			cr_assert(a != test2);
+		cr_assert(test2 != NULL);
+		test2[0] = 'a';
+		test2[1] = 'b';
+
+#if MEMSAN == 1
+		cr_assert(get_mmaped_bytes());
+#endif /* MEMSAN */
+
+		release(test2);
+		last_address = (size_t)test2;
+#if MEMSAN == 1
+		cr_assert_eq(get_mmaped_bytes(), 0);
+#endif /* MEMSAN */
+	}
+
+#if MEMSAN == 1
+	cr_assert_eq(get_mmaped_bytes(), 0);
+#endif /* MEMSAN */
+}
+
 Test(alloc, slab_impl) {
 	int size = 127;
 	char *values[size];
@@ -303,7 +425,8 @@ Test(alloc, slab_impl) {
 	}
 
 	void *next = alloc(2048);
-	// This creates a new mmap so the address will not be last + 2048
+	// This creates a new mmap so the address will not be last +
+	// 2048
 	cr_assert((size_t)next != last_address + 2048);
 
 	void *next2 = alloc(2040);  // still in the 2048 block size
@@ -336,7 +459,8 @@ Test(alloc, slab_release) {
 	release(values[125]);
 	release(values[15]);
 
-	// ensure last pointer is being used and gets us the correct bits.
+	// ensure last pointer is being used and gets us the correct
+	// bits.
 	void *next = alloc(2048);
 	void *next2 = alloc(2048);
 	void *next3 = alloc(2048);
@@ -358,36 +482,38 @@ Test(alloc, slab_release) {
 }
 
 Test(alloc, multi_chunk_search) {
-	int size = 1000;
-	char *values[size];
-	size_t last_address = 0;
-	for (int i = 0; i < size; i++) {
-		values[i] = alloc(2048);
-	}
+	for (int x = 0; x < 4; x++) {
+		int size = 1000;
+		char *values[size];
+		size_t last_address = 0;
+		for (int i = 0; i < size; i++) {
+			values[i] = alloc(2048);
+		}
 
-	// free several slabs
-	release(values[418]);
-	release(values[825]);
-	release(values[15]);
+		// free several slabs
+		release(values[418]);
+		release(values[825]);
+		release(values[15]);
 
-	void *next = alloc(2048);
-	void *next2 = alloc(2048);
-	void *next3 = alloc(2048);
+		void *next = alloc(2048);
+		void *next2 = alloc(2048);
+		void *next3 = alloc(2048);
 
-	cr_assert_eq((size_t)next, (size_t)values[15]);
-	cr_assert_eq((size_t)next2, (size_t)values[418]);
-	cr_assert_eq((size_t)next3, (size_t)values[825]);
+		cr_assert_eq((size_t)next, (size_t)values[15]);
+		cr_assert_eq((size_t)next2, (size_t)values[418]);
+		cr_assert_eq((size_t)next3, (size_t)values[825]);
 
-	values[15] = next;
-	values[825] = next2;
-	values[418] = next3;
+		values[15] = next;
+		values[825] = next2;
+		values[418] = next3;
 
-	for (int i = 0; i < size; i++) {
-		release(values[i]);
-	}
+		for (int i = 0; i < size; i++) {
+			release(values[i]);
+		}
 #if MEMSAN == 1
-	cr_assert_eq(get_mmaped_bytes(), 0);
+		cr_assert_eq(get_mmaped_bytes(), 0);
 #endif /* MEMSAN */
+	}
 }
 
 Test(alloc, larger_allocations) {
