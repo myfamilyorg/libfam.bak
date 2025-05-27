@@ -27,7 +27,7 @@ typedef struct {
 	uint16_t key_len;
 	uint8_t flags;
 	byte data[];
-} BpTreeNode;
+} BpTreeEntry;
 
 typedef struct {
 	uint16_t entry_offsets[MAX_INTERNAL_ENTRIES];
