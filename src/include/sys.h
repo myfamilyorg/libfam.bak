@@ -44,19 +44,18 @@ struct sockaddr;
 #define MULTIPLEX_FLAG_READ 0x1
 #define MULTIPLEX_FLAG_WRITE (0x1 << 1)
 
+/* Unchanged System calls */
 pid_t fork(void);
 int pipe(int fds[2]);
 int unlink(const char *path);
 ssize_t write(int fd, const void *buf, size_t length);
 ssize_t read(int fd, void *buf, size_t length);
-int sched_yield(void);
-off_t lseek(int fd, off_t offset, int whence);
 void exit(int);
+
 void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	   off_t offset);
 int munmap(void *addr, size_t len);
 int close(int fd);
-int ftruncate(int fd, off_t length);
 int fdatasync(int fd);
 int fcntl(int fd, int op, ...);
 
@@ -70,8 +69,15 @@ int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
 int shutdown(int sockfd, int how);
 int socket(int domain, int type, int protocol);
 
+/* Wrapper System calls */
+void *map(size_t length);
+void *fmap(int fd);
+void *smap(size_t length);
 int file(const char *path);
+off_t fsize(int fd);
+int fresize(int fd, off_t length);
 int64_t micros(void);
+int yield(void);
 int sleepm(uint64_t millis);
 int multiplex(void);
 int mregister(int multiplex, int fd, int flags, void *attach);

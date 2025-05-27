@@ -40,9 +40,9 @@ Test(core, types) {
 
 Test(core, sys1) {
 	unlink("/tmp/data.dat");
-	sched_yield();
+	yield();
 	int fd = file("/tmp/data.dat");
-	int file_size = lseek(fd, 0, SEEK_END);
+	int file_size = fsize(fd);
 	cr_assert_eq(file_size, 0);
 
 	write(fd, "abc", 3);
@@ -52,7 +52,7 @@ Test(core, sys1) {
 	cr_assert(diff >= 100 * 1000);
 	cr_assert(diff <= 1000 * 1000);
 
-	file_size = lseek(fd, 0, SEEK_END);
+	file_size = fsize(fd);
 	cr_assert_eq(file_size, 3);
 
 	int fd2 = file("/tmp/data.dat");
@@ -73,14 +73,14 @@ Test(core, fcntl) {
 	const char *path = "/tmp/fcntl.dat";
 	unlink(path);
 	int fd = file(path);
-	ftruncate(fd, 1024);
-	cr_assert_eq(lseek(fd, 0, SEEK_END), 1024);
+	fresize(fd, 1024);
+	cr_assert_eq(fsize(fd), 1024);
 
 	int min_fd = 100;
 	int new_fd = fcntl(fd, F_DUPFD, min_fd);
 	cr_assert(new_fd >= 100);
 	cr_assert(new_fd != fd);
-	cr_assert_eq(lseek(new_fd, 0, SEEK_END), 1024);
+	cr_assert_eq(fsize(new_fd), 1024);
 
 	close(fd);
 	close(new_fd);
@@ -92,12 +92,12 @@ Test(core, ftrunate) {
 	const char *path = "/tmp/data2.dat";
 	unlink(path);
 	int fd = file(path);
-	int file_size = lseek(fd, 0, SEEK_END);
+	int file_size = fsize(fd);
 	cr_assert_eq(file_size, 0);
 
-	ftruncate(fd, 1024 * 1024);
+	fresize(fd, 1024 * 1024);
 
-	file_size = lseek(fd, 0, SEEK_END);
+	file_size = fsize(fd);
 	cr_assert_eq(file_size, 1024 * 1024);
 
 	close(fd);
@@ -110,7 +110,7 @@ Test(core, mmap) {
 	const char *path = "/tmp/data3.dat";
 	unlink(path);
 	int fd = file(path);
-	ftruncate(fd, 1024 * 1024);
+	fresize(fd, 1024 * 1024);
 	char *base =
 	    mmap(NULL, 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	cr_assert_eq(base[1], 0);

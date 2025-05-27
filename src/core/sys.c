@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <misc.h>
 #include <sys.h>
+#include <sys/mman.h>
 #include <sys/time.h>
 
 #ifdef __linux__
@@ -1091,3 +1092,29 @@ int sleepm(uint64_t millis) {
 	return nanosleep(&req, &req);
 }
 
+off_t fsize(int fd) { return lseek(fd, 0, SEEK_END); }
+
+#ifdef __APPLE__
+int sched_yield(void);
+#endif
+int yield(void) { return sched_yield(); }
+int fresize(int fd, off_t length) { return ftruncate(fd, length); }
+
+void *map(size_t length) {
+	void *v = mmap(NULL, length, PROT_READ | PROT_WRITE,
+		       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (v == MAP_FAILED) return NULL;
+	return v;
+}
+void *fmap(int fd) {
+	off_t size = fsize(fd);
+	void *v = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	if (v == MAP_FAILED) return NULL;
+	return v;
+}
+void *smap(size_t length) {
+	void *v = mmap(NULL, length, PROT_READ | PROT_WRITE,
+		       MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+	if (v == MAP_FAILED) return NULL;
+	return v;
+}

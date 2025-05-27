@@ -26,6 +26,8 @@
 #ifndef _TYPES_H__
 #define _TYPES_H__
 
+#define _FILE_OFFSET_BITS 64
+
 #ifndef NULL
 #define NULL ((void *)0)
 #endif
