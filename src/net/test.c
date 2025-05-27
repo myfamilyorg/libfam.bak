@@ -20,6 +20,7 @@ Test(net, evh1) {
 	}
 
 	/* Test an error */
+	err = SUCCESS;
 	socket_accept(&s2, &s3);
 	cr_assert_eq(err, EINVAL);
 }
