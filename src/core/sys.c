@@ -1002,7 +1002,8 @@ int mregister(int multiplex, int fd, int flags, void *attach) {
 #endif
 }
 
-int mwait(int multiplex, void *events, int max_events, int64_t timeout_millis) {
+int mwait(int multiplex, Event *events, int max_events,
+	  int64_t timeout_millis) {
 #ifdef __linux__
 	int timeout = (timeout_millis >= 0) ? (int)timeout_millis : -1;
 
