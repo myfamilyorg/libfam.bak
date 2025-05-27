@@ -52,7 +52,7 @@ struct sockaddr;
 #define MULTIPLEX_FLAG_READ 0x1
 #define MULTIPLEX_FLAG_WRITE (0x1 << 1)
 
-int fork(void);
+pid_t fork(void);
 int pipe(int fds[2]);
 int unlink(const char *path);
 ssize_t write(int fd, const void *buf, size_t length);
@@ -68,6 +68,16 @@ int ftruncate(int fd, off_t length);
 int fdatasync(int fd);
 int fcntl(int fd, int op, ...);
 
+int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
+int setsockopt(int sockfd, int level, int optname, const void *optval,
+	       unsigned int optlen);
+int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
+int listen(int sockfd, int backlog);
+int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
+int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
+int shutdown(int sockfd, int how);
+int socket(int domain, int type, int protocol);
+
 int file(const char *path);
 int64_t micros(void);
 int sleepm(uint64_t millis);
@@ -79,15 +89,5 @@ int event_getfd(Event event);
 int event_is_read(Event event);
 int event_is_write(Event event);
 void *event_attachment(Event event);
-
-int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
-int setsockopt(int sockfd, int level, int optname, const void *optval,
-	       unsigned int optlen);
-int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
-int listen(int sockfd, int backlog);
-int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
-int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
-int shutdown(int sockfd, int how);
-int socket(int domain, int type, int protocol);
 
 #endif /* _SYS_H__ */

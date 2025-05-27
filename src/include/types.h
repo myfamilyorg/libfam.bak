@@ -151,6 +151,7 @@ typedef unsigned long long uint64_t;
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 
+typedef int pid_t;
 typedef unsigned long size_t;
 typedef long ssize_t;
 #ifdef __linux__
