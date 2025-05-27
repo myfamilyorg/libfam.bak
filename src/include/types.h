@@ -115,12 +115,16 @@
 #define SIZE_MAX UINT64_MAX
 #endif
 
+#ifndef bool
+#define bool _Bool
+#endif
+
 #ifndef false
-#define false 0
+#define false (_Bool)0
 #endif
 
 #ifndef true
-#define true 1
+#define true (_Bool)1
 #endif
 
 #pragma GCC diagnostic push

@@ -3,11 +3,12 @@ CFLAGS  = -fPIC \
           -pedantic \
           -Wall \
           -Wextra \
-	  -std=c89 \
+	  -std=c99 \
           -O3 \
           -fno-stack-protector \
           -fno-builtin \
           -ffreestanding \
+	  -Wno-attributes \
           -DSTATIC=static
 TFLAGS  = -g -Isrc/include -Wno-attributes
 LDFLAGS = -shared
