@@ -83,6 +83,7 @@ ObjectType object_type(const Object *obj) {
 	}
 }
 
+/*
 Object object_create_uint(uint64_t value) {
 	union {
 		ObjectData data;
@@ -91,47 +92,61 @@ Object object_create_uint(uint64_t value) {
 			.value.uint_value = value}};
 	return u.impl;
 }
+*/
+
+Object object_create_uint(uint64_t value) {
+	union {
+		ObjectData data;
+		Object impl;
+	} u;
+	u.data.descriptor = (void *)UINT_MASK;
+	u.data.value.uint_value = value;
+	return u.impl;
+}
 
 Object object_create_int(int64_t value) {
 	union {
 		ObjectData data;
 		Object impl;
-	} u = {
-	    .data = {.descriptor = (void *)INT_MASK, .value.int_value = value}};
+	} u;
+	u.data.descriptor = (void *)INT_MASK;
+	u.data.value.int_value = value;
 	return u.impl;
 }
-
 Object object_create_float(double value) {
 	union {
 		ObjectData data;
 		Object impl;
-	} u = {.data = {.descriptor = (void *)FLOAT_MASK,
-			.value.float_value = value}};
+	} u;
+	u.data.descriptor = (void *)FLOAT_MASK;
+	u.data.value.float_value = value;
 	return u.impl;
 }
-
 Object object_create_bool(bool value) {
 	union {
 		ObjectData data;
 		Object impl;
-	} u = {.data = {.descriptor = (void *)BOOL_MASK,
-			.value.bool_value = value}};
+	} u;
+	u.data.descriptor = (void *)BOOL_MASK;
+	u.data.value.bool_value = value;
 	return u.impl;
 }
-
 Object object_create_err(int value) {
 	union {
 		ObjectData data;
 		Object impl;
-	} u = {.data = {.descriptor = (void *)ERR_MASK, .value.err = value}};
+	} u;
+	u.data.descriptor = (void *)ERR_MASK;
+	u.data.value.err = value;
 	return u.impl;
 }
-
 Object object_create_boxed(ObjectDescriptor *descriptor, void *data) {
 	union {
 		ObjectData data;
 		Object impl;
-	} u = {.data = {.descriptor = descriptor, .value.data = data}};
+	} u;
+	u.data.descriptor = descriptor;
+	u.data.value.data = data;
 	return u.impl;
 }
 
@@ -192,9 +207,10 @@ int object_err_value(const Object *obj) {
 }
 
 ObjectImpl object_call_build(BuildFn build, ...) {
+	ObjectImpl ret;
 	__builtin_va_list args;
 	__builtin_va_start(args, build);
-	ObjectImpl ret = build(args);
+	ret = build(args);
 	__builtin_va_end(args);
 	return ret;
 }

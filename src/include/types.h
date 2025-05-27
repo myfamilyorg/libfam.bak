@@ -116,15 +116,15 @@
 #endif
 
 #ifndef bool
-#define bool _Bool
+#define bool byte
 #endif
 
 #ifndef false
-#define false (_Bool)0
+#define false (bool)0
 #endif
 
 #ifndef true
-#define true (_Bool)1
+#define true (bool)1
 #endif
 
 #pragma GCC diagnostic push

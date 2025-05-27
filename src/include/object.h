@@ -26,11 +26,6 @@
 #ifndef _OBJECT_H__
 #define _OBJECT_H__
 
-#ifdef __clang__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdollar-in-identifier-extension"
-#endif
-
 #include <alloc.h>
 #include <error.h>
 #include <types.h>
@@ -79,6 +74,16 @@ int object_err_value(const Object *obj);
 typedef ObjectImpl (*BuildFn)(__builtin_va_list);
 ObjectImpl object_call_build(BuildFn build, ...);
 
+#ifdef __clang__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdollar-in-identifier-extension"
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wall"
+#endif
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wvariadic-macros"
+
 #define $object(type, ...) \
 	object_call_build(type##_Descriptor.build, __VA_ARGS__)
 
@@ -95,9 +100,8 @@ ObjectImpl object_call_build(BuildFn build, ...);
 #define $is_err(v) (object_type(&v) == ObjectTypeErr)
 #define $is_box(v) (object_type(&v) == ObjectTypeBox)
 
-#ifdef __clang__
 #pragma GCC diagnostic pop
-#endif
+#pragma GCC diagnostic pop
 
 #endif /* _OBJECT_H__ */
 
