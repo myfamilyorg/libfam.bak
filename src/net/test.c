@@ -8,7 +8,6 @@ Test(net, evh1) {
 	Socket s1, s2, s3;
 	int port = socket_listen(&s1, addr, 0, 10);
 	cr_assert(port > 0);
-	printf("port=%i\n", port);
 	sleepm(10);
 	cr_assert(!socket_connect(&s2, addr, port));
 	cr_assert(s2 > 0);
@@ -19,4 +18,8 @@ Test(net, evh1) {
 		} else
 			break;
 	}
+
+	/* Test an error */
+	socket_accept(&s2, &s3);
+	cr_assert_eq(err, EINVAL);
 }
