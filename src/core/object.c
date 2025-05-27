@@ -83,17 +83,6 @@ ObjectType object_type(const Object *obj) {
 	}
 }
 
-/*
-Object object_create_uint(uint64_t value) {
-	union {
-		ObjectData data;
-		Object impl;
-	} u = {.data = {.descriptor = (void *)UINT_MASK,
-			.value.uint_value = value}};
-	return u.impl;
-}
-*/
-
 Object object_create_uint(uint64_t value) {
 	union {
 		ObjectData data;
