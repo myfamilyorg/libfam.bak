@@ -111,8 +111,7 @@ Test(core, mmap) {
 	unlink(path);
 	int fd = file(path);
 	fresize(fd, 1024 * 1024);
-	char *base =
-	    mmap(NULL, 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	char *base = fmap(fd);
 	cr_assert_eq(base[1], 0);
 	cr_assert_eq(base[1024 * 990], 0);
 	base[1] = 'a';
@@ -123,8 +122,7 @@ Test(core, mmap) {
 	close(fd);
 
 	int fd2 = file(path);
-	char *base2 =
-	    mmap(NULL, 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	char *base2 = fmap(fd2);
 	cr_assert_eq(base2[1], 'a');
 	cr_assert_eq(base2[1024 * 990], 'b');
 	cr_assert_eq(base2[1024 * 991], 0);
@@ -215,8 +213,7 @@ Test(core, lock) {
 }
 
 Test(core, lock2) {
-	void *base = mmap(NULL, 16384, PROT_READ | PROT_WRITE,
-			  MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+	void *base = smap(16384);
 	Lock *l1 = (Lock *)base;
 	int *value = base + 8;
 	cr_assert_eq(*value, 0);
@@ -244,8 +241,7 @@ typedef struct {
 } SharedState;
 
 Test(core, lock3) {
-	void *base = mmap(NULL, sizeof(SharedState), PROT_READ | PROT_WRITE,
-			  MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+	void *base = smap(sizeof(SharedState));
 	SharedState *state = (SharedState *)base;
 	state->lock = LOCK_INIT;
 	state->value = 0;
@@ -280,8 +276,7 @@ Test(core, lock3) {
 }
 
 Test(core, lock4) {
-	void *base = mmap(NULL, sizeof(SharedState), PROT_READ | PROT_WRITE,
-			  MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+	void *base = smap(sizeof(SharedState));
 	SharedState *state = (SharedState *)base;
 	state->lock = LOCK_INIT;
 	state->value = 0;

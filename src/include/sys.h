@@ -52,8 +52,6 @@ ssize_t write(int fd, const void *buf, size_t length);
 ssize_t read(int fd, void *buf, size_t length);
 void exit(int);
 
-void *mmap(void *addr, size_t length, int prot, int flags, int fd,
-	   off_t offset);
 int munmap(void *addr, size_t len);
 int close(int fd);
 int fdatasync(int fd);

@@ -161,9 +161,7 @@ STATIC void *alloc_aligned_memory(size_t size, size_t alignment) {
 #endif /* MEMSAN */
 
 	/* Call mmap with a large enough allocation so we can align properly. */
-	base = mmap(NULL, alloc_size, PROT_READ | PROT_WRITE,
-		    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-	if (base == MAP_FAILED) return NULL;
+	base = map(alloc_size);
 
 	/* Align the pointer */
 	aligned_ptr =
