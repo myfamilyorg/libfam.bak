@@ -149,7 +149,7 @@ int bptree_init(BpTree *tree, void *base, int fd, uint64_t capacity) {
 		root->is_leaf = true;
 		root->page_id = MIN_PAGE;
 
-		fdatasync(fd);
+		flush(fd);
 	}
 
 	bptree_fsync_proc(tree);

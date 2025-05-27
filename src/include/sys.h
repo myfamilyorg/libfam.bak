@@ -51,12 +51,9 @@ int unlink(const char *path);
 ssize_t write(int fd, const void *buf, size_t length);
 ssize_t read(int fd, void *buf, size_t length);
 void exit(int);
-
 int munmap(void *addr, size_t len);
 int close(int fd);
-int fdatasync(int fd);
 int fcntl(int fd, int op, ...);
-
 int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
 int setsockopt(int sockfd, int level, int optname, const void *optval,
 	       unsigned int optlen);
@@ -74,6 +71,7 @@ void *smap(size_t length);
 int file(const char *path);
 off_t fsize(int fd);
 int fresize(int fd, off_t length);
+int flush(int fd);
 int64_t micros(void);
 int yield(void);
 int sleepm(uint64_t millis);

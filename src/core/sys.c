@@ -1118,3 +1118,5 @@ void *smap(size_t length) {
 	if (v == MAP_FAILED) return NULL;
 	return v;
 }
+
+int flush(int fd) { return fdatasync(fd); }
