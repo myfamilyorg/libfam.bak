@@ -25,7 +25,6 @@
 
 #include <alloc.h>
 #include <error.h>
-#include <lock.h>
 #include <misc.h>
 #include <sys.h>
 #include <types.h>
@@ -137,15 +136,11 @@ typedef struct {
 	struct Chunk *next;
 	struct Chunk *prev;
 	uint64_t magic;
-	Lock lock;
-	byte padding[8];
 } ChunkHeader;
 
 struct Chunk {
 	ChunkHeader header;
 };
-
-Lock __alloc_global_lock = LOCK_INIT;
 
 Chunk *__alloc_head_ptrs[MAX_SLAB_PTRS] = {0};
 
@@ -200,8 +195,6 @@ STATIC void *alloc_slab(size_t slab_size) {
 
 	/* No slabs of this size yet */
 	if (!ptr) {
-		LockGuard lg = lock_write(&__alloc_global_lock);
-
 		/* Check that the pointer is still NULL under lock */
 		if (!__alloc_head_ptrs[index]) {
 			__alloc_head_ptrs[index] =
@@ -215,7 +208,6 @@ STATIC void *alloc_slab(size_t slab_size) {
 			ptr->header.slab_size = slab_size;
 			ptr->header.next = ptr->header.prev = NULL;
 			ptr->header.magic = MAGIC_BYTES;
-			ptr->header.lock = LOCK_INIT;
 
 			SET_BITMAP(ptr, 0);
 			return BITMAP_PTR(ptr, 0, slab_size);
@@ -224,7 +216,6 @@ STATIC void *alloc_slab(size_t slab_size) {
 
 	/* Iterate throught the existing chunks */
 	while (ptr) {
-		LockGuard lg = lock_write(&ptr->header.lock);
 		size_t bit;
 		NEXT_FREE_BIT(ptr, max, bit);
 		if (bit == (size_t)-1) {
@@ -244,7 +235,6 @@ STATIC void *alloc_slab(size_t slab_size) {
 				tmp->header.next = NULL;
 				tmp->header.slab_size = slab_size;
 				tmp->header.magic = MAGIC_BYTES;
-				tmp->header.lock = LOCK_INIT;
 				ptr = tmp;
 			}
 			continue;
@@ -269,8 +259,6 @@ STATIC void free_slab(void *ptr) {
 		panic("Memory corruption: MAGIC not correct. Halting!\n");
 
 	{
-		LockGuard lg = lock_write(&chunk->header.lock);
-
 		index = BITMAP_INDEX(ptr, chunk);
 		chunk->header.last_free = index / (sizeof(uint64_t) * 8);
 		UNSET_BITMAP(chunk, index);
@@ -285,18 +273,12 @@ STATIC void free_slab(void *ptr) {
 
 		chunk_index = SLAB_INDEX(chunk->header.slab_size);
 
-		{
-			LockGuard globallg = lock_write(&__alloc_global_lock);
-			if (__alloc_head_ptrs[chunk_index] == chunk)
-				__alloc_head_ptrs[chunk_index] =
-				    chunk->header.next;
-			if (chunk->header.next)
-				chunk->header.next->header.prev =
-				    chunk->header.prev;
-			if (chunk->header.prev)
-				chunk->header.prev->header.next =
-				    chunk->header.next;
-		}
+		if (__alloc_head_ptrs[chunk_index] == chunk)
+			__alloc_head_ptrs[chunk_index] = chunk->header.next;
+		if (chunk->header.next)
+			chunk->header.next->header.prev = chunk->header.prev;
+		if (chunk->header.prev)
+			chunk->header.prev->header.next = chunk->header.next;
 	}
 
 #if MEMSAN == 1
