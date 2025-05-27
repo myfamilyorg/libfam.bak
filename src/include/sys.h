@@ -28,19 +28,11 @@
 
 #include <types.h>
 
-#ifdef __linux__
-#include <sys/epoll.h>
-#elif defined(__APPLE__)
-#include <sys/event.h>
-#else
-#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
-#endif
-
 typedef struct {
 #ifdef __linux__
-	struct epoll_event event;
+	byte opaque[12];
 #elif defined(__APPLE__)
-	struct kevent event;
+	byte opaque[32];
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif

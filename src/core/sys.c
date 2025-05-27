@@ -4,16 +4,44 @@
 
 #include <error.h>
 #include <fcntl.h>
+#include <misc.h>
 #include <sys.h>
 #include <sys/time.h>
 
-#ifdef __APPLE__
+#ifdef __linux__
+#include <sys/epoll.h>
+#elif defined(__APPLE__)
 #include <errno.h>
+#include <sys/event.h>
 #include <unistd.h>
-#endif /* __APPLE__ */
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+int printf(const char *, ...);
+
+static void __attribute__((constructor)) check_sys() {
+#ifdef __linux__
+	if (sizeof(Event) != sizeof(struct epoll_event)) {
+		const char *msg =
+		    "sizeof(Event) != sizeof(struct epoll_event). Halting!";
+		write(2, msg, strlen(msg));
+		exit(-1);
+	}
+#elif defined(__APPLE__)
+	if (sizeof(Event) != sizeof(struct kevent)) {
+		const char *msg =
+		    "sizeof(Event) != sizeof(struct kevent). Halting!";
+		write(2, msg, strlen(msg));
+		exit(-1);
+	}
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+}
 
 #ifdef __linux__
 static ssize_t syscall_write(int fd, const void *buf, size_t count) {
