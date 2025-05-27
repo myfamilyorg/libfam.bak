@@ -139,10 +139,6 @@ const char *error_string(int err_code) {
 			return "Directory not empty";
 		case ELOOP:
 			return "Too many levels of symbolic links";
-#ifndef __APPLE__
-		case EWOULDBLOCK:
-			return "Operation would block";
-#endif
 		case ENOMSG:
 			return "No message of desired type";
 		case EIDRM:

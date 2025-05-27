@@ -13,7 +13,7 @@ Test(net, socket1) {
 	cr_assert(s2 > 0);
 	while (true) {
 		if (socket_accept(&s1, &s3)) {
-			if (err != EAGAIN && err != EDEADLK) cr_assert(false);
+			if (err != EAGAIN) cr_assert(false);
 			sleepm(1);
 		} else
 			break;
@@ -39,7 +39,7 @@ Test(net, socket1) {
 
 	while (total_read < 4) {
 		int v = read(s3, buf + total_read, 10);
-		if (v < 0 && (err == EAGAIN || err == EDEADLK)) continue;
+		if (v < 0 && err == EAGAIN) continue;
 		cr_assert(v >= 0);
 		total_read += v;
 	}
