@@ -64,6 +64,7 @@ int munmap(void *addr, size_t len);
 int close(int fd);
 int ftruncate(int fd, off_t length);
 int fdatasync(int fd);
+int fcntl(int fd, int op, ...);
 
 int file(const char *path);
 int64_t micros(void);

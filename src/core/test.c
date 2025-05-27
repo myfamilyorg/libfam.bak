@@ -1,6 +1,7 @@
 #include <alloc.h>
 #include <criterion/criterion.h>
 #include <error.h>
+#include <fcntl.h>
 #include <lock.h>
 #include <stdio.h>
 #include <sys.h>
@@ -63,6 +64,22 @@ Test(core, sys1) {
 	close(fd2);
 
 	unlink("/tmp/data.dat");
+}
+
+Test(core, fcntl) {
+	const char *path = "/tmp/fcntl.dat";
+	unlink(path);
+	int fd = file(path);
+	ftruncate(fd, 1024);
+	cr_assert_eq(lseek(fd, 0, SEEK_END), 1024);
+
+	int min_fd = 10;
+	int new_fd = fcntl(fd, F_DUPFD, min_fd);
+	cr_assert(new_fd > 0);
+	cr_assert(new_fd != fd);
+	cr_assert_eq(lseek(new_fd, 0, SEEK_END), 1024);
+
+	unlink(path);
 }
 
 Test(core, ftrunate) {

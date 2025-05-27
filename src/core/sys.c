@@ -135,6 +135,26 @@ static long syscall_lseek(int fd, long offset, int whence) {
 	return result;
 }
 
+static int syscall_fcntl(int fd, int cmd, long arg) {
+	long result;
+
+	__asm__ volatile(
+	    "movq $72, %%rax\n" /* Syscall number for fcntl (72 on x86-64 Linux)
+				 */
+	    "movq %1, %%rdi\n"	/* First argument: fd */
+	    "movq %2, %%rsi\n"	/* Second argument: cmd */
+	    "movq %3, %%rdx\n"	/* Third argument: arg */
+	    "syscall\n"		/* Invoke the system call */
+	    "movq %%rax, %0\n"	/* Store the result */
+	    : "=r"(result)	/* Output: result */
+	    : "r"((long)fd), "r"((long)cmd), "r"((long)arg) /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r11",
+	      "memory" /* Clobbered registers */
+	);
+
+	return (int)result; /* Return result as int */
+}
+
 static int syscall_fork(void) {
 	long result;
 	__asm__ volatile(
@@ -308,6 +328,55 @@ static int syscall_epoll_wait(int epfd, struct epoll_event *events,
 }
 
 #endif /* __linux__ */
+
+int fcntl(int fd, int op, ...) {
+	__builtin_va_list ap;
+	long arg;
+	int ret;
+
+	/* Initialize the variable argument list */
+	__builtin_va_start(ap, op);
+
+	/* Determine if the operation requires a third argument */
+	switch (op) {
+		case F_DUPFD:
+		case F_SETFD:
+		case F_SETFL:
+		case F_SETOWN:
+		case F_SETLEASE:
+			/* Commands that take an integer or pointer argument */
+			arg = __builtin_va_arg(ap, long);
+			break;
+		case F_GETFD:
+		case F_GETFL:
+		case F_GETOWN:
+		case F_GETLEASE:
+			/* Commands that do not take a third argument */
+			arg = 0;
+			break;
+		default:
+			/* For unknown commands, assume no argument */
+			arg = 0;
+			break;
+	}
+
+	/* Clean up the variable argument list */
+	__builtin_va_end(ap);
+
+#ifdef __linux__
+	ret = syscall_fcntl(fd, op, arg);
+#elif defined(__APPLE__)
+	ret = syscall(92, fd, op, arg);
+#else
+#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
+#endif
+
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
 
 int open(const char *path, int flags, ...) {
 #ifdef __linux__
