@@ -212,12 +212,8 @@ Test(core, lock) {
 }
 
 Test(core, lock2) {
-	const char *path = "/tmp/lock2.dat";
-	unlink(path);
-	int fd = file(path);
-	ftruncate(fd, 1024 * 1024);
-	void *base =
-	    mmap(NULL, 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	void *base = mmap(NULL, 16384, PROT_READ | PROT_WRITE,
+			  MAP_ANONYMOUS | MAP_SHARED, -1, 0);
 	Lock *l1 = (Lock *)base;
 	int *value = base + 8;
 	cr_assert_eq(*value, 0);
@@ -237,9 +233,6 @@ Test(core, lock2) {
 			if (*value) break;
 		}
 	}
-
-	close(fd);
-	unlink(path);
 }
 
 #ifndef MEMSAN

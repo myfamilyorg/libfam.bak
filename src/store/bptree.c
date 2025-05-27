@@ -133,10 +133,8 @@ int bptree_init(BpTree *tree, void *base, int fd, uint64_t capacity) {
 
 	Metadata *metadata1 = METADATA1(tree);
 	Metadata *metadata2 = METADATA2(tree);
-	metadata1->lock = LOCK_INIT;
 
 	FreeList *freelist = FREE_LIST(tree);
-	freelist->lock = LOCK_INIT;
 
 	if (metadata1->counter == 0) {
 		metadata1->counter = 1;
