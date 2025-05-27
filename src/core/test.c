@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <sys.h>
 #include <sys/mman.h>
-#include <sys/socket.h>
 #include <types.h>
 
 Test(core, types) {
@@ -653,3 +652,5 @@ Test(core, socket1) {
 	close(s2);
 	close(s3);
 }
+
+Test(core, socket2) {}

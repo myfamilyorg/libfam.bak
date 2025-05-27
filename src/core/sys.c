@@ -595,6 +595,7 @@ int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen) {
 	int ret = syscall_accept(sockfd, addr, addrlen);
 #elif defined(__APPLE__)
 	int ret = syscall(30, sockfd, addr, addrlen);
+	if (ret == -1) err = errno;
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
@@ -1021,18 +1022,6 @@ int mwait(int multiplex, Event *events, int max_events,
 
 	return kevent(multiplex, NULL, 0, (struct kevent *)events, max_events,
 		      timeout_ptr);
-#else
-#error Unsupported platform. Supported platforms: __linux__ or __APPLE__
-#endif
-}
-
-int event_getfd(Event event) {
-#ifdef __linux__
-	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
-	return epoll_ev->data.fd;
-#elif defined(__APPLE__)
-	struct kevent *kv = (struct kevent *)&event;
-	return kv->ident;
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif

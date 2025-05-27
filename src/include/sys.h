@@ -79,7 +79,6 @@ int multiplex(void);
 int mregister(int multiplex, int fd, int flags, void *attach);
 int mwait(int multiplex, Event events[], int max_events, int64_t timeout);
 
-int event_getfd(Event event);
 int event_is_read(Event event);
 int event_is_write(Event event);
 void *event_attachment(Event event);
