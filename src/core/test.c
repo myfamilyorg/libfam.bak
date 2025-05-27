@@ -1,4 +1,6 @@
+#define _GNU_SOURCE
 #include <alloc.h>
+#include <arpa/inet.h>
 #include <criterion/criterion.h>
 #include <error.h>
 #include <fcntl.h>
@@ -6,6 +8,7 @@
 #include <stdio.h>
 #include <sys.h>
 #include <sys/mman.h>
+#include <sys/socket.h>
 #include <types.h>
 
 Test(core, types) {
@@ -589,4 +592,69 @@ Test(core, test_align) {
 #if MEMSAN == 1
 	cr_assert_eq(get_mmaped_bytes(), 0);
 #endif /* MEMSAN */
+}
+
+Test(core, socket1) {
+	int port = 0;
+	byte addr[4] = {127, 0, 0, 1};
+	int s1 = socket(AF_INET, SOCK_STREAM, 0);
+	int s2 = socket(AF_INET, SOCK_STREAM, 0);
+	int opt = 1;
+	struct sockaddr_in address;
+	int flags;
+	int res;
+	uint32_t ip;
+
+	cr_assert(s1 > 0);
+	cr_assert(s2 > 0);
+
+	setsockopt(s1, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+	setsockopt(s1, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
+
+	address.sin_family = AF_INET;
+	ip = (addr[0] << 24) | (addr[1] << 16) | (addr[2] << 8) | addr[3];
+	address.sin_addr.s_addr = htonl(ip);
+	address.sin_port = htons(port);
+
+	ip = (addr[0] << 24) | (addr[1] << 16) | (addr[2] << 8) | addr[3];
+	address.sin_addr.s_addr = htonl(ip);
+	address.sin_port = htons(port);
+
+	res = bind(s1, (struct sockaddr *)&address, sizeof(address));
+	cr_assert(res >= 0);
+
+	res = listen(s1, 10);
+
+	socklen_t addr_len = sizeof(address);
+	res = getsockname(s1, (struct sockaddr *)&address, &addr_len);
+	cr_assert(res >= 0);
+	port = ntohs(address.sin_port);
+	cr_assert(port > 0);
+
+	struct sockaddr_in serv_addr;
+	memset(&serv_addr, 0, sizeof(serv_addr));
+
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(port);
+	memcpy(&serv_addr.sin_addr.s_addr, addr, 4);
+
+	res = connect(s2, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+	cr_assert(res >= 0);
+
+	struct sockaddr_in client_addr;
+	socklen_t client_len = sizeof(client_addr);
+	int s3 = accept(s1, (struct sockaddr *)&client_addr, &client_len);
+	cr_assert(s3 > 0);
+
+	cr_assert_eq(write(s3, "test", 4), 4);
+	char buf[10] = {0};
+	cr_assert_eq(read(s2, buf, 10), 4);
+	cr_assert_eq(buf[0], 't');
+	cr_assert_eq(buf[1], 'e');
+	cr_assert_eq(buf[2], 's');
+	cr_assert_eq(buf[3], 't');
+
+	close(s1);
+	close(s2);
+	close(s3);
 }
