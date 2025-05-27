@@ -327,6 +327,140 @@ static int syscall_epoll_wait(int epfd, struct epoll_event *events,
 	return (int)result;
 }
 
+/* connect(2): Connect a socket */
+static int syscall_connect(int sockfd, const struct sockaddr *addr,
+			   unsigned int addrlen) {
+	long result;
+	__asm__ volatile(
+	    "movq $42, %%rax\n" /* connect syscall number */
+	    "movq %1, %%rdi\n"	/* sockfd */
+	    "movq %2, %%rsi\n"	/* addr */
+	    "movq %3, %%rdx\n"	/* addrlen */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result) /* Output */
+	    : "r"((long)sockfd), "r"((long)addr),
+	      "r"((long)addrlen) /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r11",
+	      "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
+/* setsockopt(2): Set socket options */
+static int syscall_setsockopt(int sockfd, int level, int optname,
+			      const void *optval, unsigned int optlen) {
+	long result;
+	__asm__ volatile(
+	    "movq $54, %%rax\n" /* setsockopt syscall number */
+	    "movq %1, %%rdi\n"	/* sockfd */
+	    "movq %2, %%rsi\n"	/* level */
+	    "movq %3, %%rdx\n"	/* optname */
+	    "movq %4, %%r10\n"	/* optval */
+	    "movq %5, %%r8\n"	/* optlen */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result) /* Output */
+	    : "r"((long)sockfd), "r"((long)level), "r"((long)optname),
+	      "r"((long)optval), "r"((long)optlen) /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rdx", "%r10", "%r8", "%rcx", "%r11",
+	      "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
+/* bind(2): Bind a socket to an address */
+static int syscall_bind(int sockfd, const struct sockaddr *addr,
+			unsigned int addrlen) {
+	long result;
+	__asm__ volatile(
+	    "movq $49, %%rax\n" /* bind syscall number */
+	    "movq %1, %%rdi\n"	/* sockfd */
+	    "movq %2, %%rsi\n"	/* addr */
+	    "movq %3, %%rdx\n"	/* addrlen */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result) /* Output */
+	    : "r"((long)sockfd), "r"((long)addr),
+	      "r"((long)addrlen) /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r11",
+	      "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
+/* listen(2): Listen for connections on a socket */
+static int syscall_listen(int sockfd, int backlog) {
+	long result;
+	__asm__ volatile(
+	    "movq $50, %%rax\n" /* listen syscall number */
+	    "movq %1, %%rdi\n"	/* sockfd */
+	    "movq %2, %%rsi\n"	/* backlog */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)				       /* Output */
+	    : "r"((long)sockfd), "r"((long)backlog)	       /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rcx", "%r11", "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
+/* getsockname(2): Get socket name */
+static int syscall_getsockname(int sockfd, struct sockaddr *addr,
+			       unsigned int *addrlen) {
+	long result;
+	__asm__ volatile(
+	    "movq $51, %%rax\n" /* getsockname syscall number */
+	    "movq %1, %%rdi\n"	/* sockfd */
+	    "movq %2, %%rsi\n"	/* addr */
+	    "movq %3, %%rdx\n"	/* addrlen */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result) /* Output */
+	    : "r"((long)sockfd), "r"((long)addr),
+	      "r"((long)addrlen) /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r11",
+	      "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
+/* accept(2): Accept a connection on a socket */
+static int syscall_accept(int sockfd, struct sockaddr *addr,
+			  unsigned int *addrlen) {
+	long result;
+	__asm__ volatile(
+	    "movq $43, %%rax\n" /* accept syscall number */
+	    "movq %1, %%rdi\n"	/* sockfd */
+	    "movq %2, %%rsi\n"	/* addr */
+	    "movq %3, %%rdx\n"	/* addrlen */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result) /* Output */
+	    : "r"((long)sockfd), "r"((long)addr),
+	      "r"((long)addrlen) /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r11",
+	      "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
+/* shutdown(2): Shut down part of a full-duplex connection */
+static int syscall_shutdown(int sockfd, int how) {
+	long result;
+	__asm__ volatile(
+	    "movq $48, %%rax\n" /* shutdown syscall number */
+	    "movq %1, %%rdi\n"	/* sockfd */
+	    "movq %2, %%rsi\n"	/* how */
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)				       /* Output */
+	    : "r"((long)sockfd), "r"((long)how)		       /* Inputs */
+	    : "%rax", "%rdi", "%rsi", "%rcx", "%r11", "memory" /* Clobbered */
+	);
+	return (int)result;
+}
+
 #endif /* __linux__ */
 
 int fcntl(int fd, int op, ...) {

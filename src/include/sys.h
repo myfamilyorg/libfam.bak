@@ -46,6 +46,8 @@ typedef struct {
 #endif
 } Event;
 
+struct sockaddr;
+
 #define MULTIPLEX_FLAG_NONE 0
 #define MULTIPLEX_FLAG_READ 0x1
 #define MULTIPLEX_FLAG_WRITE (0x1 << 1)
@@ -77,5 +79,14 @@ int event_getfd(Event event);
 int event_is_read(Event event);
 int event_is_write(Event event);
 void *event_attachment(Event event);
+
+int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
+int setsockopt(int sockfd, int level, int optname, const void *optval,
+	       unsigned int optlen);
+int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
+int listen(int sockfd, int backlog);
+int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
+int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
+int shutdown(int sockfd, int how);
 
 #endif /* _SYS_H__ */
