@@ -13,6 +13,9 @@ TFLAGS  = -g -Isrc/include -Wno-attributes
 LDFLAGS = -shared
 FILTER ="*"
 PAGE_SIZE=16384
+MEMSAN ?= 0
+CFLAGS += -DMEMSAN=$(MEMSAN)
+TFLAGS += -DMEMSAN=$(MEMSAN)
 
 # Directories
 OBJDIR  = .obj
@@ -43,7 +46,7 @@ all: $(LIBDIR)/libfam.so
 # Rule for library objects
 $(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
 	@mkdir -p $(@D)
-	$(CC)  -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(CFLAGS) -c $< -o $@
+	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(CFLAGS) -c $< -o $@
 
 # Rule for test objects
 $(TOBJDIR)/%.o: $(SRCDIR)/%.c | $(TOBJDIR)

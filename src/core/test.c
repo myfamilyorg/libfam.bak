@@ -59,6 +59,9 @@ Test(core, sys1) {
 	cr_assert_eq(buf[2], 'c');
 	cr_assert_eq(buf[3], '\0');
 
+	close(fd);
+	close(fd2);
+
 	unlink("/tmp/data.dat");
 }
 
@@ -188,7 +191,14 @@ Test(core, lock) {
 	cr_assert_eq(l1, 0);
 }
 
-Test(alloc, alloc1) {
+#ifndef MEMSAN
+#define MEMSAN 0
+#endif /* MEMSAN */
+#if MEMSAN == 1
+uint64_t get_mmaped_bytes();
+#endif /* MEMSAN */
+
+Test(core, alloc1) {
 	size_t last_address;
 	char *test1 = alloc(1000 * 1000 * 5);
 	release(test1);
@@ -225,7 +235,188 @@ Test(alloc, alloc1) {
 		last_address = (size_t)values[i];
 	}
 
+#if MEMSAN == 1
+	cr_assert(get_mmaped_bytes());
+#endif /* MEMSAN */
+
 	for (int i = 0; i < size; i++) {
 		release(values[i]);
 	}
+#if MEMSAN == 1
+	cr_assert_eq(get_mmaped_bytes(), 0);
+#endif /* MEMSAN */
+}
+
+Test(alloc, slab_impl) {
+	int size = 127;
+	char *values[size];
+	size_t last_address = 0;
+	for (int i = 0; i < size; i++) {
+		values[i] = alloc(2048);
+		if (last_address)
+			cr_assert_eq((size_t)values[i], last_address + 2048);
+		last_address = (size_t)values[i];
+	}
+
+	void *next = alloc(2048);
+	// This creates a new mmap so the address will not be last + 2048
+	cr_assert((size_t)next != last_address + 2048);
+
+	void *next2 = alloc(2040);  // still in the 2048 block size
+	cr_assert_eq((size_t)next2, (size_t)next + 2048);
+
+	release(next);
+	release(next2);
+
+	for (int i = 0; i < size; i++) {
+		release(values[i]);
+	}
+#if MEMSAN == 1
+	cr_assert_eq(get_mmaped_bytes(), 0);
+#endif /* MEMSAN */
+}
+
+Test(alloc, slab_release) {
+	int size = 127;
+	char *values[size];
+	size_t last_address = 0;
+	for (int i = 0; i < size; i++) {
+		values[i] = alloc(2048);
+		if (last_address)
+			cr_assert_eq((size_t)values[i], last_address + 2048);
+		last_address = (size_t)values[i];
+	}
+
+	// free several slabs
+	release(values[18]);
+	release(values[125]);
+	release(values[15]);
+
+	// ensure last pointer is being used and gets us the correct bits.
+	void *next = alloc(2048);
+	void *next2 = alloc(2048);
+	void *next3 = alloc(2048);
+
+	cr_assert_eq((size_t)next, (size_t)values[15]);
+	cr_assert_eq((size_t)next2, (size_t)values[18]);
+	cr_assert_eq((size_t)next3, (size_t)values[125]);
+
+	values[15] = next;
+	values[18] = next2;
+	values[125] = next3;
+
+	for (int i = 0; i < size; i++) {
+		release(values[i]);
+	}
+#if MEMSAN == 1
+	cr_assert_eq(get_mmaped_bytes(), 0);
+#endif /* MEMSAN */
+}
+
+Test(alloc, multi_chunk_search) {
+	int size = 1000;
+	char *values[size];
+	size_t last_address = 0;
+	for (int i = 0; i < size; i++) {
+		values[i] = alloc(2048);
+	}
+
+	// free several slabs
+	release(values[418]);
+	release(values[825]);
+	release(values[15]);
+
+	void *next = alloc(2048);
+	void *next2 = alloc(2048);
+	void *next3 = alloc(2048);
+
+	cr_assert_eq((size_t)next, (size_t)values[15]);
+	cr_assert_eq((size_t)next2, (size_t)values[418]);
+	cr_assert_eq((size_t)next3, (size_t)values[825]);
+
+	values[15] = next;
+	values[825] = next2;
+	values[418] = next3;
+
+	for (int i = 0; i < size; i++) {
+		release(values[i]);
+	}
+#if MEMSAN == 1
+	cr_assert_eq(get_mmaped_bytes(), 0);
+#endif /* MEMSAN */
+}
+
+Test(alloc, larger_allocations) {
+	size_t max = 16384 * 3;
+	for (size_t i = 2049; i < max; i++) {
+		char *ptr = alloc(i);
+		cr_assert(ptr);
+		for (size_t j = 0; j < 10; j++) ptr[j] = 'x';
+		for (size_t j = 0; j < 10; j++) cr_assert_eq(ptr[j], 'x');
+		release(ptr);
+	}
+#if MEMSAN == 1
+	cr_assert_eq(get_mmaped_bytes(), 0);
+#endif /* MEMSAN */
+}
+
+Test(alloc, test_realloc) {
+	void *tmp;
+
+	void *slab1 = alloc(8);
+	void *slab2 = alloc(16);
+	void *slab3 = alloc(32);
+	void *slab4 = alloc(64);
+	void *slab5 = alloc(128);
+
+	tmp = resize(slab1, 16);
+	cr_assert_eq((size_t)tmp, (size_t)slab2 + 16);
+	slab1 = tmp;
+
+	tmp = resize(slab1, 32);
+	cr_assert_eq((size_t)tmp, (size_t)slab3 + 32);
+	slab1 = tmp;
+
+	tmp = resize(slab1, 64);
+	cr_assert_eq((size_t)tmp, (size_t)slab4 + 64);
+	slab1 = tmp;
+
+	tmp = resize(slab1, 128);
+	cr_assert_eq((size_t)tmp, (size_t)slab5 + 128);
+	slab1 = tmp;
+
+	tmp = resize(slab1, 1024 * 1024 * 6);
+	/* Should be a CHUNK_SIZE aligned + 16 pointer */
+	cr_assert_eq(((size_t)tmp - 16) % CHUNK_SIZE, 0);
+	slab1 = tmp;
+
+	/* now go down */
+	tmp = resize(slab1, 16);
+	cr_assert_eq((size_t)tmp, (size_t)slab2 + 16);
+	slab1 = tmp;
+
+	release(slab1);
+	release(slab2);
+	release(slab3);
+	release(slab4);
+	release(slab5);
+#if MEMSAN == 1
+	cr_assert_eq(get_mmaped_bytes(), 0);
+#endif /* MEMSAN */
+}
+
+Test(core, test_align) {
+	size_t alloc_sz = 16;
+	void *x = alloc(8);
+	cr_assert_eq((size_t)x % 8, 0);
+	release(x);
+	for (int i = 0; i < 8; i++) {
+		void *x = alloc(alloc_sz);
+		cr_assert_eq((size_t)x % 16, 0);
+		alloc_sz *= 2;
+		release(x);
+	}
+#if MEMSAN == 1
+	cr_assert_eq(get_mmaped_bytes(), 0);
+#endif /* MEMSAN */
 }

@@ -30,9 +30,16 @@
 #include <sys.h>
 #include <types.h>
 
-#define CHUNK_SIZE (256 * 1024)
-#define MAX_SLAB_SIZE 32768
-#define MIN_ALIGN_SIZE (4096 * 4)
+#ifndef MEMSAN
+#define MEMSAN 0
+#endif
+
+#if MEMSAN == 1
+uint64_t _mmaped_bytes__ = 0;
+uint64_t get_mmaped_bytes() {
+	return __atomic_load_n(&_mmaped_bytes__, __ATOMIC_SEQ_CST);
+}
+#endif /* MEMSAN */
 
 #define HEADER_SIZE 16
 #define MAGIC_BYTES 0xAF8BC894322377BCL
@@ -153,6 +160,10 @@ STATIC void *alloc_aligned_memory(size_t size, size_t alignment) {
 	size_t prefix_size, suffix_size, alloc_size;
 
 	alloc_size = size + alignment;
+
+#if MEMSAN == 1
+	__atomic_fetch_add(&_mmaped_bytes__, size, __ATOMIC_SEQ_CST);
+#endif /* MEMSAN */
 
 	/* Call mmap with a large enough allocation so we can align properly. */
 	base = mmap(NULL, alloc_size, PROT_READ | PROT_WRITE,
@@ -288,6 +299,10 @@ STATIC void free_slab(void *ptr) {
 		}
 	}
 
+#if MEMSAN == 1
+	__atomic_fetch_sub(&_mmaped_bytes__, CHUNK_SIZE, __ATOMIC_SEQ_CST);
+#endif /* MEMSAN */
+
 	/* Finally, there are no more bits here, free the chunk */
 	munmap(chunk, CHUNK_SIZE);
 }
@@ -328,6 +343,10 @@ void release(void *ptr) {
 			panic(
 			    "Memory corruption: MAGIC not correct. Halting!\n");
 		actual_size = *(size_t *)aligned_ptr;
+#if MEMSAN == 1
+		__atomic_fetch_sub(&_mmaped_bytes__, actual_size,
+				   __ATOMIC_SEQ_CST);
+#endif /* MEMSAN */
 		munmap(aligned_ptr, actual_size);
 	} else { /* slab alloc */
 		free_slab(ptr);

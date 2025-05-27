@@ -29,8 +29,19 @@
 #include <sys.h>
 #include <types.h>
 
+#define CHUNK_SIZE (256 * 1024)
+#define MAX_SLAB_SIZE 32768
+#define MIN_ALIGN_SIZE (4096 * 4)
+
 void *alloc(size_t size);
 void release(void *ptr);
 void *resize(void *ptr, size_t size);
+
+#ifndef MEMSAN
+#define MEMSAN 0
+#endif /* MEMSAN */
+#if MEMSAN == 1
+uint64_t get_mmaped_bytes();
+#endif /* MEMSAN */
 
 #endif /* _ALLOC_H__ */
