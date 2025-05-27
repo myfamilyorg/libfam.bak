@@ -24,7 +24,6 @@
  *******************************************************************************/
 
 #include <misc.h>
-#include <time.h>
 #include <types.h>
 
 size_t strlen(const char *X) {
