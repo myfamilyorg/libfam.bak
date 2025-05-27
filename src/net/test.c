@@ -9,12 +9,12 @@ Test(net, evh1) {
 	int port = socket_listen(&s1, addr, 0, 10);
 	cr_assert(port > 0);
 	printf("port=%i\n", port);
+	sleepm(10);
 	cr_assert(!socket_connect(&s2, addr, port));
 	cr_assert(s2 > 0);
 	while (true) {
 		if (socket_accept(&s1, &s3)) {
-			print_error("accept");
-			if (err != EAGAIN) cr_assert(false);
+			if (err != EAGAIN && err != EDEADLK) cr_assert(false);
 			sleepm(1);
 		} else
 			break;

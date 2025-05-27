@@ -29,7 +29,9 @@
 
 int err = 0;
 
+#ifdef __linux__
 int *__error(void) { return &err; }
+#endif /* __linux__ */
 
 int print_error(const char *s) {
 	int len = 0, v = 2;

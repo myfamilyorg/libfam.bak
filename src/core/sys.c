@@ -519,7 +519,11 @@ int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen) {
 #endif
 
 	if (ret < 0) {
+#ifdef __APPLE__
+		err = errno;
+#elif defined(__linux__)
 		err = -ret;
+#endif /* __linux__ */
 		return -1;
 	}
 	return ret;
@@ -536,7 +540,11 @@ int setsockopt(int sockfd, int level, int optname, const void *optval,
 #endif
 
 	if (ret < 0) {
+#ifdef __APPLE__
+		err = errno;
+#elif defined(__linux__)
 		err = -ret;
+#endif /* __linux__ */
 		return -1;
 	}
 	return ret;
@@ -552,7 +560,11 @@ int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen) {
 #endif
 
 	if (ret < 0) {
+#ifdef __APPLE__
+		err = errno;
+#elif defined(__linux__)
 		err = -ret;
+#endif /* __linux__ */
 		return -1;
 	}
 	return ret;
@@ -568,7 +580,11 @@ int listen(int sockfd, int backlog) {
 #endif
 
 	if (ret < 0) {
+#ifdef __APPLE__
+		err = errno;
+#elif defined(__linux__)
 		err = -ret;
+#endif /* __linux__ */
 		return -1;
 	}
 	return ret;
@@ -584,24 +600,33 @@ int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen) {
 #endif
 
 	if (ret < 0) {
+#ifdef __APPLE__
+		err = errno;
+#elif defined(__linux__)
 		err = -ret;
+#endif /* __linux__ */
 		return -1;
 	}
 	return ret;
 }
+
+#include <stdio.h>
 
 int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen) {
 #ifdef __linux__
 	int ret = syscall_accept(sockfd, addr, addrlen);
 #elif defined(__APPLE__)
 	int ret = syscall(30, sockfd, addr, addrlen);
-	if (ret == -1) err = errno;
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 
 	if (ret < 0) {
+#ifdef __APPLE__
+		err = errno;
+#elif defined(__linux__)
 		err = -ret;
+#endif /* __linux__ */
 		return -1;
 	}
 	return ret;
@@ -617,7 +642,11 @@ int shutdown(int sockfd, int how) {
 #endif
 
 	if (ret < 0) {
+#ifdef __APPLE__
+		err = errno;
+#elif defined(__linux__)
 		err = -ret;
+#endif /* __linux__ */
 		return -1;
 	}
 	return ret;
@@ -632,7 +661,11 @@ int socket(int domain, int type, int protocol) {
 #endif
 
 	if (ret < 0) {
+#ifdef __APPLE__
+		err = errno;
+#elif defined(__linux__)
 		err = -ret;
+#endif /* __linux__ */
 		return -1;
 	}
 	return ret;
@@ -681,7 +714,11 @@ int fcntl(int fd, int op, ...) {
 #endif
 
 	if (ret < 0) {
+#ifdef __APPLE__
+		err = errno;
+#elif defined(__linux__)
 		err = -ret;
+#endif /* __linux__ */
 		return -1;
 	}
 	return ret;
@@ -701,7 +738,11 @@ int open(const char *path, int flags, ...) {
 #endif
 
 	if (ret < 0) {
+#ifdef __APPLE__
+		err = errno;
+#elif defined(__linux__)
 		err = -ret;
+#endif /* __linux__ */
 		return -1;
 	}
 	return ret;
@@ -717,7 +758,11 @@ ssize_t write(int fd, const void *buf, size_t count) {
 #endif
 
 	if (ret < 0) {
+#ifdef __APPLE__
+		err = errno;
+#elif defined(__linux__)
 		err = -ret;
+#endif /* __linux__ */
 		return -1;
 	}
 	return ret;
@@ -733,7 +778,11 @@ int unlink(const char *path) {
 #endif
 
 	if (ret < 0) {
+#ifdef __APPLE__
+		err = errno;
+#elif defined(__linux__)
 		err = -ret;
+#endif /* __linux__ */
 		return -1;
 	}
 	return ret;
@@ -749,7 +798,11 @@ ssize_t read(int fd, void *buf, size_t count) {
 #endif
 
 	if (ret < 0) {
+#ifdef __APPLE__
+		err = errno;
+#elif defined(__linux__)
 		err = -ret;
+#endif /* __linux__ */
 		return -1;
 	}
 	return ret;
@@ -765,7 +818,11 @@ off_t lseek(int fd, off_t offset, int whence) {
 #endif
 
 	if (ret < 0) {
+#ifdef __APPLE__
+		err = errno;
+#elif defined(__linux__)
 		err = -ret;
+#endif /* __linux__ */
 		return -1;
 	}
 	return ret;
@@ -791,7 +848,7 @@ int close(int fd) {
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 	if (ret < 0) {
-		err = -ret; /* Set custom err */
+		err = -ret;
 		return -1;
 	}
 	return ret;
@@ -807,7 +864,7 @@ int ftruncate(int fd, off_t length) {
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 	if (ret < 0) {
-		err = -ret; /* Set custom err */
+		err = -ret;
 		return -1;
 	}
 	return ret;
@@ -823,7 +880,7 @@ int fdatasync(int fd) {
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 	if (ret < 0) {
-		err = -ret; /* Set custom err */
+		err = -ret;
 		return -1;
 	}
 	return ret;
@@ -839,7 +896,7 @@ int munmap(void *addr, size_t len) {
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 	if (ret < 0) {
-		err = -ret; /* Set custom err */
+		err = -ret;
 		return -1;
 	}
 	return ret;
