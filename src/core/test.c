@@ -722,12 +722,14 @@ Test(core, robust4) {
 		RobustCtx ctx = ROBUST_CTX_INIT;
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			cr_assert(state->lock);
 			if (state->value % 2 == 0) state->value++;
 			if (state->value >= 11) break;
 		}
 		state->value2 = 1;
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			cr_assert(state->lock);
 			if (state->value2 == 0) break;
 		}
 		cr_assert_eq(state->value2, 0);
@@ -736,11 +738,13 @@ Test(core, robust4) {
 		RobustCtx ctx = ROBUST_CTX_INIT;
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			cr_assert(state->lock);
 			if (state->value % 2 == 1) state->value++;
 			if (state->value >= 11) break;
 		}
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			cr_assert(state->lock);
 			if (state->value2 == 1) break;
 		}
 		state->value2 = 0;

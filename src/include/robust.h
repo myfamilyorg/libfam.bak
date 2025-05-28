@@ -30,7 +30,7 @@ typedef struct {
 	uint16_t port;
 } RobustCtx;
 
-typedef uint64_t RobustLock;
+typedef uint16_t RobustLock;
 
 typedef struct {
 	RobustLock *lock;
