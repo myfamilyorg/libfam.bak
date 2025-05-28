@@ -32,6 +32,7 @@
 
 int socket_connect(Socket* s, byte addr[4], uint16_t port) {
 	struct sockaddr_in serv_addr = {0};
+	int flags;
 
 	*s = socket(AF_INET, SOCK_STREAM, 0);
 	if (*s < 0) return -1;
@@ -45,7 +46,7 @@ int socket_connect(Socket* s, byte addr[4], uint16_t port) {
 		return -1;
 	}
 
-	int flags = fcntl(*s, F_GETFL, 0);
+	flags = fcntl(*s, F_GETFL, 0);
 	if (flags == -1) {
 		close(*s);
 		return -1;
@@ -61,6 +62,7 @@ int socket_connect(Socket* s, byte addr[4], uint16_t port) {
 int socket_listen(Socket* s, byte addr[4], uint16_t port, int backlog) {
 	int opt = 1, flags;
 	struct sockaddr_in address;
+	socklen_t addr_len;
 
 	*s = socket(AF_INET, SOCK_STREAM, 0);
 	if (*s < 0) return -1;
@@ -95,7 +97,7 @@ int socket_listen(Socket* s, byte addr[4], uint16_t port, int backlog) {
 		return -1;
 	}
 
-	socklen_t addr_len = sizeof(address);
+	addr_len = sizeof(address);
 	if (getsockname(*s, (struct sockaddr*)&address, &addr_len) == -1) {
 		close(*s);
 		return -1;

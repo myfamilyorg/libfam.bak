@@ -26,7 +26,6 @@ typedef struct {
 	uint32_t value_len;
 	uint16_t key_len;
 	uint8_t flags;
-	byte data[];
 } BpTreeEntry;
 
 typedef struct {

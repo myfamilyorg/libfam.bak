@@ -3,7 +3,7 @@ CFLAGS  = -fPIC \
           -pedantic \
           -Wall \
           -Wextra \
-	  -std=c99 \
+	  -std=c89 \
           -O3 \
           -fno-stack-protector \
           -fno-builtin \

@@ -74,34 +74,5 @@ int object_err_value(const Object *obj);
 typedef ObjectImpl (*BuildFn)(__builtin_va_list);
 ObjectImpl object_call_build(BuildFn build, ...);
 
-#ifdef __clang__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdollar-in-identifier-extension"
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wall"
-#endif
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wvariadic-macros"
-
-#define $object(type, ...) \
-	object_call_build(type##_Descriptor.build, __VA_ARGS__)
-
-#define $int(v) object_int_value(&v)
-#define $uint(v) object_uint_value(&v)
-#define $float(v) object_float_value(&v)
-#define $bool(v) object_bool_value(&v)
-#define $err(v) object_err_value(&v)
-
-#define $is_int(v) (object_type(&v) == ObjectTypeInt)
-#define $is_uint(v) (object_type(&v) == ObjectTypeUint)
-#define $is_float(v) (object_type(&v) == ObjectTypeFloat)
-#define $is_bool(v) (object_type(&v) == ObjectTypeBool)
-#define $is_err(v) (object_type(&v) == ObjectTypeErr)
-#define $is_box(v) (object_type(&v) == ObjectTypeBox)
-
-#pragma GCC diagnostic pop
-#pragma GCC diagnostic pop
-
 #endif /* _OBJECT_H__ */
 

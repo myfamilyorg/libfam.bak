@@ -52,6 +52,7 @@ RobustGuard robust_lock(RobustCtx *ctx, RobustLock *lock) {
 	struct sockaddr_in address;
 	int sock;
 	uint64_t counter = 0;
+	RobustGuardImpl ret;
 
 	if (ctx->port == 0) init_robust_ctx(ctx);
 	memcpy(&address.sin_addr.s_addr, ADDR, 4);
@@ -85,7 +86,7 @@ start_loop:
 		}
 	} while (!CAS(lock, &expected, desired));
 
-	RobustGuardImpl ret = {.lock = lock};
+	ret.lock = lock;
 	return ret;
 }
 void robust_unlock(RobustLock *lock) { ASTORE(lock, 0); }
