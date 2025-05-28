@@ -23,17 +23,59 @@
  *
  *******************************************************************************/
 
-#include <bptree.h>
-#include <criterion/criterion.h>
-#include <sys.h>
+#ifndef _EVH_H__
+#define _EVH_H__
 
-Test(store, bptree1) {
-	const char *path = "/tmp/bptree1.dat";
-	unlink(path);
-	int fd = file(path);
-	cr_assert(!fresize(fd, PAGE_SIZE * 10));
-	BpTree tree;
-	bptree_open(&tree, path);
+#include <lock.h>
+#include <types.h>
 
-	unlink(path);
-}
+struct Connection;
+struct AcceptorData;
+
+typedef int (*OnRecvFn)(void *ctx, struct Connection *conn, const uint8_t *data,
+			size_t len);
+typedef int (*OnAcceptFn)(void *ctx, struct Connection *conn);
+typedef int (*OnCloseFn)(void *ctx, struct Connection *conn);
+
+typedef enum { Acceptor, Inbound, Outbound } ConnectionType;
+
+typedef struct {
+	OnRecvFn on_recv;
+	OnAcceptFn on_accept;
+	OnCloseFn on_close;
+} AcceptorData;
+
+typedef struct {
+	Lock lock;
+	bool is_closed;
+} InboundData;
+
+typedef struct {
+	OnRecvFn on_recv;
+	OnCloseFn on_close;
+	Lock lock;
+	bool is_closed;
+} OutboundData;
+
+typedef struct {
+	ConnectionType conn_type;
+	int socket;
+	union {
+		AcceptorData acceptor;
+		InboundData inbound;
+		OutboundData outbound;
+	} data;
+} Connection;
+
+typedef struct {
+	int mplex;
+	int close;
+} Evh;
+
+int evh_init(Evh *evh);
+int evh_register(Evh *evh, Connection *connection);
+int evh_start(Evh *evh);
+int evh_stop(Evh *evh);
+int evh_cleanup(Evh *evh);
+
+#endif /* _EVH_H__ */
