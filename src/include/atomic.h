@@ -23,53 +23,15 @@
  *
  *******************************************************************************/
 
-#include <atomic.h>
-#include <lock.h>
-#include <sys.h>
+#ifndef _ATOMIC_H__
+#define _ATOMIC_H__
 
-#define WFLAG (0x1UL << 63)
-#define WREQUEST (0x1UL << 62)
+#define AADD(a, v) __atomic_fetch_add(a, v, __ATOMIC_SEQ_CST)
+#define ASUB(a, v) __atomic_fetch_sub(a, v, __ATOMIC_SEQ_CST)
+#define ALOAD(a) __atomic_load_n(a, __ATOMIC_ACQUIRE)
+#define ASTORE(a, v) __atomic_store_n(a, v, __ATOMIC_RELEASE)
+#define CAS(a, expected, desired)                                \
+	__atomic_compare_exchange_n(a, expected, desired, false, \
+				    __ATOMIC_RELEASE, __ATOMIC_RELAXED)
 
-void lockguard_cleanup(LockGuardImpl *lg) {
-	if (!lg->lock) return;
-	if (lg->is_write)
-		ASTORE(lg->lock, 0);
-	else
-		ASUB(lg->lock, 1);
-}
-
-LockGuardImpl lock_read(Lock *lock) {
-	uint64_t state, desired, do_yield = 0;
-	LockGuardImpl ret;
-	do {
-		if (do_yield++) yield();
-		state = ALOAD(lock) & ~(WFLAG | WREQUEST);
-		desired = state + 1;
-	} while (!CAS(lock, &state, desired));
-	ret.lock = lock;
-	ret.is_write = 0;
-	return ret;
-}
-
-LockGuardImpl lock_write(Lock *lock) {
-	uint64_t state, desired, do_yield = 0;
-	LockGuardImpl ret;
-	do {
-		if (do_yield++) yield();
-		state = ALOAD(lock) & ~(WFLAG | WREQUEST);
-		desired = state | WREQUEST;
-	} while (!CAS(lock, &state, desired));
-
-	desired = WFLAG;
-	do {
-		state = ALOAD(lock);
-		if (state != WREQUEST) {
-			yield();
-			continue;
-		}
-
-	} while (!CAS(lock, &state, desired));
-	ret.lock = lock;
-	ret.is_write = 1;
-	return ret;
-}
+#endif /* _ATOMIC_H__ */

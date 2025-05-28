@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include <alloc.h>
 #include <arpa/inet.h>
+#include <atomic.h>
 #include <criterion/criterion.h>
 #include <error.h>
 #include <fcntl.h>
@@ -223,14 +224,14 @@ Test(core, lock2) {
 		sleepm(10);
 		{
 			LockGuard lg = lock_write(l1);
-			*value = 1;
+			ASTORE(value, 1);
 		}
 		exit(0);
 	} else {
 		while (true) {
 			sleepm(1);
 			LockGuard lg = lock_read(l1);
-			if (*value) break;
+			if (ALOAD(value)) break;
 		}
 	}
 }
@@ -252,25 +253,25 @@ Test(core, lock3) {
 			while (true) {
 				sleepm(1);
 				LockGuard lg = lock_write(&state->lock);
-				if (state->value) {
-					state->value = 2;
+				if (ALOAD(&state->value)) {
+					ASTORE(&state->value, 2);
 					sleepm(100);
 					break;
 				}
 			}
-			state->value = 3;
+			ASTORE(&state->value, 3);
 		}
 		exit(0);
 	} else {
 		sleepm(10);
 		{
 			LockGuard lg = lock_write(&state->lock);
-			state->value = 1;
+			ASTORE(&state->value, 1);
 		}
 		while (true) {
 			sleepm(1);
 			LockGuard lg = lock_write(&state->lock);
-			if (state->value == 3) break;
+			if (ALOAD(&state->value) == 3) break;
 		}
 	}
 }
@@ -284,29 +285,31 @@ Test(core, lock4) {
 	if (fork()) {
 		while (true) {
 			LockGuard lg = lock_write(&state->lock);
-			if (state->value % 2 == 0) state->value++;
-			if (state->value >= 10) break;
+			if (ALOAD(&state->value) % 2 == 0)
+				AADD(&state->value, 1);
+			if (ALOAD(&state->value) >= 10) break;
 		}
 
 		{
 			LockGuard lg = lock_write(&state->lock);
-			state->value = -1;
+			ASTORE(&state->value, -1);
 		}
 
 		while (true) {
 			LockGuard lg = lock_write(&state->lock);
-			if (state->value == 0) break;
+			if (ALOAD(&state->value) == 0) break;
 		}
 	} else {
 		while (true) {
 			LockGuard lg = lock_write(&state->lock);
-			if (state->value % 2 == 1) state->value++;
-			if (state->value == -1) break;
+			if (ALOAD(&state->value) % 2 == 1)
+				AADD(&state->value, 1);
+			if (ALOAD(&state->value) == -1) break;
 		}
 
 		{
 			LockGuard lg = lock_write(&state->lock);
-			state->value = 0;
+			ASTORE(&state->value, 0);
 		}
 		exit(0);
 	}
@@ -677,7 +680,7 @@ Test(core, robust2) {
 		sleepm(100);
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
-			if (state->value == 1) break;
+			if (ALOAD(&state->value) == 1) break;
 		}
 	} else {
 		RobustCtx ctx = ROBUST_CTX_INIT;
@@ -685,7 +688,7 @@ Test(core, robust2) {
 		// RAII)
 		RobustGuardImpl rg = robust_lock(&ctx, &state->lock);
 		sleepm(300);
-		state->value++;
+		AADD(&state->value, 1);
 		exit(0);
 	}
 }
@@ -700,13 +703,16 @@ Test(core, robust3) {
 		RobustCtx ctx = ROBUST_CTX_INIT;
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
-			if (state->value == 1) break;
+			if (__atomic_load_n(&state->value, __ATOMIC_SEQ_CST) ==
+			    1)
+				break;
 		}
-		cr_assert_eq(state->value, 1);
+		cr_assert_eq(__atomic_load_n(&state->value, __ATOMIC_SEQ_CST),
+			     1);
 	} else {
 		RobustCtx ctx = ROBUST_CTX_INIT;
 		RobustGuard rg = robust_lock(&ctx, &state->lock);
-		state->value++;
+		__atomic_fetch_add(&state->value, 1, __ATOMIC_SEQ_CST);
 		exit(0);
 	}
 }
