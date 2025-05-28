@@ -5,6 +5,7 @@
 #include <error.h>
 #include <fcntl.h>
 #include <lock.h>
+#include <robust.h>
 #include <stdio.h>
 #include <sys.h>
 #include <sys/mman.h>
@@ -653,4 +654,59 @@ Test(core, socket1) {
 	close(s3);
 }
 
-Test(core, socket2) {}
+Test(core, robust1) {
+	RobustLock l1 = ROBUST_LOCK_INIT;
+	cr_assert(!robust_lock(&l1));
+	robust_unlock(&l1);
+}
+
+typedef struct {
+	RobustLock lock;
+	int value;
+} RobustSharedState;
+
+Test(core, robust2) {
+	void *base = smap(sizeof(RobustSharedState));
+	RobustSharedState *state = (RobustSharedState *)base;
+	state->lock = ROBUST_LOCK_INIT;
+	state->value = 0;
+
+	if (fork()) {
+		sleepm(100);
+		while (true) {
+			cr_assert(!robust_lock(&state->lock));
+			if (state->value == 1) break;
+			robust_unlock(&state->lock);
+		}
+		robust_unlock(&state->lock);
+	} else {
+		cr_assert(!robust_lock(&state->lock));
+		sleepm(300);
+		state->value++;
+		robust_unlock(&state->lock);
+		exit(0);
+	}
+}
+
+Test(core, robust3) {
+	void *base = smap(sizeof(RobustSharedState));
+	RobustSharedState *state = (RobustSharedState *)base;
+	state->lock = ROBUST_LOCK_INIT;
+	state->value = 0;
+
+	if (fork()) {
+		sleepm(100);
+		while (true) {
+			cr_assert(!robust_lock(&state->lock));
+			if (state->value == 1) break;
+			robust_unlock(&state->lock);
+		}
+		robust_unlock(&state->lock);
+		cr_assert_eq(state->value, 1);
+	} else {
+		cr_assert(!robust_lock(&state->lock));
+		sleepm(300);
+		state->value++;
+		exit(0);
+	}
+}

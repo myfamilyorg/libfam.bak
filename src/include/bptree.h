@@ -57,7 +57,8 @@ typedef void (*BpTreeSearch)(BpTxn *txn, const void *key, uint16_t key_len,
 			     const BpTreePage *page,
 			     BpTreeSearchResult *retval);
 
-int bptree_init(BpTree *, void *base, int fd, uint64_t capacity);
+int bptree_open(BpTree *, const char *path);
+int bptree_close(BpTree *);
 int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
 	       uint32_t value_len, const BpTreeSearch search);
 void *bptree_remove(BpTxn *txn, const void *key, uint16_t key_len,
