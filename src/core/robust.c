@@ -49,7 +49,6 @@ RobustGuard robust_lock(RobustCtx *ctx, RobustLock *lock) {
 	if (ctx->port == 0) init_robust_ctx(ctx);
 
 start_loop:
-	printf("startloop\n");
 	do {
 		if (counter++) yield();
 		uint16_t cur = __atomic_load_n(lock, __ATOMIC_ACQUIRE);
@@ -60,29 +59,24 @@ start_loop:
 			uint16_t port = cur;
 
 			address.sin_family = AF_INET;
+			address.sin_port = htons(port);
 			memcpy(&address.sin_addr.s_addr, ADDR, 4);
 
 			sock = socket(AF_INET, SOCK_STREAM, 0);
 			if (sock == -1) goto start_loop;
-			printf("got sock %i\n", sock);
 			if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &OPT,
 				       sizeof(OPT)) == -1) {
 				close(sock);
-				printf("setsockopt\n");
 				goto start_loop;
 			}
 			err = 0;
-			print_error("pre");
 			if (bind(sock, (struct sockaddr *)&address,
 				 sizeof(address)) == 0) {
 				close(ctx->sock);
 				ctx->sock = sock;
 				ctx->port = port;
-				printf("bind\n");
 				break;
 			} else {
-				print_error("bind");
-				printf("no bind %u\n", port);
 				close(sock);
 				sleepm(1000);
 				goto start_loop;
