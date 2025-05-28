@@ -320,6 +320,27 @@ Test(core, lock4) {
 	}
 }
 
+Test(core, lock5) {
+	void *base = smap(sizeof(SharedState));
+	SharedState *state = (SharedState *)base;
+	state->lock = LOCK_INIT;
+	state->value = 0;
+
+	if (fork()) {
+		LockGuard lg2 = lock_read(&state->lock);
+		cr_assert_eq(ALOAD(&state->lock), 1);
+		sleepm(100);
+		cr_assert_eq(state->value, 0);
+
+	} else {
+		sleepm(10);
+		cr_assert_eq(ALOAD(&state->lock), 1);
+		LockGuard lg2 = lock_write(&state->lock);
+		ASTORE(&state->value, 1);
+		exit(0);
+	}
+}
+
 #ifndef MEMSAN
 #define MEMSAN 0
 #endif /* MEMSAN */

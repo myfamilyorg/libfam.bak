@@ -25,6 +25,7 @@
 
 #include <atomic.h>
 #include <lock.h>
+#include <stdio.h>
 #include <sys.h>
 
 #define WFLAG (0x1UL << 63)
@@ -61,13 +62,13 @@ LockGuardImpl lock_write(Lock *lock) {
 	} while (!CAS(lock, &state, desired));
 
 	desired = WFLAG;
+start_loop:
 	do {
 		state = ALOAD(lock);
 		if (state != WREQUEST) {
 			yield();
-			continue;
+			goto start_loop;
 		}
-
 	} while (!CAS(lock, &state, desired));
 	ret.lock = lock;
 	ret.is_write = 1;
