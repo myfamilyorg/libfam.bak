@@ -3,7 +3,6 @@
 #include <error.h>
 #include <misc.h>
 #include <robust.h>
-#include <stdio.h>
 #include <sys/socket.h>
 
 static byte ADDR[4] = {127, 0, 0, 1};
@@ -39,7 +38,6 @@ STATIC void init_robust_ctx(RobustCtx *ctx) {
 		if (ctx->port <= 0) close(ctx->sock);
 	}
 }
-int printf(const char *, ...);
 RobustGuard robust_lock(RobustCtx *ctx, RobustLock *lock) {
 	uint16_t desired = 0, expected = 0;
 	struct sockaddr_in address;
@@ -78,7 +76,6 @@ start_loop:
 				break;
 			} else {
 				close(sock);
-				sleepm(1000);
 				goto start_loop;
 			}
 		}
