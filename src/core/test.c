@@ -327,7 +327,7 @@ Test(core, lock5) {
 	state->value = 0;
 
 	if (fork()) {
-		LockGuard lg2 = lock_read(&state->lock);
+		LockGuard lg = lock_read(&state->lock);
 		cr_assert_eq(ALOAD(&state->lock), 1);
 		sleepm(100);
 		cr_assert_eq(state->value, 0);
@@ -335,7 +335,28 @@ Test(core, lock5) {
 	} else {
 		sleepm(10);
 		cr_assert_eq(ALOAD(&state->lock), 1);
-		LockGuard lg2 = lock_write(&state->lock);
+		LockGuard lg = lock_write(&state->lock);
+		ASTORE(&state->value, 1);
+		exit(0);
+	}
+}
+
+Test(core, lock6) {
+	void *base = smap(sizeof(SharedState));
+	SharedState *state = (SharedState *)base;
+	state->lock = LOCK_INIT;
+	state->value = 0;
+
+	if (fork()) {
+		LockGuard lg = lock_write(&state->lock);
+		cr_assert_eq(ALOAD(&state->lock), 0x1UL << 63);
+		sleepm(100);
+		cr_assert_eq(state->value, 0);
+
+	} else {
+		sleepm(10);
+		cr_assert_eq(ALOAD(&state->lock), 0x1UL << 63);
+		LockGuard lg = lock_write(&state->lock);
 		ASTORE(&state->value, 1);
 		exit(0);
 	}
