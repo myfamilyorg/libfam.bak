@@ -22,7 +22,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
-static void __attribute__((constructor)) check_sys() {
+static void __attribute__((constructor)) check_sys(void) {
 #ifdef __linux__
 	if (sizeof(Event) != sizeof(struct epoll_event)) {
 		const char *msg =

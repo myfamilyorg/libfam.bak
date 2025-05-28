@@ -28,10 +28,10 @@
 
 #define AADD(a, v) __atomic_fetch_add(a, v, __ATOMIC_SEQ_CST)
 #define ASUB(a, v) __atomic_fetch_sub(a, v, __ATOMIC_SEQ_CST)
-#define ALOAD(a) __atomic_load_n(a, __ATOMIC_ACQUIRE)
-#define ASTORE(a, v) __atomic_store_n(a, v, __ATOMIC_RELEASE)
+#define ALOAD(a) __atomic_load_n(a, __ATOMIC_SEQ_CST)
+#define ASTORE(a, v) __atomic_store_n(a, v, __ATOMIC_SEQ_CST)
 #define CAS(a, expected, desired)                                \
 	__atomic_compare_exchange_n(a, expected, desired, false, \
-				    __ATOMIC_RELEASE, __ATOMIC_RELAXED)
+				    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
 
 #endif /* _ATOMIC_H__ */

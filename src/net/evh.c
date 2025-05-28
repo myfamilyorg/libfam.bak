@@ -1,1 +1,1 @@
-int evh() { return 0; }
+int evh(void) { return 0; }
