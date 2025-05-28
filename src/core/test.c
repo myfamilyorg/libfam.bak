@@ -712,6 +712,7 @@ Test(core, robust3) {
 }
 
 Test(core, robust4) {
+	RobustCtx ctx = ROBUST_CTX_INIT;
 	void *base = smap(sizeof(RobustSharedState));
 	RobustSharedState *state = (RobustSharedState *)base;
 	state->lock = ROBUST_LOCK_INIT;
@@ -719,7 +720,6 @@ Test(core, robust4) {
 	state->value2 = 0;
 
 	if (fork()) {
-		RobustCtx ctx = ROBUST_CTX_INIT;
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
 			if (state->value % 2 == 0) state->value++;
@@ -733,7 +733,6 @@ Test(core, robust4) {
 		cr_assert_eq(state->value2, 0);
 		robust_ctx_cleanup(&ctx);
 	} else {
-		RobustCtx ctx = ROBUST_CTX_INIT;
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
 			if (state->value % 2 == 1) state->value++;

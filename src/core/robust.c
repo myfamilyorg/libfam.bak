@@ -5,23 +5,21 @@
 #include <stdio.h>
 #include <sys/socket.h>
 
-#define PORT 9999
-
-static byte addr[4] = {127, 0, 0, 1};
-static int opt = 1;
+static byte ADDR[4] = {127, 0, 0, 1};
+static int OPT = 1;
 
 STATIC void init_robust_ctx(RobustCtx *ctx) {
 	struct sockaddr_in address;
 	unsigned int addr_len;
 	address.sin_family = AF_INET;
-	memcpy(&address.sin_addr.s_addr, addr, 4);
+	memcpy(&address.sin_addr.s_addr, ADDR, 4);
 
 	while (ctx->port == 0) {
 		address.sin_port = 0;
 		ctx->sock = socket(AF_INET, SOCK_STREAM, 0);
 		if (ctx->sock == -1) continue;
-		if (setsockopt(ctx->sock, SOL_SOCKET, SO_REUSEADDR, &opt,
-			       sizeof(opt)) == -1) {
+		if (setsockopt(ctx->sock, SOL_SOCKET, SO_REUSEADDR, &OPT,
+			       sizeof(OPT)) == -1) {
 			close(ctx->sock);
 			continue;
 		}
@@ -42,30 +40,29 @@ STATIC void init_robust_ctx(RobustCtx *ctx) {
 }
 
 RobustGuard robust_lock(RobustCtx *ctx, RobustLock *lock) {
-	byte addr[4] = {127, 0, 0, 1};
-	uint64_t desired = 0, expected = 0;
+	uint16_t desired = 0, expected = 0;
 	struct sockaddr_in address;
-	int opt = 1;
 	int sock;
+	uint64_t counter = 0;
 
 	if (ctx->port == 0) init_robust_ctx(ctx);
 
-	address.sin_family = AF_INET;
-	memcpy(&address.sin_addr.s_addr, addr, 4);
-
-	uint64_t counter = 0;
 	do {
 		if (counter++) yield();
-		uint64_t cur = __atomic_load_n(lock, __ATOMIC_ACQUIRE);
+		uint16_t cur = __atomic_load_n(lock, __ATOMIC_ACQUIRE);
 		if (cur == 0) {
 			expected = 0;
-			desired = ((uint64_t)ctx->port << 48);
+			desired = ctx->port;
 		} else {
-			uint16_t port = cur >> 48;
+			uint16_t port = cur;
+
+			address.sin_family = AF_INET;
+			memcpy(&address.sin_addr.s_addr, ADDR, 4);
+
 			sock = socket(AF_INET, SOCK_STREAM, 0);
 			if (sock == -1) continue;
-			if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt,
-				       sizeof(opt)) == -1) {
+			if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &OPT,
+				       sizeof(OPT)) == -1) {
 				close(sock);
 				continue;
 			}
