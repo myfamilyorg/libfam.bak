@@ -929,7 +929,6 @@ Test(core, robust2) {
 
 	if (fork()) {
 		RobustCtx ctx = ROBUST_CTX_INIT;
-		sleepm(100);
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
 			if (ALOAD(&state->value) == 1) break;
@@ -955,16 +954,13 @@ Test(core, robust3) {
 		RobustCtx ctx = ROBUST_CTX_INIT;
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
-			if (__atomic_load_n(&state->value, __ATOMIC_SEQ_CST) ==
-			    1)
-				break;
+			if (ALOAD(&state->value) == 1) break;
 		}
-		cr_assert_eq(__atomic_load_n(&state->value, __ATOMIC_SEQ_CST),
-			     1);
+		cr_assert_eq(ALOAD(&state->value), 1);
 	} else {
 		RobustCtx ctx = ROBUST_CTX_INIT;
 		RobustGuard rg = robust_lock(&ctx, &state->lock);
-		__atomic_fetch_add(&state->value, 1, __ATOMIC_SEQ_CST);
+		AADD(&state->value, 1);
 		exit(0);
 	}
 }
@@ -980,46 +976,30 @@ Test(core, robust4) {
 	if (fork()) {
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
-			if (__atomic_load_n(&state->value, __ATOMIC_SEQ_CST) %
-				2 ==
-			    0) {
-				__atomic_fetch_add(&state->value, 1,
-						   __ATOMIC_SEQ_CST);
-			}
-			if (__atomic_load_n(&state->value, __ATOMIC_SEQ_CST) >=
-			    11)
-				break;
+			if (ALOAD(&state->value) % 2 == 0)
+				AADD(&state->value, 1);
+			if (ALOAD(&state->value) >= 11) break;
 		}
-		__atomic_store_n(&state->value2, 1, __ATOMIC_SEQ_CST);
+		ASTORE(&state->value2, 1);
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
-			if (__atomic_load_n(&state->value2, __ATOMIC_SEQ_CST) ==
-			    0)
-				break;
+			if (ALOAD(&state->value2) == 0) break;
 		}
-		cr_assert_eq(__atomic_load_n(&state->value2, __ATOMIC_SEQ_CST),
-			     0);
+		cr_assert_eq(ALOAD(&state->value2), 0);
 		robust_ctx_cleanup(&ctx);
 	} else {
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
-			if (__atomic_load_n(&state->value, __ATOMIC_SEQ_CST) %
-				2 ==
-			    1) {
-				__atomic_fetch_add(&state->value, 1,
-						   __ATOMIC_SEQ_CST);
+			if (ALOAD(&state->value) % 2 == 1) {
+				AADD(&state->value, 1);
 			}
-			if (__atomic_load_n(&state->value, __ATOMIC_SEQ_CST) >=
-			    11)
-				break;
+			if (ALOAD(&state->value) >= 11) break;
 		}
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
-			if (__atomic_load_n(&state->value2, __ATOMIC_SEQ_CST) ==
-			    1)
-				break;
+			if (ALOAD(&state->value2) == 1) break;
 		}
-		__atomic_store_n(&state->value2, 0, __ATOMIC_SEQ_CST);
+		ASTORE(&state->value2, 0);
 		robust_ctx_cleanup(&ctx);
 		exit(0);
 	}
