@@ -1004,3 +1004,148 @@ Test(core, robust4) {
 		exit(0);
 	}
 }
+
+Test(core, robust_non_contended) {
+	void *base = smap(sizeof(RobustSharedState));
+	RobustSharedState *state = (RobustSharedState *)base;
+	state->lock = ROBUST_LOCK_INIT;
+	state->value = 0;
+	RobustCtx ctx = ROBUST_CTX_INIT;
+
+	for (int i = 0; i < 1000; i++) {
+		RobustGuard rg = robust_lock(&ctx, &state->lock);
+		AADD(&state->value, 1);
+	}
+	cr_assert_eq(ALOAD(&state->value), 1000);
+	robust_ctx_cleanup(&ctx);
+}
+
+Test(core, robust_multi_process) {
+	void *base = smap(sizeof(RobustSharedState));
+	RobustSharedState *state = (RobustSharedState *)base;
+	state->lock = ROBUST_LOCK_INIT;
+	state->value = 0;
+	const int N = 10;
+	pid_t pids[N];
+
+	for (int i = 0; i < N; i++) {
+		if ((pids[i] = fork()) == 0) {
+			RobustCtx ctx = ROBUST_CTX_INIT;
+			while (ALOAD(&state->value) < 1000) {
+				RobustGuard rg =
+				    robust_lock(&ctx, &state->lock);
+				if (ALOAD(&state->value) < 1000) {
+					AADD(&state->value, 1);
+				}
+			}
+			robust_ctx_cleanup(&ctx);
+			exit(0);
+		}
+	}
+	RobustCtx ctx = ROBUST_CTX_INIT;
+	struct timespec start, now;
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	while (ALOAD(&state->value) < 1000) {
+		RobustGuard rg = robust_lock(&ctx, &state->lock);
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		if ((now.tv_sec - start.tv_sec) > 5) {	// 5s timeout
+			cr_assert(0, "Timeout waiting for value >= 1000");
+		}
+	}
+	cr_assert_eq(ALOAD(&state->value), 1000);
+	for (int i = 0; i < N; i++) {
+		waitpid(pids[i], NULL, 0);
+	}
+	robust_ctx_cleanup(&ctx);
+}
+
+Test(core, robust_port_exhaustion) {
+	void *base = smap(sizeof(RobustSharedState));
+	RobustSharedState *state = (RobustSharedState *)base;
+	state->lock = ROBUST_LOCK_INIT;
+	state->value = 0;
+	const int N = 1000;
+	RobustCtx ctxs[N];
+
+	for (int i = 0; i < N; i++) {
+		ctxs[i] = (RobustCtx)ROBUST_CTX_INIT;
+		RobustGuard rg = robust_lock(&ctxs[i], &state->lock);
+		AADD(&state->value, 1);
+	}
+	cr_assert_eq(ALOAD(&state->value), N);
+	for (int i = 0; i < N; i++) {
+		robust_ctx_cleanup(&ctxs[i]);
+	}
+}
+
+Test(core, robust_timeout) {
+	void *base = smap(sizeof(RobustSharedState));
+	RobustSharedState *state = (RobustSharedState *)base;
+	state->lock = ROBUST_LOCK_INIT;
+	state->value = 0;
+
+	if (fork()) {
+		RobustCtx ctx = ROBUST_CTX_INIT;
+		struct timespec start, now;
+		clock_gettime(CLOCK_MONOTONIC, &start);
+		while (ALOAD(&state->value) != 1) {
+			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			clock_gettime(CLOCK_MONOTONIC, &now);
+			if ((now.tv_sec - start.tv_sec) > 2) {	// 2s timeout
+				cr_assert(0, "Timeout waiting for value == 1");
+			}
+		}
+		cr_assert_eq(ALOAD(&state->value), 1);
+		robust_ctx_cleanup(&ctx);
+	} else {
+		RobustCtx ctx = ROBUST_CTX_INIT;
+		RobustGuardImpl rg = robust_lock(&ctx, &state->lock);
+		AADD(&state->value, 1);
+		exit(0);
+	}
+}
+
+Test(core, robust_performance) {
+	void *base = smap(sizeof(RobustSharedState));
+	RobustSharedState *state = (RobustSharedState *)base;
+	state->lock = ROBUST_LOCK_INIT;
+	state->value = 0;
+	RobustCtx ctx = ROBUST_CTX_INIT;
+	struct timespec start, end;
+	const int N = 100000;
+
+	// Non-contended
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	for (int i = 0; i < N; i++) {
+		RobustGuard rg = robust_lock(&ctx, &state->lock);
+		AADD(&state->value, 1);
+	}
+	clock_gettime(CLOCK_MONOTONIC, &end);
+	double non_contended_ns =
+	    (end.tv_sec - start.tv_sec) * 1e9 + (end.tv_nsec - start.tv_nsec);
+	/*
+	printf("Non-contended: %.2f ns per lock+unlock\n",
+	       non_contended_ns / N);
+	       */
+	cr_assert_eq(ALOAD(&state->value), N);
+
+	// Contended (two processes)
+	state->value = 0;
+	if (fork()) {
+		for (int i = 0; i < N / 2; i++) {
+			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			AADD(&state->value, 1);
+		}
+		wait(NULL);
+		robust_ctx_cleanup(&ctx);
+	} else {
+		RobustCtx ctx2 = ROBUST_CTX_INIT;
+		for (int i = 0; i < N / 2; i++) {
+			RobustGuard rg = robust_lock(&ctx2, &state->lock);
+			AADD(&state->value, 1);
+		}
+		robust_ctx_cleanup(&ctx2);
+		exit(0);
+	}
+	cr_assert_eq(ALOAD(&state->value), N);
+}
