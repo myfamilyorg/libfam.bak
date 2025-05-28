@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <atomic.h>
 #include <error.h>
 #include <misc.h>
 #include <robust.h>
@@ -38,7 +39,7 @@ STATIC void init_robust_ctx(RobustCtx *ctx) {
 		if (ctx->port <= 0) close(ctx->sock);
 	}
 }
-
+int printf(const char *, ...);
 RobustGuard robust_lock(RobustCtx *ctx, RobustLock *lock) {
 	uint16_t desired = 0, expected = 0;
 	struct sockaddr_in address;
@@ -47,6 +48,8 @@ RobustGuard robust_lock(RobustCtx *ctx, RobustLock *lock) {
 
 	if (ctx->port == 0) init_robust_ctx(ctx);
 
+start_loop:
+	printf("startloop\n");
 	do {
 		if (counter++) yield();
 		uint16_t cur = __atomic_load_n(lock, __ATOMIC_ACQUIRE);
@@ -60,33 +63,37 @@ RobustGuard robust_lock(RobustCtx *ctx, RobustLock *lock) {
 			memcpy(&address.sin_addr.s_addr, ADDR, 4);
 
 			sock = socket(AF_INET, SOCK_STREAM, 0);
-			if (sock == -1) continue;
+			if (sock == -1) goto start_loop;
+			printf("got sock %i\n", sock);
 			if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &OPT,
 				       sizeof(OPT)) == -1) {
 				close(sock);
-				continue;
+				printf("setsockopt\n");
+				goto start_loop;
 			}
+			err = 0;
+			print_error("pre");
 			if (bind(sock, (struct sockaddr *)&address,
 				 sizeof(address)) == 0) {
 				close(ctx->sock);
 				ctx->sock = sock;
 				ctx->port = port;
+				printf("bind\n");
 				break;
 			} else {
+				print_error("bind");
+				printf("no bind %u\n", port);
 				close(sock);
-				continue;
+				sleepm(1000);
+				goto start_loop;
 			}
 		}
-	} while (!__atomic_compare_exchange_n(lock, &expected, desired, false,
-					      __ATOMIC_RELEASE,
-					      __ATOMIC_RELAXED));
+	} while (!CAS(lock, &expected, desired));
 
 	RobustGuardImpl ret = {.lock = lock};
 	return ret;
 }
-void robust_unlock(RobustLock *lock) {
-	__atomic_store_n(lock, 0, __ATOMIC_RELEASE);
-}
+void robust_unlock(RobustLock *lock) { ASTORE(lock, 0); }
 
 int robust_ctx_cleanup(RobustCtx *ctx) { return close(ctx->sock); }
 

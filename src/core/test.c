@@ -931,7 +931,9 @@ Test(core, robust2) {
 		RobustCtx ctx = ROBUST_CTX_INIT;
 		sleepm(100);
 		while (true) {
+			printf("1: lock requested\n");
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			printf("1: lock obtained\n");
 			if (ALOAD(&state->value) == 1) break;
 		}
 	} else {
@@ -939,6 +941,7 @@ Test(core, robust2) {
 		// ensure we don't unlock by using RobustGuardImpl
 		// (without RAII)
 		RobustGuardImpl rg = robust_lock(&ctx, &state->lock);
+		printf("2: lock obtained\n");
 		sleepm(300);
 		AADD(&state->value, 1);
 		exit(0);
