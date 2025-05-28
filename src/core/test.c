@@ -655,14 +655,16 @@ Test(core, socket1) {
 }
 
 Test(core, robust1) {
+	RobustCtx ctx = ROBUST_CTX_INIT;
 	RobustLock l1 = ROBUST_LOCK_INIT;
-	cr_assert(!robust_lock(&l1));
+	cr_assert(!robust_lock(&ctx, &l1));
 	robust_unlock(&l1);
 }
 
 typedef struct {
 	RobustLock lock;
 	int value;
+	int value2;
 } RobustSharedState;
 
 Test(core, robust2) {
@@ -672,15 +674,17 @@ Test(core, robust2) {
 	state->value = 0;
 
 	if (fork()) {
+		RobustCtx ctx = ROBUST_CTX_INIT;
 		sleepm(100);
 		while (true) {
-			cr_assert(!robust_lock(&state->lock));
+			cr_assert(!robust_lock(&ctx, &state->lock));
 			if (state->value == 1) break;
 			robust_unlock(&state->lock);
 		}
 		robust_unlock(&state->lock);
 	} else {
-		cr_assert(!robust_lock(&state->lock));
+		RobustCtx ctx = ROBUST_CTX_INIT;
+		cr_assert(!robust_lock(&ctx, &state->lock));
 		sleepm(300);
 		state->value++;
 		robust_unlock(&state->lock);
@@ -695,18 +699,65 @@ Test(core, robust3) {
 	state->value = 0;
 
 	if (fork()) {
-		sleepm(100);
+		RobustCtx ctx = ROBUST_CTX_INIT;
 		while (true) {
-			cr_assert(!robust_lock(&state->lock));
+			cr_assert(!robust_lock(&ctx, &state->lock));
 			if (state->value == 1) break;
 			robust_unlock(&state->lock);
 		}
 		robust_unlock(&state->lock);
 		cr_assert_eq(state->value, 1);
 	} else {
-		cr_assert(!robust_lock(&state->lock));
-		sleepm(300);
+		RobustCtx ctx = ROBUST_CTX_INIT;
+		cr_assert(!robust_lock(&ctx, &state->lock));
 		state->value++;
+		exit(0);
+	}
+}
+
+Test(core, robust4) {
+	RobustCtx ctx = ROBUST_CTX_INIT;
+	void *base = smap(sizeof(RobustSharedState));
+	RobustSharedState *state = (RobustSharedState *)base;
+	state->lock = ROBUST_LOCK_INIT;
+	state->value = 0;
+	state->value2 = 0;
+
+	if (fork()) {
+		while (true) {
+			cr_assert(!robust_lock(&ctx, &state->lock));
+			if (state->value % 2 == 0) state->value++;
+			robust_unlock(&state->lock);
+			if (state->value >= 11) break;
+		}
+		state->value2 = 1;
+		while (true) {
+			cr_assert(!robust_lock(&ctx, &state->lock));
+			if (state->value2 == 0) {
+				robust_unlock(&state->lock);
+				break;
+			}
+			robust_unlock(&state->lock);
+		}
+		cr_assert_eq(state->value2, 0);
+		robust_ctx_cleanup(&ctx);
+	} else {
+		while (true) {
+			cr_assert(!robust_lock(&ctx, &state->lock));
+			if (state->value % 2 == 1) state->value++;
+			robust_unlock(&state->lock);
+			if (state->value >= 11) break;
+		}
+		while (true) {
+			cr_assert(!robust_lock(&ctx, &state->lock));
+			if (state->value2 == 1) {
+				robust_unlock(&state->lock);
+				break;
+			}
+			robust_unlock(&state->lock);
+		}
+		state->value2 = 0;
+		robust_ctx_cleanup(&ctx);
 		exit(0);
 	}
 }
