@@ -285,6 +285,7 @@ Test(core, lock4) {
 	if (fork()) {
 		while (true) {
 			LockGuard lg = lock_write(&state->lock);
+			cr_assert(ALOAD(&state->lock));
 			if (ALOAD(&state->value) % 2 == 0)
 				AADD(&state->value, 1);
 			if (ALOAD(&state->value) >= 10) break;
@@ -292,16 +293,19 @@ Test(core, lock4) {
 
 		{
 			LockGuard lg = lock_write(&state->lock);
+			cr_assert(ALOAD(&state->lock));
 			ASTORE(&state->value, -1);
 		}
 
 		while (true) {
 			LockGuard lg = lock_write(&state->lock);
+			cr_assert(ALOAD(&state->lock));
 			if (ALOAD(&state->value) == 0) break;
 		}
 	} else {
 		while (true) {
 			LockGuard lg = lock_write(&state->lock);
+			cr_assert(ALOAD(&state->lock));
 			if (ALOAD(&state->value) % 2 == 1)
 				AADD(&state->value, 1);
 			if (ALOAD(&state->value) == -1) break;
@@ -309,6 +313,7 @@ Test(core, lock4) {
 
 		{
 			LockGuard lg = lock_write(&state->lock);
+			cr_assert(ALOAD(&state->lock));
 			ASTORE(&state->value, 0);
 		}
 		exit(0);
