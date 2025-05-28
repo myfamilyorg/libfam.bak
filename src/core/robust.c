@@ -10,13 +10,13 @@
 STATIC void init_robust_ctx(RobustCtx *ctx) {
 	byte addr[4] = {127, 0, 0, 1};
 	int opt = 1;
+	struct sockaddr_in address;
+
+	address.sin_family = AF_INET;
+	memcpy(&address.sin_addr.s_addr, addr, 4);
 
 	while (ctx->port == 0) {
-		struct sockaddr_in address;
-		address.sin_family = AF_INET;
 		address.sin_port = 0;
-		memcpy(&address.sin_addr.s_addr, addr, 4);
-
 		ctx->sock = socket(AF_INET, SOCK_STREAM, 0);
 		if (ctx->sock == -1) continue;
 		if (setsockopt(ctx->sock, SOL_SOCKET, SO_REUSEADDR, &opt,
