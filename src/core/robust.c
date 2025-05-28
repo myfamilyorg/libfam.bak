@@ -24,7 +24,7 @@ STATIC int init_robust_ctx(RobustCtx *ctx) {
 	return 0;
 }
 
-int robust_lock(RobustCtx *ctx, RobustLock *lock) {
+RobustGuard robust_lock(RobustCtx *ctx, RobustLock *lock) {
 	byte addr[4] = {127, 0, 0, 1};
 	uint64_t desired = 0, expected = 0;
 	struct sockaddr_in address;
@@ -65,7 +65,8 @@ int robust_lock(RobustCtx *ctx, RobustLock *lock) {
 					      __ATOMIC_RELEASE,
 					      __ATOMIC_RELAXED));
 
-	return 0;
+	RobustGuardImpl ret = {.lock = lock};
+	return ret;
 }
 int robust_unlock(RobustLock *lock) {
 	__atomic_store_n(lock, 0, __ATOMIC_RELEASE);
@@ -73,3 +74,5 @@ int robust_unlock(RobustLock *lock) {
 }
 
 int robust_ctx_cleanup(RobustCtx *ctx) { return close(ctx->sock); }
+
+void robustguard_cleanup(RobustGuardImpl *rg) { robust_unlock(rg->lock); }

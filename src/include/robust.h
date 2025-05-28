@@ -39,11 +39,11 @@ typedef struct {
 void robustguard_cleanup(RobustGuardImpl *rg);
 
 #define RobustGuard \
-	LockGuardImpl __attribute__((unused, cleanup(robustguard_cleanup)))
+	RobustGuardImpl __attribute__((unused, cleanup(robustguard_cleanup)))
 
 #define ROBUST_CTX_INIT {0}
 #define ROBUST_LOCK_INIT 0
 
-int robust_lock(RobustCtx *ctx, RobustLock *lock);
+RobustGuard robust_lock(RobustCtx *ctx, RobustLock *lock);
 int robust_unlock(RobustLock *lock);
 int robust_ctx_cleanup(RobustCtx *ctx);
