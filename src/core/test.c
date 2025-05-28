@@ -725,7 +725,6 @@ Test(core, robust4) {
 			if (__atomic_load_n(&state->value, __ATOMIC_SEQ_CST) %
 				2 ==
 			    0) {
-				printf("add 1 even\n");
 				__atomic_fetch_add(&state->value, 1,
 						   __ATOMIC_SEQ_CST);
 			}
@@ -749,7 +748,6 @@ Test(core, robust4) {
 			if (__atomic_load_n(&state->value, __ATOMIC_SEQ_CST) %
 				2 ==
 			    1) {
-				printf("add 1 odd\n");
 				__atomic_fetch_add(&state->value, 1,
 						   __ATOMIC_SEQ_CST);
 			}
