@@ -45,5 +45,5 @@ void robustguard_cleanup(RobustGuardImpl *rg);
 #define ROBUST_LOCK_INIT 0
 
 RobustGuard robust_lock(RobustCtx *ctx, RobustLock *lock);
-int robust_unlock(RobustLock *lock);
+void robust_unlock(RobustLock *lock);
 int robust_ctx_cleanup(RobustCtx *ctx);

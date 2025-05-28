@@ -7,11 +7,12 @@
 
 #define PORT 9999
 
-STATIC void init_robust_ctx(RobustCtx *ctx) {
-	byte addr[4] = {127, 0, 0, 1};
-	int opt = 1;
-	struct sockaddr_in address;
+static byte addr[4] = {127, 0, 0, 1};
+static int opt = 1;
 
+STATIC void init_robust_ctx(RobustCtx *ctx) {
+	struct sockaddr_in address;
+	unsigned int addr_len;
 	address.sin_family = AF_INET;
 	memcpy(&address.sin_addr.s_addr, addr, 4);
 
@@ -29,7 +30,7 @@ STATIC void init_robust_ctx(RobustCtx *ctx) {
 			close(ctx->sock);
 			continue;
 		}
-		unsigned int addr_len = sizeof(address);
+		addr_len = sizeof(address);
 		if (getsockname(ctx->sock, (struct sockaddr *)&address,
 				&addr_len) == -1) {
 			close(ctx->sock);
@@ -86,9 +87,8 @@ RobustGuard robust_lock(RobustCtx *ctx, RobustLock *lock) {
 	RobustGuardImpl ret = {.lock = lock};
 	return ret;
 }
-int robust_unlock(RobustLock *lock) {
+void robust_unlock(RobustLock *lock) {
 	__atomic_store_n(lock, 0, __ATOMIC_RELEASE);
-	return 0;
 }
 
 int robust_ctx_cleanup(RobustCtx *ctx) { return close(ctx->sock); }
