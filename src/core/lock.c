@@ -25,7 +25,6 @@
 
 #include <atomic.h>
 #include <lock.h>
-#include <stdio.h>
 #include <sys.h>
 
 #define WFLAG (0x1UL << 63)

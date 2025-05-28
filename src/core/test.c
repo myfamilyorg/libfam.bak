@@ -328,6 +328,7 @@ typedef struct {
 	int value3;
 } SharedStateData;
 
+// reader waits for writer
 Test(core, locka) {
 	void *base = smap(sizeof(SharedStateData));
 	SharedStateData *state = (SharedStateData *)base;
@@ -362,6 +363,7 @@ Test(core, locka) {
 	}
 }
 
+// writer blocks writer
 Test(core, lockb) {
 	void *base = smap(sizeof(SharedStateData));
 	SharedStateData *state = (SharedStateData *)base;
@@ -396,6 +398,7 @@ Test(core, lockb) {
 	}
 }
 
+// Multiple reader blocks writer
 Test(core, lockc) {
 	void *base = smap(sizeof(SharedStateData));
 	SharedStateData *state = (SharedStateData *)base;
@@ -428,6 +431,7 @@ Test(core, lockc) {
 	}
 }
 
+// Multiple readers prevent writer from getting lock
 Test(core, lockd) {
 	void *base = smap(sizeof(SharedStateData));
 	SharedStateData *state = (SharedStateData *)base;
@@ -469,6 +473,55 @@ Test(core, lockd) {
 			AADD(&state->value3, 1);
 		}
 		exit(0);
+	}
+}
+
+// Write starvation prevention test
+Test(core, locke) {
+	void *base = smap(sizeof(SharedStateData));
+	SharedStateData *state = (SharedStateData *)base;
+	state->lock1 = LOCK_INIT;
+	state->lock2 = LOCK_INIT;
+	state->value1 = 0;
+	state->value2 = 0;
+	state->value3 = 0;
+
+	if (fork()) {
+		while (true) {
+			LockGuard lg1 = lock_read(&state->lock1);
+			if (ALOAD(&state->value1) == 2) break;
+		}
+
+		LockGuard lg2 = lock_write(&state->lock2);
+		// writer gets access first
+		cr_assert_eq(AADD(&state->value2, 1), 1);
+
+	} else {
+		if (fork()) {
+			{
+				LockGuard lg2 = lock_read(&state->lock2);
+				AADD(&state->value1, 1);
+				// ensure that the writer has requested write
+				// before proceeding
+				while ((ALOAD(&state->lock2) & (0x1UL << 62)) ==
+				       0);
+			}
+			exit(0);
+		} else {
+			{
+				AADD(&state->value1, 1);
+				// ensure that the writer has requested write
+				// before proceeding
+				while ((ALOAD(&state->lock2) & (0x1UL << 62)) ==
+				       0);
+				cr_assert_eq(AADD(&state->value2, 1), 0);
+				LockGuard lg2 = lock_read(&state->lock2);
+				// reader gets access second (starvation
+				// prevention)
+				cr_assert_eq(AADD(&state->value2, 1), 2);
+			}
+			exit(0);
+		}
 	}
 }
 
