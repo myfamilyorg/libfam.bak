@@ -722,27 +722,48 @@ Test(core, robust4) {
 	if (fork()) {
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
-			if (state->value % 2 == 0) state->value++;
-			if (state->value >= 11) break;
+			if (__atomic_load_n(&state->value, __ATOMIC_SEQ_CST) %
+				2 ==
+			    0) {
+				printf("add 1 even\n");
+				__atomic_fetch_add(&state->value, 1,
+						   __ATOMIC_SEQ_CST);
+			}
+			if (__atomic_load_n(&state->value, __ATOMIC_SEQ_CST) >=
+			    11)
+				break;
 		}
-		state->value2 = 1;
+		__atomic_store_n(&state->value2, 1, __ATOMIC_SEQ_CST);
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
-			if (state->value2 == 0) break;
+			if (__atomic_load_n(&state->value2, __ATOMIC_SEQ_CST) ==
+			    0)
+				break;
 		}
-		cr_assert_eq(state->value2, 0);
+		cr_assert_eq(__atomic_load_n(&state->value2, __ATOMIC_SEQ_CST),
+			     0);
 		robust_ctx_cleanup(&ctx);
 	} else {
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
-			if (state->value % 2 == 1) state->value++;
-			if (state->value >= 11) break;
+			if (__atomic_load_n(&state->value, __ATOMIC_SEQ_CST) %
+				2 ==
+			    1) {
+				printf("add 1 odd\n");
+				__atomic_fetch_add(&state->value, 1,
+						   __ATOMIC_SEQ_CST);
+			}
+			if (__atomic_load_n(&state->value, __ATOMIC_SEQ_CST) >=
+			    11)
+				break;
 		}
 		while (true) {
 			RobustGuard rg = robust_lock(&ctx, &state->lock);
-			if (state->value2 == 1) break;
+			if (__atomic_load_n(&state->value2, __ATOMIC_SEQ_CST) ==
+			    1)
+				break;
 		}
-		state->value2 = 0;
+		__atomic_store_n(&state->value2, 0, __ATOMIC_SEQ_CST);
 		robust_ctx_cleanup(&ctx);
 		exit(0);
 	}
