@@ -1146,6 +1146,14 @@ void *event_attachment(Event event) {
 }
 
 int file(const char *path) { return open(path, O_CREAT | O_RDWR, 0600); }
+int exists(const char *path) {
+	int fd = open(path, O_RDWR);
+	if (fd > 0) {
+		close(fd);
+		return 1;
+	}
+	return 0;
+}
 
 int64_t micros(void) {
 	struct timeval tv;

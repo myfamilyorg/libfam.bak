@@ -1184,7 +1184,9 @@ typedef struct {
 
 Test(core, channel1) {
 	const char *path = "test_channel1";
+	channel_unlink(path);
 	cr_assert(!channel_create(path, sizeof(ChannelTest), 3));
+	cr_assert(channel_create(path, sizeof(ChannelTest), 3));
 	Channel *ch1 = channel_open(path);
 
 	ChannelTest msg1 = {.x = 1, .y = 2};
@@ -1215,4 +1217,6 @@ Test(core, channel1) {
 	cr_assert_eq(rcv2.y, 4);
 	rcv2.x = rcv2.y = 0;
 	cr_assert(channel_recv(ch1, &rcv2));
+
+	channel_unlink(path);
 }

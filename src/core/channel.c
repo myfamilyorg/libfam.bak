@@ -82,6 +82,11 @@ int channel_create(const char *name, size_t element_size, size_t capacity) {
 
 	if (channel_get_name(buf, name)) return -1;
 
+	if (exists(buf)) {
+		err = EEXIST;
+		return -1;
+	}
+
 	fd = file(buf);
 	if (fd == -1) return -1;
 	needed = capacity * element_size + sizeof(Channel);

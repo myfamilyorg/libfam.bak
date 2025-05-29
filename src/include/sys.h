@@ -68,6 +68,7 @@ int socket(int domain, int type, int protocol);
 void *map(size_t length);
 void *fmap(int fd);
 void *smap(size_t length);
+int exists(const char *path);
 int file(const char *path);
 off_t fsize(int fd);
 int fresize(int fd, off_t length);
