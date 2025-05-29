@@ -25,148 +25,129 @@
 
 #include <channel.h>
 #include <error.h>
-#include <misc.h>
-#include <sys.h>
-
-STATIC int channel_get_name(char *buf, const char *name) {
-	if (name == NULL || strlen(name) > 128) {
-		err = EINVAL;
-		return -1;
-	}
-	memset(buf, 0, 256);
-#ifdef __linux__
-	stringcpy(buf, "/dev/shm/");
-#elif defined(__APPLE__)
-	stringcpy(buf, "/tmp/");
-#endif
-	stringcat(buf, name);
-	return 0;
-}
 
 STATIC int check_channel_size_overflow(size_t element_size, size_t capacity) {
-	size_t product;
-	if (element_size == 0 || capacity == 0) {
-		product = 0;
-	} else if (element_size > SIZE_MAX / capacity) {
-		return -1;
-	} else {
-		product = element_size * capacity;
-	}
-
-	if (product > SIZE_MAX - sizeof(Channel)) {
-		return -1;
-	}
-
-	return 0;
-}
-
-int channel_create(const char *name, size_t element_size, size_t capacity) {
-	char buf[256];
-	int fd;
-	size_t needed;
-
-	if (capacity == 0 || element_size == 0 || name == NULL) {
-		err = EINVAL;
-		return -1;
-	}
-
-	/* Circular buffer needs to reserve one extra slot for empty deteection
-	 */
-	++capacity;
-
-	if (capacity == 0 ||
-	    check_channel_size_overflow(element_size, capacity)) {
-		err = ENOMEM;
-		return -1;
-	}
-
-	if (channel_get_name(buf, name)) return -1;
-
-	if (exists(buf)) {
-		err = EEXIST;
-		return -1;
-	}
-
-	fd = file(buf);
-	if (fd == -1) return -1;
-	needed = capacity * element_size + sizeof(Channel);
-
-	if (fresize(fd, needed) == -1) {
-		close(fd);
-		return -1;
-	} else {
-		Channel *channel = fmap(fd);
-		if (channel == NULL) {
-			close(fd);
-			unlink(buf);
-			return -1;
-		}
-		channel->element_size = element_size;
-		channel->capacity = capacity;
-		channel->lock = LOCK_INIT;
-		channel->head = channel->tail = 0;
-		munmap(channel, needed);
-		close(fd);
-
+	if (element_size == 0 || capacity == 0)
 		return 0;
+	else if (element_size > SIZE_MAX / capacity)
+		return -1;
+	else if ((element_size * capacity) > SIZE_MAX - sizeof(Channel))
+		return -1;
+	else
+		return 0;
+}
+
+void channel_cleanup(ChannelImpl *channel) {
+	size_t len;
+	int i;
+	if (channel->data) {
+		for (i = 0; i < MAX_WORKERS; i++) {
+			if (channel->data->piperecv[i])
+				close(channel->data->piperecv[i]);
+			if (channel->data->pipesend[i])
+				close(channel->data->pipesend[i]);
+		}
+		len = (channel->data->capacity * channel->data->element_size) +
+		      sizeof(ChannelImpl);
+		munmap(channel->data, len);
+		channel->data = NULL;
 	}
 }
 
-Channel *channel_open(const char *name) {
-	Channel *ret;
-	char buf[256];
-	int fd;
+Channel channel(size_t element_size, size_t capacity) {
+	size_t needed;
+	int i;
+	ChannelImpl ret = {0};
 
-	if (channel_get_name(buf, name)) return NULL;
+	if (check_channel_size_overflow(element_size, capacity)) {
+		err = ENOMEM;
+		return ret;
+	}
 
-	fd = file(buf);
-	if (fd == -1) return NULL;
-	ret = fmap(fd);
-	close(fd);
+	needed = capacity * element_size + sizeof(Channel);
+	ret.data = smap(needed);
+	if (ret.data == NULL) return ret;
+
+	for (i = 0; i < MAX_WORKERS; i++) {
+		int fds[2];
+		if (pipe(fds)) {
+			channel_cleanup(&ret);
+			return ret;
+		}
+		ret.data->piperecv[i] = fds[0];
+		ret.data->pipesend[i] = fds[1];
+	}
+
+	ret.data->waiting_workers = 0;
+	ret.data->element_size = element_size;
+	ret.data->capacity = capacity;
+	ret.data->lock = LOCK_INIT;
+	ret.data->head = ret.data->tail = 0;
+
 	return ret;
 }
 
-void channel_unmap(Channel *channel) {
-	munmap(channel,
-	       channel->capacity * channel->element_size + sizeof(Channel));
+bool channel_ok(Channel *channel) { return channel->data != NULL; }
+
+void channel_recv(Channel *channel, void *dst) {
+	while (true) {
+		int wait_fd = -1;
+		char buf[1];
+		{
+			LockGuard lg = lock_write(&channel->data->lock);
+			if (channel->data->head != channel->data->tail) {
+				memcpy(dst,
+				       channel->data + sizeof(Channel) +
+					   channel->data->head *
+					       channel->data->element_size,
+				       channel->data->element_size);
+
+				channel->data->head =
+				    (channel->data->head + 1) %
+				    channel->data->capacity;
+				return;
+			} else {
+				if (channel->data->waiting_workers <
+				    MAX_WORKERS) {
+					int wait_id =
+					    channel->data->waiting_workers++;
+					wait_fd =
+					    channel->data->piperecv[wait_id];
+				}
+			}
+		}
+
+		if (wait_fd >= 0) {
+			if (read(wait_fd, buf, 1) <= 0) {
+				err = EPIPE;
+				return;
+			}
+		}
+	}
 }
 
-int channel_unlink(const char *name) {
-	char buf[256];
-	if (channel_get_name(buf, name)) return -1;
-	return unlink(buf);
-}
-
-int channel_send(Channel *channel, const void *data) {
+int channel_send(Channel *channel, const void *src) {
 	uint64_t next;
-	LockGuard lg = lock_write(&channel->lock);
+	int fd = -1;
+	{
+		LockGuard lg = lock_write(&channel->data->lock);
 
-	next = (channel->tail + 1) % channel->capacity;
-	if (next == channel->head) {
-		err = ENOSPC;
-		return -1;
+		next = (channel->data->tail + 1) % channel->data->capacity;
+		if (next == channel->data->head) {
+			err = ENOSPC;
+			return -1;
+		}
+
+		memcpy(channel->data + sizeof(Channel) +
+			   channel->data->tail * channel->data->element_size,
+		       src, channel->data->element_size);
+
+		channel->data->tail = next;
+		if (channel->data->waiting_workers > 0) {
+			int id = --channel->data->waiting_workers;
+			fd = channel->data->pipesend[id];
+		}
 	}
-
-	memcpy(
-	    channel + sizeof(Channel) + channel->tail * channel->element_size,
-	    data, channel->element_size);
-
-	channel->tail = next;
-	return 0;
-}
-int channel_recv(Channel *channel, void *data) {
-	LockGuard lg = lock_write(&channel->lock);
-	if (channel->head == channel->tail) {
-		err = ENOENT;
-		return -1;
-	}
-
-	memcpy(
-	    data,
-	    channel + sizeof(Channel) + channel->head * channel->element_size,
-	    channel->element_size);
-
-	channel->head = (channel->head + 1) % channel->capacity;
-
+	if (fd != -1) write(fd, "x", 1);
 	return 0;
 }

@@ -30,19 +30,30 @@
 #include <misc.h>
 #include <types.h>
 
+#define MAX_WORKERS 24
+
 typedef struct {
 	uint64_t element_size;
 	uint64_t capacity;
+	int piperecv[MAX_WORKERS];
+	int pipesend[MAX_WORKERS];
+	int32_t waiting_workers;
 	Lock lock;
 	size_t head;
 	size_t tail;
-} Channel;
+} ChannelData;
 
-int channel_create(const char *name, size_t element_size, size_t capacity);
-Channel *channel_open(const char *name);
-int channel_send(Channel *channel, const void *data);
-int channel_recv(Channel *channel, void *data);
-void channel_unmap(Channel *channel);
-int channel_unlink(const char *name);
+typedef struct {
+	ChannelData *data;
+} ChannelImpl;
+
+void channel_cleanup(ChannelImpl *channel);
+
+#define Channel ChannelImpl __attribute__((unused, cleanup(channel_cleanup)))
+
+Channel channel(size_t element_size, size_t capacity);
+bool channel_ok(Channel *channel);
+void channel_recv(Channel *channel, void *dst);
+int channel_send(Channel *channel, const void *src);
 
 #endif /* _CHANNEL_H__ */

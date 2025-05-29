@@ -31,12 +31,12 @@
 #include <criterion/criterion.h>
 #include <error.h>
 #include <fcntl.h>
-#include <sys/wait.h>
 #include <lock.h>
 #include <robust.h>
 #include <stdio.h>
 #include <sys.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <types.h>
 
@@ -1184,40 +1184,27 @@ typedef struct {
 } ChannelTest;
 
 Test(core, channel1) {
-	const char *path = "test_channel1";
-	channel_unlink(path);
-	cr_assert(!channel_create(path, sizeof(ChannelTest), 3));
-	cr_assert(channel_create(path, sizeof(ChannelTest), 3));
-	Channel *ch1 = channel_open(path);
-
+	Channel ch1 = channel(sizeof(ChannelTest), 10);
+	cr_assert(channel_ok(&ch1));
 	ChannelTest msg1 = {.x = 1, .y = 2};
-	cr_assert(!channel_send(ch1, &msg1));
 	ChannelTest rcv1 = {0};
-	cr_assert(!channel_recv(ch1, &rcv1));
+	cr_assert(!channel_send(&ch1, &msg1));
+	channel_recv(&ch1, &rcv1);
 	cr_assert_eq(rcv1.x, 1);
 	cr_assert_eq(rcv1.y, 2);
-	cr_assert(channel_recv(ch1, &rcv1));
+}
 
-	ChannelTest msg2 = {.x = 3, .y = 4};
-	cr_assert(!channel_send(ch1, &msg2));
-	cr_assert(!channel_send(ch1, &msg2));
-	cr_assert(!channel_send(ch1, &msg2));
-	cr_assert(channel_send(ch1, &msg2));
-
-	ChannelTest rcv2 = {0};
-	cr_assert(!channel_recv(ch1, &rcv2));
-	cr_assert_eq(rcv2.x, 3);
-	cr_assert_eq(rcv2.y, 4);
-	rcv2.x = rcv2.y = 0;
-	cr_assert(!channel_recv(ch1, &rcv2));
-	cr_assert_eq(rcv2.x, 3);
-	cr_assert_eq(rcv2.y, 4);
-	rcv2.x = rcv2.y = 0;
-	cr_assert(!channel_recv(ch1, &rcv2));
-	cr_assert_eq(rcv2.x, 3);
-	cr_assert_eq(rcv2.y, 4);
-	rcv2.x = rcv2.y = 0;
-	cr_assert(channel_recv(ch1, &rcv2));
-
-	channel_unlink(path);
+Test(core, channel2) {
+	Channel chan = channel(sizeof(ChannelTest), 10);
+	ChannelTest msg;
+	if (fork()) {
+		channel_recv(&chan, &msg);
+		cr_assert_eq(msg.x, 1);
+		cr_assert_eq(msg.y, 2);
+	} else {
+		msg.x = 1;
+		msg.y = 2;
+		cr_assert(!channel_send(&chan, &msg));
+		exit(0);
+	}
 }
