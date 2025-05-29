@@ -23,64 +23,26 @@
  *
  *******************************************************************************/
 
-#ifndef _EVH_H__
-#define _EVH_H__
+#ifndef _CHANNEL_H__
+#define _CHANNEL_H__
 
 #include <lock.h>
+#include <misc.h>
 #include <types.h>
 
-struct Connection;
-struct AcceptorData;
-
-typedef int (*OnRecvFn)(void *ctx, struct Connection *conn, const uint8_t *data,
-			size_t len);
-typedef int (*OnAcceptFn)(void *ctx, struct Connection *conn);
-typedef int (*OnCloseFn)(void *ctx, struct Connection *conn);
-
-typedef enum { Acceptor, Inbound, Outbound } ConnectionType;
-
 typedef struct {
-	OnRecvFn on_recv;
-	OnAcceptFn on_accept;
-	OnCloseFn on_close;
-} AcceptorData;
-
-typedef struct {
+	uint64_t element_size;
+	uint64_t capacity;
 	Lock lock;
-	bool is_closed;
-} InboundData;
+	size_t head;
+	size_t tail;
+} Channel;
 
-typedef struct {
-	OnRecvFn on_recv;
-	OnCloseFn on_close;
-	Lock lock;
-	bool is_closed;
-} OutboundData;
+int channel_create(const char *name, size_t element_size, size_t capacity);
+Channel *channel_open(const char *name);
+int channel_send(Channel *channel, const void *data);
+int channel_recv(Channel *channel, void *data);
+void channel_unmap(Channel *channel);
+int channel_unlink(const char *name);
 
-typedef struct {
-	ConnectionType conn_type;
-	int socket;
-	struct Connection *next;
-	union {
-		AcceptorData acceptor;
-		InboundData inbound;
-		OutboundData outbound;
-	} data;
-} Connection;
-
-typedef struct {
-	Lock lock;
-	Connection *head;
-	Connection *tail;
-} EvhRegisterQueue;
-
-typedef struct {
-	int wakeup;
-	EvhRegisterQueue *regqueue;
-} Evh;
-
-int evh_register(Evh *evh, Connection *connection);
-int evh_start(Evh *evh);
-int evh_stop(Evh *evh);
-
-#endif /* _EVH_H__ */
+#endif /* _CHANNEL_H__ */

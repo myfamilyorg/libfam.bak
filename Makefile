@@ -63,7 +63,7 @@ $(LIBDIR)/libfam.so: $(OBJECTS) | $(LIBDIR)
 
 # Build test binary
 $(TEST_BIN): $(TEST_OBJ) $(LIBDIR)/libfam.so | $(BINDIR)
-	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) -lfam -L/usr/local/lib -lcriterion -Wno-overflow -o $@
+	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) -lfam -L/usr/local/lib -lcriterion -o $@
 
 # Create directories if they don't exist
 $(OBJDIR) $(TOBJDIR) $(LIBDIR) $(BINDIR):

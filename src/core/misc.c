@@ -34,6 +34,19 @@ size_t strlen(const char *X) {
 	return X - Y;
 }
 
+char *strcpy(char *dest, const char *src) {
+	char *ptr = dest;
+	while ((*ptr++ = *src++));
+	return dest;
+}
+
+char *strcat(char *dest, const char *src) {
+	char *ptr = dest;
+	while (*ptr) ptr++;
+	while ((*ptr++ = *src++));
+	return dest;
+}
+
 int strcmp(const char *X, const char *Y) {
 	if (X == NULL || Y == NULL) {
 		if (X == Y) return 0;

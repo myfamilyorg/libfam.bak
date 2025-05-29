@@ -27,6 +27,7 @@
 #include <alloc.h>
 #include <arpa/inet.h>
 #include <atomic.h>
+#include <channel.h>
 #include <criterion/criterion.h>
 #include <error.h>
 #include <fcntl.h>
@@ -1174,4 +1175,44 @@ Test(core, robust_performance) {
 		exit(0);
 	}
 	cr_assert_eq(ALOAD(&state->value), N);
+}
+
+typedef struct {
+	int x;
+	int y;
+} ChannelTest;
+
+Test(core, channel1) {
+	const char *path = "test_channel1";
+	cr_assert(!channel_create(path, sizeof(ChannelTest), 3));
+	Channel *ch1 = channel_open(path);
+
+	ChannelTest msg1 = {.x = 1, .y = 2};
+	cr_assert(!channel_send(ch1, &msg1));
+	ChannelTest rcv1 = {0};
+	cr_assert(!channel_recv(ch1, &rcv1));
+	cr_assert_eq(rcv1.x, 1);
+	cr_assert_eq(rcv1.y, 2);
+	cr_assert(channel_recv(ch1, &rcv1));
+
+	ChannelTest msg2 = {.x = 3, .y = 4};
+	cr_assert(!channel_send(ch1, &msg2));
+	cr_assert(!channel_send(ch1, &msg2));
+	cr_assert(!channel_send(ch1, &msg2));
+	cr_assert(channel_send(ch1, &msg2));
+
+	ChannelTest rcv2 = {0};
+	cr_assert(!channel_recv(ch1, &rcv2));
+	cr_assert_eq(rcv2.x, 3);
+	cr_assert_eq(rcv2.y, 4);
+	rcv2.x = rcv2.y = 0;
+	cr_assert(!channel_recv(ch1, &rcv2));
+	cr_assert_eq(rcv2.x, 3);
+	cr_assert_eq(rcv2.y, 4);
+	rcv2.x = rcv2.y = 0;
+	cr_assert(!channel_recv(ch1, &rcv2));
+	cr_assert_eq(rcv2.x, 3);
+	cr_assert_eq(rcv2.y, 4);
+	rcv2.x = rcv2.y = 0;
+	cr_assert(channel_recv(ch1, &rcv2));
 }

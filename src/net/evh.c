@@ -23,13 +23,30 @@
  *
  *******************************************************************************/
 
+#include <alloc.h>
 #include <error.h>
 #include <evh.h>
+#include <misc.h>
 #include <stdio.h>
 #include <sys.h>
 
-STATIC int evh_proc_wakeup(int mplex, int wakeup) {
+STATIC int evh_proc_wakeup(int mplex, int wakeup, EvhRegisterQueue *regqueue) {
 	char buf[1024];
+	struct Connection *ptr;
+	printf("evh wakeup\n");
+	{
+		LockGuard lg = lock_write(&regqueue->lock);
+		ptr = regqueue->head;
+		regqueue->head = regqueue->tail = NULL;
+	}
+	/*
+	while (ptr) {
+		printf("adding connection %lu\n", (size_t)ptr);
+		ptr = ptr->next;
+		printf("after\n");
+	}
+	*/
+	printf("loop complete\n");
 
 	if (read(wakeup, buf, 1024) <= 0)
 		return -1;
@@ -37,7 +54,7 @@ STATIC int evh_proc_wakeup(int mplex, int wakeup) {
 		return 0;
 }
 
-STATIC void evh_loop(int wakeup) {
+STATIC void evh_loop(int wakeup, EvhRegisterQueue *regqueue) {
 	Event events[1024];
 	int i, count, mplex;
 
@@ -52,7 +69,7 @@ STATIC void evh_loop(int wakeup) {
 	while ((count = mwait(mplex, events, 1024, -1)) > 0) {
 		for (i = 0; i < count; i++) {
 			if (event_attachment(events[i]) == &wakeup) {
-				if (evh_proc_wakeup(mplex, wakeup))
+				if (evh_proc_wakeup(mplex, wakeup, regqueue))
 					goto breakloop;
 			}
 		}
@@ -63,14 +80,44 @@ breakloop:
 	exit(0);
 }
 
+int evh_register(Evh *evh, Connection *connection) {
+	Connection *conn = alloc(sizeof(Connection));
+	memcpy(conn, connection, sizeof(Connection));
+	conn->next = NULL;
+	if (conn) {
+		LockGuard lg = lock_write(&evh->regqueue->lock);
+		if (evh->regqueue->tail) {
+			evh->regqueue->tail->next = conn;
+			evh->regqueue->tail = conn;
+		} else
+			evh->regqueue->tail = evh->regqueue->head = conn;
+	} else {
+		return -1;
+	}
+
+	if (write(evh->wakeup, "1", 1) == -1) {
+		release(conn);
+		return -1;
+	}
+	return 0;
+}
+
 int evh_start(Evh *evh) {
 	int fds[2];
 
 	if (pipe(fds) == -1) return -1;
+
+	evh->regqueue = smap(sizeof(EvhRegisterQueue));
+	if (evh->regqueue == NULL) {
+		close(fds[0]);
+		close(fds[1]);
+		return -1;
+	}
+
 	evh->wakeup = fds[1];
 	if (fork() == 0) {
 		close(fds[1]);
-		evh_loop(fds[0]);
+		evh_loop(fds[0], evh->regqueue);
 		exit(0);
 	} else {
 		close(fds[0]);
@@ -79,6 +126,6 @@ int evh_start(Evh *evh) {
 }
 
 int evh_stop(Evh *evh) {
-	printf("evhwakeup %i\n", evh->wakeup);
+	munmap(evh->regqueue, sizeof(EvhRegisterQueue));
 	return close(evh->wakeup);
 }

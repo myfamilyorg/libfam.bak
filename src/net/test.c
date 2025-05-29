@@ -85,6 +85,7 @@ Test(core, evh) {
 	Evh evh;
 
 	evh_start(&evh);
-	evh_stop(&evh);
+	evh_register(&evh, NULL);
+	// evh_stop(&evh);
 	sleepm(1000);
 }
