@@ -84,8 +84,7 @@ Test(net, socket1) {
 Test(core, evh) {
 	Evh evh;
 
-	evh_init(&evh);
 	evh_start(&evh);
 	evh_stop(&evh);
-	sleepm(3000);
+	sleepm(1000);
 }

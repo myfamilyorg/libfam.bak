@@ -68,14 +68,11 @@ typedef struct {
 } Connection;
 
 typedef struct {
-	int mplex;
-	int close;
+	int wakeup;
 } Evh;
 
-int evh_init(Evh *evh);
 int evh_register(Evh *evh, Connection *connection);
 int evh_start(Evh *evh);
 int evh_stop(Evh *evh);
-int evh_cleanup(Evh *evh);
 
 #endif /* _EVH_H__ */

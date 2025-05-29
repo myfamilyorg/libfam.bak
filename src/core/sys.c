@@ -1077,7 +1077,7 @@ int mregister(int multiplex, int fd, int flags, void *attach) {
 	}
 
 	res = kevent(multiplex, change_event, event_count, NULL, 0, NULL);
-	if (res < 0) err = -errno;
+	if (res < 0) err = errno;
 	if (res < 0) return -1;
 	return 0;
 #else

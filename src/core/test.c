@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <sys.h>
 #include <sys/mman.h>
+#include <time.h>
 #include <types.h>
 
 Test(core, types) {

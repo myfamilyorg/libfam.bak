@@ -23,37 +23,55 @@
  *
  *******************************************************************************/
 
+#include <error.h>
 #include <evh.h>
 #include <stdio.h>
 #include <sys.h>
 
-STATIC void evh_loop(int mplex, int close) {
-	printf("evh_loop\n");
-	while (true) {
-		char buf[1024];
-		printf("reading %i\n", close);
-		ssize_t len = read(close, buf, 1024);
-		if (len <= 0) break;
-		printf("len=%lli\n", len);
-	}
-	printf("exit\n");
-	exit(0);
+STATIC int evh_proc_wakeup(int mplex, int wakeup) {
+	char buf[1024];
+
+	if (read(wakeup, buf, 1024) <= 0)
+		return -1;
+	else
+		return 0;
 }
 
-int evh_init(Evh *evh) {
-	evh->mplex = multiplex();
-	if (evh->mplex == -1) return -1;
-	return 0;
+STATIC void evh_loop(int wakeup) {
+	Event events[1024];
+	int i, count, mplex;
+
+	if ((mplex = multiplex()) == -1) {
+		print_error("multiplex");
+		exit(0);
+	}
+	if (mregister(mplex, wakeup, MULTIPLEX_FLAG_READ, &wakeup) == -1) {
+		print_error("mregister");
+		exit(0);
+	}
+	while ((count = mwait(mplex, events, 1024, -1)) > 0) {
+		for (i = 0; i < count; i++) {
+			if (event_attachment(events[i]) == &wakeup) {
+				if (evh_proc_wakeup(mplex, wakeup))
+					goto breakloop;
+			}
+		}
+	}
+	print_error("mwait");
+breakloop:
+	printf("exit evh_loop\n");
+	exit(0);
 }
 
 int evh_start(Evh *evh) {
 	int fds[2];
 
 	if (pipe(fds) == -1) return -1;
-	evh->close = fds[1];
+	evh->wakeup = fds[1];
 	if (fork() == 0) {
 		close(fds[1]);
-		evh_loop(evh->mplex, fds[0]);
+		evh_loop(fds[0]);
+		exit(0);
 	} else {
 		close(fds[0]);
 	}
@@ -61,7 +79,6 @@ int evh_start(Evh *evh) {
 }
 
 int evh_stop(Evh *evh) {
-	printf("evhclose %i\n", evh->close);
-	write(evh->close, '1', 1);
-	close(evh->close);
+	printf("evhwakeup %i\n", evh->wakeup);
+	return close(evh->wakeup);
 }
