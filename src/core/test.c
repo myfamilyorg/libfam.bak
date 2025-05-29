@@ -31,6 +31,7 @@
 #include <criterion/criterion.h>
 #include <error.h>
 #include <fcntl.h>
+#include <sys/wait.h>
 #include <lock.h>
 #include <robust.h>
 #include <stdio.h>
