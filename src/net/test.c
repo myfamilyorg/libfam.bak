@@ -81,11 +81,11 @@ Test(net, socket1) {
 	close(s3);
 }
 
-Test(core, evh) {
+Test(net, evh) {
 	Evh evh;
 
-	evh_start(&evh);
-	evh_register(&evh, NULL);
-	// evh_stop(&evh);
+	cr_assert(!evh_start(&evh));
+	cr_assert(!evh_register(&evh, NULL));
+	evh_stop(&evh);
 	sleepm(1000);
 }

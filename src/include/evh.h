@@ -26,6 +26,7 @@
 #ifndef _EVH_H__
 #define _EVH_H__
 
+#include <channel.h>
 #include <lock.h>
 #include <types.h>
 
@@ -60,7 +61,6 @@ typedef struct {
 typedef struct {
 	ConnectionType conn_type;
 	int socket;
-	struct Connection *next;
 	union {
 		AcceptorData acceptor;
 		InboundData inbound;
@@ -69,14 +69,8 @@ typedef struct {
 } Connection;
 
 typedef struct {
-	Lock lock;
-	Connection *head;
-	Connection *tail;
-} EvhRegisterQueue;
-
-typedef struct {
 	int wakeup;
-	EvhRegisterQueue *regqueue;
+	Channel *regqueue;
 } Evh;
 
 int evh_register(Evh *evh, Connection *connection);

@@ -43,8 +43,8 @@
 #endif
 
 size_t strlen(const char *S);
-char *strcpy(char *dest, const char *src);
-char *strcat(char *dest, const char *src);
+char *stringcpy(char *dest, const char *src);
+char *stringcat(char *dest, const char *src);
 int strcmp(const char *s1, const char *s2);
 int strcmpn(const char *s1, const char *s2, size_t n);
 char *strstr(const char *X, const char *Y);

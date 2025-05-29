@@ -35,11 +35,11 @@ STATIC int channel_get_name(char *buf, const char *name) {
 	}
 	memset(buf, 0, 256);
 #ifdef __linux__
-	strcpy(buf, "/dev/shm/");
+	stringcpy(buf, "/dev/shm/");
 #elif defined(__APPLE__)
-	strcpy(buf, "/tmp/");
+	stringcpy(buf, "/tmp/");
 #endif
-	strcat(buf, name);
+	stringcat(buf, name);
 	return 0;
 }
 
