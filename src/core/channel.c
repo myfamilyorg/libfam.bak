@@ -118,8 +118,9 @@ void channel_recv(Channel *channel, void *dst) {
 		}
 
 		if (wait_fd >= 0) {
-			if (read(wait_fd, buf, 1) <= 0) {
-				err = EPIPE;
+			ssize_t n;
+			if ((n = read(wait_fd, buf, 1)) <= 0) {
+				if (n == 0) err = ECANCELED;
 				return;
 			}
 		}
