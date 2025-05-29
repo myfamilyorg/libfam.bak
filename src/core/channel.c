@@ -87,7 +87,7 @@ Channel channel(size_t element_size, size_t capacity) {
 	return ret;
 }
 
-bool channel_ok(Channel *channel) { return channel->data != NULL; }
+bool channel_ok(Channel *channel) { return channel && channel->data != NULL; }
 
 void channel_recv(Channel *channel, void *dst) {
 	while (true) {
@@ -149,6 +149,7 @@ int channel_send(Channel *channel, const void *src) {
 			fd = channel->data->pipesend[id];
 		}
 	}
-	if (fd != -1) write(fd, "x", 1);
+	if (fd != -1)
+		if (write(fd, "x", 1) == -1) return -1;
 	return 0;
 }
