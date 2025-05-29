@@ -41,14 +41,19 @@ void channel_cleanup(ChannelImpl *channel) {
 	size_t len;
 	int i;
 	if (channel->data) {
-		for (i = 0; i < MAX_WORKERS; i++) {
-			if (channel->data->piperecv[i])
-				close(channel->data->piperecv[i]);
-			if (channel->data->pipesend[i])
-				close(channel->data->pipesend[i]);
+		{
+			LockGuard lg = lock_write(&channel->data->lock);
+			for (i = 0; i < MAX_WORKERS; i++) {
+				if (channel->data->piperecv[i])
+					close(channel->data->piperecv[i]);
+				if (channel->data->pipesend[i])
+					close(channel->data->pipesend[i]);
+			}
+			len = (channel->data->capacity *
+			       channel->data->element_size) +
+			      sizeof(ChannelImpl);
+			channel->data->closed = true;
 		}
-		len = (channel->data->capacity * channel->data->element_size) +
-		      sizeof(ChannelImpl);
 		munmap(channel->data, len);
 		channel->data = NULL;
 	}
@@ -83,6 +88,7 @@ Channel channel(size_t element_size, size_t capacity) {
 	ret.data->capacity = capacity;
 	ret.data->lock = LOCK_INIT;
 	ret.data->head = ret.data->tail = 0;
+	ret.data->closed = false;
 
 	return ret;
 }
@@ -95,6 +101,10 @@ void channel_recv(Channel *channel, void *dst) {
 		char buf[1];
 		{
 			LockGuard lg = lock_write(&channel->data->lock);
+			if (channel->data->closed) {
+				err = ECANCELED;
+				return;
+			}
 			if (channel->data->head != channel->data->tail) {
 				memcpy(dst,
 				       channel->data + sizeof(Channel) +
@@ -132,7 +142,10 @@ int channel_send(Channel *channel, const void *src) {
 	int fd = -1;
 	{
 		LockGuard lg = lock_write(&channel->data->lock);
-
+		if (channel->data->closed) {
+			err = ECANCELED;
+			return -1;
+		}
 		next = (channel->data->tail + 1) % channel->data->capacity;
 		if (next == channel->data->head) {
 			err = ENOSPC;

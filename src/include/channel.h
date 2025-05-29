@@ -41,6 +41,7 @@ typedef struct {
 	Lock lock;
 	size_t head;
 	size_t tail;
+	bool closed;
 } ChannelData;
 
 typedef struct {

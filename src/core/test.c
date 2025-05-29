@@ -1208,3 +1208,48 @@ Test(core, channel2) {
 		exit(0);
 	}
 }
+
+typedef struct {
+	Lock lock1;
+	Lock lock2;
+	int value1;
+	int value2;
+	int value3;
+} ChannelState;
+
+Test(core, channel3) {
+	void *base = smap(sizeof(ChannelState));
+	ChannelState *state = (ChannelState *)base;
+	Channel chan1 = channel(sizeof(ChannelTest), 10);
+	Channel chan2 = channel(sizeof(ChannelTest), 10);
+
+	if (fork()) {
+		sleepm(100);  // wait for workers to queue
+		ChannelTest msgp1 = {.x = 101};
+		cr_assert(!channel_send(&chan1, &msgp1));
+		cr_assert(!channel_send(&chan1, &msgp1));
+		int sum = 0;
+		channel_recv(&chan2, &msgp1);
+		sum += msgp1.x;
+		channel_recv(&chan2, &msgp1);
+		sum += msgp1.x;
+		cr_assert_eq(sum, 202 + 203);
+
+	} else {
+		if (fork()) {
+			ChannelTest msgc1;
+			channel_recv(&chan1, &msgc1);
+			cr_assert_eq(msgc1.x, 101);
+			msgc1.x = 202;
+			cr_assert(!channel_send(&chan2, &msgc1));
+			exit(0);
+		} else {
+			ChannelTest msgc2;
+			channel_recv(&chan1, &msgc2);
+			cr_assert_eq(msgc2.x, 101);
+			msgc2.x = 203;
+			cr_assert(!channel_send(&chan2, &msgc2));
+			exit(0);
+		}
+	}
+}

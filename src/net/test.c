@@ -87,5 +87,5 @@ Test(net, evh) {
 	cr_assert(!evh_start(&evh));
 	cr_assert(!evh_register(&evh, NULL));
 	evh_stop(&evh);
-	sleepm(1000);
+	// sleepm(1000);
 }
