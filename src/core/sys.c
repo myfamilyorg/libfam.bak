@@ -39,9 +39,6 @@
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
 #define STATIC_ASSERT(condition, message) \
 	typedef char static_assert_##message[(condition) ? 1 : -1]
 #ifdef __linux__
@@ -293,4 +290,3 @@ int getentropy(void *buffer, size_t length) {
 
 #endif /* __linux__ */
 
-#pragma GCC diagnostic pop
