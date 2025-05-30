@@ -87,7 +87,7 @@ RobustGuard robust_lock(RobustCtx *ctx, RobustLock *lock) {
 start_loop:
 	do {
 		if (counter++) yield();
-		if ((port = ALOAD(lock)) == 0) {
+		if ((port = __atomic_load_n(lock, __ATOMIC_ACQUIRE)) == 0) {
 			expected = 0;
 		} else {
 			address.sin_port = htons(port);
