@@ -37,7 +37,13 @@
 #include <sys/epoll.h>
 STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), sizes_match);
 #elif defined(__APPLE__)
+int sched_yield();
+int fdatasync(int);
+#include <errno.h>
 #include <sys/event.h>
+#include <sys/mman.h>
+#include <sys/time.h>
+#include <unistd.h>
 STATIC_ASSERT(sizeof(Event) == sizeof(struct kevent), sizes_match);
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
@@ -406,4 +412,171 @@ off_t lseek(int fd, off_t offset, int whence) {
 }
 
 #endif /* __linux__ */
+
+/* System calls with changes */
+int multiplex(void) {
+#ifdef __linux__
+	return epoll_create1(0);
+#elif defined(__APPLE__)
+	return kqueue();
+#endif
+}
+
+int mregister(int multiplex, int fd, int flags, void *attach) {
+#ifdef __linux__
+	struct epoll_event ev;
+	int event_flags = 0;
+
+	if (flags & MULTIPLEX_FLAG_READ) {
+		event_flags |= EPOLLIN;
+	}
+
+	if (flags & MULTIPLEX_FLAG_WRITE) {
+		event_flags |= EPOLLOUT;
+	}
+
+	ev.events = event_flags;
+	if (attach == NULL)
+		ev.data.fd = fd;
+	else
+		ev.data.ptr = attach;
+
+	if (epoll_ctl(multiplex, EPOLL_CTL_ADD, fd, &ev) < 0) {
+		if (err == EEXIST) {
+			if (epoll_ctl(multiplex, EPOLL_CTL_MOD, fd, &ev) < 0) {
+				return -1;
+			}
+		} else {
+			return -1;
+		}
+	}
+
+	return 0;
+#elif defined(__APPLE__)
+	struct kevent change_event[2];
+	int event_count = 0, res;
+
+	if (flags & MULTIPLEX_FLAG_READ) {
+		EV_SET(&change_event[event_count], fd, EVFILT_READ,
+		       EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, attach);
+		event_count++;
+	}
+
+	if (flags & MULTIPLEX_FLAG_WRITE) {
+		EV_SET(&change_event[event_count], fd, EVFILT_WRITE,
+		       EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, attach);
+		event_count++;
+	}
+
+	res = kevent(multiplex, change_event, event_count, NULL, 0, NULL);
+	if (res < 0) err = errno;
+	if (res < 0) return -1;
+	return 0;
+#endif
+}
+
+int mwait(int multiplex, Event *events, int max_events,
+	  int64_t timeout_millis) {
+#ifdef __linux__
+	int timeout = (timeout_millis >= 0) ? (int)timeout_millis : -1;
+
+	return epoll_wait(multiplex, (struct epoll_event *)events, max_events,
+			  timeout);
+#elif defined(__APPLE__)
+	struct timespec ts;
+	struct timespec *timeout_ptr = NULL;
+
+	if (timeout_millis >= 0) {
+		ts.tv_sec = timeout_millis / 1000;
+		ts.tv_nsec = (timeout_millis % 1000) * 1000000;
+		timeout_ptr = &ts;
+	}
+
+	return kevent(multiplex, NULL, 0, (struct kevent *)events, max_events,
+		      timeout_ptr);
+#endif
+}
+
+int event_is_read(Event event) {
+#ifdef __linux__
+	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
+	return epoll_ev->events & EPOLLIN;
+#elif defined(__APPLE__)
+	struct kevent *kv = (struct kevent *)&event;
+	return kv->filter == EVFILT_READ;
+#endif
+}
+
+int event_is_write(Event event) {
+#ifdef __linux__
+	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
+	return epoll_ev->events & EPOLLOUT;
+#elif defined(__APPLE__)
+	struct kevent *kv = (struct kevent *)&event;
+	return kv->filter == EVFILT_WRITE;
+#endif
+}
+
+void *event_attachment(Event event) {
+#ifdef __linux__
+	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
+	return epoll_ev->data.ptr;
+#elif defined(__APPLE__)
+	struct kevent *kv = (struct kevent *)&event;
+	return kv->udata;
+#endif
+}
+
+int file(const char *path) { return open(path, O_CREAT | O_RDWR, 0600); }
+int exists(const char *path) {
+	int fd = open(path, O_RDWR);
+	if (fd > 0) {
+		close(fd);
+		return 1;
+	}
+	return 0;
+}
+
+int64_t micros(void) {
+	struct timeval tv;
+
+	if (gettimeofday(&tv, NULL) == -1) {
+		return -1;
+	}
+
+	return (int64_t)tv.tv_sec * 1000000 + tv.tv_usec;
+}
+
+int sleepm(uint64_t millis) {
+	struct timespec req;
+	req.tv_sec = millis / 1000;
+	req.tv_nsec = (millis % 1000) * 1000000;
+	return nanosleep(&req, &req);
+}
+
+off_t fsize(int fd) { return lseek(fd, 0, SEEK_END); }
+
+int yield(void) { return sched_yield(); }
+int fresize(int fd, off_t length) { return ftruncate(fd, length); }
+
+void *map(size_t length) {
+	void *v = mmap(NULL, length, PROT_READ | PROT_WRITE,
+		       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (v == MAP_FAILED) return NULL;
+	return v;
+}
+void *fmap(int fd) {
+	off_t size = fsize(fd);
+	void *v = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	if (v == MAP_FAILED) return NULL;
+	return v;
+}
+void *smap(size_t length) {
+	void *v = mmap(NULL, length, PROT_READ | PROT_WRITE,
+		       MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+	if (v == MAP_FAILED) return NULL;
+	return v;
+}
+
+int flush(int fd) { return fdatasync(fd); }
 

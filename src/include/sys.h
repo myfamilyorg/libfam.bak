@@ -65,7 +65,7 @@ int shutdown(int sockfd, int how);
 int socket(int domain, int type, int protocol);
 int getentropy(void *buffer, size_t length);
 
-/* Wrapper System calls */
+/* System calls applied */
 void *map(size_t length);
 void *fmap(int fd);
 void *smap(size_t length);
@@ -80,7 +80,6 @@ int sleepm(uint64_t millis);
 int multiplex(void);
 int mregister(int multiplex, int fd, int flags, void *attach);
 int mwait(int multiplex, Event events[], int max_events, int64_t timeout);
-
 int event_is_read(Event event);
 int event_is_write(Event event);
 void *event_attachment(Event event);
