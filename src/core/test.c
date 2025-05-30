@@ -1,6 +1,8 @@
 #include <atomic.h>
 #include <criterion/criterion.h>
 #include <error.h>
+#include <time.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <lock.h>
 #include <robust.h>
