@@ -28,16 +28,6 @@
 #include <sys.h>
 #include <types.h>
 
-#ifdef __LITTLE_ENDIAN__
-#define IS_LITTLE_ENDIAN 1
-#elif defined(__BIG_ENDIAN__)
-#define IS_LITTLE_ENDIAN 0
-#else
-/* Fallback: assume little-endian or warn */
-#warning "Endianness not defined; assuming little-endian"
-#define IS_LITTLE_ENDIAN 1
-#endif
-
 static int write_u64(int fd, uint64_t value) {
 	char buffer[20];
 	int len = 0;
