@@ -95,6 +95,24 @@ Channel channel(size_t element_size, size_t capacity) {
 
 bool channel_ok(Channel *channel) { return channel && channel->data != NULL; }
 
+int channel_recv_now(Channel *channel, void *dst) {
+	LockGuard lg = lock_write(&channel->data->lock);
+	if (channel->data->closed) {
+		err = ECANCELED;
+		return -1;
+	} else if (channel->data->head != channel->data->tail) {
+		memcpy(dst,
+		       channel->data + sizeof(Channel) +
+			   channel->data->head * channel->data->element_size,
+		       channel->data->element_size);
+
+		channel->data->head =
+		    (channel->data->head + 1) % channel->data->capacity;
+		return 0;
+	} else
+		return -1;
+}
+
 void channel_recv(Channel *channel, void *dst) {
 	while (true) {
 		int wait_fd = -1;

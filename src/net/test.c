@@ -81,11 +81,35 @@ Test(net, socket1) {
 	close(s3);
 }
 
+int on_recv(void *ctx, struct Connection *conn, const byte *data, size_t len) {
+	return 0;
+}
+
+int on_accept(void *ctx, struct Connection *conn) { return 0; }
+
+int on_close(void *ctx, struct Connection *conn) { return 0; }
+
 Test(net, evh) {
 	Evh evh;
+	Socket socket;
+	byte addr[4] = {127, 0, 0, 1};
+	Connection conn;
+
+	int port = socket_listen(&socket, addr, 10000, 10);
+	printf("port=%i\n", port);
+	// cr_assert(port == 9999);
+	sleepm(1000000);
+	conn.socket = socket;
+	conn.conn_type = Acceptor;
+	conn.data.acceptor.on_recv = on_recv;
+	conn.data.acceptor.on_accept = on_accept;
+	conn.data.acceptor.on_close = on_close;
 
 	cr_assert(!evh_start(&evh));
-	cr_assert(!evh_register(&evh, NULL));
+	cr_assert(!evh_register(&evh, &conn));
+	sleepm(1000 * 1000 * 1000);
 	evh_stop(&evh);
-	// sleepm(1000);
+	printf("evh stopped!\n");
+	sleepm(1000);
+	printf("sleep done\n");
 }

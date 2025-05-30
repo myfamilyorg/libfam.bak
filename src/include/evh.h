@@ -33,7 +33,7 @@
 struct Connection;
 struct AcceptorData;
 
-typedef int (*OnRecvFn)(void *ctx, struct Connection *conn, const uint8_t *data,
+typedef int (*OnRecvFn)(void *ctx, struct Connection *conn, const byte *data,
 			size_t len);
 typedef int (*OnAcceptFn)(void *ctx, struct Connection *conn);
 typedef int (*OnCloseFn)(void *ctx, struct Connection *conn);
@@ -70,7 +70,7 @@ typedef struct {
 
 typedef struct {
 	int wakeup;
-	Channel *regqueue;
+	Channel regqueue;
 } Evh;
 
 int evh_register(Evh *evh, Connection *connection);

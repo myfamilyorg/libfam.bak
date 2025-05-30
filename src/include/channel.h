@@ -55,6 +55,7 @@ void channel_cleanup(ChannelImpl *channel);
 Channel channel(size_t element_size, size_t capacity);
 bool channel_ok(Channel *channel);
 void channel_recv(Channel *channel, void *dst);
+int channel_recv_now(Channel *channel, void *dst);
 int channel_send(Channel *channel, const void *src);
 
 #endif /* _CHANNEL_H__ */
