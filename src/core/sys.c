@@ -32,9 +32,7 @@
 #ifdef __linux__
 #include <sys/epoll.h>
 #elif defined(__APPLE__)
-#include <errno.h>
 #include <sys/event.h>
-#include <unistd.h>
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
