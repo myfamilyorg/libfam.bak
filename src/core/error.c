@@ -252,8 +252,6 @@ const char *error_string(int err_code) {
 			return "Protocol not supported";
 		case ESOCKTNOSUPPORT:
 			return "Socket type not supported";
-		case ENOTSUP:
-			return "Operation not supported";
 		case EPFNOSUPPORT:
 			return "Protocol family not supported";
 		case EAFNOSUPPORT:
