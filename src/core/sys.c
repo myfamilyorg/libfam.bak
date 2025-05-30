@@ -204,6 +204,20 @@ DEFINE_SYSCALL2(48, int, shutdown, int, sockfd, int, how)
 DEFINE_SYSCALL3(41, int, socket, int, domain, int, type, int, protocol)
 DEFINE_SYSCALL2(318, int, getentropy, void *, buffer, size_t, length)
 
+DEFINE_SYSCALL0(24, int, sched_yield)
+DEFINE_SYSCALL2(35, int, nanosleep, const struct timespec *, req,
+		struct timespec *, rem)
+DEFINE_SYSCALL2(96, int, gettimeofday, struct timeval *, tv, void *, tz)
+DEFINE_SYSCALL2(164, int, settimeofday, const struct timeval *, tv,
+		const void *, tz)
+DEFINE_SYSCALL1(291, int, epoll_create1, int, flags)
+DEFINE_SYSCALL4(232, int, epoll_wait, int, epfd, struct epoll_event *, events,
+		int, maxevents, int, timeout)
+DEFINE_SYSCALL4(233, int, epoll_ctl, int, epfd, int, op, int, fd,
+		struct epoll_event *, event)
+DEFINE_SYSCALL3(2, int, open, const char *, pathname, int, flags, mode_t, mode)
+DEFINE_SYSCALL3(8, off_t, lseek, int, fd, off_t, offset, int, whence)
+
 pid_t fork(void) { return syscall_fork(); }
 int pipe(int fds[2]) { return syscall_pipe(fds); }
 int unlink(const char *path) { return syscall_unlink(path); }
@@ -286,6 +300,38 @@ int socket(int domain, int type, int protocol) {
 }
 int getentropy(void *buffer, size_t length) {
 	return syscall_getentropy(buffer, length);
+}
+
+/*
+void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
+{ return syscall_mmap(addr, length, prot, flags, fd, offset);
+}*/
+
+int sched_yield(void) { return syscall_sched_yield(); }
+int nanosleep(const struct timespec *req, struct timespec *rem) {
+	return syscall_nanosleep(req, rem);
+}
+int gettimeofday(struct timeval *tv, void *tz) {
+	return syscall_gettimeofday(tv, tz);
+}
+int settimeofday(const struct timeval *tv, const void *tz) {
+	return syscall_settimeofday(tv, tz);
+}
+int epoll_create1(int flags) { return syscall_epoll_create1(flags); }
+int epoll_wait(int epfd, struct epoll_event *events, int maxevents,
+	       int timeout) {
+	return syscall_epoll_wait(epfd, events, maxevents, timeout);
+}
+int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
+	return syscall_epoll_ctl(epfd, op, fd, event);
+}
+/*
+int open(const char *pathname, int flags, mode_t mode) {
+    return syscall_open(pathname, flags, mode);
+}
+*/
+off_t lseek(int fd, off_t offset, int whence) {
+	return syscall_lseek(fd, offset, whence);
 }
 
 #endif /* __linux__ */
