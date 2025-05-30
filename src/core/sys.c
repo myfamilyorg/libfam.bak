@@ -404,10 +404,39 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
 	SET_ERR
 }
 
+int open(const char *pathname, int flags, ...)
+{
+    mode_t mode = 0;
+    if (flags & 0100 /* O_CREAT */) {
+	__builtin_va_list ap;
+        __builtin_va_start(ap, flags);
+        mode = __builtin_va_arg(ap, mode_t);
+        __builtin_va_end(ap);
+
+        /* Debug: Print mode to stderr */
+        {
+            char buf[16];
+            int len = 0;
+            unsigned int m = mode;
+            if (m == 0) {
+                buf[len++] = '0';
+            } else {
+                while (m > 0) {
+                    buf[len++] = '0' + (m % 8); /* Octal */
+                    m /= 8;
+                }
+            }
+        }
+    }
+    int ret = syscall_open(pathname, flags, mode);
+    SET_ERR
+}
+
+/*
 int open(const char *pathname, int flags, ...) {
 	mode_t mode = 0;
 	int ret;
-	if (flags & 0100 /* O_CREAT */) {
+	if (flags & 0100 ) {
 		long arg;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
@@ -418,8 +447,10 @@ int open(const char *pathname, int flags, ...) {
 		mode = (mode_t)arg;
 	}
 	ret = syscall_open(pathname, flags, mode);
+        int ret = syscall_open(pathname, flags, 0600);
 	SET_ERR
 }
+*/
 
 off_t lseek(int fd, off_t offset, int whence) {
 	off_t ret = syscall_lseek(fd, offset, whence);

@@ -1,4 +1,5 @@
 #include <criterion/criterion.h>
+#include <error.h>
 #include <sys.h>
 
 Test(core, types) {
@@ -47,7 +48,8 @@ Test(core, sys1) {
 
 	int fd2 = file("/tmp/data.dat");
 	char buf[4] = {0};
-	cr_assert_eq(read(fd2, buf, 4), 3);
+	int v = read(fd2, buf, 4);
+	cr_assert_eq(v, 3);
 	cr_assert_eq(buf[0], 'a');
 	cr_assert_eq(buf[1], 'b');
 	cr_assert_eq(buf[2], 'c');
