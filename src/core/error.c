@@ -52,8 +52,6 @@ int print_error(const char *s) {
 	return -1;
 }
 
-/*#include <errno.h>*/
-
 const char *error_string(int err_code) {
 	switch (err_code) {
 		case 0:
