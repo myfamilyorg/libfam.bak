@@ -32,6 +32,7 @@
 #include <sys.h>
 
 #define MAX_EVENTS 128
+#define MAX_READ_LEN 512
 
 STATIC int evh_proc_wakeup(int mplex, int wakeup, Channel regqueue) {
 	Connection connection;
@@ -55,16 +56,54 @@ STATIC int evh_proc_accept(int mplex, Connection *conn) {
 	int acceptfd;
 	while (!socket_accept(&conn->socket, &acceptfd)) {
 		Connection *nconn = alloc(sizeof(Connection));
+		printf("accept a conn\n");
 		nconn->conn_type = Inbound;
 		nconn->socket = acceptfd;
 		nconn->data.inbound.is_closed = false;
 		nconn->data.inbound.lock = LOCK_INIT;
+		nconn->data.inbound.on_recv = conn->data.acceptor.on_recv;
+		nconn->data.inbound.on_close = conn->data.acceptor.on_close;
+		nconn->data.inbound.rbuf = NULL;
+		nconn->data.inbound.rbuf_capacity = 0;
+		nconn->data.inbound.rbuf_offset = 0;
 		mregister(mplex, acceptfd, MULTIPLEX_FLAG_READ, nconn);
+		conn->data.acceptor.on_accept(NULL, nconn);
 	}
 	return 0;
 }
 
-STATIC int evh_proc_read(Connection *conn) { return 0; }
+STATIC int evh_proc_read(Connection *conn) {
+	int rlen;
+	void *tmp;
+	printf("CHECK cap=%lu,off=%lu\n", conn->data.inbound.rbuf_capacity,
+	       conn->data.inbound.rbuf_offset);
+	if (conn->data.inbound.rbuf_capacity - conn->data.inbound.rbuf_offset <
+	    MAX_READ_LEN) {
+		printf("RESIZE cap=%lu,off=%lu,nsize=%lu\n",
+		       conn->data.inbound.rbuf_capacity,
+		       conn->data.inbound.rbuf_offset,
+		       conn->data.inbound.rbuf_capacity + MAX_READ_LEN * 2);
+		tmp =
+		    resize(conn->data.inbound.rbuf,
+			   conn->data.inbound.rbuf_capacity + MAX_READ_LEN * 2);
+		if (!tmp) return -1;
+		conn->data.inbound.rbuf = tmp;
+		conn->data.inbound.rbuf_capacity += MAX_READ_LEN * 2;
+	}
+	rlen = read(conn->socket,
+		    conn->data.inbound.rbuf + conn->data.inbound.rbuf_offset,
+		    MAX_READ_LEN);
+	if (rlen > 0) {
+		conn->data.inbound.rbuf_offset += rlen;
+		conn->data.inbound.on_recv(NULL, conn, rlen);
+	} else {
+		printf("close conn!!!!\n");
+		conn->data.inbound.on_close(NULL, conn);
+		close(conn->socket);
+	}
+	printf("proc read1\n");
+	return 0;
+}
 
 STATIC int evh_read(int mplex, Connection *conn) {
 	if (conn->conn_type == Acceptor)
@@ -85,10 +124,11 @@ STATIC void evh_loop(int wakeup, Channel regqueue) {
 		printf("nevents=%i\n", nevents);
 		for (i = 0; i < nevents; i++) {
 			void *attach = event_attachment(events[i]);
-			if (attach == &wakeup &&
-			    evh_proc_wakeup(mplex, wakeup, regqueue))
-				goto break_loop;
-			else if (event_is_read(events[i])) {
+			if (attach == &wakeup) {
+				if (evh_proc_wakeup(mplex, wakeup, regqueue))
+					goto break_loop;
+			} else if (event_is_read(events[i])) {
+				printf("is_read\n");
 				evh_read(mplex, attach);
 			}
 		}

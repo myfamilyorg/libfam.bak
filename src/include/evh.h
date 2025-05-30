@@ -30,13 +30,12 @@
 #include <lock.h>
 #include <types.h>
 
-struct Connection;
+typedef struct Connection Connection;
 struct AcceptorData;
 
-typedef int (*OnRecvFn)(void *ctx, struct Connection *conn, const byte *data,
-			size_t len);
-typedef int (*OnAcceptFn)(void *ctx, struct Connection *conn);
-typedef int (*OnCloseFn)(void *ctx, struct Connection *conn);
+typedef int (*OnRecvFn)(void *ctx, Connection *conn, size_t rlen);
+typedef int (*OnAcceptFn)(void *ctx, Connection *conn);
+typedef int (*OnCloseFn)(void *ctx, Connection *conn);
 
 typedef enum { Acceptor, Inbound, Outbound } ConnectionType;
 
@@ -47,8 +46,13 @@ typedef struct {
 } AcceptorData;
 
 typedef struct {
+	OnRecvFn on_recv;
+	OnCloseFn on_close;
 	Lock lock;
 	bool is_closed;
+	byte *rbuf;
+	size_t rbuf_capacity;
+	size_t rbuf_offset;
 } InboundData;
 
 typedef struct {
@@ -58,7 +62,7 @@ typedef struct {
 	bool is_closed;
 } OutboundData;
 
-typedef struct {
+struct Connection {
 	ConnectionType conn_type;
 	int socket;
 	union {
@@ -66,7 +70,7 @@ typedef struct {
 		InboundData inbound;
 		OutboundData outbound;
 	} data;
-} Connection;
+};
 
 typedef struct {
 	int wakeup;

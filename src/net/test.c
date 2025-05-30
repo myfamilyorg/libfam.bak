@@ -81,13 +81,24 @@ Test(net, socket1) {
 	close(s3);
 }
 
-int on_recv(void *ctx, struct Connection *conn, const byte *data, size_t len) {
+int on_recv(void *ctx, struct Connection *conn, size_t len) {
+	char buf[conn->data.inbound.rbuf_offset + 1];
+	memcpy(buf, conn->data.inbound.rbuf, conn->data.inbound.rbuf_offset);
+	buf[conn->data.inbound.rbuf_offset] = 0;
+	printf("recv[%i] callback len = %lu full_buf='%s'\n", conn->socket, len,
+	       buf);
 	return 0;
 }
 
-int on_accept(void *ctx, struct Connection *conn) { return 0; }
+int on_accept(void *ctx, struct Connection *conn) {
+	printf("accept conn callback %i\n", conn->socket);
+	return 0;
+}
 
-int on_close(void *ctx, struct Connection *conn) { return 0; }
+int on_close(void *ctx, struct Connection *conn) {
+	printf("conn close callback %i\n", conn->socket);
+	return 0;
+}
 
 Test(net, evh) {
 	Evh evh;
@@ -97,8 +108,6 @@ Test(net, evh) {
 
 	int port = socket_listen(&socket, addr, 10000, 10);
 	printf("port=%i\n", port);
-	// cr_assert(port == 9999);
-	sleepm(1000000);
 	conn.socket = socket;
 	conn.conn_type = Acceptor;
 	conn.data.acceptor.on_recv = on_recv;
@@ -107,7 +116,7 @@ Test(net, evh) {
 
 	cr_assert(!evh_start(&evh));
 	cr_assert(!evh_register(&evh, &conn));
-	sleepm(1000 * 1000 * 1000);
+	//	sleepm(1000 * 1000 * 1000);
 	evh_stop(&evh);
 	printf("evh stopped!\n");
 	sleepm(1000);

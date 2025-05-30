@@ -85,7 +85,7 @@ int socket_listen(Socket* s, byte addr[4], uint16_t port, int backlog) {
 
 	address.sin_family = AF_INET;
 	memcpy(&address.sin_addr.s_addr, addr, 4);
-	address.sin_port = port;
+	address.sin_port = htons(port);
 
 	if (bind(*s, (struct sockaddr*)&address, sizeof(address))) {
 		close(*s);
