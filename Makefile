@@ -9,6 +9,7 @@ CFLAGS  = -fPIC \
           -fno-builtin \
           -ffreestanding \
           -Wno-attributes \
+	  -Wno-variadic-macro \
           -DSTATIC=static
 TFLAGS  = -g -Isrc/include -Wno-attributes -DSTATIC=
 LDFLAGS = -shared
