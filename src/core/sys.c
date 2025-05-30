@@ -231,6 +231,8 @@ DEFINE_SYSCALL4(233, int, epoll_ctl, int, epfd, int, op, int, fd,
 		struct epoll_event *, event)
 DEFINE_SYSCALL3(2, int, open, const char *, pathname, int, flags, mode_t, mode)
 DEFINE_SYSCALL3(8, off_t, lseek, int, fd, off_t, offset, int, whence)
+DEFINE_SYSCALL1(75, int, fdatasync, int, fd)
+DEFINE_SYSCALL2(77, int, ftruncate, int, fd, off_t, length)
 
 #define SET_ERR             \
 	if (ret < 0) {      \
@@ -309,6 +311,16 @@ int fcntl(int fd, int op, ...) {
 
 	ret = syscall_fcntl(fd, op, arg);
 
+	SET_ERR
+}
+
+int fdatasync(int fd) {
+	int ret = syscall_fdatasync(fd);
+	SET_ERR
+}
+
+int ftruncate(int fd, off_t length) {
+	int ret = syscall_ftruncate(fd, length);
 	SET_ERR
 }
 
