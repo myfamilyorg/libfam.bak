@@ -1,2 +1,4 @@
-STATIC int x() { return 0; }
+STATIC int x(void) { return 0; }
+
+int y(void) { return x(); }
 
