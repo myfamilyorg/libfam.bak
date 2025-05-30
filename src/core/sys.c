@@ -223,7 +223,14 @@ DEFINE_SYSCALL4(233, int, epoll_ctl, int, epfd, int, op, int, fd,
 DEFINE_SYSCALL3(2, int, open, const char *, pathname, int, flags, mode_t, mode)
 DEFINE_SYSCALL3(8, off_t, lseek, int, fd, off_t, offset, int, whence)
 
-pid_t fork(void) { return syscall_fork(); }
+pid_t fork(void) {
+	pid_t ret = syscall_fork();
+	if (ret < 0) {
+		err = -ret;
+		return -1;
+	}
+	return ret;
+}
 int pipe(int fds[2]) { return syscall_pipe(fds); }
 int unlink(const char *path) { return syscall_unlink(path); }
 ssize_t write(int fd, const void *buf, size_t count) {
