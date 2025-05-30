@@ -48,6 +48,7 @@ STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), sizes_match);
 STATIC_ASSERT(sizeof(Event) == sizeof(struct kevent), sizes_match);
 #endif /* __APPLE__ */
 
+#ifdef __linux__
 #define DEFINE_SYSCALL0(sysno, ret_type, name)                        \
 	static ret_type syscall_##name(void) {                        \
 		long result;                                          \
@@ -60,6 +61,27 @@ STATIC_ASSERT(sizeof(Event) == sizeof(struct kevent), sizes_match);
 				 : "%rax", "%rcx", "%r11", "memory"); \
 		return (ret_type)result;                              \
 	}
+
+static void *syscall_mmap(void *addr, size_t length, int prot, int flags,
+			  int fd, long offset) {
+	long result;
+	__asm__ volatile(
+	    "movq $9, %%rax\n"
+	    "movq %1, %%rdi\n"
+	    "movq %2, %%rsi\n"
+	    "movq %3, %%rdx\n"
+	    "movq %4, %%r10\n"
+	    "movq %5, %%r8\n"
+	    "movq %6, %%r9\n"
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)
+	    : "r"((long)addr), "r"((long)length), "r"((long)prot),
+	      "r"((long)flags), "r"((long)fd), "r"(offset)
+	    : "%rax", "%rdi", "%rsi", "%rdx", "%r10", "%r8", "%r9", "%rcx",
+	      "%r11", "memory");
+	return (void *)result;
+}
 
 #define DEFINE_SYSCALL1(sysno, ret_type, name, type1, arg1)                   \
 	static ret_type syscall_##name(type1 arg1) {                          \
@@ -178,14 +200,24 @@ STATIC_ASSERT(sizeof(Event) == sizeof(struct kevent), sizes_match);
 		return (ret_type)result;                                     \
 	}
 
+static void syscall_exit(int status) {
+	__asm__ volatile(
+	    "movq $60, %%rax\n" /* exit syscall number (Linux) */
+	    "movq %0, %%rdi\n"	/* status */
+	    "syscall\n"
+	    :
+	    : "r"((long)status)			       /* Input */
+	    : "%rax", "%rdi", "%rcx", "%r11", "memory" /* Clobbered */
+	);
+}
+
 /* System call definitions */
-#ifdef __linux__
+
 DEFINE_SYSCALL0(57, pid_t, fork)
 DEFINE_SYSCALL1(22, int, pipe, int *, fds)
 DEFINE_SYSCALL1(87, int, unlink, const char *, path)
 DEFINE_SYSCALL3(1, ssize_t, write, int, fd, const void *, buf, size_t, count)
 DEFINE_SYSCALL3(0, ssize_t, read, int, fd, void *, buf, size_t, count)
-DEFINE_SYSCALL1(60, void, _exit, int, status)
 DEFINE_SYSCALL2(11, int, munmap, void *, addr, size_t, len)
 DEFINE_SYSCALL1(3, int, close, int, fd)
 DEFINE_SYSCALL3(72, int, fcntl, int, fd, int, cmd, long, arg)
@@ -228,7 +260,7 @@ ssize_t read(int fd, void *buf, size_t count) {
 	return syscall_read(fd, buf, count);
 }
 void exit(int status) {
-	syscall__exit(status);
+	syscall_exit(status);
 	while (true);
 }
 int munmap(void *addr, size_t len) { return syscall_munmap(addr, len); }
@@ -302,10 +334,17 @@ int getentropy(void *buffer, size_t length) {
 	return syscall_getentropy(buffer, length);
 }
 
-/*
-void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
-{ return syscall_mmap(addr, length, prot, flags, fd, offset);
-}*/
+void *mmap(void *addr, size_t length, int prot, int flags, int fd,
+	   off_t offset) {
+	void *ret;
+	ret = syscall_mmap(addr, length, prot, flags, fd, offset);
+
+	if ((long)ret == -1) {
+		/*err = -(long)ret;*/
+		return (void *)-1;
+	}
+	return ret;
+}
 
 int sched_yield(void) { return syscall_sched_yield(); }
 int nanosleep(const struct timespec *req, struct timespec *rem) {
@@ -330,9 +369,12 @@ int open(const char *pathname, int flags, ...) {
 	mode_t mode = 0;
 	if (flags & 0100 /* O_CREAT */) {
 		long arg;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
 		__asm__ volatile("movq %1, %0"
 				 : "=r"(arg)
 				 : "r"(*(long *)(&flags + 1)));
+#pragma GCC diagnostic pop
 		mode = (mode_t)arg;
 	}
 	return syscall_open(pathname, flags, mode);
