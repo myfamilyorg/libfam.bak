@@ -1253,3 +1253,18 @@ Test(core, channel3) {
 		}
 	}
 }
+
+Test(core, salloc) {
+	if (fork() == 0) {
+		if (fork()) {
+			printf("child process\n");
+			exit(0);
+		} else {
+			printf("child2\n");
+			exit(0);
+		}
+	} else {
+		sleepm(1000);
+		printf("sleep complete\n");
+	}
+}
