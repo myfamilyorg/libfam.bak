@@ -325,11 +325,19 @@ int epoll_wait(int epfd, struct epoll_event *events, int maxevents,
 int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
 	return syscall_epoll_ctl(epfd, op, fd, event);
 }
-/*
-int open(const char *pathname, int flags, mode_t mode) {
-    return syscall_open(pathname, flags, mode);
+
+int open(const char *pathname, int flags, ...) {
+	mode_t mode = 0;
+	if (flags & 0100 /* O_CREAT */) {
+		long arg;
+		__asm__ volatile("movq %1, %0"
+				 : "=r"(arg)
+				 : "r"(*(long *)(&flags + 1)));
+		mode = (mode_t)arg;
+	}
+	return syscall_open(pathname, flags, mode);
 }
-*/
+
 off_t lseek(int fd, off_t offset, int whence) {
 	return syscall_lseek(fd, offset, whence);
 }
