@@ -38,7 +38,7 @@
 
 #ifdef __linux__
 #include <sys/epoll.h>
-STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), sizes_match);
+STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), event_match);
 #elif defined(__APPLE__)
 int sched_yield();
 int fdatasync(int);
@@ -46,7 +46,7 @@ int fdatasync(int);
 #include <sys/event.h>
 #include <sys/time.h>
 #include <unistd.h>
-STATIC_ASSERT(sizeof(Event) == sizeof(struct kevent), sizes_match);
+STATIC_ASSERT(sizeof(Event) == sizeof(struct kevent), event_match);
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif

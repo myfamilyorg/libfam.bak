@@ -28,42 +28,6 @@
 #include <sys.h>
 #include <types.h>
 
-static int write_u64(int fd, uint64_t value) {
-	char buffer[20];
-	int len = 0;
-	int i, j;
-	ssize_t bytes_written;
-
-	if (value == 0) {
-		buffer[0] = '0';
-		len = 1;
-	} else {
-		while (value > 0) {
-			if (len >= 20) {
-				err = EOVERFLOW;
-				return -1;
-			}
-			buffer[len++] = '0' + (value % 10);
-			value /= 10;
-		}
-	}
-
-	for (i = 0, j = len - 1; i < j; i++, j--) {
-		char temp = buffer[i];
-		buffer[i] = buffer[j];
-		buffer[j] = temp;
-	}
-
-	bytes_written = write(fd, buffer, len);
-	if (bytes_written == -1) return -1;
-	if (bytes_written != len) {
-		err = EIO;
-		return -1;
-	}
-
-	return 0;
-}
-
 #define CheckType(t, exp)                             \
 	if (sizeof(t) != exp) {                       \
 		const char *msg = "expected sizeof("; \
@@ -89,18 +53,18 @@ static int write_u64(int fd, uint64_t value) {
 #define STATIC_ASSERT(condition, message) \
 	typedef char static_assert_##message[(condition) ? 1 : -1]
 
-STATIC_ASSERT(sizeof(uint8_t) == 1, sizes_match);
-STATIC_ASSERT(sizeof(int8_t) == 1, sizes_match);
-STATIC_ASSERT(sizeof(uint16_t) == 2, sizes_match);
-STATIC_ASSERT(sizeof(int16_t) == 2, sizes_match);
-STATIC_ASSERT(sizeof(uint32_t) == 4, sizes_match);
-STATIC_ASSERT(sizeof(int32_t) == 4, sizes_match);
-STATIC_ASSERT(sizeof(uint64_t) == 8, sizes_match);
-STATIC_ASSERT(sizeof(int64_t) == 8, sizes_match);
-STATIC_ASSERT(sizeof(uint128_t) == 16, sizes_match);
-STATIC_ASSERT(sizeof(int128_t) == 16, sizes_match);
-STATIC_ASSERT(sizeof(ssize_t) == 8, sizes_match);
-STATIC_ASSERT(sizeof(size_t) == 8, sizes_match);
+STATIC_ASSERT(sizeof(uint8_t) == 1, u8_sizes_match);
+STATIC_ASSERT(sizeof(int8_t) == 1, i8_sizes_match);
+STATIC_ASSERT(sizeof(uint16_t) == 2, u16_sizes_match);
+STATIC_ASSERT(sizeof(int16_t) == 2, i16_sizes_match);
+STATIC_ASSERT(sizeof(uint32_t) == 4, u32_sizes_match);
+STATIC_ASSERT(sizeof(int32_t) == 4, i32_sizes_match);
+STATIC_ASSERT(sizeof(uint64_t) == 8, u64_sizes_match);
+STATIC_ASSERT(sizeof(int64_t) == 8, i64_sizes_match);
+STATIC_ASSERT(sizeof(uint128_t) == 16, u128_sizes_match);
+STATIC_ASSERT(sizeof(int128_t) == 16, i128_sizes_match);
+STATIC_ASSERT(sizeof(ssize_t) == 8, ssize_sizes_match);
+STATIC_ASSERT(sizeof(size_t) == 8, size_sizes_match);
 
 #define CheckEndian()                                                          \
 	uint16_t test = 0x1234;                                                \
