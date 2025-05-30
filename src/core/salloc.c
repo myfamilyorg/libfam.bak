@@ -9,6 +9,14 @@ typedef struct {
 	Lock lock;
 } SContext;
 
+/*
+#define STATIC_ASSERT(condition, message) \
+    typedef char static_assert_##message[(condition) ? 1 : -1]
+
+STATIC_ASSERT(sizeof(struct SContext) == sizeof(struct SContextImpl),
+sizes_match);
+*/
+
 SContext _global_scontext__;
 
 void __attribute__((constructor)) __setup_global_allocator_context() {
