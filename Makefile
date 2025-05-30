@@ -10,7 +10,7 @@ CFLAGS  = -fPIC \
           -ffreestanding \
           -Wno-attributes \
           -DSTATIC=static
-TFLAGS  = -g -Isrc/include -Wno-attributes -DSTATIC=
+TFLAGS  = -O1 -Isrc/include -Wno-attributes -DSTATIC=
 LDFLAGS = -shared
 FILTER  ="*"
 PAGE_SIZE=16384
