@@ -30,6 +30,7 @@
 #define STATIC_ASSERT(condition, message) \
 	typedef char static_assert_##message[(condition) ? 1 : -1]
 
+#include <error.h>
 #include <fcntl.h>
 #include <sys.h>
 #ifdef __linux__
@@ -223,29 +224,46 @@ DEFINE_SYSCALL4(233, int, epoll_ctl, int, epfd, int, op, int, fd,
 DEFINE_SYSCALL3(2, int, open, const char *, pathname, int, flags, mode_t, mode)
 DEFINE_SYSCALL3(8, off_t, lseek, int, fd, off_t, offset, int, whence)
 
+#define SET_ERR             \
+	if (ret < 0) {      \
+		err = -ret; \
+		return -1;  \
+	}                   \
+	return ret;
+
 pid_t fork(void) {
 	pid_t ret = syscall_fork();
-	if (ret < 0) {
-		err = -ret;
-		return -1;
-	}
-	return ret;
+	SET_ERR
 }
-int pipe(int fds[2]) { return syscall_pipe(fds); }
-int unlink(const char *path) { return syscall_unlink(path); }
+int pipe(int fds[2]) {
+	int ret = syscall_pipe(fds);
+	SET_ERR
+}
+int unlink(const char *path) {
+	int ret = syscall_unlink(path);
+	SET_ERR
+}
 ssize_t write(int fd, const void *buf, size_t count) {
-	return syscall_write(fd, buf, count);
+	ssize_t ret = syscall_write(fd, buf, count);
+	SET_ERR
 }
 ssize_t read(int fd, void *buf, size_t count) {
-	return syscall_read(fd, buf, count);
+	ssize_t ret = syscall_read(fd, buf, count);
+	SET_ERR
 }
 void exit(int status) {
 	syscall_exit(status);
 	while (true);
 }
-int munmap(void *addr, size_t len) { return syscall_munmap(addr, len); }
+int munmap(void *addr, size_t len) {
+	int ret = syscall_munmap(addr, len);
+	SET_ERR
+}
 
-int close(int fd) { return syscall_close(fd); }
+int close(int fd) {
+	int ret = syscall_close(fd);
+	SET_ERR
+}
 
 int fcntl(int fd, int op, ...) {
 	__builtin_va_list ap;
@@ -283,35 +301,45 @@ int fcntl(int fd, int op, ...) {
 
 	ret = syscall_fcntl(fd, op, arg);
 
-	if (ret < 0) {
-		return -1;
-	}
-	return ret;
+	SET_ERR
 }
 
 int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen) {
-	return syscall_connect(sockfd, addr, addrlen);
+	int ret = syscall_connect(sockfd, addr, addrlen);
+	SET_ERR
 }
 int setsockopt(int sockfd, int level, int optname, const void *optval,
 	       unsigned int optlen) {
-	return syscall_setsockopt(sockfd, level, optname, optval, optlen);
+	int ret = syscall_setsockopt(sockfd, level, optname, optval, optlen);
+	SET_ERR
 }
 int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen) {
-	return syscall_bind(sockfd, addr, addrlen);
+	int ret = syscall_bind(sockfd, addr, addrlen);
+	SET_ERR
 }
-int listen(int sockfd, int backlog) { return syscall_listen(sockfd, backlog); }
+int listen(int sockfd, int backlog) {
+	int ret = syscall_listen(sockfd, backlog);
+	SET_ERR
+}
 int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen) {
-	return syscall_getsockname(sockfd, addr, addrlen);
+	int ret = syscall_getsockname(sockfd, addr, addrlen);
+	SET_ERR
 }
 int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen) {
-	return syscall_accept(sockfd, addr, addrlen);
+	int ret = syscall_accept(sockfd, addr, addrlen);
+	SET_ERR
 }
-int shutdown(int sockfd, int how) { return syscall_shutdown(sockfd, how); }
+int shutdown(int sockfd, int how) {
+	int ret = syscall_shutdown(sockfd, how);
+	SET_ERR
+}
 int socket(int domain, int type, int protocol) {
-	return syscall_socket(domain, type, protocol);
+	int ret = syscall_socket(domain, type, protocol);
+	SET_ERR
 }
 int getentropy(void *buffer, size_t length) {
-	return syscall_getentropy(buffer, length);
+	int ret = syscall_getentropy(buffer, length);
+	SET_ERR
 }
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd,
@@ -320,29 +348,40 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	ret = syscall_mmap(addr, length, prot, flags, fd, offset);
 
 	if ((long)ret == -1) {
-		/*err = -(long)ret;*/
+		err = -(long)ret;
 		return (void *)-1;
 	}
 	return ret;
 }
 
-int sched_yield(void) { return syscall_sched_yield(); }
+int sched_yield(void) {
+	int ret = syscall_sched_yield();
+	SET_ERR
+}
 int nanosleep(const struct timespec *req, struct timespec *rem) {
-	return syscall_nanosleep(req, rem);
+	int ret = syscall_nanosleep(req, rem);
+	SET_ERR
 }
 int gettimeofday(struct timeval *tv, void *tz) {
-	return syscall_gettimeofday(tv, tz);
+	int ret = syscall_gettimeofday(tv, tz);
+	SET_ERR
 }
 int settimeofday(const struct timeval *tv, const void *tz) {
-	return syscall_settimeofday(tv, tz);
+	int ret = syscall_settimeofday(tv, tz);
+	SET_ERR
 }
-int epoll_create1(int flags) { return syscall_epoll_create1(flags); }
+int epoll_create1(int flags) {
+	int ret = syscall_epoll_create1(flags);
+	SET_ERR
+}
 int epoll_wait(int epfd, struct epoll_event *events, int maxevents,
 	       int timeout) {
-	return syscall_epoll_wait(epfd, events, maxevents, timeout);
+	int ret = syscall_epoll_wait(epfd, events, maxevents, timeout);
+	SET_ERR
 }
 int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
-	return syscall_epoll_ctl(epfd, op, fd, event);
+	int ret = syscall_epoll_ctl(epfd, op, fd, event);
+	SET_ERR
 }
 
 int open(const char *pathname, int flags, ...) {
@@ -357,11 +396,13 @@ int open(const char *pathname, int flags, ...) {
 #pragma GCC diagnostic pop
 		mode = (mode_t)arg;
 	}
-	return syscall_open(pathname, flags, mode);
+	int ret = syscall_open(pathname, flags, mode);
+	SET_ERR
 }
 
 off_t lseek(int fd, off_t offset, int whence) {
-	return syscall_lseek(fd, offset, whence);
+	off_t ret = syscall_lseek(fd, offset, whence);
+	SET_ERR
 }
 
 #endif /* __linux__ */
