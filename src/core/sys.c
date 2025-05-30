@@ -27,8 +27,8 @@
 #define _GNU_SOURCE
 #endif /* __linux__ */
 
+#include <fcntl.h>
 #include <sys.h>
-
 #ifdef __linux__
 #include <sys/epoll.h>
 #elif defined(__APPLE__)
@@ -51,103 +51,246 @@ STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), sizes_match);
 STATIC_ASSERT(sizeof(Event) == sizeof(struct kevent), sizes_match);
 #endif /* __APPLE__ */
 
-#define DEFINE_SYSCALL(ret_type, name, ...)              \
-	static ret_type syscall_##name(__VA_ARGS__) {    \
-		long result;                             \
-		_DEFINE_SYSCALL_INNER(name, __VA_ARGS__) \
-		return (ret_type)result;                 \
+#define DEFINE_SYSCALL0(sysno, ret_type, name)                        \
+	static ret_type syscall_##name(void) {                        \
+		long result;                                          \
+		__asm__ volatile("movq $" #sysno                      \
+				 ", %%rax\n"                          \
+				 "syscall\n"                          \
+				 "movq %%rax, %0\n"                   \
+				 : "=r"(result)                       \
+				 :                                    \
+				 : "%rax", "%rcx", "%r11", "memory"); \
+		return (ret_type)result;                              \
 	}
 
-#define _DEFINE_SYSCALL_INNER(name, ...)                 \
-	__asm__ volatile(_SYSCALL_ASM(name, __VA_ARGS__) \
-			 : "=r"(result)                  \
-			 : _SYSCALL_INPUTS(__VA_ARGS__)  \
-			 : "%rax", "%rcx", "%r11",       \
-			   "memory" _SYSCALL_CLOBBERS(__VA_ARGS__));
+#define DEFINE_SYSCALL1(sysno, ret_type, name, type1, arg1)                   \
+	static ret_type syscall_##name(type1 arg1) {                          \
+		long result;                                                  \
+		__asm__ volatile("movq $" #sysno                              \
+				 ", %%rax\n"                                  \
+				 "movq %1, %%rdi\n"                           \
+				 "syscall\n"                                  \
+				 "movq %%rax, %0\n"                           \
+				 : "=r"(result)                               \
+				 : "r"((long)(arg1))                          \
+				 : "%rax", "%rcx", "%r11", "%rdi", "memory"); \
+		return (ret_type)result;                                      \
+	}
 
-/* Helper to get system call number */
-#define _SYSCALL_NUM(name) _syscall_num_##name
+#define DEFINE_SYSCALL2(sysno, ret_type, name, type1, arg1, type2, arg2)   \
+	static ret_type syscall_##name(type1 arg1, type2 arg2) {           \
+		long result;                                               \
+		__asm__ volatile("movq $" #sysno                           \
+				 ", %%rax\n"                               \
+				 "movq %1, %%rdi\n"                        \
+				 "movq %2, %%rsi\n"                        \
+				 "syscall\n"                               \
+				 "movq %%rax, %0\n"                        \
+				 : "=r"(result)                            \
+				 : "r"((long)(arg1)), "r"((long)(arg2))    \
+				 : "%rax", "%rcx", "%r11", "%rdi", "%rsi", \
+				   "memory");                              \
+		return (ret_type)result;                                   \
+	}
 
-/* System call numbers */
-#define _syscall_num_write 1
-#define _syscall_num_sched_yield 24
-#define _syscall_num_open 2
-#define _syscall_num_mmap 9
+#define DEFINE_SYSCALL3(sysno, ret_type, name, type1, arg1, type2, arg2,      \
+			type3, arg3)                                          \
+	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3) {  \
+		long result;                                                  \
+		__asm__ volatile(                                             \
+		    "movq $" #sysno                                           \
+		    ", %%rax\n"                                               \
+		    "movq %1, %%rdi\n"                                        \
+		    "movq %2, %%rsi\n"                                        \
+		    "movq %3, %%rdx\n"                                        \
+		    "syscall\n"                                               \
+		    "movq %%rax, %0\n"                                        \
+		    : "=r"(result)                                            \
+		    : "r"((long)(arg1)), "r"((long)(arg2)), "r"((long)(arg3)) \
+		    : "%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r11",         \
+		      "memory");                                              \
+		return (ret_type)result;                                      \
+	}
 
-/* Generate assembly for syscall instruction */
-#define _SYSCALL_ASM(name, ...) \
-	"movq %[sysno], %%rax\n" \
-    _SYSCALL_ARGS(__VA_ARGS__) \
-    "syscall\n" \
-    "movq %%rax, %0\n"
+#define DEFINE_SYSCALL4(sysno, ret_type, name, type1, arg1, type2, arg2,   \
+			type3, arg3, type4, arg4)                          \
+	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3, \
+				       type4 arg4) {                       \
+		long result;                                               \
+		__asm__ volatile("movq $" #sysno                           \
+				 ", %%rax\n"                               \
+				 "movq %1, %%rdi\n"                        \
+				 "movq %2, %%rsi\n"                        \
+				 "movq %3, %%rdx\n"                        \
+				 "movq %4, %%r10\n"                        \
+				 "syscall\n"                               \
+				 "movq %%rax, %0\n"                        \
+				 : "=r"(result)                            \
+				 : "r"((long)(arg1)), "r"((long)(arg2)),   \
+				   "r"((long)(arg3)), "r"((long)(arg4))    \
+				 : "%rax", "%rcx", "%r11", "%rdi", "%rsi", \
+				   "%rdx", "%r10", "memory");              \
+		return (ret_type)result;                                   \
+	}
 
-/* Handle arguments for assembly (0 to 6 args) */
-#define _SYSCALL_ARGS(...) \
-	_SYSCALL_ARGS_INNER(__VA_ARGS__, 6, 5, 4, 3, 2, 1, 0)(__VA_ARGS__)
-#define _SYSCALL_ARGS_INNER(_1, _2, _3, _4, _5, _6, N, ...) _SYSCALL_ARGS_##N
-#define _SYSCALL_ARGS_0()
-#define _SYSCALL_ARGS_1(a) "movq %1, %%rdi\n"
-#define _SYSCALL_ARGS_2(a, b) \
-	"movq %1, %%rdi\n"    \
-	"movq %2, %%rsi\n"
-#define _SYSCALL_ARGS_3(a, b, c) \
-	"movq %1, %%rdi\n"       \
-	"movq %2, %%rsi\n"       \
-	"movq %3, %%rdx\n"
-#define _SYSCALL_ARGS_4(a, b, c, d) \
-	"movq %1, %%rdi\n"          \
-	"movq %2, %%rsi\n"          \
-	"movq %3, %%rdx\n"          \
-	"movq %4, %%r10\n"
-#define _SYSCALL_ARGS_5(a, b, c, d, e) \
-	"movq %1, %%rdi\n"             \
-	"movq %2, %%rsi\n"             \
-	"movq %3, %%rdx\n"             \
-	"movq %4, %%r10\n"             \
-	"movq %5, %%r8\n"
-#define _SYSCALL_ARGS_6(a, b, c, d, e, f) \
-	"movq %1, %%rdi\n"                \
-	"movq %2, %%rsi\n"                \
-	"movq %3, %%rdx\n"                \
-	"movq %4, %%r10\n"                \
-	"movq %5, %%r8\n"                 \
-	"movq %6, %%r9\n"
+#define DEFINE_SYSCALL5(sysno, ret_type, name, type1, arg1, type2, arg2,   \
+			type3, arg3, type4, arg4, type5, arg5)             \
+	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3, \
+				       type4 arg4, type5 arg5) {           \
+		long result;                                               \
+		__asm__ volatile("movq $" #sysno                           \
+				 ", %%rax\n"                               \
+				 "movq %1, %%rdi\n"                        \
+				 "movq %2, %%rsi\n"                        \
+				 "movq %3, %%rdx\n"                        \
+				 "movq %4, %%r10\n"                        \
+				 "movq %5, %%r8\n"                         \
+				 "syscall\n"                               \
+				 "movq %%rax, %0\n"                        \
+				 : "=r"(result)                            \
+				 : "r"((long)(arg1)), "r"((long)(arg2)),   \
+				   "r"((long)(arg3)), "r"((long)(arg4)),   \
+				   "r"((long)(arg5))                       \
+				 : "%rax", "%rcx", "%r11", "%rdi", "%rsi", \
+				   "%rdx", "%r10", "%r8", "memory");       \
+		return (ret_type)result;                                   \
+	}
 
-/* Handle input constraints for assembly */
-#define _SYSCALL_INPUTS(...) \
-	_SYSCALL_INPUTS_INNER(__VA_ARGS__, 6, 5, 4, 3, 2, 1, 0)(__VA_ARGS__)
-#define _SYSCALL_INPUTS_INNER(_1, _2, _3, _4, _5, _6, N, ...) \
-	_SYSCALL_INPUTS_##N
-#define _SYSCALL_INPUTS_0() [sysno] "i"(_SYSCALL_NUM(name))
-#define _SYSCALL_INPUTS_1(a) [sysno] "i"(_SYSCALL_NUM(name)), "r"((long)(a))
-#define _SYSCALL_INPUTS_2(a, b) \
-	[sysno] "i"(_SYSCALL_NUM(name)), "r"((long)(a)), "r"((long)(b))
-#define _SYSCALL_INPUTS_3(a, b, c)                                       \
-	[sysno] "i"(_SYSCALL_NUM(name)), "r"((long)(a)), "r"((long)(b)), \
-	    "r"((long)(c))
-#define _SYSCALL_INPUTS_4(a, b, c, d)                                    \
-	[sysno] "i"(_SYSCALL_NUM(name)), "r"((long)(a)), "r"((long)(b)), \
-	    "r"((long)(c)), "r"((long)(d))
-#define _SYSCALL_INPUTS_5(a, b, c, d, e)                                 \
-	[sysno] "i"(_SYSCALL_NUM(name)), "r"((long)(a)), "r"((long)(b)), \
-	    "r"((long)(c)), "r"((long)(d)), "r"((long)(e))
-#define _SYSCALL_INPUTS_6(a, b, c, d, e, f)                              \
-	[sysno] "i"(_SYSCALL_NUM(name)), "r"((long)(a)), "r"((long)(b)), \
-	    "r"((long)(c)), "r"((long)(d)), "r"((long)(e)), "r"((long)(f))
+#define DEFINE_SYSCALL6(sysno, ret_type, name, type1, arg1, type2, arg2,     \
+			type3, arg3, type4, arg4, type5, arg5, type6, arg6)  \
+	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3,   \
+				       type4 arg4, type5 arg5, type6 arg6) { \
+		long result;                                                 \
+		__asm__ volatile("movq $" #sysno                             \
+				 ", %%rax\n"                                 \
+				 "movq %1, %%rdi\n"                          \
+				 "movq %2, %%rsi\n"                          \
+				 "movq %3, %%rdx\n"                          \
+				 "movq %4, %%r10\n"                          \
+				 "movq %5, %%r8\n"                           \
+				 "movq %6, %%r9\n"                           \
+				 "syscall\n"                                 \
+				 "movq %%rax, %0\n"                          \
+				 : "=r"(result)                              \
+				 : "r"((long)(arg1)), "r"((long)(arg2)),     \
+				   "r"((long)(arg3)), "r"((long)(arg4)),     \
+				   "r"((long)(arg5)), "r"((long)(arg6))      \
+				 : "%rax", "%rcx", "%r11", "%rdi", "%rsi",   \
+				   "%rdx", "%r10", "%r8", "%r9", "memory");  \
+		return (ret_type)result;                                     \
+	}
 
-/* Handle additional clobbered registers based on number of args */
-#define _SYSCALL_CLOBBERS(...) \
-	_SYSCALL_CLOBBERS_INNER(__VA_ARGS__, 6, 5, 4, 3, 2, 1, 0)(__VA_ARGS__)
-#define _SYSCALL_CLOBBERS_INNER(_1, _2, _3, _4, _5, _6, N, ...) \
-	_SYSCALL_CLOBBERS_##N
-#define _SYSCALL_CLOBBERS_0()
-#define _SYSCALL_CLOBBERS_1(a) , "%rdi"
-#define _SYSCALL_CLOBBERS_2(a, b) , "%rdi", "%rsi"
-#define _SYSCALL_CLOBBERS_3(a, b, c) , "%rdi", "%rsi", "%rdx"
-#define _SYSCALL_CLOBBERS_4(a, b, c, d) , "%rdi", "%rsi", "%rdx", "%r10"
-#define _SYSCALL_CLOBBERS_5(a, b, c, d, e) \
-	, "%rdi", "%rsi", "%rdx", "%r10", "%r8"
-#define _SYSCALL_CLOBBERS_6(a, b, c, d, e, f) \
-	, "%rdi", "%rsi", "%rdx", "%r10", "%r8", "%r9"
+/* System call definitions */
+#ifdef __linux__
+DEFINE_SYSCALL0(57, pid_t, fork)
+DEFINE_SYSCALL1(22, int, pipe, int *, fds)
+DEFINE_SYSCALL1(87, int, unlink, const char *, path)
+DEFINE_SYSCALL3(1, ssize_t, write, int, fd, const void *, buf, size_t, count)
+DEFINE_SYSCALL3(0, ssize_t, read, int, fd, void *, buf, size_t, count)
+DEFINE_SYSCALL1(60, void, _exit, int, status)
+DEFINE_SYSCALL2(11, int, munmap, void *, addr, size_t, len)
+DEFINE_SYSCALL1(3, int, close, int, fd)
+DEFINE_SYSCALL3(72, int, fcntl, int, fd, int, cmd, long, arg)
+DEFINE_SYSCALL3(42, int, connect, int, sockfd, const struct sockaddr *, addr,
+		unsigned int, addrlen)
+DEFINE_SYSCALL5(54, int, setsockopt, int, sockfd, int, level, int, optname,
+		const void *, optval, unsigned int, optlen)
+DEFINE_SYSCALL3(49, int, bind, int, sockfd, const struct sockaddr *, addr,
+		unsigned int, addrlen)
+DEFINE_SYSCALL2(50, int, listen, int, sockfd, int, backlog)
+DEFINE_SYSCALL3(51, int, getsockname, int, sockfd, struct sockaddr *, addr,
+		unsigned int *, addrlen)
+DEFINE_SYSCALL3(43, int, accept, int, sockfd, struct sockaddr *, addr,
+		unsigned int *, addrlen)
+DEFINE_SYSCALL2(48, int, shutdown, int, sockfd, int, how)
+DEFINE_SYSCALL3(41, int, socket, int, domain, int, type, int, protocol)
+DEFINE_SYSCALL2(318, int, getentropy, void *, buffer, size_t, length)
+
+pid_t fork(void) { return syscall_fork(); }
+int pipe(int fds[2]) { return syscall_pipe(fds); }
+int unlink(const char *path) { return syscall_unlink(path); }
+ssize_t write(int fd, const void *buf, size_t count) {
+	return syscall_write(fd, buf, count);
+}
+ssize_t read(int fd, void *buf, size_t count) {
+	return syscall_read(fd, buf, count);
+}
+void exit(int status) {
+	syscall__exit(status);
+	while (true);
+}
+int munmap(void *addr, size_t len) { return syscall_munmap(addr, len); }
+
+int close(int fd) { return syscall_close(fd); }
+
+int fcntl(int fd, int op, ...) {
+	__builtin_va_list ap;
+	long arg;
+	int ret;
+
+	/* Initialize the variable argument list */
+	__builtin_va_start(ap, op);
+
+	/* Determine if the operation requires a third argument */
+	switch (op) {
+		case F_DUPFD:
+		case F_SETFD:
+		case F_SETFL:
+		case F_SETOWN:
+		case F_SETLEASE:
+			/* Commands that take an integer or pointer argument */
+			arg = __builtin_va_arg(ap, long);
+			break;
+		case F_GETFD:
+		case F_GETFL:
+		case F_GETOWN:
+		case F_GETLEASE:
+			/* Commands that do not take a third argument */
+			arg = 0;
+			break;
+		default:
+			/* For unknown commands, assume no argument */
+			arg = 0;
+			break;
+	}
+
+	/* Clean up the variable argument list */
+	__builtin_va_end(ap);
+
+	ret = syscall_fcntl(fd, op, arg);
+
+	if (ret < 0) {
+		return -1;
+	}
+	return ret;
+}
+
+int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen) {
+	return syscall_connect(sockfd, addr, addrlen);
+}
+int setsockopt(int sockfd, int level, int optname, const void *optval,
+	       unsigned int optlen) {
+	return syscall_setsockopt(sockfd, level, optname, optval, optlen);
+}
+int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen) {
+	return syscall_bind(sockfd, addr, addrlen);
+}
+int listen(int sockfd, int backlog) { return syscall_listen(sockfd, backlog); }
+int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen) {
+	return syscall_getsockname(sockfd, addr, addrlen);
+}
+int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen) {
+	return syscall_accept(sockfd, addr, addrlen);
+}
+int shutdown(int sockfd, int how) { return syscall_shutdown(sockfd, how); }
+int socket(int domain, int type, int protocol) {
+	return syscall_socket(domain, type, protocol);
+}
+int getentropy(void *buffer, size_t length) {
+	return syscall_getentropy(buffer, length);
+}
+
+#endif /* __linux__ */
 
 #pragma GCC diagnostic pop
