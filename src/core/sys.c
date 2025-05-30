@@ -33,6 +33,9 @@
 #include <error.h>
 #include <fcntl.h>
 #include <sys.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
 #ifdef __linux__
 #include <sys/epoll.h>
 STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), sizes_match);
@@ -41,7 +44,6 @@ int sched_yield();
 int fdatasync(int);
 #include <errno.h>
 #include <sys/event.h>
-#include <sys/mman.h>
 #include <sys/time.h>
 #include <unistd.h>
 STATIC_ASSERT(sizeof(Event) == sizeof(struct kevent), sizes_match);
@@ -392,6 +394,7 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
 
 int open(const char *pathname, int flags, ...) {
 	mode_t mode = 0;
+	int ret;
 	if (flags & 0100 /* O_CREAT */) {
 		long arg;
 #pragma GCC diagnostic push
@@ -402,7 +405,7 @@ int open(const char *pathname, int flags, ...) {
 #pragma GCC diagnostic pop
 		mode = (mode_t)arg;
 	}
-	int ret = syscall_open(pathname, flags, mode);
+	ret = syscall_open(pathname, flags, mode);
 	SET_ERR
 }
 
