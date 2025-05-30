@@ -100,6 +100,8 @@ STATIC int evh_proc_read(Connection *conn) {
 		printf("close conn!!!!\n");
 		conn->data.inbound.on_close(NULL, conn);
 		close(conn->socket);
+		release(conn->data.inbound.rbuf);
+		release(conn);
 	}
 	printf("proc read1\n");
 	return 0;
