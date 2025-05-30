@@ -40,7 +40,7 @@
 #include <sys/epoll.h>
 STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), event_match);
 #elif defined(__APPLE__)
-int sched_yield();
+int sched_yield(void);
 int fdatasync(int);
 #include <errno.h>
 #include <sys/event.h>
