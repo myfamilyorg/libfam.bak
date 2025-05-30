@@ -27,24 +27,20 @@
 #define _GNU_SOURCE
 #endif /* __linux__ */
 
+#define STATIC_ASSERT(condition, message) \
+	typedef char static_assert_##message[(condition) ? 1 : -1]
+
 #include <fcntl.h>
 #include <sys.h>
 #ifdef __linux__
 #include <sys/epoll.h>
+STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), sizes_match);
 #elif defined(__APPLE__)
 #include <sys/event.h>
+STATIC_ASSERT(sizeof(Event) == sizeof(struct kevent), sizes_match);
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
-
-#define STATIC_ASSERT(condition, message) \
-	typedef char static_assert_##message[(condition) ? 1 : -1]
-#ifdef __linux__
-STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), sizes_match);
-#endif /* __linux__ */
-#ifdef __APPLE__
-STATIC_ASSERT(sizeof(Event) == sizeof(struct kevent), sizes_match);
-#endif /* __APPLE__ */
 
 #ifdef __linux__
 #define DEFINE_SYSCALL0(sysno, ret_type, name)                        \
@@ -59,27 +55,6 @@ STATIC_ASSERT(sizeof(Event) == sizeof(struct kevent), sizes_match);
 				 : "%rax", "%rcx", "%r11", "memory"); \
 		return (ret_type)result;                              \
 	}
-
-static void *syscall_mmap(void *addr, size_t length, int prot, int flags,
-			  int fd, long offset) {
-	long result;
-	__asm__ volatile(
-	    "movq $9, %%rax\n"
-	    "movq %1, %%rdi\n"
-	    "movq %2, %%rsi\n"
-	    "movq %3, %%rdx\n"
-	    "movq %4, %%r10\n"
-	    "movq %5, %%r8\n"
-	    "movq %6, %%r9\n"
-	    "syscall\n"
-	    "movq %%rax, %0\n"
-	    : "=r"(result)
-	    : "r"((long)addr), "r"((long)length), "r"((long)prot),
-	      "r"((long)flags), "r"((long)fd), "r"(offset)
-	    : "%rax", "%rdi", "%rsi", "%rdx", "%r10", "%r8", "%r9", "%rcx",
-	      "%r11", "memory");
-	return (void *)result;
-}
 
 #define DEFINE_SYSCALL1(sysno, ret_type, name, type1, arg1)                   \
 	static ret_type syscall_##name(type1 arg1) {                          \
@@ -210,7 +185,6 @@ static void syscall_exit(int status) {
 }
 
 /* System call definitions */
-
 DEFINE_SYSCALL0(57, pid_t, fork)
 DEFINE_SYSCALL1(22, int, pipe, int *, fds)
 DEFINE_SYSCALL1(87, int, unlink, const char *, path)
@@ -233,7 +207,8 @@ DEFINE_SYSCALL3(43, int, accept, int, sockfd, struct sockaddr *, addr,
 DEFINE_SYSCALL2(48, int, shutdown, int, sockfd, int, how)
 DEFINE_SYSCALL3(41, int, socket, int, domain, int, type, int, protocol)
 DEFINE_SYSCALL2(318, int, getentropy, void *, buffer, size_t, length)
-
+DEFINE_SYSCALL6(9, void *, mmap, void *, addr, size_t, length, int, prot, int,
+		flags, int, fd, long, offset)
 DEFINE_SYSCALL0(24, int, sched_yield)
 DEFINE_SYSCALL2(35, int, nanosleep, const struct timespec *, req,
 		struct timespec *, rem)
