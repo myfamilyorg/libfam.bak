@@ -1,9 +1,10 @@
 extern char **environ;
 
 const char *getenv(const char *name) {
+	char **env;
 	if (!name || !environ) return 0;
 
-	for (char **env = environ; *env; env++) {
+	for (env = environ; *env; env++) {
 		const char *str = *env;
 		int i = 0;
 		while (name[i] && str[i] && name[i] == str[i] && str[i] != '=')
