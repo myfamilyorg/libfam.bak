@@ -244,6 +244,10 @@ DEFINE_SYSCALL3(8, off_t, lseek, int, fd, off_t, offset, int, whence)
 DEFINE_SYSCALL1(75, int, fdatasync, int, fd)
 DEFINE_SYSCALL2(77, int, ftruncate, int, fd, off_t, length)
 
+pid_t fork(void) {
+	int ret = syscall_fork(fds);
+	SET_ERR
+}
 int pipe(int fds[2]) {
 	int ret = syscall_pipe(fds);
 	SET_ERR
@@ -358,6 +362,7 @@ int socket(int domain, int type, int protocol) {
 }
 
 int getentropy(void *buf, size_t len) {
+	size_t total;
 	if (len > 256) {
 		err = EIO; /* getentropy limits to 256 bytes */
 		return -1;
@@ -367,7 +372,7 @@ int getentropy(void *buf, size_t len) {
 		return -1;
 	}
 
-	size_t total = 0;
+	total = 0;
 	while (total < len) {
 		ssize_t ret = syscall_getrandom(buf, len, GRND_RANDOM);
 
@@ -424,28 +429,14 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
 
 int open(const char *pathname, int flags, ...) {
 	mode_t mode = 0;
+	int ret;
 	if (flags & 0100 /* O_CREAT */) {
 		__builtin_va_list ap;
 		__builtin_va_start(ap, flags);
 		mode = __builtin_va_arg(ap, mode_t);
 		__builtin_va_end(ap);
-
-		/* Debug: Print mode to stderr */
-		{
-			char buf[16];
-			int len = 0;
-			unsigned int m = mode;
-			if (m == 0) {
-				buf[len++] = '0';
-			} else {
-				while (m > 0) {
-					buf[len++] = '0' + (m % 8); /* Octal */
-					m /= 8;
-				}
-			}
-		}
 	}
-	int ret = syscall_open(pathname, flags, mode);
+	ret = syscall_open(pathname, flags, mode);
 	SET_ERR
 }
 
