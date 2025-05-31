@@ -85,7 +85,6 @@ STATIC void __attribute__((constructor)) load_global_allocator() {
 }
 
 STATIC void __attribute__((destructor)) destroy_global_allocator() {
-	off_t size;
 	GlobalAllocatorHeader *header = (GlobalAllocatorHeader *)allocator.base;
 	bool do_unlink = false;
 
@@ -93,7 +92,6 @@ STATIC void __attribute__((destructor)) destroy_global_allocator() {
 		LockGuard lg = lock_write(&header->lock);
 		if (--(header->ref_count) == 0) do_unlink = true;
 	}
-	size = fsize(allocator.fd);
 	close(allocator.fd);
 	if (do_unlink) {
 		unlink(allocator.path);
