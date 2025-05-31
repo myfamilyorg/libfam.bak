@@ -49,6 +49,8 @@ void *alloc(size_t size);
 void release(void *ptr);
 void *resize(void *ptr, size_t size);
 
+size_t shared_memory_chunk_size();
+size_t shared_memory_size();
 void ga_init(void);
 
 #if MEM_SAN == 1

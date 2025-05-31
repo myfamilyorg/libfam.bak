@@ -57,5 +57,7 @@ size_t int128_t_to_string(char *buf, int128_t v);
 size_t double_to_string(char *buf, double v, int max_decimals);
 int b64_encode(const void *buf_in, size_t in_len, char *buf_out);
 int b64_decode(const void *buf_in, size_t in_len, char *buf_out);
+uint128_t string_to_uint128(const char *buf, size_t len);
+int128_t string_to_int128(const char *buf, size_t len);
 
 #endif /* _MISC_H__ */

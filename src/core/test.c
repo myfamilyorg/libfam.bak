@@ -627,16 +627,21 @@ Test(core, getenv) {
 }
 
 Test(core, alloc1) {
-	/*
 	char *test1 = alloc(4 * 1024 * 1024);
-	printf("pre\n");
 	cr_assert(test1);
-	printf("post\n");
 	char *test2 = alloc(4 * 1024 * 1024);
 	cr_assert(test2);
 	cr_assert(test1 != test2);
-	printf("%lu %lu\n", test1, test2);
 	test1[0] = 'x';
 	test2[0] = 'x';
-	*/
+}
+
+Test(core, alloc_oom) {
+	size_t count = (shared_memory_size() / shared_memory_chunk_size()) - 1;
+	char *x[count];
+	for (size_t i = 0; i < count; i++) {
+		x[i] = alloc(4 * 1024 * 1024);
+		cr_assert(x[i]);
+	}
+	cr_assert(!alloc(4 * 1024 * 1024));
 }

@@ -24,36 +24,42 @@
  *******************************************************************************/
 
 #include <alloc.h>
+#include <atomic.h>
+#include <env.h>
 #include <error.h>
 #include <misc.h>
 #include <robust.h>
 #include <stdio.h>
 #include <types.h>
 
-#define MIN_SIZE CHUNK_SIZE
+#define MIN_SIZE (CHUNK_SIZE * 64)
 
-#define NEXT_FREE_BIT(base, max, result)                                     \
-	do {                                                                 \
-		size_t max_words;                                            \
-		uint64_t *bitmap;                                            \
-		(result) = (uint64_t) - 1;                                   \
-		bitmap = (uint64_t *)((unsigned char *)(base) +              \
-				      sizeof(GlobalAllocatorMetadata));      \
-		max_words = ((max) + 63) >> 6;                               \
-		while (allocator.last_free < max_words) {                    \
-			if (bitmap[allocator.last_free] !=                   \
-			    0xFFFFFFFFFFFFFFFF) {                            \
-				uint64_t word = bitmap[allocator.last_free]; \
-				size_t bit_value = __builtin_ctzll(~word);   \
-				size_t index =                               \
-				    allocator.last_free * 64 + bit_value;    \
-				if (index < max) {                           \
-					(result) = index;                    \
-					break;                               \
-				}                                            \
-			}                                                    \
-			allocator.last_free++;                               \
-		}                                                            \
+#define NEXT_FREE_BIT(base, max, result)                                      \
+	do {                                                                  \
+		size_t max_words;                                             \
+		uint64_t *bitmap;                                             \
+		(result) = (uint64_t) - 1;                                    \
+		bitmap = (uint64_t *)((unsigned char *)(base) +               \
+				      sizeof(GlobalAllocatorMetadata));       \
+		max_words = ((max) + 63) >> 6;                                \
+		while (allocator.last_free < max_words) {                     \
+			if (bitmap[allocator.last_free] !=                    \
+			    0xFFFFFFFFFFFFFFFF) {                             \
+				uint64_t word = bitmap[allocator.last_free];  \
+				size_t bit_value = __builtin_ctzll(~word);    \
+				size_t index =                                \
+				    allocator.last_free * 64 + bit_value;     \
+				if (index < max) {                            \
+					if (CAS(&bitmap[allocator.last_free], \
+						&word,                        \
+						word | (1UL << bit_value))) { \
+						(result) = index;             \
+						break;                        \
+					}                                     \
+				}                                             \
+			}                                                     \
+			allocator.last_free++;                                \
+		}                                                             \
 	} while (0)
 
 #define SET_BIT(base, index)                                           \
@@ -79,13 +85,16 @@ typedef struct {
 	void *base;
 	char path[64];
 	uint64_t last_free;
+	size_t mem_size;
 	size_t last_map_size;
 } _GlobalAllocator__;
 
 STATIC _GlobalAllocator__ allocator;
 
 STATIC void __attribute__((constructor)) load_global_allocator(void) {
+	uint128_t size_configured;
 	uint128_t value;
+	char *sms;
 	GlobalAllocatorHeader *header;
 
 	memset(allocator.path, 0, 64);
@@ -108,11 +117,19 @@ STATIC void __attribute__((constructor)) load_global_allocator(void) {
 		exit(-1);
 	}
 
-	if (fresize(allocator.fd, MIN_SIZE)) {
+	allocator.mem_size = MIN_SIZE;
+	sms = getenv("SHARED_MEMORY_SIZE");
+	if (sms) {
+		err = SUCCESS;
+		size_configured = string_to_uint128(sms, strlen(sms));
+		if (err == SUCCESS && size_configured > allocator.mem_size)
+			allocator.mem_size = size_configured;
+	}
+	if (fresize(allocator.fd, allocator.mem_size)) {
 		print_error("ftruncate");
 		exit(-1);
 	}
-	allocator.last_map_size = MIN_SIZE;
+	allocator.last_map_size = allocator.mem_size;
 	allocator.base = fmap(allocator.fd);
 	if (allocator.base == NULL) {
 		print_error("fmap");
@@ -143,19 +160,10 @@ STATIC size_t calculate_slab_size(size_t value) {
 	return 1UL << (64 - __builtin_clzll(value - 1));
 }
 
-STATIC int check_fsize(uint64_t chunk) {
-	if (chunk > 1000000000000) return -1;
-	return 0;
-}
-
 STATIC uint64_t allocate_chunk(void) {
 	uint64_t ret;
-	NEXT_FREE_BIT(allocator.base, CHUNK_SIZE * 8, ret);
-	if (ret != (uint64_t)-1) {
-		if (check_fsize(ret)) return (uint64_t)-1;
-		SET_BIT(allocator.base, ret);
-		/*printf("set bit\n");*/
-	}
+	uint64_t max = (allocator.mem_size / CHUNK_SIZE) - 1;
+	NEXT_FREE_BIT(allocator.base, max, ret);
 	return ret;
 }
 
@@ -172,23 +180,18 @@ void *alloc(size_t size) {
 		size = calculate_slab_size(size);
 		return alloc_slab(size);
 	} else {
-		GlobalAllocatorHeader *header =
-		    (GlobalAllocatorHeader *)allocator.base;
-		RobustGuard rg = robust_lock(&header->meta.lock);
 		uint64_t chunk_id = allocate_chunk();
 		if (chunk_id == (uint64_t)-1) return NULL;
-		/*printf("allocbase=%lu\n", allocator.base);*/
-		/*printf("x\n");*/
-		return NULL;
-		/*
 		return (void *)((chunk_id + 1) * CHUNK_SIZE +
 				(size_t)allocator.base);
-				*/
 	}
 }
 
 void release(void *ptr);
 void *resize(void *ptr, size_t size);
+
+size_t shared_memory_size() { return allocator.mem_size; }
+size_t shared_memory_chunk_size() { return CHUNK_SIZE; }
 
 void ga_init(void) {
 	GlobalAllocatorHeader *header = (GlobalAllocatorHeader *)allocator.base;

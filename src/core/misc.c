@@ -23,6 +23,7 @@
  *
  *******************************************************************************/
 
+#include <error.h>
 #include <misc.h>
 #include <types.h>
 
@@ -137,7 +138,7 @@ void *memmove(void *dest, const void *src, size_t n) {
 
 void bzero(void *s, size_t len) { memset(s, 0, len); }
 
-size_t uint128_t_to_string(char *buf, __uint128_t v) {
+size_t uint128_t_to_string(char *buf, uint128_t v) {
 	char temp[40];
 	int i = 0, j = 0;
 
@@ -159,25 +160,125 @@ size_t uint128_t_to_string(char *buf, __uint128_t v) {
 	return j;
 }
 
-size_t int128_t_to_string(char *buf, __int128_t v) {
+size_t int128_t_to_string(char *buf, int128_t v) {
 	size_t len;
-	const __int128_t int128_min = INT128_MIN;
-	const __uint128_t int128_min_abs = (__uint128_t)0x8000000000000000UL
-					   << 64;
+	const int128_t int128_min = INT128_MIN;
+	const uint128_t int128_min_abs = (uint128_t)0x8000000000000000UL << 64;
 
 	int is_negative = v < 0;
-	__uint128_t abs_v;
+	uint128_t abs_v;
 
 	if (is_negative) {
 		*buf = '-';
 		buf++;
-		abs_v = v == int128_min ? int128_min_abs : (__uint128_t)(-v);
+		abs_v = v == int128_min ? int128_min_abs : (uint128_t)(-v);
 	} else {
-		abs_v = (__uint128_t)v;
+		abs_v = (uint128_t)v;
 	}
 
 	len = uint128_t_to_string(buf, abs_v);
 	return is_negative ? len + 1 : len;
+}
+
+/* Convert string to unsigned 128-bit integer */
+uint128_t string_to_uint128(const char *buf, size_t len) {
+	uint128_t result;
+	size_t i;
+	char c;
+
+	/* Input validation */
+	if (!buf || len == 0) {
+		err = EINVAL;
+		return (uint128_t)0;
+	}
+
+	result = (uint128_t)0;
+	i = 0;
+
+	/* Skip leading whitespace */
+	while (i < len && (buf[i] == ' ' || buf[i] == '\t')) {
+		i++;
+	}
+
+	if (i == len) {
+		err = EINVAL;
+		return (uint128_t)0;
+	}
+
+	/* Process digits */
+	while (i < len) {
+		c = buf[i];
+		if (c < '0' || c > '9') {
+			err = EINVAL;
+			return (uint128_t)0;
+		}
+
+		/* Check for overflow */
+		if (result > UINT128_MAX / 10) {
+			err = EINVAL;
+			return (uint128_t)0;
+		}
+
+		result = result * 10 + (c - '0');
+		i++;
+	}
+
+	return result;
+}
+
+/* Convert string to signed 128-bit integer using string_to_uint128 */
+int128_t string_to_int128(const char *buf, size_t len) {
+	size_t i;
+	int sign;
+	uint128_t abs_value;
+	int128_t result;
+
+	/* Input validation */
+	if (!buf || len == 0) {
+		err = EINVAL;
+		return (int128_t)0;
+	}
+
+	i = 0;
+	sign = 1;
+
+	/* Skip leading whitespace */
+	while (i < len && (buf[i] == ' ' || buf[i] == '\t')) {
+		i++;
+	}
+
+	if (i == len) {
+		err = EINVAL;
+		return (int128_t)0;
+	}
+
+	/* Handle sign */
+	if (buf[i] == '-') {
+		sign = -1;
+		i++;
+	} else if (buf[i] == '+') {
+		i++;
+	}
+
+	if (i == len) {
+		err = EINVAL;
+		return (int128_t)0;
+	}
+
+	/* Use string_to_uint128 for absolute value */
+	abs_value = string_to_uint128(buf + i, len - i);
+	if (err == EINVAL) {
+		return (int128_t)0; /* Propagate error */
+	}
+
+	/* Check for overflow */
+	if (abs_value > (uint128_t)INT128_MAX + (sign == -1 ? 1 : 0)) {
+		err = EINVAL;
+		return (int128_t)0;
+	}
+
+	result = sign * (int128_t)abs_value;
+	return result;
 }
 
 /* Convert a double to a decimal string in buf.
@@ -288,9 +389,9 @@ size_t double_to_string(char *buf, double v, int max_decimals) {
 	return pos;
 }
 
-__uint128_t __udivti3(__uint128_t a, __uint128_t b) {
+uint128_t __udivti3(uint128_t a, uint128_t b) {
 	int shift;
-	__uint128_t quotient, remainder;
+	uint128_t quotient, remainder;
 	if (b == 0) return 0; /* Avoid division by zero */
 	if (a < b) return 0;  /* Early exit if dividend < divisor */
 
@@ -299,7 +400,7 @@ __uint128_t __udivti3(__uint128_t a, __uint128_t b) {
 	shift = 0;
 
 	/* Normalize divisor: shift left until highest bit is 1 */
-	while (b < ((__uint128_t)1 << 127)) {
+	while (b < ((uint128_t)1 << 127)) {
 		b <<= 1;
 		shift++;
 	}
@@ -308,7 +409,7 @@ __uint128_t __udivti3(__uint128_t a, __uint128_t b) {
 	while (shift >= 0) {
 		if (remainder >= b) {
 			remainder -= b;
-			quotient |= (__uint128_t)1 << shift;
+			quotient |= (uint128_t)1 << shift;
 		}
 		b >>= 1;
 		shift--;

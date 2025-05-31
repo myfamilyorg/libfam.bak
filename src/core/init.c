@@ -27,7 +27,12 @@
 #include <init.h>
 #include <robust.h>
 
+static int has_init = 0;
+
 void init(void) {
-	ga_init();
-	robust_init();
+	if (!has_init) {
+		has_init = 1;
+		ga_init();
+		robust_init();
+	}
 }

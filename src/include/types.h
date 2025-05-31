@@ -70,7 +70,7 @@
 
 #ifndef UINT128_MAX
 #define UINT128_MAX \
-	(((__uint128_t)0xFFFFFFFFFFFFFFFFUL << 64) | 0xFFFFFFFFFFFFFFFFUL)
+	(((uint128_t)0xFFFFFFFFFFFFFFFFUL << 64) | 0xFFFFFFFFFFFFFFFFUL)
 #endif
 
 #ifndef INT8_MIN
@@ -89,7 +89,7 @@
 #define INT64_MIN (-0x7FFFFFFFFFFFFFFF - 1)
 #endif
 
-#define INT128_MIN (((__int128_t)0x80000000UL << 96))
+#define INT128_MIN (((int128_t)0x80000000UL << 96))
 
 #ifndef INT8_MAX
 #define INT8_MAX 0x7F
@@ -108,8 +108,8 @@
 #endif
 
 #ifndef INT128_MAX
-#define INT128_MAX                                                             \
-	(((__int128_t)0x7FFFFFFFUL << 96) | ((__int128_t)0xFFFFFFFFUL << 64) | \
+#define INT128_MAX                                                         \
+	(((int128_t)0x7FFFFFFFUL << 96) | ((int128_t)0xFFFFFFFFUL << 64) | \
 	 0xFFFFFFFFUL)
 #endif
 

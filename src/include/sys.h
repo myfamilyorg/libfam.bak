@@ -45,7 +45,6 @@ struct sockaddr;
 #define MULTIPLEX_FLAG_WRITE (0x1 << 1)
 
 /* Unchanged System calls */
-pid_t fork(void);
 int pipe(int fds[2]);
 int unlink(const char *path);
 ssize_t write(int fd, const void *buf, size_t length);
@@ -66,6 +65,7 @@ int socket(int domain, int type, int protocol);
 int getentropy(void *buffer, size_t length);
 
 /* System calls applied */
+
 void *map(size_t length);
 void *fmap(int fd);
 void *smap(size_t length);
