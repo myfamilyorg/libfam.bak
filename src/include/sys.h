@@ -53,6 +53,8 @@ void exit(int);
 int munmap(void *addr, size_t len);
 int close(int fd);
 int fcntl(int fd, int op, ...);
+
+/* socket system calls */
 int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
 int setsockopt(int sockfd, int level, int optname, const void *optval,
 	       unsigned int optlen);
@@ -64,8 +66,19 @@ int shutdown(int sockfd, int how);
 int socket(int domain, int type, int protocol);
 int getentropy(void *buffer, size_t length);
 
-/* System calls applied */
+/* timer system calls */
+/*
+int timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid);
+int timer_delete(timer_t timerid);
+int timer_settime(timer_t timerid, int flags,
+		  const struct itimerspec *new_value,
+		  struct itimerspec *old_value);
+int sigaction(int signum, const struct sigaction *act,
+	      struct sigaction *oldact);
+	      */
 
+/* System calls applied */
+int timeout(void (*task)(void), uint64_t milliseconds);
 void *map(size_t length);
 void *fmap(int fd, off_t offset, off_t size);
 void *smap(size_t length);
