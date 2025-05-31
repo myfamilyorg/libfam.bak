@@ -211,7 +211,7 @@ Test(core, locka) {
 	state->value2 = 0;
 	state->value3 = 0;
 
-	if (fork()) {
+	if (cfork()) {
 		while (true) {
 			LockGuard lg1 = lock_read(&state->lock1);
 			if (ALOAD(&state->value1)) break;
@@ -246,7 +246,7 @@ Test(core, lockb) {
 	state->value2 = 0;
 	state->value3 = 0;
 
-	if (fork()) {
+	if (cfork()) {
 		while (true) {
 			LockGuard lg1 = lock_read(&state->lock1);
 			if (ALOAD(&state->value1)) break;
@@ -281,7 +281,7 @@ Test(core, lockc) {
 	state->value2 = 0;
 	state->value3 = 0;
 
-	if (fork()) {
+	if (cfork()) {
 		while (true) {
 			LockGuard lg1 = lock_read(&state->lock1);
 			if (ALOAD(&state->value1)) break;
@@ -314,7 +314,7 @@ Test(core, lockd) {
 	state->value2 = 0;
 	state->value3 = 0;
 
-	if (fork()) {
+	if (cfork()) {
 		while (true) {
 			LockGuard lg1 = lock_read(&state->lock1);
 			if (ALOAD(&state->value1)) break;
@@ -359,7 +359,7 @@ Test(core, locke) {
 	state->value2 = 0;
 	state->value3 = 0;
 
-	if (fork()) {
+	if (cfork()) {
 		while (true) {
 			LockGuard lg1 = lock_read(&state->lock1);
 			if (ALOAD(&state->value1) == 2) break;
@@ -370,7 +370,7 @@ Test(core, locke) {
 		cr_assert_eq(AADD(&state->value2, 1), 1);
 
 	} else {
-		if (fork()) {
+		if (cfork()) {
 			{
 				LockGuard lg2 = lock_read(&state->lock2);
 				AADD(&state->value1, 1);
@@ -399,10 +399,9 @@ Test(core, locke) {
 }
 
 Test(core, robust1) {
-	RobustCtx ctx = ROBUST_CTX_INIT;
 	RobustLock l1 = ROBUST_LOCK_INIT;
 	cr_assert(!l1);
-	RobustGuard rg = robust_lock(&ctx, &l1);
+	RobustGuard rg = robust_lock(&l1);
 	cr_assert(l1);
 }
 
@@ -418,17 +417,15 @@ Test(core, robust2) {
 	state->lock = ROBUST_LOCK_INIT;
 	state->value = 0;
 
-	if (fork()) {
-		RobustCtx ctx = ROBUST_CTX_INIT;
+	if (cfork()) {
 		while (true) {
-			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value) == 1) break;
 		}
 	} else {
-		RobustCtx ctx = ROBUST_CTX_INIT;
 		// ensure we don't unlock by using RobustGuardImpl
 		// (without RAII)
-		RobustGuardImpl rg = robust_lock(&ctx, &state->lock);
+		RobustGuardImpl rg = robust_lock(&state->lock);
 		sleepm(300);
 		AADD(&state->value, 1);
 		exit(0);
@@ -441,57 +438,52 @@ Test(core, robust3) {
 	state->lock = ROBUST_LOCK_INIT;
 	state->value = 0;
 
-	if (fork()) {
-		RobustCtx ctx = ROBUST_CTX_INIT;
+	if (cfork()) {
 		while (true) {
-			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value) == 1) break;
 		}
 		cr_assert_eq(ALOAD(&state->value), 1);
 	} else {
-		RobustCtx ctx = ROBUST_CTX_INIT;
-		RobustGuard rg = robust_lock(&ctx, &state->lock);
+		RobustGuardImpl rg = robust_lock(&state->lock);
 		AADD(&state->value, 1);
 		exit(0);
 	}
 }
 
 Test(core, robust4) {
-	RobustCtx ctx = ROBUST_CTX_INIT;
 	void *base = smap(sizeof(RobustSharedState));
 	RobustSharedState *state = (RobustSharedState *)base;
 	state->lock = ROBUST_LOCK_INIT;
 	state->value = 0;
 	state->value2 = 0;
 
-	if (fork()) {
+	if (cfork()) {
 		while (true) {
-			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value) % 2 == 0)
 				AADD(&state->value, 1);
 			if (ALOAD(&state->value) >= 11) break;
 		}
 		ASTORE(&state->value2, 1);
 		while (true) {
-			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value2) == 0) break;
 		}
 		cr_assert_eq(ALOAD(&state->value2), 0);
-		robust_ctx_cleanup(&ctx);
 	} else {
 		while (true) {
-			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value) % 2 == 1) {
 				AADD(&state->value, 1);
 			}
 			if (ALOAD(&state->value) >= 11) break;
 		}
 		while (true) {
-			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value2) == 1) break;
 		}
 		ASTORE(&state->value2, 0);
-		robust_ctx_cleanup(&ctx);
 		exit(0);
 	}
 }
@@ -501,14 +493,12 @@ Test(core, robust_non_contended) {
 	RobustSharedState *state = (RobustSharedState *)base;
 	state->lock = ROBUST_LOCK_INIT;
 	state->value = 0;
-	RobustCtx ctx = ROBUST_CTX_INIT;
 
 	for (int i = 0; i < 1000; i++) {
-		RobustGuard rg = robust_lock(&ctx, &state->lock);
+		RobustGuard rg = robust_lock(&state->lock);
 		AADD(&state->value, 1);
 	}
 	cr_assert_eq(ALOAD(&state->value), 1000);
-	robust_ctx_cleanup(&ctx);
 }
 
 Test(core, robust_multi_process) {
@@ -520,24 +510,20 @@ Test(core, robust_multi_process) {
 	pid_t pids[N];
 
 	for (int i = 0; i < N; i++) {
-		if ((pids[i] = fork()) == 0) {
-			RobustCtx ctx = ROBUST_CTX_INIT;
+		if ((pids[i] = cfork()) == 0) {
 			while (ALOAD(&state->value) < 1000) {
-				RobustGuard rg =
-				    robust_lock(&ctx, &state->lock);
+				RobustGuard rg = robust_lock(&state->lock);
 				if (ALOAD(&state->value) < 1000) {
 					AADD(&state->value, 1);
 				}
 			}
-			robust_ctx_cleanup(&ctx);
 			exit(0);
 		}
 	}
-	RobustCtx ctx = ROBUST_CTX_INIT;
 	struct timespec start, now;
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	while (ALOAD(&state->value) < 1000) {
-		RobustGuard rg = robust_lock(&ctx, &state->lock);
+		RobustGuard rg = robust_lock(&state->lock);
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		if ((now.tv_sec - start.tv_sec) > 5) {	// 5s timeout
 			cr_assert(0, "Timeout waiting for value >= 1000");
@@ -547,7 +533,6 @@ Test(core, robust_multi_process) {
 	for (int i = 0; i < N; i++) {
 		waitpid(pids[i], NULL, 0);
 	}
-	robust_ctx_cleanup(&ctx);
 }
 
 Test(core, robust_port_exhaustion) {
@@ -556,17 +541,12 @@ Test(core, robust_port_exhaustion) {
 	state->lock = ROBUST_LOCK_INIT;
 	state->value = 0;
 	const int N = 1000;
-	RobustCtx ctxs[N];
 
 	for (int i = 0; i < N; i++) {
-		ctxs[i] = (RobustCtx)ROBUST_CTX_INIT;
-		RobustGuard rg = robust_lock(&ctxs[i], &state->lock);
+		RobustGuard rg = robust_lock(&state->lock);
 		AADD(&state->value, 1);
 	}
 	cr_assert_eq(ALOAD(&state->value), N);
-	for (int i = 0; i < N; i++) {
-		robust_ctx_cleanup(&ctxs[i]);
-	}
 }
 
 Test(core, robust_timeout) {
@@ -575,22 +555,19 @@ Test(core, robust_timeout) {
 	state->lock = ROBUST_LOCK_INIT;
 	state->value = 0;
 
-	if (fork()) {
-		RobustCtx ctx = ROBUST_CTX_INIT;
+	if (cfork()) {
 		struct timespec start, now;
 		clock_gettime(CLOCK_MONOTONIC, &start);
 		while (ALOAD(&state->value) != 1) {
-			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			RobustGuard rg = robust_lock(&state->lock);
 			clock_gettime(CLOCK_MONOTONIC, &now);
 			if ((now.tv_sec - start.tv_sec) > 2) {	// 2s timeout
 				cr_assert(0, "Timeout waiting for value == 1");
 			}
 		}
 		cr_assert_eq(ALOAD(&state->value), 1);
-		robust_ctx_cleanup(&ctx);
 	} else {
-		RobustCtx ctx = ROBUST_CTX_INIT;
-		RobustGuardImpl rg = robust_lock(&ctx, &state->lock);
+		RobustGuardImpl rg = robust_lock(&state->lock);
 		AADD(&state->value, 1);
 		exit(0);
 	}
@@ -601,41 +578,39 @@ Test(core, robust_performance) {
 	RobustSharedState *state = (RobustSharedState *)base;
 	state->lock = ROBUST_LOCK_INIT;
 	state->value = 0;
-	RobustCtx ctx = ROBUST_CTX_INIT;
 	struct timespec start, end;
 	const int N = 100000;
 
 	// Non-contended
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	for (int i = 0; i < N; i++) {
-		RobustGuard rg = robust_lock(&ctx, &state->lock);
+		RobustGuard rg = robust_lock(&state->lock);
 		AADD(&state->value, 1);
 	}
 	clock_gettime(CLOCK_MONOTONIC, &end);
 	double non_contended_ns =
 	    (end.tv_sec - start.tv_sec) * 1e9 + (end.tv_nsec - start.tv_nsec);
+
 	/*
 	printf("Non-contended: %.2f ns per lock+unlock\n",
 	       non_contended_ns / N);
 	       */
+
 	cr_assert_eq(ALOAD(&state->value), N);
 
 	// Contended (two processes)
 	state->value = 0;
-	if (fork()) {
+	if (cfork()) {
 		for (int i = 0; i < N / 2; i++) {
-			RobustGuard rg = robust_lock(&ctx, &state->lock);
+			RobustGuard rg = robust_lock(&state->lock);
 			AADD(&state->value, 1);
 		}
 		wait(NULL);
-		robust_ctx_cleanup(&ctx);
 	} else {
-		RobustCtx ctx2 = ROBUST_CTX_INIT;
 		for (int i = 0; i < N / 2; i++) {
-			RobustGuard rg = robust_lock(&ctx2, &state->lock);
+			RobustGuard rg = robust_lock(&state->lock);
 			AADD(&state->value, 1);
 		}
-		robust_ctx_cleanup(&ctx2);
 		exit(0);
 	}
 	cr_assert_eq(ALOAD(&state->value), N);

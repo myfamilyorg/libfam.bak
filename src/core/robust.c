@@ -30,59 +30,84 @@
 #include <robust.h>
 #include <sys/socket.h>
 
+typedef struct {
+	int sock;
+	uint16_t port;
+} RobustCtx;
+
 static byte ADDR[4] = {127, 0, 0, 1};
 static int OPT = 1;
 
-STATIC void init_robust_ctx(RobustCtx *ctx) {
+static RobustCtx ctx;
+
+STATIC void __attribute__((constructor)) load_robust_context(void) {
 	struct sockaddr_in address;
+	int counter = 0;
 	unsigned int addr_len;
 	address.sin_family = AF_INET;
 	memcpy(&address.sin_addr.s_addr, ADDR, 4);
+	ctx.port = 0;
+	ctx.sock = 0;
 
-	while (ctx->port == 0) {
+	while (ctx.port == 0) {
 		address.sin_port = 0;
-		ctx->sock = socket(AF_INET, SOCK_STREAM, 0);
-		if (ctx->sock == -1) {
+		ctx.sock = socket(AF_INET, SOCK_STREAM, 0);
+		if (ctx.sock == -1) {
 			print_error("socket");
 			continue;
 		}
-		if (setsockopt(ctx->sock, SOL_SOCKET, SO_REUSEADDR, &OPT,
+		if (setsockopt(ctx.sock, SOL_SOCKET, SO_REUSEADDR, &OPT,
 			       sizeof(OPT)) == -1) {
 			print_error("setsocketop");
-			close(ctx->sock);
+			close(ctx.sock);
 			continue;
 		}
-		if (bind(ctx->sock, (struct sockaddr *)&address,
+		if (bind(ctx.sock, (struct sockaddr *)&address,
 			 sizeof(address)) == -1) {
 			print_error("bind");
-			close(ctx->sock);
+			close(ctx.sock);
 			continue;
 		}
 		addr_len = sizeof(address);
-		if (getsockname(ctx->sock, (struct sockaddr *)&address,
+		if (getsockname(ctx.sock, (struct sockaddr *)&address,
 				&addr_len) == -1) {
 			print_error("getsockname");
-			close(ctx->sock);
+			close(ctx.sock);
 			continue;
 		}
-		ctx->port = ntohs(address.sin_port);
-		if (ctx->port == 0) {
+		ctx.port = ntohs(address.sin_port);
+		if (ctx.port == 0) {
 			print_error("port==0");
-			close(ctx->sock);
+			close(ctx.sock);
+		}
+		if (++counter >= 128) {
+			print_error(
+			    "Robust lock could not bind to a tcp/ip port");
+			exit(-1);
 		}
 	}
 }
-RobustGuard robust_lock(RobustCtx *ctx, RobustLock *lock) {
+
+STATIC void __attribute__((destructor)) destroy_robust_context(void) {
+	close(ctx.sock);
+}
+
+void robust_init(void) {
+	close(ctx.sock);
+	ctx.port = 0;
+	load_robust_context();
+}
+
+RobustGuard robust_lock(RobustLock *lock) {
 	uint16_t desired = 0, expected = 0, port;
 	struct sockaddr_in address;
 	int sock;
 	uint64_t counter = 0;
 	RobustGuardImpl ret;
 
-	if (ctx->port == 0) init_robust_ctx(ctx);
 	memcpy(&address.sin_addr.s_addr, ADDR, 4);
 	address.sin_family = AF_INET;
-	desired = ctx->port;
+	desired = ctx.port;
 
 start_loop:
 	do {
@@ -100,9 +125,9 @@ start_loop:
 			}
 			if (bind(sock, (struct sockaddr *)&address,
 				 sizeof(address)) == 0) {
-				close(ctx->sock);
-				ctx->sock = sock;
-				ctx->port = port;
+				close(ctx.sock);
+				ctx.sock = sock;
+				ctx.port = port;
 				break;
 			} else {
 				close(sock);
@@ -115,8 +140,6 @@ start_loop:
 	return ret;
 }
 void robust_unlock(RobustLock *lock) { ASTORE(lock, 0); }
-
-int robust_ctx_cleanup(RobustCtx *ctx) { return close(ctx->sock); }
 
 void robustguard_cleanup(RobustGuardImpl *rg) {
 	if (rg->lock) robust_unlock(rg->lock);

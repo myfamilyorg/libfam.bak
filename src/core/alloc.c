@@ -27,6 +27,7 @@
 #include <error.h>
 #include <lock.h>
 #include <misc.h>
+#include <robust.h>
 #include <stdio.h>
 #include <types.h>
 
@@ -98,8 +99,14 @@ STATIC void __attribute__((destructor)) destroy_global_allocator(void) {
 	}
 }
 
+void *alloc(size_t size) { return NULL; }
+
+void release(void *ptr);
+void *resize(void *ptr, size_t size);
+
 void ga_init(void) {
 	GlobalAllocatorHeader *header = (GlobalAllocatorHeader *)allocator.base;
 	LockGuard lg = lock_write(&header->lock);
 	++(header->ref_count);
+	robust_init();
 }

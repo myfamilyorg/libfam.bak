@@ -25,11 +25,6 @@
 
 #include <types.h>
 
-typedef struct {
-	int sock;
-	uint16_t port;
-} RobustCtx;
-
 typedef uint16_t RobustLock;
 
 typedef struct {
@@ -41,9 +36,8 @@ void robustguard_cleanup(RobustGuardImpl *rg);
 #define RobustGuard \
 	RobustGuardImpl __attribute__((unused, cleanup(robustguard_cleanup)))
 
-#define ROBUST_CTX_INIT {0}
 #define ROBUST_LOCK_INIT 0
 
-RobustGuard robust_lock(RobustCtx *ctx, RobustLock *lock);
+RobustGuard robust_lock(RobustLock *lock);
 void robust_unlock(RobustLock *lock);
-int robust_ctx_cleanup(RobustCtx *ctx);
+void robust_init(void);
