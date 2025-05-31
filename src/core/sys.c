@@ -245,7 +245,7 @@ DEFINE_SYSCALL1(75, int, fdatasync, int, fd)
 DEFINE_SYSCALL2(77, int, ftruncate, int, fd, off_t, length)
 
 pid_t fork(void) {
-	int ret = syscall_fork(fds);
+	int ret = syscall_fork();
 	SET_ERR
 }
 int pipe(int fds[2]) {
