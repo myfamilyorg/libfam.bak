@@ -190,8 +190,8 @@ void *alloc(size_t size) {
 void release(void *ptr);
 void *resize(void *ptr, size_t size);
 
-size_t shared_memory_size() { return allocator.mem_size; }
-size_t shared_memory_chunk_size() { return CHUNK_SIZE; }
+size_t shared_memory_size(void) { return allocator.mem_size; }
+size_t shared_memory_chunk_size(void) { return CHUNK_SIZE; }
 
 void ga_init(void) {
 	GlobalAllocatorHeader *header = (GlobalAllocatorHeader *)allocator.base;

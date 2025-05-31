@@ -49,12 +49,12 @@ void *alloc(size_t size);
 void release(void *ptr);
 void *resize(void *ptr, size_t size);
 
-size_t shared_memory_chunk_size();
-size_t shared_memory_size();
+size_t shared_memory_chunk_size(void);
+size_t shared_memory_size(void);
 void ga_init(void);
 
 #if MEM_SAN == 1
-uint64_t get_mmaped_bytes();
+uint64_t get_mmaped_bytes(void);
 #endif /* MEM_SAN */
 
 #endif /* _ALLOC_H__ */

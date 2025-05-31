@@ -137,7 +137,7 @@ Test(core, testforkpipe) {
 	pipe(fds);
 	pipe(fdsback);
 
-	int pid = cfork();
+	int pid = two();
 
 	if (pid == 0) {
 		char buf[10] = {0};
@@ -213,7 +213,7 @@ Test(core, locka) {
 	state->value2 = 0;
 	state->value3 = 0;
 
-	if (cfork()) {
+	if (two()) {
 		while (true) {
 			LockGuard lg1 = lock_read(&state->lock1);
 			if (ALOAD(&state->value1)) break;
@@ -248,7 +248,7 @@ Test(core, lockb) {
 	state->value2 = 0;
 	state->value3 = 0;
 
-	if (cfork()) {
+	if (two()) {
 		while (true) {
 			LockGuard lg1 = lock_read(&state->lock1);
 			if (ALOAD(&state->value1)) break;
@@ -283,7 +283,7 @@ Test(core, lockc) {
 	state->value2 = 0;
 	state->value3 = 0;
 
-	if (cfork()) {
+	if (two()) {
 		while (true) {
 			LockGuard lg1 = lock_read(&state->lock1);
 			if (ALOAD(&state->value1)) break;
@@ -316,7 +316,7 @@ Test(core, lockd) {
 	state->value2 = 0;
 	state->value3 = 0;
 
-	if (cfork()) {
+	if (two()) {
 		while (true) {
 			LockGuard lg1 = lock_read(&state->lock1);
 			if (ALOAD(&state->value1)) break;
@@ -360,7 +360,7 @@ Test(core, locke) {
 	state->value2 = 0;
 	state->value3 = 0;
 
-	if (cfork()) {
+	if (two()) {
 		// Parent (Writer)
 		// Wait for at least one child to be ready (value1 >= 1)
 		while (true) {
@@ -377,7 +377,7 @@ Test(core, locke) {
 		AADD(&state->value3, 1);
 
 	} else {
-		if (cfork()) {
+		if (two()) {
 			// Child 1 (Reader 1)
 			{
 				LockGuard lg2 = lock_read(&state->lock2);
@@ -422,7 +422,7 @@ Test(core, robust2) {
 	state->lock = ROBUST_LOCK_INIT;
 	state->value = 0;
 
-	if (cfork()) {
+	if (two()) {
 		while (true) {
 			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value) == 1) break;
@@ -443,7 +443,7 @@ Test(core, robust3) {
 	state->lock = ROBUST_LOCK_INIT;
 	state->value = 0;
 
-	if (cfork()) {
+	if (two()) {
 		while (true) {
 			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value) == 1) break;
@@ -463,7 +463,7 @@ Test(core, robust4) {
 	state->value = 0;
 	state->value2 = 0;
 
-	if (cfork()) {
+	if (two()) {
 		while (true) {
 			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value) % 2 == 0)
@@ -515,7 +515,7 @@ Test(core, robust_multi_process) {
 	pid_t pids[N];
 
 	for (int i = 0; i < N; i++) {
-		if ((pids[i] = cfork()) == 0) {
+		if ((pids[i] = two()) == 0) {
 			while (ALOAD(&state->value) < 1000) {
 				RobustGuard rg = robust_lock(&state->lock);
 				if (ALOAD(&state->value) < 1000) {
@@ -560,7 +560,7 @@ Test(core, robust_timeout) {
 	state->lock = ROBUST_LOCK_INIT;
 	state->value = 0;
 
-	if (cfork()) {
+	if (two()) {
 		struct timespec start, now;
 		clock_gettime(CLOCK_MONOTONIC, &start);
 		while (ALOAD(&state->value) != 1) {
@@ -605,7 +605,7 @@ Test(core, robust_performance) {
 
 	// Contended (two processes)
 	state->value = 0;
-	if (cfork()) {
+	if (two()) {
 		for (int i = 0; i < N / 2; i++) {
 			RobustGuard rg = robust_lock(&state->lock);
 			AADD(&state->value, 1);

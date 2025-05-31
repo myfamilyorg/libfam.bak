@@ -665,7 +665,7 @@ void *smap(size_t length) {
 	return v;
 }
 
-pid_t cfork(void) {
+pid_t two(void) {
 	pid_t pid = fork();
 	if (pid == 0) init();
 #ifdef __APPLE__
