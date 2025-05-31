@@ -68,6 +68,11 @@ STATIC void __attribute__((constructor)) load_robust_context(void) {
 			close(ctx.sock);
 			continue;
 		}
+		if (listen(ctx.sock, 1)) {
+			print_error("listen");
+			close(ctx.sock);
+			continue;
+		}
 		addr_len = sizeof(address);
 		if (getsockname(ctx.sock, (struct sockaddr *)&address,
 				&addr_len) == -1) {
@@ -134,6 +139,10 @@ start_loop:
 			}
 			if (bind(sock, (struct sockaddr *)&address,
 				 sizeof(address)) == 0) {
+				if (listen(sock, 1)) {
+					close(sock);
+					goto start_loop;
+				}
 				close(ctx.sock);
 				ctx.sock = sock;
 				ctx.port = port;
