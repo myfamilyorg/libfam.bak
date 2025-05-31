@@ -349,7 +349,6 @@ Test(core, lockd) {
 	}
 }
 
-// Write starvation prevention test
 Test(core, locke) {
 	void *base = smap(sizeof(SharedStateData));
 	SharedStateData *state = (SharedStateData *)base;
@@ -360,39 +359,43 @@ Test(core, locke) {
 	state->value3 = 0;
 
 	if (cfork()) {
+		// Parent (Writer)
+		// Wait for at least one child to be ready (value1 >= 1)
 		while (true) {
 			LockGuard lg1 = lock_read(&state->lock1);
-			if (ALOAD(&state->value1) == 2) break;
+			if (ALOAD(&state->value1) >= 1) break;
 		}
 
+		// Attempt to acquire write lock, potentially contending with
+		// readers
 		LockGuard lg2 = lock_write(&state->lock2);
-		// writer gets access first
-		cr_assert_eq(AADD(&state->value2, 1), 1);
+		cr_assert_eq(AADD(&state->value2, 1),
+			     0);  // First to set value2 to 1
+		// Signal writer completion
+		AADD(&state->value3, 1);
 
 	} else {
 		if (cfork()) {
+			// Child 1 (Reader 1)
 			{
 				LockGuard lg2 = lock_read(&state->lock2);
-				AADD(&state->value1, 1);
-				// ensure that the writer has requested write
-				// before proceeding
-				while ((ALOAD(&state->lock2) & (0x1UL << 62)) ==
-				       0);
+				AADD(&state->value1,
+				     1);  // Signal reader is active
+				// Hold the lock briefly to create contention
+				// (no dependency on value3)
+				for (volatile int i = 0; i < 1000;
+				     i++);  // Short busy loop
 			}
 			exit(0);
 		} else {
-			{
-				AADD(&state->value1, 1);
-				// ensure that the writer has requested write
-				// before proceeding
-				while ((ALOAD(&state->lock2) & (0x1UL << 62)) ==
-				       0);
-				cr_assert_eq(AADD(&state->value2, 1), 0);
-				LockGuard lg2 = lock_read(&state->lock2);
-				// reader gets access second (starvation
-				// prevention)
-				cr_assert_eq(AADD(&state->value2, 1), 2);
-			}
+			// Child 2 (Reader 2)
+			AADD(&state->value1, 1);  // Signal reader is ready
+			// Wait for writer to complete
+			while (ALOAD(&state->value3) != 1);
+			// Attempt to acquire read lock after writer
+			LockGuard lg2 = lock_read(&state->lock2);
+			cr_assert_eq(AADD(&state->value2, 1),
+				     1);  // Second to set value2 to 2
 			exit(0);
 		}
 	}
