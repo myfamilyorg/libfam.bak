@@ -164,7 +164,7 @@ STATIC uint64_t allocate_chunk(void) {
 	if (ret != (uint64_t)-1) {
 		if (check_fsize(ret)) return (uint64_t)-1;
 		SET_BIT(allocator.base, ret);
-		printf("set bit\n");
+		/*printf("set bit\n");*/
 	}
 	return ret;
 }
@@ -184,8 +184,8 @@ void *alloc(size_t size) {
 		RobustGuard rg = robust_lock(&header->meta.lock);
 		uint64_t chunk_id = allocate_chunk();
 		if (chunk_id == (uint64_t)-1) return NULL;
-		printf("allocbase=%lu\n", allocator.base);
-		printf("x\n");
+		/*printf("allocbase=%lu\n", allocator.base);*/
+		/*printf("x\n");*/
 		return NULL;
 		/*
 		return (void *)((chunk_id + 1) * CHUNK_SIZE +
