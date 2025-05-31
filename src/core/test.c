@@ -1,3 +1,4 @@
+#include <alloc.h>
 #include <atomic.h>
 #include <criterion/criterion.h>
 #include <error.h>
@@ -617,4 +618,19 @@ Test(core, robust_performance) {
 		exit(0);
 	}
 	cr_assert_eq(ALOAD(&state->value), N);
+}
+
+Test(core, alloc1) {
+	/*
+	char *test1 = alloc(4 * 1024 * 1024);
+	printf("pre\n");
+	cr_assert(test1);
+	printf("post\n");
+	char *test2 = alloc(4 * 1024 * 1024);
+	cr_assert(test2);
+	cr_assert(test1 != test2);
+	printf("%lu %lu\n", test1, test2);
+	test1[0] = 'x';
+	test2[0] = 'x';
+	*/
 }

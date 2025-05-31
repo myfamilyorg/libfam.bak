@@ -8,6 +8,7 @@ CFLAGS  = -fPIC \
           -fno-stack-protector \
           -fno-builtin \
           -ffreestanding \
+	  -nostdlib \
           -Wno-attributes \
           -DSTATIC=static
 TFLAGS  = -O1 -Isrc/include -Wno-attributes -DSTATIC=
