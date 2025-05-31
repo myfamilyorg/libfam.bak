@@ -1,13 +1,13 @@
 #include <atomic.h>
 #include <criterion/criterion.h>
 #include <error.h>
-#include <time.h>
-#include <sys/wait.h>
 #include <fcntl.h>
 #include <lock.h>
 #include <robust.h>
 #include <stdio.h>
 #include <sys.h>
+#include <sys/wait.h>
+#include <time.h>
 
 Test(core, types) {
 	cr_assert_eq(UINT8_MAX, UINT8_MAX);
@@ -135,7 +135,7 @@ Test(core, testforkpipe) {
 	pipe(fds);
 	pipe(fdsback);
 
-	int pid = fork();
+	int pid = cfork();
 
 	if (pid == 0) {
 		char buf[10] = {0};

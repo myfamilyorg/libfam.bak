@@ -317,3 +317,102 @@ __uint128_t __udivti3(__uint128_t a, __uint128_t b) {
 	return quotient;
 }
 
+int b64_encode(const void *buf_in, size_t in_len, char *buf_out) {
+	/* Base64 alphabet */
+	static const char *b64_table =
+	    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+	const unsigned char *in = (const unsigned char *)buf_in;
+	size_t i, out_len = 0;
+
+	/* Ensure output buffer is not null */
+	if (!buf_out) return -1;
+
+	/* Process input in groups of 3 bytes */
+	for (i = 0; i < in_len; i += 3) {
+		/* First 6 bits of first byte */
+		buf_out[out_len++] = b64_table[(in[i] >> 2) & 0x3F];
+
+		/* Last 2 bits of first byte + first 4 bits of second byte */
+		if (i + 1 < in_len) {
+			buf_out[out_len++] =
+			    b64_table[((in[i] & 0x3) << 4) |
+				      ((in[i + 1] >> 4) & 0xF)];
+		} else {
+			buf_out[out_len++] = b64_table[(in[i] & 0x3) << 4];
+			buf_out[out_len++] = '=';
+			buf_out[out_len++] = '=';
+			break;
+		}
+
+		/* Last 4 bits of second byte + first 2 bits of third byte */
+		if (i + 2 < in_len) {
+			buf_out[out_len++] =
+			    b64_table[((in[i + 1] & 0xF) << 2) |
+				      ((in[i + 2] >> 6) & 0x3)];
+			buf_out[out_len++] = b64_table[in[i + 2] & 0x3F];
+		} else {
+			buf_out[out_len++] = b64_table[(in[i + 1] & 0xF) << 2];
+			buf_out[out_len++] = '=';
+		}
+	}
+
+	buf_out[out_len] = '\0'; /* Null-terminate output */
+	return out_len;
+}
+
+int b64_decode(const void *buf_in, size_t in_len, char *buf_out) {
+	/* Reverse lookup table for Base64 characters */
+	static const unsigned char b64_lookup[] = {
+	    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	    255, 255, 255, 255, 255, 255, 62,  255, 255,  // '-' at 45
+	    52,	 53,  54,  55,	56,  57,  58,  59,  60,	 61,  255, 255, 255,
+	    64,	 255, 255, 255, 0,   1,	  2,   3,   4,	 5,   6,   7,	8,
+	    9,	 10,  11,  12,	13,  14,  15,  16,  17,	 18,  19,  20,	21,
+	    22,	 23,  24,  25,	255, 255, 255, 255, 63,	 // '_' at 95
+	    255, 26,  27,  28,	29,  30,  31,  32,  33,	 34,  35,  36,	37,
+	    38,	 39,  40,  41,	42,  43,  44,  45,  46,	 47,  48,  49,	50,
+	    51,	 255, 255, 255, 255, 255};
+	const unsigned char *in = (const unsigned char *)buf_in;
+	size_t i, out_len = 0;
+
+	/* Ensure input length is valid (multiple of 4) and output buffer is not
+	 */
+	/* null */
+	if (in_len % 4 != 0 || !buf_out) return -1;
+
+	/* Process input in groups of 4 bytes */
+	for (i = 0; i < in_len; i += 4) {
+		unsigned char c1, c2, c3, c4;
+
+		/* Validate input characters */
+		if (in[i] > 127 || in[i + 1] > 127 || in[i + 2] > 127 ||
+		    in[i + 3] > 127)
+			return -1;
+		c1 = b64_lookup[in[i]];
+		c2 = b64_lookup[in[i + 1]];
+		c3 = b64_lookup[in[i + 2]];
+		c4 = b64_lookup[in[i + 3]];
+		if (c1 == 255 || c2 == 255 || (c3 == 255 && in[i + 2] != '=') ||
+		    (c4 == 255 && in[i + 3] != '='))
+			return -1;
+
+		/* First output byte */
+		buf_out[out_len++] = (c1 << 2) | ((c2 >> 4) & 0x3);
+
+		/* Second output byte (if not padding) */
+		if (in[i + 2] != '=') {
+			buf_out[out_len++] =
+			    ((c2 & 0xF) << 4) | ((c3 >> 2) & 0xF);
+		}
+
+		/* Third output byte (if not padding) */
+		if (in[i + 3] != '=') {
+			buf_out[out_len++] = ((c3 & 0x3) << 6) | c4;
+		}
+	}
+
+	buf_out[out_len] = '\0'; /* Null-terminate output */
+	return out_len;
+}

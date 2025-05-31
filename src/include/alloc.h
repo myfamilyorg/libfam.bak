@@ -23,39 +23,36 @@
  *
  *******************************************************************************/
 
-#ifndef _MISC_H__
-#define _MISC_H__
+#ifndef _ALLOC_H__
+#define _ALLOC_H__
 
 #include <sys.h>
 #include <types.h>
 
-#ifdef memset
-#undef memset
-#endif
-#ifdef memcpy
-#undef memcpy
-#endif
-#ifdef memmove
-#undef memmove
-#endif
-#ifdef bzero
-#undef bzero
+#ifndef CHUNK_SIZE
+#define CHUNK_SIZE (0x1 << 22) /* 4mb */
 #endif
 
-size_t strlen(const char *S);
-char *stringcpy(char *dest, const char *src);
-char *stringcat(char *dest, const char *src);
-int strcmp(const char *s1, const char *s2);
-int strcmpn(const char *s1, const char *s2, size_t n);
-char *strstr(const char *X, const char *Y);
-void *memset(void *ptr, int x, size_t n);
-void *memcpy(void *dst, const void *src, size_t n);
-void *memmove(void *dst, const void *src, size_t n);
-void bzero(void *dst, size_t n);
-size_t uint128_t_to_string(char *buf, uint128_t v);
-size_t int128_t_to_string(char *buf, int128_t v);
-size_t double_to_string(char *buf, double v, int max_decimals);
-int b64_encode(const void *buf_in, size_t in_len, char *buf_out);
-int b64_decode(const void *buf_in, size_t in_len, char *buf_out);
+#ifndef MAX_SLAB_SIZE
+#define MAX_SLAB_SIZE (CHUNK_SIZE >> 2) /* 1mb */
+#endif
 
-#endif /* _MISC_H__ */
+#ifndef MIN_ALIGN_SIZE
+#define MIN_ALIGN_SIZE (0x1 << 14) /* 16kb */
+#endif
+
+#ifndef MEM_SAN
+#define MEM_SAN 0 /* Disabled by default */
+#endif
+
+void *alloc(size_t size);
+void release(void *ptr);
+void *resize(void *ptr, size_t size);
+
+void ga_init();
+
+#if MEM_SAN == 1
+uint64_t get_mmaped_bytes();
+#endif /* MEM_SAN */
+
+#endif /* _ALLOC_H__ */

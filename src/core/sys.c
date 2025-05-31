@@ -30,6 +30,7 @@
 #define STATIC_ASSERT(condition, message) \
 	typedef char static_assert_##message[(condition) ? 1 : -1]
 
+#include <alloc.h>
 #include <error.h>
 #include <fcntl.h>
 #include <sys.h>
@@ -50,6 +51,13 @@ STATIC_ASSERT(sizeof(Event) == sizeof(struct kevent), event_match);
 #else
 #error Unsupported platform. Supported platforms: __linux__ or __APPLE__
 #endif
+
+#define SET_ERR             \
+	if (ret < 0) {      \
+		err = -ret; \
+		return -1;  \
+	}                   \
+	return ret;
 
 #ifdef __linux__
 #define DEFINE_SYSCALL0(sysno, ret_type, name)                        \
@@ -234,17 +242,6 @@ DEFINE_SYSCALL3(8, off_t, lseek, int, fd, off_t, offset, int, whence)
 DEFINE_SYSCALL1(75, int, fdatasync, int, fd)
 DEFINE_SYSCALL2(77, int, ftruncate, int, fd, off_t, length)
 
-#define SET_ERR             \
-	if (ret < 0) {      \
-		err = -ret; \
-		return -1;  \
-	}                   \
-	return ret;
-
-pid_t fork(void) {
-	pid_t ret = syscall_fork();
-	SET_ERR
-}
 int pipe(int fds[2]) {
 	int ret = syscall_pipe(fds);
 	SET_ERR
@@ -404,59 +401,37 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
 	SET_ERR
 }
 
-int open(const char *pathname, int flags, ...)
-{
-    mode_t mode = 0;
-    if (flags & 0100 /* O_CREAT */) {
-	__builtin_va_list ap;
-        __builtin_va_start(ap, flags);
-        mode = __builtin_va_arg(ap, mode_t);
-        __builtin_va_end(ap);
-
-        /* Debug: Print mode to stderr */
-        {
-            char buf[16];
-            int len = 0;
-            unsigned int m = mode;
-            if (m == 0) {
-                buf[len++] = '0';
-            } else {
-                while (m > 0) {
-                    buf[len++] = '0' + (m % 8); /* Octal */
-                    m /= 8;
-                }
-            }
-        }
-    }
-    int ret = syscall_open(pathname, flags, mode);
-    SET_ERR
-}
-
-/*
 int open(const char *pathname, int flags, ...) {
 	mode_t mode = 0;
-	int ret;
-	if (flags & 0100 ) {
-		long arg;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
-		__asm__ volatile("movq %1, %0"
-				 : "=r"(arg)
-				 : "r"(*(long *)(&flags + 1)));
-#pragma GCC diagnostic pop
-		mode = (mode_t)arg;
+	if (flags & 0100 /* O_CREAT */) {
+		__builtin_va_list ap;
+		__builtin_va_start(ap, flags);
+		mode = __builtin_va_arg(ap, mode_t);
+		__builtin_va_end(ap);
+
+		/* Debug: Print mode to stderr */
+		{
+			char buf[16];
+			int len = 0;
+			unsigned int m = mode;
+			if (m == 0) {
+				buf[len++] = '0';
+			} else {
+				while (m > 0) {
+					buf[len++] = '0' + (m % 8); /* Octal */
+					m /= 8;
+				}
+			}
+		}
 	}
-	ret = syscall_open(pathname, flags, mode);
-        int ret = syscall_open(pathname, flags, 0600);
+	int ret = syscall_open(pathname, flags, mode);
 	SET_ERR
 }
-*/
 
 off_t lseek(int fd, off_t offset, int whence) {
 	off_t ret = syscall_lseek(fd, offset, whence);
 	SET_ERR
 }
-
 #endif /* __linux__ */
 
 /* System calls with changes */
@@ -622,6 +597,12 @@ void *smap(size_t length) {
 		       MAP_ANONYMOUS | MAP_SHARED, -1, 0);
 	if (v == MAP_FAILED) return NULL;
 	return v;
+}
+
+pid_t cfork() {
+	pid_t pid = fork();
+	if (pid == 0) ga_init();
+	return pid;
 }
 
 int flush(int fd) { return fdatasync(fd); }
