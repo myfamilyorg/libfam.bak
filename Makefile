@@ -11,7 +11,7 @@ CFLAGS  = -fPIC \
 	  -nostdlib \
           -Wno-attributes \
           -DSTATIC=static
-TFLAGS  = -O1 -Isrc/include -Wno-attributes -DSTATIC=A
+TFLAGS  = -O1 -Isrc/include -Wno-attributes -DSTATIC=
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
     LDFLAGS = -shared -nostdlib
