@@ -92,6 +92,8 @@ STATIC void __attribute__((destructor)) destroy_robust_context(void) {
 	close(ctx.sock);
 }
 
+STATIC void robust_unlock(RobustLock *lock) { ASTORE(lock, 0); }
+
 void robust_init(void) {
 	close(ctx.sock);
 	ctx.port = 0;
@@ -139,7 +141,6 @@ start_loop:
 	ret.lock = lock;
 	return ret;
 }
-void robust_unlock(RobustLock *lock) { ASTORE(lock, 0); }
 
 void robustguard_cleanup(RobustGuardImpl *rg) {
 	if (rg->lock) robust_unlock(rg->lock);

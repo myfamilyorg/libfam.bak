@@ -27,7 +27,6 @@
 #include <error.h>
 #include <lock.h>
 #include <misc.h>
-#include <robust.h>
 #include <stdio.h>
 #include <types.h>
 
@@ -108,5 +107,4 @@ void ga_init(void) {
 	GlobalAllocatorHeader *header = (GlobalAllocatorHeader *)allocator.base;
 	LockGuard lg = lock_write(&header->lock);
 	++(header->ref_count);
-	robust_init();
 }

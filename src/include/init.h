@@ -23,20 +23,9 @@
  *
  *******************************************************************************/
 
-#include <types.h>
+#ifndef _INIT_H__
+#define _INIT_H__
 
-typedef uint16_t RobustLock;
+void init(void);
 
-typedef struct {
-	RobustLock *lock;
-} RobustGuardImpl;
-
-void robustguard_cleanup(RobustGuardImpl *rg);
-
-#define RobustGuard \
-	RobustGuardImpl __attribute__((unused, cleanup(robustguard_cleanup)))
-
-#define ROBUST_LOCK_INIT 0
-
-RobustGuard robust_lock(RobustLock *lock);
-void robust_init(void);
+#endif /* _INIT_H__ */

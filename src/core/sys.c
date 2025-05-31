@@ -30,9 +30,9 @@
 #define STATIC_ASSERT(condition, message) \
 	typedef char static_assert_##message[(condition) ? 1 : -1]
 
-#include <alloc.h>
 #include <error.h>
 #include <fcntl.h>
+#include <init.h>
 #include <sys.h>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -667,7 +667,7 @@ void *smap(size_t length) {
 
 pid_t cfork(void) {
 	pid_t pid = fork();
-	if (pid == 0) ga_init();
+	if (pid == 0) init();
 #ifdef __APPLE__
 	if (pid == -1) err = errno;
 #endif
