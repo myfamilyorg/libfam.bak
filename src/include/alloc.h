@@ -49,7 +49,7 @@ void *alloc(size_t size);
 void release(void *ptr);
 void *resize(void *ptr, size_t size);
 
-void ga_init();
+void ga_init(void);
 
 #if MEM_SAN == 1
 uint64_t get_mmaped_bytes();

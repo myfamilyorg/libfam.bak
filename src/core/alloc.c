@@ -46,7 +46,7 @@ typedef struct {
 
 STATIC _GlobalAllocator__ allocator;
 
-STATIC void __attribute__((constructor)) load_global_allocator() {
+STATIC void __attribute__((constructor)) load_global_allocator(void) {
 	uint128_t value;
 	GlobalAllocatorHeader *header;
 
@@ -84,7 +84,7 @@ STATIC void __attribute__((constructor)) load_global_allocator() {
 	header->lock = LOCK_INIT;
 }
 
-STATIC void __attribute__((destructor)) destroy_global_allocator() {
+STATIC void __attribute__((destructor)) destroy_global_allocator(void) {
 	GlobalAllocatorHeader *header = (GlobalAllocatorHeader *)allocator.base;
 	bool do_unlink = false;
 
@@ -98,7 +98,7 @@ STATIC void __attribute__((destructor)) destroy_global_allocator() {
 	}
 }
 
-void ga_init() {
+void ga_init(void) {
 	GlobalAllocatorHeader *header = (GlobalAllocatorHeader *)allocator.base;
 	LockGuard lg = lock_write(&header->lock);
 	++(header->ref_count);

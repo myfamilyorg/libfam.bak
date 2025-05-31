@@ -83,6 +83,6 @@ int mwait(int multiplex, Event events[], int max_events, int64_t timeout);
 int event_is_read(Event event);
 int event_is_write(Event event);
 void *event_attachment(Event event);
-pid_t cfork();
+pid_t cfork(void);
 
 #endif /* _SYS_H__ */

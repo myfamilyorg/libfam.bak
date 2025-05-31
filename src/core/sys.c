@@ -39,6 +39,7 @@
 
 #ifdef __linux__
 #include <sys/epoll.h>
+#include <sys/random.h>
 STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), event_match);
 #elif defined(__APPLE__)
 int sched_yield(void);
@@ -223,7 +224,8 @@ DEFINE_SYSCALL3(43, int, accept, int, sockfd, struct sockaddr *, addr,
 		unsigned int *, addrlen)
 DEFINE_SYSCALL2(48, int, shutdown, int, sockfd, int, how)
 DEFINE_SYSCALL3(41, int, socket, int, domain, int, type, int, protocol)
-DEFINE_SYSCALL2(318, int, getentropy, void *, buffer, size_t, length)
+DEFINE_SYSCALL3(318, int, getrandom, void *, buffer, size_t, length,
+		unsigned int, flags)
 DEFINE_SYSCALL6(9, void *, mmap, void *, addr, size_t, length, int, prot, int,
 		flags, int, fd, long, offset)
 DEFINE_SYSCALL0(24, int, sched_yield)
@@ -354,9 +356,28 @@ int socket(int domain, int type, int protocol) {
 	int ret = syscall_socket(domain, type, protocol);
 	SET_ERR
 }
-int getentropy(void *buffer, size_t length) {
-	int ret = syscall_getentropy(buffer, length);
-	SET_ERR
+
+int getentropy(void *buf, size_t len) {
+	if (len > 256) {
+		err = EIO; /* getentropy limits to 256 bytes */
+		return -1;
+	}
+	if (!buf) {
+		err = EFAULT;
+		return -1;
+	}
+
+	size_t total = 0;
+	while (total < len) {
+		ssize_t ret = syscall_getrandom(buf, len, GRND_RANDOM);
+
+		if (ret < 0) {
+			err = -ret;
+			return -1;
+		}
+		total += ret;
+	}
+	return 0;
 }
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd,
@@ -439,7 +460,9 @@ int multiplex(void) {
 #ifdef __linux__
 	return epoll_create1(0);
 #elif defined(__APPLE__)
-	return kqueue();
+	int ret = kqueue();
+	if (ret == -1) err = errno;
+	return ret;
 #endif
 }
 
@@ -506,6 +529,7 @@ int mwait(int multiplex, Event *events, int max_events,
 #elif defined(__APPLE__)
 	struct timespec ts;
 	struct timespec *timeout_ptr = NULL;
+	int ret;
 
 	if (timeout_millis >= 0) {
 		ts.tv_sec = timeout_millis / 1000;
@@ -513,8 +537,10 @@ int mwait(int multiplex, Event *events, int max_events,
 		timeout_ptr = &ts;
 	}
 
-	return kevent(multiplex, NULL, 0, (struct kevent *)events, max_events,
-		      timeout_ptr);
+	ret = kevent(multiplex, NULL, 0, (struct kevent *)events, max_events,
+		     timeout_ptr);
+	if (ret == -1) err = errno;
+	return ret;
 #endif
 }
 
@@ -548,7 +574,13 @@ void *event_attachment(Event event) {
 #endif
 }
 
-int file(const char *path) { return open(path, O_CREAT | O_RDWR, 0600); }
+int file(const char *path) {
+	int ret = open(path, O_CREAT | O_RDWR, 0600);
+#ifdef __APPLE__
+	if (ret == -1) err = errno;
+#endif
+	return ret;
+}
 int exists(const char *path) {
 	int fd = open(path, O_RDWR);
 	if (fd > 0) {
@@ -562,6 +594,9 @@ int64_t micros(void) {
 	struct timeval tv;
 
 	if (gettimeofday(&tv, NULL) == -1) {
+#ifdef __APPLE__
+		err = errno;
+#endif
 		return -1;
 	}
 
@@ -570,40 +605,89 @@ int64_t micros(void) {
 
 int sleepm(uint64_t millis) {
 	struct timespec req;
+	int ret;
 	req.tv_sec = millis / 1000;
 	req.tv_nsec = (millis % 1000) * 1000000;
-	return nanosleep(&req, &req);
+	ret = nanosleep(&req, &req);
+#ifdef __APPLE__
+	if (ret == -1) err = errno;
+#endif
+	return ret;
 }
 
-off_t fsize(int fd) { return lseek(fd, 0, SEEK_END); }
+off_t fsize(int fd) {
+	off_t ret = lseek(fd, 0, SEEK_END);
+#ifdef __APPLE__
+	err = errno;
+#endif
+	return ret;
+}
 
-int yield(void) { return sched_yield(); }
-int fresize(int fd, off_t length) { return ftruncate(fd, length); }
+int yield(void) {
+	int ret = sched_yield();
+#ifdef __APPLE__
+	if (ret == -1) err = errno;
+#endif
+	return ret;
+}
+int fresize(int fd, off_t length) {
+	int ret = ftruncate(fd, length);
+#ifdef __APPLE__
+	if (ret == -1) err = errno;
+#endif
+
+	return ret;
+}
 
 void *map(size_t length) {
 	void *v = mmap(NULL, length, PROT_READ | PROT_WRITE,
 		       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-	if (v == MAP_FAILED) return NULL;
+	if (v == MAP_FAILED) {
+#ifdef __APPLE__
+		err = errno;
+#endif
+		return NULL;
+	}
 	return v;
 }
 void *fmap(int fd) {
 	off_t size = fsize(fd);
 	void *v = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	if (v == MAP_FAILED) return NULL;
+	if (v == MAP_FAILED) {
+#ifdef __APPLE__
+		err = errno;
+#endif
+
+		return NULL;
+	}
 	return v;
 }
 void *smap(size_t length) {
 	void *v = mmap(NULL, length, PROT_READ | PROT_WRITE,
 		       MAP_ANONYMOUS | MAP_SHARED, -1, 0);
-	if (v == MAP_FAILED) return NULL;
+	if (v == MAP_FAILED) {
+#ifdef __APPLE__
+		err = errno;
+#endif
+		return NULL;
+	}
 	return v;
 }
 
-pid_t cfork() {
+pid_t cfork(void) {
 	pid_t pid = fork();
 	if (pid == 0) ga_init();
+#ifdef __APPLE__
+	if (pid == -1) err = errno;
+#endif
 	return pid;
 }
 
-int flush(int fd) { return fdatasync(fd); }
+int flush(int fd) {
+	int ret = fdatasync(fd);
+#ifdef __APPLE__
+	if (ret == -1) err = errno;
+#endif
+	return ret;
+}
 
