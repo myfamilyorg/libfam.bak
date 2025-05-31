@@ -117,6 +117,13 @@ start_loop:
 		if ((port = __atomic_load_n(lock, __ATOMIC_ACQUIRE)) == 0) {
 			expected = 0;
 		} else {
+			if (port == ctx.port) {
+				char *msg =
+				    "RobustLock Error: tried to obtain our own "
+				    "lock!";
+				write(2, msg, strlen(msg));
+				exit(-1);
+			}
 			address.sin_port = htons(port);
 			sock = socket(AF_INET, SOCK_STREAM, 0);
 			if (sock == -1) goto start_loop;
