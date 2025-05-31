@@ -689,3 +689,18 @@ int flush(int fd) {
 	return ret;
 }
 
+#include <signal.h>
+#include <sys/time.h>
+#include <time.h>
+
+typedef int timer_t;
+
+int timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid);
+int timer_delete(timer_t timerid);
+int timer_settime(timer_t timerid, int flags,
+		  const struct itimerspec *new_value,
+		  struct itimerspec *old_value);
+int sigaction(int signum, const struct sigaction *act,
+	      struct sigaction *oldact);
+
+int timeout(void (*task)(void), uint32_t milliseconds) { return 0; }

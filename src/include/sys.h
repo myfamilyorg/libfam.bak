@@ -78,7 +78,7 @@ int sigaction(int signum, const struct sigaction *act,
 	      */
 
 /* System calls applied */
-int timeout(void (*task)(void), uint64_t milliseconds);
+int timeout(void (*task)(void), uint32_t milliseconds);
 void *map(size_t length);
 void *fmap(int fd, off_t offset, off_t size);
 void *smap(size_t length);
