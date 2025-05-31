@@ -25,6 +25,7 @@
 
 #include <atomic.h>
 #include <lock.h>
+#include <misc.h>
 #include <sys.h>
 
 #define WFLAG (0x1UL << 63)
@@ -32,10 +33,25 @@
 
 void lockguard_cleanup(LockGuardImpl *lg) {
 	if (!lg->lock) return;
-	if (lg->is_write)
+	if (lg->is_write) {
+		if (ALOAD(lg->lock) != WFLAG) {
+			const char *msg =
+			    "lock error: tried to write unlock a lock that is "
+			    "not a write lock!";
+			write(2, msg, strlen(msg));
+			exit(-1);
+		}
 		ASTORE(lg->lock, 0);
-	else
+	} else {
+		if ((ALOAD(lg->lock) & WFLAG) != 0) {
+			const char *msg =
+			    "lock error: tried to read unlock a lock that is "
+			    "not a read lock!";
+			write(2, msg, strlen(msg));
+			exit(-1);
+		}
 		ASUB(lg->lock, 1);
+	}
 }
 
 LockGuardImpl lock_read(Lock *lock) {
