@@ -1,6 +1,7 @@
 #include <alloc.h>
 #include <atomic.h>
 #include <criterion/criterion.h>
+#include <env.h>
 #include <error.h>
 #include <fcntl.h>
 #include <lock.h>
@@ -618,6 +619,11 @@ Test(core, robust_performance) {
 		exit(0);
 	}
 	cr_assert_eq(ALOAD(&state->value), N);
+}
+
+Test(core, getenv) {
+	cr_assert(getenv("CRITERION_TEST_PATTERN"));
+	cr_assert(!getenv("_CRITERION_TEST_PATTERN_____"));
 }
 
 Test(core, alloc1) {

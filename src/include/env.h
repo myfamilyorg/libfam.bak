@@ -26,6 +26,6 @@
 #ifndef _ENV_H__
 #define _ENV_H__
 
-const char *getenv(const char *name);
+char *getenv(const char *name);
 
 #endif /* _ENV_H__ */

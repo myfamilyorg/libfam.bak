@@ -11,7 +11,7 @@ CFLAGS  = -fPIC \
 	  -nostdlib \
           -Wno-attributes \
           -DSTATIC=static
-TFLAGS  = -O1 -pedantic -Wall -Wextra -std=c89 -Wno-nonnull-compare -Isrc/include -Wno-attributes -DSTATIC=
+TFLAGS  = -O1 -pedantic -Wall -Wextra -std=c89 -Wno-unknown-warning-option -Wno-nonnull-compare -Isrc/include -Wno-attributes -DSTATIC=
 TCFLAGS = -O1 -Isrc/include -Wno-attributes -DSTATIC=
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
