@@ -11,8 +11,15 @@ CFLAGS  = -fPIC \
 	  -nostdlib \
           -Wno-attributes \
           -DSTATIC=static
-TFLAGS  = -O1 -Isrc/include -Wno-attributes -DSTATIC=
-LDFLAGS = -shared
+TFLAGS  = -O1 -Isrc/include -Wno-attributes -DSTATIC=A
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+    LDFLAGS = -shared -nostdlib
+else ifeq ($(UNAME_S),Darwin)
+    LDFLAGS = -shared
+else
+    $(error Unsupported platform: $(UNAME_S))
+endif
 FILTER  ="*"
 PAGE_SIZE=16384
 MEMSAN ?= 0
