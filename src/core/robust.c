@@ -143,5 +143,11 @@ start_loop:
 }
 
 void robustguard_cleanup(RobustGuardImpl *rg) {
+	if (ALOAD(rg->lock) != ctx.port) {
+		const char *msg =
+		    "RobustLock Error: tried to cleanup a lock we don't own!\n";
+		write(2, msg, strlen(msg));
+		exit(-1);
+	}
 	if (rg->lock) robust_unlock(rg->lock);
 }
