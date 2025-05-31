@@ -34,11 +34,12 @@
 
 #define NEXT_FREE_BIT(base, max, result)                                     \
 	do {                                                                 \
+		size_t max_words;                                            \
+		uint64_t *bitmap;                                            \
 		(result) = (uint64_t) - 1;                                   \
-		uint64_t *bitmap =                                           \
-		    (uint64_t *)((unsigned char *)(base) +                   \
-				 sizeof(GlobalAllocatorMetadata));           \
-		size_t max_words = ((max) + 63) >> 6;                        \
+		bitmap = (uint64_t *)((unsigned char *)(base) +              \
+				      sizeof(GlobalAllocatorMetadata));      \
+		max_words = ((max) + 63) >> 6;                               \
 		while (allocator.last_free < max_words) {                    \
 			if (bitmap[allocator.last_free] !=                   \
 			    0xFFFFFFFFFFFFFFFF) {                            \
@@ -143,18 +144,7 @@ STATIC size_t calculate_slab_size(size_t value) {
 }
 
 STATIC int check_fsize(uint64_t chunk) {
-	int res;
-	if (fsize(allocator.fd) < (chunk + 2) * CHUNK_SIZE) {
-		/*
-		printf("fresize\n");
-		res = fresize(allocator.fd, (chunk + 2) * CHUNK_SIZE);
-		if (res == -1) return -1;
-		munmap(allocator.base, allocator.last_map_size);
-		allocator.last_map_size = (chunk + 2) * CHUNK_SIZE;
-		allocator.base = fmap(allocator.fd);
-		printf("ok\n");
-		*/
-	}
+	if (chunk > 1000000000000) return -1;
 	return 0;
 }
 
@@ -169,7 +159,10 @@ STATIC uint64_t allocate_chunk(void) {
 	return ret;
 }
 
-STATIC void *alloc_slab(size_t slab_size) { return NULL; }
+STATIC void *alloc_slab(size_t slab_size) {
+	if (slab_size == 0) return NULL;
+	return NULL;
+}
 
 void *alloc(size_t size) {
 	if (size > CHUNK_SIZE) {

@@ -11,7 +11,8 @@ CFLAGS  = -fPIC \
 	  -nostdlib \
           -Wno-attributes \
           -DSTATIC=static
-TFLAGS  = -O1 -Isrc/include -Wno-attributes -DSTATIC=
+TFLAGS  = -O1 -pedantic -Wall -Wextra -std=c89 -Wno-nonnull-compare -Isrc/include -Wno-attributes -DSTATIC=
+TCFLAGS = -O1 -Isrc/include -Wno-attributes -DSTATIC=
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
     LDFLAGS = -shared -nostdlib
@@ -71,7 +72,7 @@ $(TEST_OBJDIR)/%.o: $(SRCDIR)/%.c | $(TEST_OBJDIR)
 # Rule for test objects
 $(TOBJDIR)/%.o: $(SRCDIR)/%.c | $(TOBJDIR)
 	@mkdir -p $(@D)
-	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(TFLAGS) -c $< -o $@
+	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(TCFLAGS) -c $< -o $@
 
 # Build shared library (for 'all')
 $(LIBDIR)/libfam.so: $(OBJECTS) | $(LIBDIR)
