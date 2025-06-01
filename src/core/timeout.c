@@ -6,6 +6,10 @@
 #include <sys.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <time.h>
+
+int setitimer(int which, const struct itimerval *new_value,
+	      struct itimerval *old_value);
 
 #ifdef __linux__
 #ifndef SA_RESTORER
@@ -51,7 +55,8 @@ static int syscall_sigaction_rt(int signum, const struct kernel_sigaction *act,
 void timeout_handler(void) { printf("timeout handler\n"); }
 
 /* Timeout function */
-int timeout(void (*task)(int), uint64_t seconds) {
+int timeout(void (*task)(int), uint64_t milliseconds) {
+	struct itimerval new_value;
 #ifdef __linux__
 	struct kernel_sigaction act = {0};
 	act.k_sa_handler = task;
@@ -68,6 +73,14 @@ int timeout(void (*task)(int), uint64_t seconds) {
 	sigemptyset(&act.sa_mask);
 	sigaction(SIGALRM, &act, NULL);
 #endif
-	alarm(seconds);
+	new_value.it_interval.tv_sec = 0;
+	new_value.it_interval.tv_usec = 0;
+	new_value.it_value.tv_sec = (long)(milliseconds / 1000);
+	new_value.it_value.tv_usec = (long)((milliseconds % 1000) * 1000);
+
+	if (setitimer(ITIMER_REAL, &new_value, NULL) < 0) {
+		return -1;
+	}
+
 	return 0;
 }

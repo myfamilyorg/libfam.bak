@@ -8,7 +8,7 @@
 void timeout_test() { printf("tt\n"); }
 
 Test(core, timeout) {
-	timeout(timeout_test, 1);
+	timeout(timeout_test, 500);
 	sleepm(3000);
 	printf("complete\n");
 }
