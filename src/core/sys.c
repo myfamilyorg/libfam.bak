@@ -247,6 +247,7 @@ DEFINE_SYSCALL1(75, int, fdatasync, int, fd)
 DEFINE_SYSCALL2(77, int, ftruncate, int, fd, off_t, length)
 DEFINE_SYSCALL4(13, int, sigaction, int, signum, const struct sigaction *, act,
 		struct sigaction *, oldact, size_t, sigsetsize)
+DEFINE_SYSCALL1(37, unsigned int, alarm, unsigned int, seconds)
 
 pid_t fork(void) {
 	int ret = syscall_fork();
@@ -452,8 +453,12 @@ off_t lseek(int fd, off_t offset, int whence) {
 
 int sigaction(int signum, const struct sigaction *act,
 	      struct sigaction *oldact) {
-	/*int ret = syscall(13, signum, act, oldact, 8);*/
 	int ret = syscall_sigaction(signum, act, oldact, 8);
+	SET_ERR
+}
+
+unsigned int alarm(unsigned int seconds) {
+	int ret = syscall_alarm(seconds);
 	SET_ERR
 }
 

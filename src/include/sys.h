@@ -68,6 +68,7 @@ int socket(int domain, int type, int protocol);
 int getentropy(void *buffer, size_t length);
 int sigaction(int signum, const struct sigaction *act,
 	      struct sigaction *oldact);
+unsigned int alarm(unsigned int alarm);
 
 /* System calls applied */
 int timeout(void (*task)(void), uint32_t milliseconds);
