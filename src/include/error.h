@@ -28,6 +28,7 @@
 
 /* Error codes for libfam */
 
+#ifndef EPERM /* check for header already defining them */
 #define SUCCESS 0
 #define EPERM 1	  /* Operation not permitted */
 #define ENOENT 2  /* No such file or directory */
@@ -80,6 +81,7 @@
 #define ENOTEMPTY 39	/* Directory not empty */
 #define ELOOP 40	/* Too many symbolic links encountered */
 #define EWOULDBLOCK EAGAIN
+#endif /* EPERM */
 
 extern int err;
 

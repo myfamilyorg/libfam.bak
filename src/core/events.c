@@ -26,6 +26,12 @@
 #include <error.h>
 #include <sys.h>
 #include <types.h>
+#ifdef __linux__
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/epoll.h>
+#include <unistd.h>
+#endif /* __linux__ */
 #ifdef __APPLE__
 #include <errno.h>
 #include <sys/event.h>

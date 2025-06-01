@@ -23,18 +23,24 @@
  *
  *******************************************************************************/
 
-#include <error.h>
+#ifdef __linux__
+#define _GNU_SOURCE
+#endif /* __linux__ */
 #include <sys.h>
 #include <sys/mman.h>
 #ifdef __APPLE__
 #include <errno.h>
 #include <fcntl.h>
-#include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 int fdatasync(int fd);
 #endif /* __APPLE__ */
+#include <error.h>
+#include <fcntl.h>
+#include <sys/time.h>
+#include <time.h>
+#include <unistd.h>
 
 static int has_begun = 0;
 
