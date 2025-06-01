@@ -203,3 +203,68 @@ Test(core, lock4) {
 	}
 }
 
+Lock tfunlock = LOCK_INIT;
+int tfunv1 = 0;
+int tfunv2 = 0;
+int tfunv3 = 0;
+
+void tfun1() {
+	LockGuard l = wlock(&tfunlock);
+	tfunv1++;
+}
+
+void tfun2() {
+	LockGuard l = wlock(&tfunlock);
+	tfunv2++;
+}
+
+void tfun3() {
+	LockGuard l = wlock(&tfunlock);
+	tfunv3++;
+}
+
+Test(core, timeout1) {
+	timeout(tfun1, 100);
+	sleepm(1000);
+	LockGuard l = rlock(&tfunlock);
+	cr_assert_eq(tfunv1, 1);
+}
+
+Test(core, timeout2) {
+	timeout(tfun1, 100);
+	timeout(tfun2, 200);
+	sleepm(1000);  // sleepm interrupted at first SIGALRM (100 ms, second
+		       // alarm hasn't occurred yet).
+	{
+		LockGuard l = rlock(&tfunlock);
+		cr_assert_eq(tfunv1, 1);
+		cr_assert_eq(tfunv2, 0);
+	}
+	sleepm(200);  // by now second alarm went off
+	cr_assert_eq(tfunv2, 1);
+}
+
+Test(core, timeout3) {
+	void *base = smap(sizeof(SharedStateData));
+	SharedStateData *state = (SharedStateData *)base;
+	state->value1 = 0;
+
+	timeout(tfun1, 100);
+	timeout(tfun2, 200);
+	if (two()) {
+		timeout(tfun3, 150);
+		for (int i = 0; i < 3; i++) sleepm(200);
+		cr_assert_eq(tfunv1, 1);
+		cr_assert_eq(tfunv2, 1);
+		cr_assert_eq(tfunv3, 1);
+		while (!ALOAD(&state->value1));
+	} else {
+		timeout(tfun3, 150);
+		for (int i = 0; i < 3; i++) sleepm(200);
+		cr_assert_eq(tfunv1, 0);
+		cr_assert_eq(tfunv2, 0);
+		cr_assert_eq(tfunv3, 1);
+		ASTORE(&state->value1, 1);
+		exit(0);
+	}
+}
