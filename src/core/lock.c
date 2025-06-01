@@ -51,7 +51,7 @@ void lockguard_cleanup(LockGuardImpl *lg) {
 	}
 }
 
-LockGuardImpl lock_read(Lock *lock) {
+LockGuardImpl rlock(Lock *lock) {
 	uint64_t state, desired;
 	LockGuardImpl ret;
 	do {
@@ -63,7 +63,7 @@ LockGuardImpl lock_read(Lock *lock) {
 	return ret;
 }
 
-LockGuardImpl lock_write(Lock *lock) {
+LockGuardImpl wlock(Lock *lock) {
 	uint64_t state, desired;
 	LockGuardImpl ret;
 	do {

@@ -54,19 +54,19 @@ Test(core, lock1) {
 
 	if (two()) {
 		while (true) {
-			LockGuard lg1 = lock_read(&state->lock1);
+			LockGuard lg1 = rlock(&state->lock1);
 			if (state->value1) break;
 		}
 		cr_assert_eq(state->value3++, 1);
-		LockGuard lg2 = lock_read(&state->lock2);
+		LockGuard lg2 = rlock(&state->lock2);
 		cr_assert_eq(state->value2, 1);
 		cr_assert_eq(state->value3++, 3);
 	} else {
 		{
-			LockGuard lg2 = lock_write(&state->lock2);
+			LockGuard lg2 = wlock(&state->lock2);
 			cr_assert_eq(state->value3++, 0);
 			{
-				LockGuard lg1 = lock_write(&state->lock1);
+				LockGuard lg1 = wlock(&state->lock1);
 				state->value1 = 1;
 			}
 			sleepm(10);
@@ -88,19 +88,19 @@ Test(core, lock2) {
 
 	if (two()) {
 		while (true) {
-			LockGuard lg1 = lock_read(&state->lock1);
+			LockGuard lg1 = rlock(&state->lock1);
 			if (state->value1) break;
 		}
 		cr_assert_eq(state->value3++, 1);
-		LockGuard lg2 = lock_write(&state->lock2);
+		LockGuard lg2 = wlock(&state->lock2);
 		cr_assert_eq(state->value2, 1);
 		cr_assert_eq(state->value3++, 3);
 	} else {
 		{
-			LockGuard lg2 = lock_write(&state->lock2);
+			LockGuard lg2 = wlock(&state->lock2);
 			cr_assert_eq(state->value3++, 0);
 			{
-				LockGuard lg1 = lock_write(&state->lock1);
+				LockGuard lg1 = wlock(&state->lock1);
 				state->value1 = 1;
 			}
 			sleepm(10);
@@ -122,19 +122,19 @@ Test(core, lock3) {
 
 	if (two()) {
 		while (true) {
-			LockGuard lg1 = lock_read(&state->lock1);
+			LockGuard lg1 = rlock(&state->lock1);
 			if (state->value1 == 2) break;
 		}
-		LockGuard lg2 = lock_write(&state->lock2);
+		LockGuard lg2 = wlock(&state->lock2);
 		cr_assert_eq(state->value2, 2);
 	} else {
 		if (two()) {
-			LockGuard lg2 = lock_read(&state->lock2);
+			LockGuard lg2 = rlock(&state->lock2);
 			state->value1++;
 			sleepm(10);
 			state->value2++;
 		} else {
-			LockGuard lg2 = lock_read(&state->lock2);
+			LockGuard lg2 = rlock(&state->lock2);
 			state->value1++;
 			sleepm(10);
 			state->value2++;
@@ -153,10 +153,9 @@ Test(core, lock4) {
 	state->value3 = 0;
 
 	if (two()) {
-		// Parent (Writer)
 		// Wait for both children to acquire lock2
 		while (true) {
-			LockGuard lg1 = lock_read(&state->lock1);
+			LockGuard lg1 = rlock(&state->lock1);
 			if (state->value1 == 2) break;
 		}
 
@@ -165,36 +164,38 @@ Test(core, lock4) {
 			// sleep 100 and 200ms respectively. But doesn't acquire
 			// lock until both release their read locks
 			// this shows write starvation prevention
-			LockGuard lg2 = lock_write(&state->lock2);
+			LockGuard lg2 = wlock(&state->lock2);
 			cr_assert_eq(state->value2++,
 				     0);  // First to set value2 to 1
 
 			cr_assert_eq(state->value3, 0);
 		}
 
-		// ensure that child1 succeeds and is second to update value3
+		// ensure that child1 succeeds and is second to update value2
 		while (!ALOAD(&state->value3));
 
 	} else {
 		if (two()) {
 			{
-				LockGuard lg2 = lock_read(&state->lock2);
-				AADD(&state->value1, 1);
+				LockGuard lg2 = rlock(&state->lock2);
+				state->value1++;
 				sleepm(100);
 			}
 			{
-				// lg2 will request read lock after writer, but
-				// get write after
-				LockGuard lg2 = lock_read(&state->lock2);
+				// child1 will request read lock after writer,
+				// but get read after write has released (write
+				// prioritized once requested)
+				LockGuard lg2 = rlock(&state->lock2);
 				cr_assert_eq(state->value2++, 1);
-				AADD(&state->value3, 1);
+				state->value3++;
 			}
 			exit(0);
 		} else {
 			{
-				// hold lock to ensure ordering of writer/reader
-				LockGuard lg2 = lock_read(&state->lock2);
-				AADD(&state->value1, 1);
+				// child2 hold lock to ensure ordering of
+				// writer/reader
+				LockGuard lg2 = rlock(&state->lock2);
+				state->value1++;
 				sleepm(200);
 			}
 			exit(0);

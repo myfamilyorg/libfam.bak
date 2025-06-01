@@ -43,7 +43,7 @@ void lockguard_cleanup(LockGuardImpl *lg);
 #define LockGuard \
 	LockGuardImpl __attribute__((unused, cleanup(lockguard_cleanup)))
 
-LockGuard lock_read(Lock *lock);
-LockGuard lock_write(Lock *lock);
+LockGuard rlock(Lock *lock);
+LockGuard wlock(Lock *lock);
 
 #endif /* _LOCK_H__ */
