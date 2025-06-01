@@ -25,7 +25,7 @@
 
 #ifdef __linux__
 #define _GNU_SOURCE
-#endif /* __linux__ */
+#endif
 
 #define STATIC_ASSERT(condition, message) \
 	typedef char static_assert_##message[(condition) ? 1 : -1]
@@ -244,6 +244,14 @@ DEFINE_SYSCALL3(2, int, open, const char *, pathname, int, flags, mode_t, mode)
 DEFINE_SYSCALL3(8, off_t, lseek, int, fd, off_t, offset, int, whence)
 DEFINE_SYSCALL1(75, int, fdatasync, int, fd)
 DEFINE_SYSCALL2(77, int, ftruncate, int, fd, off_t, length)
+DEFINE_SYSCALL3(222, int, timer_create, clockid_t, clockid, struct sigevent *,
+		sevp, timer_t *, timerid)
+DEFINE_SYSCALL1(226, int, timer_delete, timer_t, timerid)
+DEFINE_SYSCALL4(223, int, timer_settime, timer_t, timerid, int, flags,
+		const struct itimerspec *, new_value, struct itimerspec *,
+		old_value)
+DEFINE_SYSCALL3(13, int, sigaction, int, signum, const struct sigaction *, act,
+		struct sigaction *, oldact)
 
 pid_t fork(void) {
 	int ret = syscall_fork();
@@ -411,13 +419,7 @@ int gettimeofday(struct timeval *tv, void *tz) {
 	SET_ERR
 }
 
-#ifdef __linux__
-int settimeofday(const struct timeval *tv, const struct timezone *tz)
-#endif
-#ifdef __APPLE__
-    int settimeofday(const struct timeval *tv, const void *tz)
-#endif
-{
+int settimeofday(const struct timeval *tv, const struct timezone *tz) {
 	int ret = syscall_settimeofday(tv, tz);
 	SET_ERR
 }
@@ -452,6 +454,27 @@ off_t lseek(int fd, off_t offset, int whence) {
 	off_t ret = syscall_lseek(fd, offset, whence);
 	SET_ERR
 }
+
+int timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid) {
+	int ret = syscall_timer_create(clockid, sevp, timerid);
+	SET_ERR
+}
+int timer_delete(timer_t timerid) {
+	int ret = syscall_timer_delete(timerid);
+	SET_ERR
+}
+int timer_settime(timer_t timerid, int flags,
+		  const struct itimerspec *new_value,
+		  struct itimerspec *old_value) {
+	int ret = syscall_timer_settime(timerid, flags, new_value, old_value);
+	SET_ERR
+}
+int sigaction(int signum, const struct sigaction *act,
+	      struct sigaction *oldact) {
+	int ret = syscall_sigaction(signum, act, oldact);
+	SET_ERR
+}
+
 #endif /* __linux__ */
 
 /* System calls with changes */
@@ -698,15 +721,57 @@ int flush(int fd) {
 	return ret;
 }
 
-/*
+typedef struct {
+	void (*task)(void);
+	timer_t timerid;
+	int signal;
+} Task;
 
-typedef int timer_t;
+#define MAX_TASKS 16
+Task tasks[MAX_TASKS];
+volatile int task_count = 0;
 
-int timer_create(clockid_t clockid, struct sigevent *sevp, timer_t
-*timerid); int timer_delete(timer_t timerid); int timer_settime(timer_t
-timerid, int flags, const struct itimerspec *new_value, struct
-itimerspec *old_value); int sigaction(int signum, const struct sigaction
-*act, struct sigaction *oldact);
+void timer_handler(int sig, struct siginfo *si, void *uc) {
+	int i;
+	for (i = 0; i < task_count; i++) {
+		if (tasks[i].signal == sig) {
+			tasks[i].task();
+			timer_delete(tasks[i].timerid);
+			tasks[i] = tasks[task_count - 1];
+			task_count--;
+			break;
+		}
+	}
+}
 
-int timeout(void (*task)(void), uint32_t milliseconds) { return 0; }
-*/
+int timeout(void (*task)(void), uint32_t milliseconds) {
+	if (!task || task_count >= MAX_TASKS) return -1;
+
+	int signal = task_count == 0 ? SIGUSR1 : SIGUSR2;
+
+	struct sigaction sa = {0};
+	sa.sa_flags = SA_SIGINFO;
+	sa.sa_sigaction = timer_handler;
+	sigaction(signal, &sa, 0);
+
+	timer_t timerid;
+	struct sigevent sev = {0};
+	sev.sigev_notify = SIGEV_SIGNAL;
+	sev.sigev_signo = signal;
+	sev.sigev_value.sival_ptr = &timerid;
+
+	timer_create(CLOCK_REALTIME, &sev, &timerid);
+
+	struct itimerspec its = {0};
+	its.it_value.tv_sec = milliseconds / 1000;
+	its.it_value.tv_nsec = (milliseconds % 1000) * 1000000;
+
+	timer_settime(timerid, 0, &its, 0);
+
+	tasks[task_count].task = task;
+	tasks[task_count].timerid = timerid;
+	tasks[task_count].signal = signal;
+	task_count++;
+
+	return 0;
+}
