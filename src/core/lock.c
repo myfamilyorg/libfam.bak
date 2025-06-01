@@ -35,7 +35,9 @@ void lockguard_cleanup(LockGuardImpl *lg) {
 	if (!lg->lock) {
 		const char *msg =
 		    "lock error: Illegal state LockGuard had a null lock value";
-		write(2, msg, strlen(msg));
+		int v = write(2, msg, strlen(msg));
+		if (v) {
+		}
 		exit(-1);
 	}
 	if (lg->is_write) {
@@ -44,7 +46,9 @@ void lockguard_cleanup(LockGuardImpl *lg) {
 			const char *msg =
 			    "lock error: tried to write unlock a lock that is "
 			    "not a write lock!";
-			write(2, msg, strlen(msg));
+			int v = write(2, msg, strlen(msg));
+			if (v) {
+			}
 			exit(-1);
 		}
 	} else {
@@ -52,7 +56,9 @@ void lockguard_cleanup(LockGuardImpl *lg) {
 			const char *msg =
 			    "lock error: tried to read unlock a lock that is "
 			    "not a read lock!";
-			write(2, msg, strlen(msg));
+			int v = write(2, msg, strlen(msg));
+			if (v) {
+			}
 			exit(-1);
 		}
 		ASUB(lg->lock, 1);

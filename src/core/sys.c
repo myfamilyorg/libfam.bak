@@ -255,25 +255,6 @@ DEFINE_SYSCALL3(38, int, setitimer, __itimer_which_t, which,
 DEFINE_SYSCALL2(48, sighandler_t, signal, int, signum, sighandler_t,
 		signal_handler)
 
-static int syscall_sigaction_rt(int signum, const struct kernel_sigaction *act,
-				struct kernel_sigaction *oldact, size_t sz) {
-	long result;
-	__asm__ volatile(
-	    "movq $13"
-	    ", %%rax\n"
-	    "movq %1, %%rdi\n"
-	    "movq %2, %%rsi\n"
-	    "movq %3, %%rdx\n"
-	    "movq %4, %%r10\n"
-	    "syscall\n"
-	    "movq %%rax, %0\n"
-	    : "=r"(result)
-	    : "r"((long)(signum)), "r"((long)(act)), "r"((long)(oldact)),
-	      "r"((long)(sz))
-	    : "%rax", "%rcx", "%r11", "%rdi", "%rsi", "%rdx", "%r10", "memory");
-	return result;
-}
-
 pid_t fork(void) {
 	int ret = syscall_fork();
 	SET_ERR
@@ -476,12 +457,6 @@ int open(const char *pathname, int flags, ...) {
 
 off_t lseek(int fd, off_t offset, int whence) {
 	off_t ret = syscall_lseek(fd, offset, whence);
-	SET_ERR
-}
-
-int sigaction_rt(int signum, const struct kernel_sigaction *act,
-		 struct kernel_sigaction *oldact) {
-	int ret = syscall_sigaction_rt(signum, act, oldact, 8);
 	SET_ERR
 }
 

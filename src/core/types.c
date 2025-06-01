@@ -30,10 +30,12 @@
 
 #define CheckEndian()                                                          \
 	uint16_t test = 0x1234;                                                \
-	uint8_t *uint8_ts = (uint8_t *)&test;                                     \
-	if (uint8_ts[0] != 0x34) {                                                \
+	uint8_t *uint8_ts = (uint8_t *)&test;                                  \
+	if (uint8_ts[0] != 0x34) {                                             \
 		const char *msg = "Error: Big-endian systems not supported\n"; \
-		write(2, msg, strlen(msg));                                    \
+		int v = write(2, msg, strlen(msg));                            \
+		if (v) {                                                       \
+		}                                                              \
 		exit(-1);                                                      \
 	}
 
