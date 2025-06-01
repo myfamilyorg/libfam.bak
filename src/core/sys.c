@@ -46,6 +46,7 @@ STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), event_match);
 #elif defined(__APPLE__)
 int sched_yield(void);
 int fdatasync(int);
+#include <dispatch/dispatch.h>
 #include <errno.h>
 #include <sys/event.h>
 #include <unistd.h>
@@ -721,6 +722,7 @@ int flush(int fd) {
 	return ret;
 }
 
+#ifdef __linux_
 typedef struct {
 	void (*task)(void);
 	timer_t timerid;
@@ -775,3 +777,66 @@ int timeout(void (*task)(void), uint32_t milliseconds) {
 
 	return 0;
 }
+#endif /* __linux__ */
+
+#ifdef __APPLE__
+/* Task structure */
+typedef struct {
+	void (*task)(void);
+	dispatch_source_t timer;
+} Task;
+
+/* Global tasks (use your slab allocator) */
+#define MAX_TASKS 16
+static Task tasks[MAX_TASKS];
+static volatile int task_count = 0;
+
+/* GCD handler function (C89-compatible) */
+static void gcd_handler(void *context) {
+	dispatch_source_t timer =
+	    (dispatch_source_t)context; /* Timer passed as context */
+	int i;
+	for (i = 0; i < task_count; i++) {
+		if (tasks[i].timer == timer) {
+			tasks[i].task();
+			dispatch_source_cancel(timer);
+			dispatch_release(timer);
+			tasks[i] = tasks[task_count - 1];
+			task_count--;
+			break;
+		}
+	}
+}
+
+/* setTimeout */
+int set_timeout(void (*task)(void), unsigned int milliseconds) {
+	dispatch_queue_t queue;
+	dispatch_source_t timer;
+	dispatch_time_t delay;
+
+	if (!task || task_count >= MAX_TASKS) return -1;
+
+	/* Create GCD timer */
+	queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+	timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
+	if (!timer) return -1;
+
+	/* Set timer */
+	delay = dispatch_time(DISPATCH_TIME_NOW,
+			      (int64_t)(milliseconds * NSEC_PER_MSEC));
+	dispatch_source_set_timer(timer, delay, DISPATCH_TIME_FOREVER, 0);
+
+	/* Set handler (line 833) */
+	dispatch_source_set_event_handler_f(
+	    timer, gcd_handler); /* No context needed */
+
+	/* Start timer */
+	dispatch_resume(timer);
+
+	tasks[task_count].task = task;
+	tasks[task_count].timer = timer;
+	task_count++;
+
+	return 0;
+}
+#endif /* __APPLE__ */
