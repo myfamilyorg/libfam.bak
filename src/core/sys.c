@@ -245,8 +245,8 @@ DEFINE_SYSCALL3(2, int, open, const char *, pathname, int, flags, mode_t, mode)
 DEFINE_SYSCALL3(8, off_t, lseek, int, fd, off_t, offset, int, whence)
 DEFINE_SYSCALL1(75, int, fdatasync, int, fd)
 DEFINE_SYSCALL2(77, int, ftruncate, int, fd, off_t, length)
-DEFINE_SYSCALL3(13, int, sigaction, int, signum, const struct sigaction *, act,
-		struct sigaction *, oldact)
+DEFINE_SYSCALL4(13, int, sigaction, int, signum, const struct sigaction *, act,
+		struct sigaction *, oldact, size_t, sigsetsize)
 
 pid_t fork(void) {
 	int ret = syscall_fork();
@@ -450,28 +450,12 @@ off_t lseek(int fd, off_t offset, int whence) {
 	SET_ERR
 }
 
-int timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid) {
-	int ret = syscall_timer_create(clockid, sevp, timerid);
-	SET_ERR
-}
-int timer_delete(timer_t timerid) {
-	int ret = syscall_timer_delete(timerid);
-	SET_ERR
-}
-int timer_settime(timer_t timerid, int flags,
-		  const struct itimerspec *new_value,
-		  struct itimerspec *old_value) {
-	int ret = syscall_timer_settime(timerid, flags, new_value, old_value);
-	SET_ERR
-}
 int sigaction(int signum, const struct sigaction *act,
 	      struct sigaction *oldact) {
-	int ret = syscall_sigaction(signum, act, oldact);
+	/*int ret = syscall(13, signum, act, oldact, 8);*/
+	int ret = syscall_sigaction(signum, act, oldact, 8);
 	SET_ERR
 }
-
-typedef typeof(void(int)) *sighandler_t;
-sighandler_t signal(int signum, sighandler_t handler);
 
 #endif /* __linux__ */
 

@@ -38,6 +38,7 @@ typedef struct {
 #endif
 } Event;
 
+struct sigaction;
 struct sockaddr;
 
 #define MULTIPLEX_FLAG_NONE 0
@@ -65,17 +66,8 @@ int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
 int shutdown(int sockfd, int how);
 int socket(int domain, int type, int protocol);
 int getentropy(void *buffer, size_t length);
-
-/* timer system calls */
-/*
-int timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid);
-int timer_delete(timer_t timerid);
-int timer_settime(timer_t timerid, int flags,
-		  const struct itimerspec *new_value,
-		  struct itimerspec *old_value);
 int sigaction(int signum, const struct sigaction *act,
 	      struct sigaction *oldact);
-	      */
 
 /* System calls applied */
 int timeout(void (*task)(void), uint32_t milliseconds);
