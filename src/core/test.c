@@ -245,8 +245,8 @@ Test(core, timeout2) {
 }
 
 Test(core, timeout3) {
-	void *base = smap(sizeof(SharedStateData));
-	SharedStateData *state = (SharedStateData *)base;
+	SharedStateData *state =
+	    (SharedStateData *)smap(sizeof(SharedStateData));
 	state->value1 = 0;
 
 	timeout(tfun1, 100);
