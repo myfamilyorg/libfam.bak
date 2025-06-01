@@ -808,8 +808,7 @@ static void gcd_handler(void *context) {
 	}
 }
 
-/* setTimeout */
-int set_timeout(void (*task)(void), unsigned int milliseconds) {
+int timeout(void (*task)(void), unsigned int milliseconds) {
 	dispatch_queue_t queue;
 	dispatch_source_t timer;
 	dispatch_time_t delay;
