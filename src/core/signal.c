@@ -68,14 +68,14 @@ STATIC int cur_tasks = 0;
 
 STATIC int set_next_timer(uint64_t now) {
 	int i;
-	uint64_t next_task_time = UINT64_MAX;
+	uint64_t next_task_time = SIZE_MAX;
 
 	for (i = 0; i < cur_tasks; i++) {
 		if (pending_tasks[i].exec_millis < next_task_time)
 			next_task_time = pending_tasks[i].exec_millis;
 	};
 
-	if (next_task_time != UINT64_MAX) {
+	if (next_task_time != SIZE_MAX) {
 		struct itimerval new_value = {0};
 		uint64_t delay_ms =
 		    (next_task_time > now) ? (next_task_time - now) : 1;

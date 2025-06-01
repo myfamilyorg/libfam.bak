@@ -163,3 +163,34 @@ int flush(int fd) {
 	return ret;
 }
 
+/* Linux links to these with the _FILE_OFFSET_BITS macro defined to 64 */
+#ifdef __linux__
+
+#define SET_ERR             \
+	if (ret < 0) {      \
+		err = -ret; \
+		return -1;  \
+	}                   \
+	return ret;
+
+int ftruncate64(int fd, off_t length) { return ftruncate(fd, length); }
+off_t lseek64(int fd, off_t offset, int whence) {
+	return lseek(fd, offset, whence);
+}
+void *mmap64(void *addr, size_t length, int prot, int flags, int fd,
+	     off_t offset) {
+	return mmap(addr, length, prot, flags, fd, offset);
+}
+int open64(const char *pathname, int flags, ...) {
+	mode_t mode = 0;
+	int ret;
+	if (flags & 0100 /* O_CREAT */) {
+		__builtin_va_list ap;
+		__builtin_va_start(ap, flags);
+		mode = __builtin_va_arg(ap, mode_t);
+		__builtin_va_end(ap);
+	}
+	ret = open(pathname, flags, mode);
+	SET_ERR
+}
+#endif /* __linux__ */
