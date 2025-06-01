@@ -31,14 +31,11 @@ static __attribute__((unused)) int _dummy__;
 
 #include <error.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <sys.h>
 #include <sys/epoll.h>
 #include <sys/mman.h>
 #include <sys/random.h>
 #include <sys/time.h>
-#include <time.h>
-#include <unistd.h>
 
 #define SET_ERR             \
 	if (ret < 0) {      \
@@ -259,7 +256,8 @@ ssize_t read(int fd, void *buf, size_t count) {
 void exit(int status) {
 	execute_exits();
 	syscall_exit(status);
-	while (true);
+	while (true)
+		;
 }
 int munmap(void *addr, size_t len) {
 	int ret = syscall_munmap(addr, len);
