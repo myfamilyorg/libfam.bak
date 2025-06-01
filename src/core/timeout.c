@@ -1,5 +1,4 @@
 #define _GNU_SOURCE
-#include <errno.h>
 #include <error.h>
 #include <misc.h>
 #include <signal.h>
@@ -49,7 +48,7 @@ static int syscall_sigaction_rt(int signum, const struct kernel_sigaction *act,
 	      "r"((long)(sigsetsize))
 	    : "rax", "rcx", "r11", "rdi", "rsi", "rdx", "r10", "memory");
 	if (result < 0) {
-		errno = -result;
+		err = -result;
 		return -1;
 	}
 	return result;
@@ -71,7 +70,7 @@ static void __attribute__((constructor)) _disable_sigpipe__(void) {
 	act.k_sa_flags = SA_RESTORER;
 	act.k_sa_restorer = sigaction_restorer;
 	if (syscall_sigaction_rt(SIGPIPE, &act, NULL, 8) < 0) {
-		const char *msg = "WARNL could not register SIGPIPE handler\n";
+		const char *msg = "WARN: could not register SIGPIPE handler\n";
 		int __attribute__((unused)) v = write(2, msg, strlen(msg));
 	}
 	act2.k_sa_handler = timeout_handler;
@@ -85,7 +84,7 @@ static void __attribute__((constructor)) _disable_sigpipe__(void) {
 	act.sa_handler = sig_ign;
 	act.sa_flags = 0;
 	if (sigaction(SIGPIPE, &act, NULL) < 0) {
-		const char *msg = "WARNL could not register SIGPIPE handler\n";
+		const char *msg = "WARN: could not register SIGPIPE handler\n";
 		write(2, msg, strlen(msg));
 	}
 	act2.sa_handler = timeout_handler;
