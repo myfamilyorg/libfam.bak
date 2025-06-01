@@ -55,14 +55,58 @@ static int syscall_sigaction_rt(int signum, const struct kernel_sigaction *act,
 }
 #endif /* __linux__ */
 
-void sig_ign(int __attribute((unused)) sig) {}
+static void sig_ign(int __attribute((unused)) sig) {}
 
-void (*next_task)(int);
+typedef struct {
+	void (*task)(void);
+	uint64_t exec_millis;
+} TaskEntry;
 
-/* Signal handler for SIGALRM */
-void timeout_handler(int v) { next_task(v); }
+#define MAX_TASKS 32
+STATIC TaskEntry pending_tasks[MAX_TASKS];
+STATIC int cur_tasks = 0;
 
-static void __attribute__((constructor)) _disable_sigpipe__(void) {
+STATIC int set_next_timer(uint64_t now) {
+	int i;
+	uint64_t next_task_time = UINT64_MAX;
+
+	for (i = 0; i < cur_tasks; i++) {
+		if (pending_tasks[i].exec_millis < next_task_time)
+			next_task_time = pending_tasks[i].exec_millis;
+	};
+
+	if (next_task_time != UINT64_MAX) {
+		struct itimerval new_value;
+		next_task_time -= now;
+		new_value.it_interval.tv_sec = 0;
+		new_value.it_interval.tv_usec = 0;
+		new_value.it_value.tv_sec = (long)(next_task_time / 1000);
+		new_value.it_value.tv_usec =
+		    (long)((next_task_time % 1000) * 1000);
+
+		if (setitimer(ITIMER_REAL, &new_value, NULL) < 0) return -1;
+	}
+	return 0;
+}
+
+STATIC void timeout_handler(int __attribute__((unused)) v) {
+	TaskEntry rem_tasks[MAX_TASKS];
+	int rem_task_count = 0;
+	uint64_t now = micros() / 1000;
+	int i;
+	for (i = 0; i < cur_tasks; i++) {
+		if (now >= pending_tasks[i].exec_millis) {
+			pending_tasks[i].task();
+		} else {
+			rem_tasks[rem_task_count++] = pending_tasks[i];
+		}
+	}
+	cur_tasks = rem_task_count;
+	for (i = 0; i < cur_tasks; i++) pending_tasks[i] = rem_tasks[i];
+	set_next_timer(now);
+}
+
+static void __attribute__((constructor)) _setup_signals__(void) {
 #ifdef __linux__
 	struct kernel_sigaction act = {0};
 	struct kernel_sigaction act2 = {0};
@@ -91,21 +135,25 @@ static void __attribute__((constructor)) _disable_sigpipe__(void) {
 	act2.sa_flags = 0;
 	sigaction(SIGALRM, &act2, NULL);
 #endif
+	cur_tasks = 0;
 }
 
 /* Timeout function */
-int timeout(void (*task)(int), uint64_t milliseconds) {
-	struct itimerval new_value;
-	new_value.it_interval.tv_sec = 0;
-	new_value.it_interval.tv_usec = 0;
-	new_value.it_value.tv_sec = (long)(milliseconds / 1000);
-	new_value.it_value.tv_usec = (long)((milliseconds % 1000) * 1000);
+int timeout(void (*task)(void), uint64_t milliseconds) {
+	uint64_t now = micros() / 1000;
 
-	next_task = task;
-
-	if (setitimer(ITIMER_REAL, &new_value, NULL) < 0) {
+	if (!task || milliseconds == 0) {
+		err = EINVAL;
 		return -1;
 	}
 
-	return 0;
+	if (cur_tasks == MAX_TASKS) {
+		err = EOVERFLOW;
+		return -1;
+	}
+
+	pending_tasks[cur_tasks].task = task;
+	pending_tasks[cur_tasks].exec_millis = now + milliseconds;
+	cur_tasks++;
+	return set_next_timer(now);
 }
