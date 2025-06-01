@@ -23,6 +23,9 @@
  *
  *******************************************************************************/
 
+#define STATIC_ASSERT(condition, message) \
+	typedef char static_assert_##message[(condition) ? 1 : -1]
+
 #include <error.h>
 #include <sys.h>
 #include <types.h>
@@ -31,11 +34,13 @@
 #include <stdio.h>
 #include <sys/epoll.h>
 #include <unistd.h>
+STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), event_match);
 #endif /* __linux__ */
 #ifdef __APPLE__
 #include <errno.h>
 #include <sys/event.h>
 #include <time.h>
+STATIC_ASSERT(sizeof(Event) == sizeof(struct kevent), event_match);
 #endif /* __APPLE__ */
 
 int multiplex(void) {
