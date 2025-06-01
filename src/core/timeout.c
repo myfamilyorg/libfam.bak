@@ -76,16 +76,15 @@ STATIC int set_next_timer(uint64_t now) {
 	};
 
 	if (next_task_time != UINT64_MAX) {
-		struct itimerval new_value;
-		next_task_time -= now;
-		new_value.it_interval.tv_sec = 0;
-		new_value.it_interval.tv_usec = 0;
-		new_value.it_value.tv_sec = (long)(next_task_time / 1000);
-		new_value.it_value.tv_usec =
-		    (long)((next_task_time % 1000) * 1000);
+		struct itimerval new_value = {0};
+		uint64_t delay_ms =
+		    (next_task_time > now) ? (next_task_time - now) : 1;
+		new_value.it_value.tv_sec = (long)(delay_ms / 1000);
+		new_value.it_value.tv_usec = (long)((delay_ms % 1000) * 1000);
 
 		if (setitimer(ITIMER_REAL, &new_value, NULL) < 0) return -1;
 	}
+
 	return 0;
 }
 
@@ -141,6 +140,7 @@ static void __attribute__((constructor)) _setup_signals__(void) {
 /* Timeout function */
 int timeout(void (*task)(void), uint64_t milliseconds) {
 	uint64_t now = micros() / 1000;
+	int ret;
 
 	if (!task || milliseconds == 0) {
 		err = EINVAL;
@@ -155,5 +155,9 @@ int timeout(void (*task)(void), uint64_t milliseconds) {
 	pending_tasks[cur_tasks].task = task;
 	pending_tasks[cur_tasks].exec_millis = now + milliseconds;
 	cur_tasks++;
-	return set_next_timer(now);
+	ret = set_next_timer(now);
+	if (ret == -1) {
+		cur_tasks--;
+	}
+	return ret;
 }
