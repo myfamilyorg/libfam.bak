@@ -8,8 +8,14 @@
 #include <sys/types.h>
 #include <time.h>
 
+#ifdef __linux__
+int setitimer(__itimer_which_t which, const struct itimerval *new_value,
+	      struct itimerval *old_value);
+#endif /* __linux__ */
+#ifdef __APPLE__
 int setitimer(int which, const struct itimerval *new_value,
 	      struct itimerval *old_value);
+#endif /* __APPLE__ */
 
 #ifdef __linux__
 #ifndef SA_RESTORER
