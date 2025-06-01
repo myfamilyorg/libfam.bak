@@ -26,6 +26,7 @@
 #ifndef _LOCK_H__
 #define _LOCK_H__
 
+#include <atomic.h>
 #include <types.h>
 
 typedef uint64_t Lock;
