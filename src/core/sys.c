@@ -731,7 +731,7 @@ typedef struct {
 Task tasks[MAX_TASKS];
 volatile int task_count = 0;
 
-void timer_handler(int sig, struct siginfo *si, void *uc) {
+void timer_handler(int sig, siginfo_t *si, void *uc) {
 	int i;
 	for (i = 0; i < task_count; i++) {
 		if (tasks[i].signal == sig) {
