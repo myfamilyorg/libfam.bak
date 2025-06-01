@@ -1,21 +1,20 @@
 CC      = gcc
-CFLAGS  = -fPIC \
-          -pedantic \
+CSTYLE  = -pedantic \
           -Wall \
           -Wextra \
+	  -std=c89
+CFLAGS  = -fPIC \
+	  $(CSTYLE) \
           -O3 \
-          -std=c89 \
           -fno-stack-protector \
           -fno-builtin \
-          -ffreestanding \
-          -nostdlib \
           -Wno-attributes \
           -DSTATIC=static
-TFLAGS  = -O1 -pedantic -Wall -Wextra -std=c89 -Wno-unknown-warning-option -Wno-nonnull-compare -Isrc/include -Wno-attributes -DSTATIC=
+TFLAGS  = $(CSTYLE) -O1 -Wno-unknown-warning-option -Wno-nonnull-compare -Isrc/include -Wno-attributes -DSTATIC=
 TCFLAGS = -O1 -Isrc/include -Wno-attributes -DSTATIC=
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
-    LDFLAGS = -shared -nostdlib
+    LDFLAGS = -shared -nostdlib -ffreestanding
 else ifeq ($(UNAME_S),Darwin)
     LDFLAGS = -shared
 else
