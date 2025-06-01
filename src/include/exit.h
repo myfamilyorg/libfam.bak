@@ -26,6 +26,6 @@
 #ifndef _EXIT_H__
 #define _EXIT_H__
 
-int register_exit(void (*fn)());
+int register_exit(void (*fn)(void));
 
 #endif /* _EXIT_H__ */

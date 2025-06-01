@@ -3,12 +3,12 @@ CFLAGS  = -fPIC \
           -pedantic \
           -Wall \
           -Wextra \
-          -std=c89 \
           -O3 \
+          -std=c89 \
           -fno-stack-protector \
           -fno-builtin \
           -ffreestanding \
-	  -nostdlib \
+          -nostdlib \
           -Wno-attributes \
           -DSTATIC=static
 TFLAGS  = -O1 -pedantic -Wall -Wextra -std=c89 -Wno-unknown-warning-option -Wno-nonnull-compare -Isrc/include -Wno-attributes -DSTATIC=
@@ -21,8 +21,8 @@ else ifeq ($(UNAME_S),Darwin)
 else
     $(error Unsupported platform: $(UNAME_S))
 endif
-FILTER  ="*"
-PAGE_SIZE=16384
+FILTER  = "*"
+PAGE_SIZE = 16384
 MEMSAN ?= 0
 CFLAGS += -DMEMSAN=$(MEMSAN)
 TFLAGS += -DMEMSAN=$(MEMSAN)
@@ -38,6 +38,7 @@ SRCDIR  = src
 CORE_SRCDIR = $(SRCDIR)/core
 STORE_SRCDIR = $(SRCDIR)/store
 NET_SRCDIR = $(SRCDIR)/net
+ASM_SRCDIR = $(SRCDIR)/asm
 
 # Source files, excluding test.c
 CORE_SOURCES = $(filter-out $(CORE_SRCDIR)/test.c, $(wildcard $(CORE_SRCDIR)/*.c))
@@ -46,6 +47,15 @@ NET_SOURCES = $(filter-out $(NET_SRCDIR)/test.c, $(wildcard $(NET_SRCDIR)/*.c))
 SOURCES = $(CORE_SOURCES) $(STORE_SOURCES) $(NET_SOURCES)
 OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
 TEST_OBJECTS = $(patsubst $(SRCDIR)/%.c,$(TEST_OBJDIR)/%.o,$(SOURCES))
+
+# Assembly source files
+ifeq ($(UNAME_S),Linux)
+    ASM_SOURCES = $(wildcard $(ASM_SRCDIR)/*.S)
+else
+    ASM_SOURCES =
+endif
+ASM_OBJECTS = $(patsubst $(SRCDIR)/%.S,$(OBJDIR)/%.o,$(ASM_SOURCES))
+TEST_ASM_OBJECTS = $(patsubst $(SRCDIR)/%.S,$(TEST_OBJDIR)/%.o,$(ASM_SOURCES))
 
 # Test source files
 CORE_TEST_SRC = $(CORE_SRCDIR)/test.c
@@ -59,28 +69,38 @@ TEST_LIB = $(LIBDIR)/libfam_test.so
 # Default target
 all: $(LIBDIR)/libfam.so
 
-# Rule for library objects (for 'all')
+# Rule for library objects (C files for 'all')
 $(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
 	@mkdir -p $(@D)
 	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(CFLAGS) -c $< -o $@
 
-# Rule for test library objects (for 'test')
+# Rule for assembly objects (for 'all')
+$(OBJDIR)/%.o: $(SRCDIR)/%.S | $(OBJDIR)
+	@mkdir -p $(@D)
+	$(CC) -c $< -o $@
+
+# Rule for test library objects (C files for 'test')
 $(TEST_OBJDIR)/%.o: $(SRCDIR)/%.c | $(TEST_OBJDIR)
 	@mkdir -p $(@D)
 	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(TFLAGS) -fPIC -c $< -o $@
 
-# Rule for test objects
+# Rule for test assembly objects (for 'test')
+$(TEST_OBJDIR)/%.o: $(SRCDIR)/%.S | $(TEST_OBJDIR)
+	@mkdir -p $(@D)
+	$(CC) -c $< -o $@
+
+# Rule for test objects (C files for runtests)
 $(TOBJDIR)/%.o: $(SRCDIR)/%.c | $(TOBJDIR)
 	@mkdir -p $(@D)
 	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(TCFLAGS) -c $< -o $@
 
 # Build shared library (for 'all')
-$(LIBDIR)/libfam.so: $(OBJECTS) | $(LIBDIR)
-	$(CC) $(LDFLAGS) -o $@ $(OBJECTS)
+$(LIBDIR)/libfam.so: $(OBJECTS) $(ASM_OBJECTS) | $(LIBDIR)
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(ASM_OBJECTS)
 
 # Build test shared library (for 'test')
-$(TEST_LIB): $(TEST_OBJECTS) | $(LIBDIR)
-	$(CC) $(LDFLAGS) -o $@ $(TEST_OBJECTS)
+$(TEST_LIB): $(TEST_OBJECTS) $(TEST_ASM_OBJECTS) | $(LIBDIR)
+	$(CC) $(LDFLAGS) -o $@ $(TEST_OBJECTS) $(TEST_ASM_OBJECTS)
 
 # Build test binary
 $(TEST_BIN): $(TEST_OBJ) $(TEST_LIB) | $(BINDIR)
@@ -96,7 +116,7 @@ test: $(TEST_BIN)
 
 # Clean up
 clean:
-	rm -fr $(OBJDIR) $(TOBJDIR) $(TEST_OBJDIR) $(LIBDIR)/*.so $(TEST_BIN)
+	rm -fr $(OBJDIR) $(TOBJDIR) $(TEST_OBJDIR) $(LIBDIR)/*.so $(BINDIR)/*
 
 # Phony targets
 .PHONY: all test clean

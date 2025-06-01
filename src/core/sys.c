@@ -248,9 +248,31 @@ DEFINE_SYSCALL3(2, int, open, const char *, pathname, int, flags, mode_t, mode)
 DEFINE_SYSCALL3(8, off_t, lseek, int, fd, off_t, offset, int, whence)
 DEFINE_SYSCALL1(75, int, fdatasync, int, fd)
 DEFINE_SYSCALL2(77, int, ftruncate, int, fd, off_t, length)
-DEFINE_SYSCALL4(13, int, sigaction, int, signum, const struct sigaction *, act,
-		struct sigaction *, oldact, size_t, sigsetsize)
 DEFINE_SYSCALL1(37, unsigned int, alarm, unsigned int, seconds)
+DEFINE_SYSCALL3(38, int, setitimer, __itimer_which_t, which,
+		const struct itimerval *, new_value, struct itimerval *,
+		old_value)
+DEFINE_SYSCALL2(48, sighandler_t, signal, int, signum, sighandler_t,
+		signal_handler)
+
+static int syscall_sigaction_rt(int signum, const struct kernel_sigaction *act,
+				struct kernel_sigaction *oldact, size_t sz) {
+	long result;
+	__asm__ volatile(
+	    "movq $13"
+	    ", %%rax\n"
+	    "movq %1, %%rdi\n"
+	    "movq %2, %%rsi\n"
+	    "movq %3, %%rdx\n"
+	    "movq %4, %%r10\n"
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)
+	    : "r"((long)(signum)), "r"((long)(act)), "r"((long)(oldact)),
+	      "r"((long)(sz))
+	    : "%rax", "%rcx", "%r11", "%rdi", "%rsi", "%rdx", "%r10", "memory");
+	return result;
+}
 
 pid_t fork(void) {
 	int ret = syscall_fork();
@@ -276,7 +298,8 @@ ssize_t read(int fd, void *buf, size_t count) {
 void exit(int status) {
 	execute_exits();
 	syscall_exit(status);
-	while (true);
+	while (true)
+		;
 }
 int munmap(void *addr, size_t len) {
 	int ret = syscall_munmap(addr, len);
@@ -456,14 +479,25 @@ off_t lseek(int fd, off_t offset, int whence) {
 	SET_ERR
 }
 
-int sigaction(int signum, const struct sigaction *act,
-	      struct sigaction *oldact) {
-	int ret = syscall_sigaction(signum, act, oldact, 8);
+int sigaction_rt(int signum, const struct kernel_sigaction *act,
+		 struct kernel_sigaction *oldact) {
+	int ret = syscall_sigaction_rt(signum, act, oldact, 8);
 	SET_ERR
+}
+
+sighandler_t signal(int signum, sighandler_t handler) {
+	sighandler_t ret = syscall_signal(signum, handler);
+	return ret;
 }
 
 unsigned int alarm(unsigned int seconds) {
 	int ret = syscall_alarm(seconds);
+	SET_ERR
+}
+
+int setitimer(__itimer_which_t which, const struct itimerval *new_value,
+	      struct itimerval *old_value) {
+	int ret = syscall_setitimer(which, new_value, old_value);
 	SET_ERR
 }
 

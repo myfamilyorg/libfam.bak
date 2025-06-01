@@ -22,10 +22,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
+#define _GNU_SOURCE
 #ifndef _SYS_H__
 #define _SYS_H__
 
+#include <signal.h>
 #include <types.h>
 
 typedef struct {
@@ -38,7 +39,6 @@ typedef struct {
 #endif
 } Event;
 
-struct sigaction;
 struct sockaddr;
 
 #define MULTIPLEX_FLAG_NONE 0
@@ -54,6 +54,7 @@ void exit(int);
 int munmap(void *addr, size_t len);
 int close(int fd);
 int fcntl(int fd, int op, ...);
+unsigned int alarm(unsigned int alarm);
 
 /* socket system calls */
 int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
@@ -65,13 +66,10 @@ int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
 int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
 int shutdown(int sockfd, int how);
 int socket(int domain, int type, int protocol);
-int getentropy(void *buffer, size_t length);
-int sigaction(int signum, const struct sigaction *act,
-	      struct sigaction *oldact);
-unsigned int alarm(unsigned int alarm);
 
 /* System calls applied */
-int timeout(void (*task)(void), uint32_t milliseconds);
+int getentropy(void *buffer, size_t length);
+int timeout(void (*task)(int), uint64_t milliseconds);
 void *map(size_t length);
 void *fmap(int fd, off_t offset, off_t size);
 void *smap(size_t length);
