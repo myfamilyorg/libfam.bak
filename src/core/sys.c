@@ -231,12 +231,9 @@ DEFINE_SYSCALL3(2, int, open, const char *, pathname, int, flags, mode_t, mode)
 DEFINE_SYSCALL3(8, off_t, lseek, int, fd, off_t, offset, int, whence)
 DEFINE_SYSCALL1(75, int, fdatasync, int, fd)
 DEFINE_SYSCALL2(77, int, ftruncate, int, fd, off_t, length)
-DEFINE_SYSCALL1(37, unsigned int, alarm, unsigned int, seconds)
 DEFINE_SYSCALL3(38, int, setitimer, __itimer_which_t, which,
 		const struct itimerval *, new_value, struct itimerval *,
 		old_value)
-DEFINE_SYSCALL2(48, sighandler_t, signal, int, signum, sighandler_t,
-		signal_handler)
 
 pid_t fork(void) {
 	int ret = syscall_fork();
