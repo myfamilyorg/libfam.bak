@@ -69,7 +69,7 @@ static void __attribute__((constructor)) _disable_sigpipe__(void) {
 	init_sigmask(&act.k_sa_mask);
 	if (syscall_sigaction_rt(SIGPIPE, &act, NULL, 8) < 0) {
 		const char *msg = "WARNL could not register SIGPIPE handler\n";
-		write(2, msg, strlen(msg));
+		int __attribute__((unused)) v = write(2, msg, strlen(msg));
 	}
 #endif /* __linux__ */
 #ifdef __APPLE__
