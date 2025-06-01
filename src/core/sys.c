@@ -204,6 +204,9 @@ static void syscall_exit(int status) {
 	);
 }
 
+/* Declare execute_exits */
+void execute_exits();
+
 /* System call definitions */
 DEFINE_SYSCALL0(57, pid_t, fork)
 DEFINE_SYSCALL1(22, int, pipe, int *, fds)
@@ -269,7 +272,9 @@ ssize_t read(int fd, void *buf, size_t count) {
 	ssize_t ret = syscall_read(fd, buf, count);
 	SET_ERR
 }
+
 void exit(int status) {
+	execute_exits();
 	syscall_exit(status);
 	while (true);
 }
