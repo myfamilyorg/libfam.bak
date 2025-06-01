@@ -158,7 +158,7 @@ typedef __uint128_t uint128_t;
 
 typedef int32_t pid_t;
 typedef unsigned long size_t;
-typedef int64_t ssize_t;
+typedef long ssize_t;
 
 #endif /* _TYPES_H__ */
 
