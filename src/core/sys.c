@@ -245,12 +245,6 @@ DEFINE_SYSCALL3(2, int, open, const char *, pathname, int, flags, mode_t, mode)
 DEFINE_SYSCALL3(8, off_t, lseek, int, fd, off_t, offset, int, whence)
 DEFINE_SYSCALL1(75, int, fdatasync, int, fd)
 DEFINE_SYSCALL2(77, int, ftruncate, int, fd, off_t, length)
-DEFINE_SYSCALL3(222, int, timer_create, clockid_t, clockid, struct sigevent *,
-		sevp, timer_t *, timerid)
-DEFINE_SYSCALL1(226, int, timer_delete, timer_t, timerid)
-DEFINE_SYSCALL4(223, int, timer_settime, timer_t, timerid, int, flags,
-		const struct itimerspec *, new_value, struct itimerspec *,
-		old_value)
 DEFINE_SYSCALL3(13, int, sigaction, int, signum, const struct sigaction *, act,
 		struct sigaction *, oldact)
 
@@ -475,6 +469,9 @@ int sigaction(int signum, const struct sigaction *act,
 	int ret = syscall_sigaction(signum, act, oldact);
 	SET_ERR
 }
+
+typedef typeof(void(int)) *sighandler_t;
+sighandler_t signal(int signum, sighandler_t handler);
 
 #endif /* __linux__ */
 
