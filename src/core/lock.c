@@ -66,10 +66,9 @@ void lockguard_cleanup(LockGuardImpl *lg) {
 }
 
 LockGuardImpl lock_read(Lock *lock) {
-	uint64_t state, desired, do_yield = 0;
+	uint64_t state, desired;
 	LockGuardImpl ret;
 	do {
-		if (do_yield++) yield();
 		state = ALOAD(lock) & ~(WFLAG | WREQUEST);
 		desired = state + 1;
 	} while (!CAS(lock, &state, desired));
@@ -79,10 +78,9 @@ LockGuardImpl lock_read(Lock *lock) {
 }
 
 LockGuardImpl lock_write(Lock *lock) {
-	uint64_t state, desired, do_yield = 0;
+	uint64_t state, desired;
 	LockGuardImpl ret;
 	do {
-		if (do_yield++) yield();
 		state = ALOAD(lock) & ~(WFLAG | WREQUEST);
 		if (state == 0)
 			desired = WFLAG;
@@ -95,10 +93,7 @@ LockGuardImpl lock_write(Lock *lock) {
 	start_loop:
 		do {
 			state = ALOAD(lock);
-			if (state != WREQUEST) {
-				yield();
-				goto start_loop;
-			}
+			if (state != WREQUEST) goto start_loop;
 		} while (!CAS(lock, &state, desired));
 	}
 	ret.lock = lock;

@@ -78,7 +78,6 @@ off_t fsize(int fd);
 int fresize(int fd, off_t length);
 int flush(int fd);
 int64_t micros(void);
-int yield(void);
 int sleepm(uint64_t millis);
 int multiplex(void);
 int mregister(int multiplex, int fd, int flags, void *attach);

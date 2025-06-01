@@ -44,7 +44,6 @@
 #include <sys/random.h>
 STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), event_match);
 #elif defined(__APPLE__)
-int sched_yield(void);
 int fdatasync(int);
 #include <dispatch/dispatch.h>
 #include <errno.h>
@@ -233,7 +232,6 @@ DEFINE_SYSCALL3(318, int, getrandom, void *, buffer, size_t, length,
 		unsigned int, flags)
 DEFINE_SYSCALL6(9, void *, mmap, void *, addr, size_t, length, int, prot, int,
 		flags, int, fd, long, offset)
-DEFINE_SYSCALL0(24, int, sched_yield)
 DEFINE_SYSCALL2(35, int, nanosleep, const struct timespec *, req,
 		struct timespec *, rem)
 DEFINE_SYSCALL2(96, int, gettimeofday, struct timeval *, tv, void *, tz)
@@ -279,8 +277,7 @@ ssize_t read(int fd, void *buf, size_t count) {
 void exit(int status) {
 	execute_exits();
 	syscall_exit(status);
-	while (true)
-		;
+	while (true);
 }
 int munmap(void *addr, size_t len) {
 	int ret = syscall_munmap(addr, len);
@@ -411,10 +408,6 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	return ret;
 }
 
-int sched_yield(void) {
-	int ret = syscall_sched_yield();
-	SET_ERR
-}
 int nanosleep(const struct timespec *req, struct timespec *rem) {
 	int ret = syscall_nanosleep(req, rem);
 	SET_ERR
@@ -654,13 +647,6 @@ off_t fsize(int fd) {
 	return ret;
 }
 
-int yield(void) {
-	int ret = sched_yield();
-#ifdef __APPLE__
-	if (ret == -1) err = errno;
-#endif
-	return ret;
-}
 int fresize(int fd, off_t length) {
 	int ret = ftruncate(fd, length);
 #ifdef __APPLE__
