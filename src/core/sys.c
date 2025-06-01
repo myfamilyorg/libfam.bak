@@ -722,7 +722,7 @@ int flush(int fd) {
 	return ret;
 }
 
-#ifdef __linux_
+#ifdef __linux__
 typedef struct {
 	void (*task)(void);
 	timer_t timerid;
