@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include <errno.h>
 #include <error.h>
+#include <misc.h>
 #include <signal.h>
 #include <stdio.h>
 #include <sys.h>
@@ -56,6 +57,32 @@ static int syscall_sigaction_rt(int signum, const struct kernel_sigaction *act,
 	return result;
 }
 #endif /* __linux__ */
+
+void sig_ign(int __attribute((unused)) sig) {}
+
+static void __attribute__((constructor)) _disable_sigpipe__(void) {
+#ifdef __linux__
+	struct kernel_sigaction act = {0};
+	act.k_sa_handler = sig_ign;
+	act.k_sa_flags = SA_RESTORER;
+	act.k_sa_restorer = sigaction_restorer;
+	init_sigmask(&act.k_sa_mask);
+	if (syscall_sigaction_rt(SIGPIPE, &act, NULL, 8) < 0) {
+		const char *msg = "WARNL could not register SIGPIPE handler\n";
+		write(2, msg, strlen(msg));
+	}
+#endif /* __linux__ */
+#ifdef __APPLE__
+	struct sigaction act = {0};
+	act.sa_handler = sig_ign;
+	act.sa_flags = 0;
+	sigemptyset(&act.sa_mask);
+	if (sigaction(SIGPIPE, &act, NULL) < 0) {
+		const char *msg = "WARNL could not register SIGPIPE handler\n";
+		write(2, msg, strlen(msg));
+	}
+#endif /* __APPLE__ */
+}
 
 /* Signal handler for SIGALRM */
 void timeout_handler(void) { printf("timeout handler\n"); }

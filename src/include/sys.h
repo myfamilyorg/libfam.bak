@@ -54,7 +54,6 @@ void exit(int);
 int munmap(void *addr, size_t len);
 int close(int fd);
 int fcntl(int fd, int op, ...);
-unsigned int alarm(unsigned int alarm);
 
 /* socket system calls */
 int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
