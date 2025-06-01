@@ -129,6 +129,8 @@ const char *error_string(int err_code) {
 			return "Directory not empty";
 		case ELOOP:
 			return "Too many levels of symbolic links";
+		case EOVERFLOW:
+			return "Numerical overflow";
 		default:
 			return "Unknown error";
 	}

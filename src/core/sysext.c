@@ -43,9 +43,11 @@ int fdatasync(int fd);
 #include <unistd.h>
 
 static int has_begun = 0;
+void _setup_signals__(void);
 
 void begin(void) {
 	if (!has_begun) {
+		_setup_signals__();
 		has_begun = 1;
 	}
 }

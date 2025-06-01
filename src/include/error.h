@@ -81,6 +81,9 @@
 #define ENOTEMPTY 39	/* Directory not empty */
 #define ELOOP 40	/* Too many symbolic links encountered */
 #define EWOULDBLOCK EAGAIN
+
+/* libfam specific codes */
+#define EOVERFLOW 200
 #endif /* EPERM */
 
 extern int err;
