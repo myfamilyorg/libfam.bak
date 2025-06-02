@@ -2,6 +2,8 @@
 #include <lock.h>
 #include <robust.h>
 #include <sys.h>
+#include <sys/wait.h>
+#include <time.h>
 #include <types.h>
 
 Test(core, types) {
@@ -226,7 +228,7 @@ void tfun3() {
 
 Test(core, timeout1) {
 	timeout(tfun1, 100);
-	sleepm(1000);
+	sleepm(300);
 	LockGuard l = rlock(&tfunlock);
 	cr_assert_eq(tfunv1, 1);
 }
