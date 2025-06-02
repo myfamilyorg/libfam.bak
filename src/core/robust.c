@@ -107,6 +107,7 @@ void robustguard_cleanup(RobustGuardImpl *rg) {
 RobustGuard robust_lock(RobustLock *lock) {
 	RobustGuardImpl ret;
 	int count = 0, nport;
+	uint64_t do_yield = 0;
 	uint16_t desired, expected = 0, port;
 
 	ctx.requesting_lock = true;
@@ -120,6 +121,7 @@ RobustGuard robust_lock(RobustLock *lock) {
 	desired = ctx.port;
 start_loop:
 	do {
+		if (do_yield++) yield();
 		if ((port = ALOAD(lock)) == 0)
 			expected = 0;
 		else {

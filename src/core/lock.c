@@ -52,9 +52,10 @@ void lockguard_cleanup(LockGuardImpl *lg) {
 }
 
 LockGuardImpl rlock(Lock *lock) {
-	uint64_t state, desired;
+	uint64_t state, desired, do_yield = 0;
 	LockGuardImpl ret;
 	do {
+		if (do_yield++) yield();
 		state = ALOAD(lock) & ~(WFLAG | WREQUEST);
 		desired = state + 1;
 	} while (!CAS(lock, &state, desired));
@@ -64,9 +65,10 @@ LockGuardImpl rlock(Lock *lock) {
 }
 
 LockGuardImpl wlock(Lock *lock) {
-	uint64_t state, desired;
+	uint64_t state, desired, do_yield = 0;
 	LockGuardImpl ret;
 	do {
+		if (do_yield++) yield();
 		state = ALOAD(lock) & ~(WFLAG | WREQUEST);
 		if (state == 0)
 			desired = WFLAG;
@@ -76,8 +78,10 @@ LockGuardImpl wlock(Lock *lock) {
 
 	if (desired != WFLAG) {
 		desired = WFLAG;
+		do_yield = 0;
 	start_loop:
 		do {
+			if (do_yield++) yield();
 			state = ALOAD(lock);
 			if (state != WREQUEST) goto start_loop;
 		} while (!CAS(lock, &state, desired));
