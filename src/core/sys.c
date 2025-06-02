@@ -216,6 +216,7 @@ DEFINE_SYSCALL6(9, void *, mmap, void *, addr, size_t, length, int, prot, int,
 		flags, int, fd, long, offset)
 DEFINE_SYSCALL2(35, int, nanosleep, const struct timespec *, req,
 		struct timespec *, rem)
+DEFINE_SYSCALL0(24, int, sched_yield)
 DEFINE_SYSCALL2(96, int, gettimeofday, struct timeval *, tv, void *, tz)
 DEFINE_SYSCALL2(164, int, settimeofday, const struct timeval *, tv,
 		const void *, tz)
@@ -250,6 +251,11 @@ ssize_t write(int fd, const void *buf, size_t count) {
 }
 ssize_t read(int fd, void *buf, size_t count) {
 	ssize_t ret = syscall_read(fd, buf, count);
+	SET_ERR
+}
+
+int sched_yield(void) {
+	int ret = syscall_sched_yield();
 	SET_ERR
 }
 
@@ -437,5 +443,9 @@ int setitimer(__itimer_which_t which, const struct itimerval *new_value,
 	int ret = syscall_setitimer(which, new_value, old_value);
 	SET_ERR
 }
+
+int yield(void) {
+	int ret = syscall_yield();
+	SET_ERR
 
 #endif /* __linux__ */

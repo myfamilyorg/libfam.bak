@@ -164,3 +164,13 @@ int flush(int fd) {
 	return ret;
 }
 
+#ifdef __APPLE__
+int sched_yield(void);
+#endif /* __APPLE__ */
+int yield(void) {
+	int ret = sched_yield();
+#ifdef __APPLE__
+	if (ret == -1) err = errno;
+#endif
+	return ret;
+}
