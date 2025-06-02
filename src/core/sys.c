@@ -262,7 +262,8 @@ int sched_yield(void) {
 void exit(int status) {
 	execute_exits();
 	syscall_exit(status);
-	while (true);
+	while (true)
+		;
 }
 int munmap(void *addr, size_t len) {
 	int ret = syscall_munmap(addr, len);
@@ -443,9 +444,5 @@ int setitimer(__itimer_which_t which, const struct itimerval *new_value,
 	int ret = syscall_setitimer(which, new_value, old_value);
 	SET_ERR
 }
-
-int yield(void) {
-	int ret = syscall_yield();
-	SET_ERR
 
 #endif /* __linux__ */

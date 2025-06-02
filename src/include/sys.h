@@ -67,6 +67,7 @@ int socket(int domain, int type, int protocol);
 /* System calls applied */
 void signals_init(void);
 int getentropy(void *buffer, size_t length);
+int yield(void);
 int timeout(void (*task)(void), uint64_t milliseconds);
 void *map(size_t length);
 void *fmap(int fd, off_t offset, off_t size);
