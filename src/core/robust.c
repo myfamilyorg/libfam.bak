@@ -34,118 +34,121 @@
 typedef struct {
 	int sock;
 	uint16_t port;
+	uint64_t last_lock_micros;
+	bool requesting_lock;
 } RobustCtx;
+
+#define IDLE_MAX_MILLIS 5000
+#define CHECK_DISCONNECT_MILLIS 10000
 
 static RobustCtx ctx;
 static struct sockaddr_in address = {0};
-
 static int opt = 1;
 unsigned int addr_len = sizeof(address);
 
-STATIC void robust_connect(uint16_t port) {
-	uint8_t addr[4] = {127, 0, 0, 1};
-	printf("robust connect %u\n", port);
-	address.sin_port = port;
-	address.sin_family = AF_INET;
-	memcpy(&address.sin_addr.s_addr, addr, 4);
-
-	ctx.sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (ctx.sock == -1) {
-		perror("socket");
-		return;
-	}
-	if (setsockopt(ctx.sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) ==
-	    -1) {
-		perror("setsocketop");
+STATIC void robust_check_disconnect() {
+	uint64_t now = micros();
+	if (!ctx.requesting_lock &&
+	    now - ctx.last_lock_micros > (IDLE_MAX_MILLIS * 1000)) {
 		close(ctx.sock);
-		return;
-	}
-	printf("bind ctx.sock=%i\n", ctx.sock);
-	if (bind(ctx.sock, (struct sockaddr *)&address, sizeof(address)) ==
-	    -1) {
-		perror("bind");
-		close(ctx.sock);
-		return;
-	}
-	if (listen(ctx.sock, 1)) {
-		perror("listen");
-		close(ctx.sock);
-		return;
-	}
-	if (getsockname(ctx.sock, (struct sockaddr *)&address, &addr_len) ==
-	    -1) {
-		perror("getsockname");
-		close(ctx.sock);
-		return;
-	}
-	ctx.port = ntohs(address.sin_port);
-	if (ctx.port == 0) {
-		perror("port==0");
-		close(ctx.sock);
+		ctx.sock = 0;
+		ctx.port = 0;
+	} else {
+		timeout(robust_check_disconnect, CHECK_DISCONNECT_MILLIS);
 	}
 }
 
+STATIC uint16_t robust_connect(uint16_t port) {
+	int sock;
+	address.sin_port = ntohs(port);
+
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock == -1) {
+		perror("socket");
+		return 0;
+	}
+	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) ==
+	    -1) {
+		perror("setsocketop");
+		close(sock);
+		return 0;
+	}
+	if (bind(sock, (struct sockaddr *)&address, sizeof(address)) == -1) {
+		close(sock);
+		return 0;
+	}
+	if (listen(sock, 1)) {
+		close(sock);
+		return 0;
+	}
+	if (getsockname(sock, (struct sockaddr *)&address, &addr_len) == -1) {
+		perror("getsockname");
+		close(sock);
+		return 0;
+	}
+	port = ntohs(address.sin_port);
+	if (port == 0) {
+		perror("port==0");
+		close(sock);
+	} else {
+		if (ctx.sock) close(ctx.sock);
+		ctx.sock = sock;
+	}
+	return port;
+}
+
 void robustguard_cleanup(RobustGuardImpl *rg) {
-	if (*rg->lock != ctx.port)
+	if (ALOAD(rg->lock) != ctx.port)
 		panic(
 		    "RobustLock Error: tried to cleanup a lock we don't own!");
-	rg->lock = 0;
+	ASTORE(rg->lock, 0);
 }
 
 RobustGuard robust_lock(RobustLock *lock) {
 	RobustGuardImpl ret;
-	int count = 0, sock;
-	uint16_t desired, expected = 0, port, prev_port;
+	int count = 0, nport;
+	uint16_t desired, expected = 0, port;
+
+	ctx.requesting_lock = true;
 
 	while (!ctx.port) {
+		ctx.port = robust_connect(0);
 		if (++count > 128)
 			panic(
 			    "RobustLock: too many attempts to create a socket");
-		robust_connect(0);
 	}
-
 	desired = ctx.port;
-
 start_loop:
 	do {
-		if ((port = ALOAD(lock)) == 0) {
+		if ((port = ALOAD(lock)) == 0)
 			expected = 0;
-		} else {
+		else {
 			if (port == ctx.port)
 				panic(
 				    "RobustLock Error: tried to obtain our own "
 				    "lock!");
-			sock = ctx.sock;      /* Save our old socket */
-			prev_port = ctx.port; /* Save our old port */
-			robust_connect(port);
-			if (ctx.port == port) {
-				/* We connected other process died. Close old
-				 * sock and continue. */
-				close(sock);
+			nport = robust_connect(port);
+			if (nport == port) {
+				ctx.port = nport;
 				break;
-			} else {
-				printf("other proc still holds lock\n");
-				/* Other process still holds lock */
-				ctx.sock = sock;      /* Restore old sock */
-				ctx.port = prev_port; /* Restore old port */
+			} else
 				goto start_loop;
-			}
 		}
 	} while (!CAS(lock, &expected, desired));
 
+	ctx.last_lock_micros = micros();
+	ctx.requesting_lock = false;
+	/* Check if we should disconnect in 60 seconds */
+	timeout(robust_check_disconnect, CHECK_DISCONNECT_MILLIS);
 	ret.lock = lock;
 	return ret;
 }
 
 void __attribute__((constructor)) robust_init(void) {
 	uint8_t addr[4] = {127, 0, 0, 1};
-
-	ctx.sock = 0;
-	ctx.port = 0;
+	ctx.sock = ctx.port = 0;
 	address.sin_family = AF_INET;
 	address.sin_port = 0;
 	memcpy(&address.sin_addr.s_addr, addr, 4);
-
-	printf("robust init\n");
 }
 
