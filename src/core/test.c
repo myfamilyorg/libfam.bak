@@ -175,7 +175,8 @@ Test(core, lock4) {
 		}
 
 		// ensure that child1 succeeds and is second to update value2
-		while (!ALOAD(&state->value3));
+		while (!ALOAD(&state->value3))
+			;
 
 	} else {
 		if (two()) {
@@ -260,7 +261,8 @@ Test(core, timeout3) {
 		cr_assert_eq(tfunv1, 1);
 		cr_assert_eq(tfunv2, 1);
 		cr_assert_eq(tfunv3, 1);
-		while (!ALOAD(&state->value1));
+		while (!ALOAD(&state->value1))
+			;
 	} else {
 		timeout(tfun3, 150);
 		for (int i = 0; i < 3; i++) sleepm(200);
@@ -293,6 +295,7 @@ Test(core, robust2) {
 
 	if (two()) {
 		while (true) {
+			sleepm(1);
 			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value) == 1) break;
 		}
@@ -314,6 +317,7 @@ Test(core, robust3) {
 
 	if (two()) {
 		while (true) {
+			sleepm(1);
 			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value) == 1) break;
 		}
@@ -334,6 +338,7 @@ Test(core, robust4) {
 
 	if (two()) {
 		while (true) {
+			sleepm(1);
 			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value) % 2 == 0)
 				AADD(&state->value, 1);
@@ -341,12 +346,14 @@ Test(core, robust4) {
 		}
 		ASTORE(&state->value2, 1);
 		while (true) {
+			sleepm(1);
 			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value2) == 0) break;
 		}
 		cr_assert_eq(ALOAD(&state->value2), 0);
 	} else {
 		while (true) {
+			sleepm(1);
 			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value) % 2 == 1) {
 				AADD(&state->value, 1);
@@ -354,6 +361,7 @@ Test(core, robust4) {
 			if (ALOAD(&state->value) >= 11) break;
 		}
 		while (true) {
+			sleepm(1);
 			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value2) == 1) break;
 		}
@@ -386,6 +394,7 @@ Test(core, robust_multi_process) {
 	for (int i = 0; i < N; i++) {
 		if ((pids[i] = two()) == 0) {
 			while (ALOAD(&state->value) < 1000) {
+				sleepm(1);
 				RobustGuard rg = robust_lock(&state->lock);
 				if (ALOAD(&state->value) < 1000) {
 					AADD(&state->value, 1);
@@ -397,6 +406,7 @@ Test(core, robust_multi_process) {
 	struct timespec start, now;
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	while (ALOAD(&state->value) < 1000) {
+		sleepm(1);
 		RobustGuard rg = robust_lock(&state->lock);
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		if ((now.tv_sec - start.tv_sec) > 5) {	// 5s timeout
@@ -433,6 +443,7 @@ Test(core, robust_timeout) {
 		struct timespec start, now;
 		clock_gettime(CLOCK_MONOTONIC, &start);
 		while (ALOAD(&state->value) != 1) {
+			sleepm(1);
 			RobustGuard rg = robust_lock(&state->lock);
 			clock_gettime(CLOCK_MONOTONIC, &now);
 			if ((now.tv_sec - start.tv_sec) > 2) {	// 2s timeout
@@ -465,10 +476,8 @@ Test(core, robust_performance) {
 	double non_contended_ns =
 	    (end.tv_sec - start.tv_sec) * 1e9 + (end.tv_nsec - start.tv_nsec);
 
-	/*
-	printf("Non-contended: %.2f ns per lock+unlock\n",
-	       non_contended_ns / N);
-	       */
+	// printf("Non-contended: %.2f ns per lock+unlock\n",
+	//       non_contended_ns / N);
 
 	cr_assert_eq(ALOAD(&state->value), N);
 
