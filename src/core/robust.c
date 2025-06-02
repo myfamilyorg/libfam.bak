@@ -81,6 +81,7 @@ STATIC uint16_t robust_connect(uint16_t port) {
 		close(sock);
 		return 0;
 	}
+	addr_len = sizeof(address);
 	if (getsockname(sock, (struct sockaddr *)&address, &addr_len) == -1) {
 		perror("getsockname");
 		close(sock);
@@ -140,7 +141,7 @@ start_loop:
 
 	ctx.last_lock_micros = micros();
 	ctx.requesting_lock = false;
-	/* Check if we should disconnect in 60 seconds */
+	/* Check if we should disconnect in the specified time */
 	timeout(robust_check_disconnect, CHECK_DISCONNECT_MILLIS);
 	ret.lock = lock;
 	return ret;
