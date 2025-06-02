@@ -29,6 +29,7 @@
 
 void panic(const char *msg) {
 	write(2, msg, strlen(msg));
+	write(2, "\n", 1);
 	exit(-1);
 }
 

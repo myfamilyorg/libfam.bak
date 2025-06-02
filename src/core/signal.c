@@ -105,7 +105,7 @@ STATIC void timeout_handler(int __attribute__((unused)) v) {
 	set_next_timer(now);
 }
 
-void __attribute__((constructor)) _setup_signals__(void) {
+void __attribute__((constructor)) signals_init(void) {
 #ifdef __linux__
 	struct kernel_sigaction act = {0};
 	struct kernel_sigaction act2 = {0};

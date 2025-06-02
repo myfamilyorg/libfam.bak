@@ -65,6 +65,7 @@ int shutdown(int sockfd, int how);
 int socket(int domain, int type, int protocol);
 
 /* System calls applied */
+void signals_init(void);
 int getentropy(void *buffer, size_t length);
 int timeout(void (*task)(void), uint64_t milliseconds);
 void *map(size_t length);

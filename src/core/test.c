@@ -1,5 +1,6 @@
 #include <criterion/criterion.h>
 #include <lock.h>
+#include <robust.h>
 #include <sys.h>
 #include <types.h>
 
@@ -268,3 +269,38 @@ Test(core, timeout3) {
 		exit(0);
 	}
 }
+
+Test(core, robust1) {
+	RobustLock l1 = ROBUST_LOCK_INIT;
+	cr_assert(!l1);
+	RobustGuard rg = robust_lock(&l1);
+	cr_assert(l1);
+}
+
+typedef struct {
+	RobustLock lock;
+	int value;
+	int value2;
+} RobustSharedState;
+
+Test(core, robust2) {
+	void *base = smap(sizeof(RobustSharedState));
+	RobustSharedState *state = (RobustSharedState *)base;
+	state->lock = ROBUST_LOCK_INIT;
+	state->value = 0;
+
+	if (two()) {
+		while (true) {
+			RobustGuard rg = robust_lock(&state->lock);
+			if (ALOAD(&state->value) == 1) break;
+		}
+	} else {
+		// ensure we don't unlock by using RobustGuardImpl
+		// (without RAII)
+		RobustGuardImpl rg = robust_lock(&state->lock);
+		sleepm(300);
+		AADD(&state->value, 1);
+		exit(0);
+	}
+}
+

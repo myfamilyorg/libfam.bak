@@ -38,16 +38,17 @@ int fdatasync(int fd);
 #endif /* __APPLE__ */
 #include <error.h>
 #include <fcntl.h>
+#include <robust.h>
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 
 static int has_begun = 0;
-void _setup_signals__(void);
 
 void begin(void) {
 	if (!has_begun) {
-		_setup_signals__();
+		signals_init();
+		robust_init();
 		has_begun = 1;
 	}
 }

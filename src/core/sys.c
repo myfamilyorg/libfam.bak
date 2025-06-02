@@ -256,8 +256,7 @@ ssize_t read(int fd, void *buf, size_t count) {
 void exit(int status) {
 	execute_exits();
 	syscall_exit(status);
-	while (true)
-		;
+	while (true);
 }
 int munmap(void *addr, size_t len) {
 	int ret = syscall_munmap(addr, len);
