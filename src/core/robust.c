@@ -41,6 +41,42 @@ typedef struct {
 #define IDLE_MAX_MILLIS 5000
 #define CHECK_DISCONNECT_MILLIS 10000
 
+static int write_u64(int fd, uint64_t value) {
+	char buffer[20];
+	int len = 0;
+	int i, j;
+	ssize_t bytes_written;
+
+	if (value == 0) {
+		buffer[0] = '0';
+		len = 1;
+	} else {
+		while (value > 0) {
+			if (len >= 20) {
+				err = EOVERFLOW;
+				return -1;
+			}
+			buffer[len++] = '0' + (value % 10);
+			value /= 10;
+		}
+	}
+
+	for (i = 0, j = len - 1; i < j; i++, j--) {
+		char temp = buffer[i];
+		buffer[i] = buffer[j];
+		buffer[j] = temp;
+	}
+
+	bytes_written = write(fd, buffer, len);
+	if (bytes_written == -1) return -1;
+	if (bytes_written != len) {
+		err = EIO;
+		return -1;
+	}
+
+	return 0;
+}
+
 static RobustCtx ctx;
 static struct sockaddr_in address = {0};
 static int opt = 1;
@@ -99,9 +135,16 @@ STATIC uint16_t robust_connect(uint16_t port) {
 }
 
 void robustguard_cleanup(RobustGuardImpl *rg) {
-	if (ALOAD(rg->lock) != ctx.port)
+	uint64_t v;
+	if ((v = ALOAD(rg->lock)) != ctx.port) {
+		write(2, "lock: ", 6);
+		write_u64(2, v);
+		write(2, "\nctx.port: ", 11);
+		write_u64(2, ctx.port);
+		write(2, "\n", 1);
 		panic(
 		    "RobustLock Error: tried to cleanup a lock we don't own!");
+	}
 	ctx.lock_count--;
 	ASTORE(rg->lock, 0);
 }
