@@ -13,13 +13,7 @@ CFLAGS  = -fPIC \
 TFLAGS  = $(CSTYLE) -fno-builtin -O1 -Wno-unknown-warning-option -Wno-nonnull-compare -Isrc/include -Wno-attributes -DSTATIC=
 TCFLAGS = -O1 -Isrc/include -Wno-attributes -DSTATIC=
 UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Linux)
-    LDFLAGS = -shared -nostdlib -ffreestanding
-else ifeq ($(UNAME_S),Darwin)
-    LDFLAGS = -shared
-else
-    $(error Unsupported platform: $(UNAME_S))
-endif
+LDFLAGS = -shared -nostdlib -ffreestanding
 FILTER  = "*"
 PAGE_SIZE = 16384
 MEMSAN ?= 0
@@ -49,11 +43,7 @@ OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
 TEST_OBJECTS = $(patsubst $(SRCDIR)/%.c,$(TEST_OBJDIR)/%.o,$(SOURCES))
 
 # Assembly source files
-ifeq ($(UNAME_S),Linux)
-    ASM_SOURCES = $(wildcard $(ASM_SRCDIR)/*.S)
-else
-    ASM_SOURCES =
-endif
+ASM_SOURCES = $(wildcard $(ASM_SRCDIR)/*.S)
 ASM_OBJECTS = $(patsubst $(SRCDIR)/%.S,$(OBJDIR)/%.o,$(ASM_SOURCES))
 TEST_ASM_OBJECTS = $(patsubst $(SRCDIR)/%.S,$(TEST_OBJDIR)/%.o,$(ASM_SOURCES))
 
