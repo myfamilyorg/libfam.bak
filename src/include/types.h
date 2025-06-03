@@ -49,4 +49,16 @@ typedef int32_t pid_t;
 typedef unsigned long size_t;
 typedef long ssize_t;
 
+#ifndef bool
+#define bool uint8_t
+#endif
+
+#ifndef false
+#define false (bool)0
+#endif
+
+#ifndef true
+#define true (bool)1
+#endif
+
 #endif /* _TYPES_H__ */
