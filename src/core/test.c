@@ -4,6 +4,7 @@
 #include <robust.h>
 #include <sys.h>
 #include <sys/wait.h>
+#include <test.h>
 #include <time.h>
 #include <types.h>
 
@@ -501,50 +502,36 @@ Test(core, robust_performance) {
 }
 
 Test(core, alloc1) {
-	void *t1, *t2, *t3, *t4, *t5;
-	/*
-	void *t1 = alloc(CHUNK_SIZE);
-	void *t2 = alloc(CHUNK_SIZE);
-	printf("t1=%llu,t2=%llu\n", t1, t2);
-	void *t3;
-	cr_assert(t1 + CHUNK_SIZE == t2);
+	char *t1, *t2, *t3, *t4, *t5;
+	t1 = alloc(CHUNK_SIZE);
+	t4 = alloc(8);
+	t5 = alloc(8);
+	t4[0] = 1;
+	t5[0] = 1;
+	cr_assert(t4 != t5);
+	release(t4);
+	release(t5);
+	t4 = alloc(8);
+	t5 = alloc(8);
+	ASSERT_BYTES(16 + CHUNK_SIZE);
+	release(t4);
+	release(t5);
+	release(t1);
+	ASSERT_BYTES(0);
+
+	t1 = alloc(1024 * 1024);
+	cr_assert(t1);
+	t2 = alloc(1024 * 1024);
+	cr_assert(t2);
+	t3 = alloc(1024 * 1024);
+	cr_assert(t3);
+	t4 = alloc(1024 * 1024);
+	cr_assert(t4);
+	ASSERT_BYTES(4 * 1024 * 1024);
 	release(t1);
 	release(t2);
-	t3 = alloc(CHUNK_SIZE);
-	printf("t1=%lu,t3=%lu\n", t1, t3);
-	cr_assert_eq(t1, t3);
-
-	void *t4 = alloc(8);
-	void *t5 = alloc(8);
-	printf("t4=%llu,t5=%llu\n", t4, t5);
+	release(t3);
 	release(t4);
-	release(t5);
-	*/
-	t4 = alloc(8);
-	t5 = alloc(8);
-	printf("t4=%llu,t5=%llu\n", t4, t5);
-	release(t4);
-	release(t5);
-	t4 = alloc(8);
-	t5 = alloc(8);
-	printf("t4=%llu,t5=%llu\n", t4, t5);
+	ASSERT_BYTES(0);
 }
 
-/*
-Test(core, robust_timeout2) {
-	void *base = smap(sizeof(RobustSharedState));
-	RobustSharedState *state = (RobustSharedState *)base;
-	{
-		RobustGuard rg = robust_lock(&state->lock);
-		AADD(&state->value, 1);
-	}
-
-	sleepm(20000);
-	sleepm(3000);
-	{
-		RobustGuard rg = robust_lock(&state->lock);
-		AADD(&state->value, 1);
-	}
-	sleepm(10000);
-}
-*/

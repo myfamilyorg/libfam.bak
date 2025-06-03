@@ -23,30 +23,8 @@
  *
  *******************************************************************************/
 
-#ifndef _ALLOC_H__
-#define _ALLOC_H__
-
-#include <sys.h>
-#include <types.h>
-
-#ifndef CHUNK_SIZE
-#define CHUNK_SIZE (0x1 << 22) /* 4mb */
-#endif
-
-#ifndef MAX_SLAB_SIZE
-#define MAX_SLAB_SIZE (CHUNK_SIZE >> 2) /* 1mb */
-#endif
-
-#ifndef MEMSAN
-#define MEMSAN 0 /* Disabled by default */
-#endif
-
-void *alloc(size_t size);
-void release(void *ptr);
-void *resize(void *ptr, size_t size);
-
 #if MEMSAN == 1
-uint64_t get_allocated_bytes(void);
+#define ASSERT_BYTES(v) cr_assert_eq(get_allocated_bytes(), v)
+#else
+#define ASSERT_BYTES(v)
 #endif /* MEMSAN */
-
-#endif /* _ALLOC_H__ */

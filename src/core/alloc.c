@@ -77,8 +77,8 @@
 		       !CAS(last_free_ptr, &expected, new_last_free))     \
 			expected = ALOAD(last_free_ptr);                  \
 	} while (0)
-#define CHUNK_OFFSET                                                 \
-	((uint8_t *)((size_t)memory_base + sizeof(AllocHeaderData) + \
+#define CHUNK_OFFSET                                             \
+	((uint8_t *)((size_t)memory_base + sizeof(AllocHeader) + \
 		     bitmap_pages * PAGE_SIZE))
 #define BITMAP_CAPACITY(slab_size) \
 	((8UL * (CHUNK_SIZE - sizeof(Chunk))) / (1 + 8 * (slab_size)))
@@ -103,6 +103,11 @@ typedef struct {
 static void *memory_base = NULL;
 static uint64_t bitmap_pages = 0;
 static uint64_t bitmap_bits = 0;
+
+#if MEMSAN == 1
+static uint64_t allocated_bytes = 0;
+uint64_t get_allocated_bytes(void) { return allocated_bytes; }
+#endif /* MEMSAN */
 
 STATIC size_t get_memory_bytes(void) {
 	size_t shm_size = SHM_SIZE_DEFAULT;
@@ -218,6 +223,10 @@ STATIC void *allocate_slab(size_t size) {
 		cur = atomic_load_or_allocate(&chunk->next, slab_size);
 	}
 
+#if MEMSAN == 1
+	if (ret_ptr) allocated_bytes += size;
+#endif /* MEMSAN */
+
 	return ret_ptr;
 }
 
@@ -228,6 +237,10 @@ void *alloc(size_t size) {
 	} else if (size > MAX_SLAB_SIZE) {
 		uint64_t chunk = allocate_chunk();
 		if (chunk == (uint64_t)-1) return NULL;
+#if MEMSAN == 1
+		allocated_bytes += size;
+#endif /* MEMSAN */
+
 		return (void *)((size_t)memory_base + sizeof(AllocHeader) +
 				bitmap_pages * PAGE_SIZE + CHUNK_SIZE * chunk);
 	} else {
@@ -252,6 +265,9 @@ void release(void *ptr) {
 	if (offset % CHUNK_SIZE == 0) {
 		RELEASE_BIT((void *)((size_t)memory_base + sizeof(AllocHeader)),
 			    offset / CHUNK_SIZE, &alloc_header->data.last_free);
+#if MEMSAN == 1
+		allocated_bytes -= CHUNK_SIZE;
+#endif /* MEMSAN */
 	} else {
 		Chunk *chunk = (Chunk *)(CHUNK_OFFSET +
 					 (offset / CHUNK_SIZE) * CHUNK_SIZE);
@@ -261,6 +277,9 @@ void release(void *ptr) {
 		uint64_t index =
 		    ((size_t)ptr - ((size_t)base + bitmap_size)) / slab_size;
 		RELEASE_BIT(base, index, &chunk->last_free);
+#if MEMSAN == 1
+		allocated_bytes -= slab_size;
+#endif /* MEMSAN */
 	}
 }
 
