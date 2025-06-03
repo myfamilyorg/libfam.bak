@@ -342,7 +342,7 @@ Test(core, robust4) {
 			RobustGuard rg = robust_lock(&state->lock);
 			if (ALOAD(&state->value) % 2 == 0)
 				AADD(&state->value, 1);
-			if (ALOAD(&state->value) >= 11) break;
+			if (ALOAD(&state->value) >= 1111) break;
 		}
 		ASTORE(&state->value2, 1);
 		while (true) {
@@ -358,7 +358,7 @@ Test(core, robust4) {
 			if (ALOAD(&state->value) % 2 == 1) {
 				AADD(&state->value, 1);
 			}
-			if (ALOAD(&state->value) >= 11) break;
+			if (ALOAD(&state->value) >= 1111) break;
 		}
 		while (true) {
 			yield();
