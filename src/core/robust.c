@@ -35,7 +35,7 @@ typedef struct {
 	int sock;
 	uint16_t port;
 	uint64_t last_lock_micros;
-	bool requesting_lock;
+	uint64_t lock_count;
 } RobustCtx;
 
 #define IDLE_MAX_MILLIS 5000
@@ -48,7 +48,7 @@ unsigned int addr_len = sizeof(address);
 
 STATIC void robust_check_disconnect() {
 	uint64_t now = micros();
-	if (!ctx.requesting_lock &&
+	if (!ctx.lock_count &&
 	    now - ctx.last_lock_micros > (IDLE_MAX_MILLIS * 1000)) {
 		close(ctx.sock);
 		ctx.sock = 0;
@@ -102,6 +102,7 @@ void robustguard_cleanup(RobustGuardImpl *rg) {
 	if (ALOAD(rg->lock) != ctx.port)
 		panic(
 		    "RobustLock Error: tried to cleanup a lock we don't own!");
+	ctx.lock_count--;
 	ASTORE(rg->lock, 0);
 }
 
@@ -111,7 +112,7 @@ RobustGuard robust_lock(RobustLock *lock) {
 	uint64_t do_yield = 0;
 	uint16_t desired, expected = 0, port;
 
-	ctx.requesting_lock = true;
+	ctx.lock_count++;
 
 	while (!ctx.port) {
 		ctx.port = robust_connect(0);
@@ -140,7 +141,6 @@ start_loop:
 	} while (!CAS(lock, &expected, desired));
 
 	ctx.last_lock_micros = micros();
-	ctx.requesting_lock = false;
 	/* Check if we should disconnect in the specified time */
 	timeout(robust_check_disconnect, CHECK_DISCONNECT_MILLIS);
 	ret.lock = lock;

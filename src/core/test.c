@@ -1,3 +1,4 @@
+#include <alloc.h>
 #include <criterion/criterion.h>
 #include <lock.h>
 #include <robust.h>
@@ -175,8 +176,7 @@ Test(core, lock4) {
 		}
 
 		// ensure that child1 succeeds and is second to update value2
-		while (!ALOAD(&state->value3))
-			;
+		while (!ALOAD(&state->value3));
 
 	} else {
 		if (two()) {
@@ -261,8 +261,7 @@ Test(core, timeout3) {
 		cr_assert_eq(tfunv1, 1);
 		cr_assert_eq(tfunv2, 1);
 		cr_assert_eq(tfunv3, 1);
-		while (!ALOAD(&state->value1))
-			;
+		while (!ALOAD(&state->value1));
 	} else {
 		timeout(tfun3, 150);
 		for (int i = 0; i < 3; i++) sleepm(200);
@@ -499,6 +498,36 @@ Test(core, robust_performance) {
 		exit(0);
 	}
 	cr_assert_eq(ALOAD(&state->value), N);
+}
+
+Test(core, alloc1) {
+	void *t1, *t2, *t3, *t4, *t5;
+	/*
+	void *t1 = alloc(CHUNK_SIZE);
+	void *t2 = alloc(CHUNK_SIZE);
+	printf("t1=%llu,t2=%llu\n", t1, t2);
+	void *t3;
+	cr_assert(t1 + CHUNK_SIZE == t2);
+	release(t1);
+	release(t2);
+	t3 = alloc(CHUNK_SIZE);
+	printf("t1=%lu,t3=%lu\n", t1, t3);
+	cr_assert_eq(t1, t3);
+
+	void *t4 = alloc(8);
+	void *t5 = alloc(8);
+	printf("t4=%llu,t5=%llu\n", t4, t5);
+	release(t4);
+	release(t5);
+	*/
+	t4 = alloc(8);
+	t5 = alloc(8);
+	printf("t4=%llu,t5=%llu\n", t4, t5);
+	release(t4);
+	release(t5);
+	t4 = alloc(8);
+	t5 = alloc(8);
+	printf("t4=%llu,t5=%llu\n", t4, t5);
 }
 
 /*

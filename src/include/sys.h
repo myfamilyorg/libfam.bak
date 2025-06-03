@@ -28,6 +28,10 @@
 
 #include <types.h>
 
+#ifndef PAGE_SIZE
+#define PAGE_SIZE (4 * 4096)
+#endif /* PAGE_SIZE */
+
 typedef struct {
 #ifdef __linux__
 	uint8_t opaque[12];
@@ -65,7 +69,6 @@ int shutdown(int sockfd, int how);
 int socket(int domain, int type, int protocol);
 
 /* System calls applied */
-void signals_init(void);
 int getentropy(void *buffer, size_t length);
 int yield(void);
 int timeout(void (*task)(void), uint64_t milliseconds);
@@ -86,5 +89,8 @@ int event_is_read(Event event);
 int event_is_write(Event event);
 void *event_attachment(Event event);
 pid_t two(void);
+
+/* Initilizers */
+void signals_init(void);
 
 #endif /* _SYS_H__ */

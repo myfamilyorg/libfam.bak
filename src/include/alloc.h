@@ -23,17 +23,30 @@
  *
  *******************************************************************************/
 
-#ifndef _ATOMIC_H__
-#define _ATOMIC_H__
+#ifndef _ALLOC_H__
+#define _ALLOC_H__
 
-#define AADD(a, v) __atomic_fetch_add(a, v, __ATOMIC_SEQ_CST)
-#define ASUB(a, v) __atomic_fetch_sub(a, v, __ATOMIC_SEQ_CST)
-#define ALOAD(a) __atomic_load_n(a, __ATOMIC_SEQ_CST)
-#define ASTORE(a, v) __atomic_store_n(a, v, __ATOMIC_SEQ_CST)
-#define AOR(a, v) __atomic_or_fetch(a, v, __ATOMIC_SEQ_CST)
-#define AAND(a, v) __atomic_and_fetch(a, v, __ATOMIC_SEQ_CST)
-#define CAS(a, expected, desired)                                \
-	__atomic_compare_exchange_n(a, expected, desired, false, \
-				    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+#include <sys.h>
+#include <types.h>
 
-#endif /* _ATOMIC_H__ */
+#ifndef CHUNK_SIZE
+#define CHUNK_SIZE (0x1 << 22) /* 4mb */
+#endif
+
+#ifndef MAX_SLAB_SIZE
+#define MAX_SLAB_SIZE (CHUNK_SIZE >> 2) /* 1mb */
+#endif
+
+#ifndef MEM_SAN
+#define MEM_SAN 0 /* Disabled by default */
+#endif
+
+void *alloc(size_t size);
+void release(void *ptr);
+void *resize(void *ptr, size_t size);
+
+#if MEM_SAN == 1
+uint64_t get_mmaped_bytes(void);
+#endif /* MEM_SAN */
+
+#endif /* _ALLOC_H__ */
