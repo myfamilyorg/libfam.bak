@@ -27,7 +27,26 @@
 #define _TYPES_H__
 
 #ifndef NULL
-#define NULL ((void *)0)
-#endif
+#define NULL ((void*)0)
+#endif /* NULL */
+
+typedef signed char int8_t;
+typedef short int int16_t;
+typedef int int32_t;
+typedef long int64_t;
+typedef __int128_t int128_t;
+
+typedef unsigned char uint8_t;
+typedef unsigned short int uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned long uint64_t;
+typedef __uint128_t uint128_t;
+
+typedef long off_t;
+typedef unsigned int mode_t;
+
+typedef int32_t pid_t;
+typedef unsigned long size_t;
+typedef long ssize_t;
 
 #endif /* _TYPES_H__ */
