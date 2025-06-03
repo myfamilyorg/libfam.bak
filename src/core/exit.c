@@ -23,31 +23,29 @@
  *
  *******************************************************************************/
 
-#ifndef _SYS_H__
-#define _SYS_H__
-
+#include <error.h>
+#include <exit.h>
 #include <types.h>
 
-struct sockaddr;
+#define MAX_EXIT 64
 
-int pipe(int fds[2]);
-int unlink(const char *path);
-ssize_t write(int fd, const void *buf, size_t length);
-ssize_t read(int fd, void *buf, size_t length);
-void exit(int);
-int munmap(void *addr, size_t len);
-int close(int fd);
-int fcntl(int fd, int op, ...);
+static void (*exit_fns[MAX_EXIT])(void);
+static size_t exit_count = 0;
 
-/* socket system calls */
-int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
-int setsockopt(int sockfd, int level, int optname, const void *optval,
-	       unsigned int optlen);
-int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
-int listen(int sockfd, int backlog);
-int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
-int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
-int shutdown(int sockfd, int how);
-int socket(int domain, int type, int protocol);
+int register_exit(void (*fn)(void)) {
+	size_t index = exit_count++;
+	if (index >= MAX_EXIT) {
+		err = ENOSPC;
+		return -1;
+	}
+	exit_fns[index] = fn;
+	return 0;
+}
 
-#endif /* _SYS_H__ */
+void __attribute__((destructor)) execute_exits(void) {
+	int i;
+	for (i = exit_count - 1; i >= 0; i--) {
+		exit_fns[i]();
+	}
+	exit_count = 0;
+}

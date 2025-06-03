@@ -23,31 +23,9 @@
  *
  *******************************************************************************/
 
-#ifndef _SYS_H__
-#define _SYS_H__
+#ifndef _EXIT_H__
+#define _EXIT_H__
 
-#include <types.h>
+int register_exit(void (*fn)(void));
 
-struct sockaddr;
-
-int pipe(int fds[2]);
-int unlink(const char *path);
-ssize_t write(int fd, const void *buf, size_t length);
-ssize_t read(int fd, void *buf, size_t length);
-void exit(int);
-int munmap(void *addr, size_t len);
-int close(int fd);
-int fcntl(int fd, int op, ...);
-
-/* socket system calls */
-int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
-int setsockopt(int sockfd, int level, int optname, const void *optval,
-	       unsigned int optlen);
-int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
-int listen(int sockfd, int backlog);
-int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
-int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
-int shutdown(int sockfd, int how);
-int socket(int domain, int type, int protocol);
-
-#endif /* _SYS_H__ */
+#endif /* _EXIT_H__ */

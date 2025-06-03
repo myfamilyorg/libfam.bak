@@ -23,31 +23,42 @@
  *
  *******************************************************************************/
 
-#ifndef _SYS_H__
-#define _SYS_H__
+#ifndef _MISC_H__
+#define _MISC_H__
 
+#include <sys.h>
 #include <types.h>
 
-struct sockaddr;
+#ifdef memset
+#undef memset
+#endif
+#ifdef memcpy
+#undef memcpy
+#endif
+#ifdef memmove
+#undef memmove
+#endif
+#ifdef bzero
+#undef bzero
+#endif
 
-int pipe(int fds[2]);
-int unlink(const char *path);
-ssize_t write(int fd, const void *buf, size_t length);
-ssize_t read(int fd, void *buf, size_t length);
-void exit(int);
-int munmap(void *addr, size_t len);
-int close(int fd);
-int fcntl(int fd, int op, ...);
+size_t strlen(const char *S);
+char *strcpy(char *dest, const char *src);
+char *strcat(char *dest, const char *src);
+int strcmp(const char *s1, const char *s2);
+int strcmpn(const char *s1, const char *s2, size_t n);
+char *strstr(const char *X, const char *Y);
+void *memset(void *ptr, int x, size_t n);
+void *memcpy(void *dst, const void *src, size_t n);
+void *memmove(void *dst, const void *src, size_t n);
+void bzero(void *dst, size_t n);
+size_t uint128_t_to_string(char *buf, uint128_t v);
+size_t int128_t_to_string(char *buf, int128_t v);
+size_t double_to_string(char *buf, double v, int max_decimals);
+int b64_encode(const void *buf_in, size_t in_len, char *buf_out);
+int b64_decode(const void *buf_in, size_t in_len, char *buf_out);
+uint128_t string_to_uint128(const char *buf, size_t len);
+int128_t string_to_int128(const char *buf, size_t len);
+void panic(const char *msg);
 
-/* socket system calls */
-int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
-int setsockopt(int sockfd, int level, int optname, const void *optval,
-	       unsigned int optlen);
-int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
-int listen(int sockfd, int backlog);
-int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
-int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
-int shutdown(int sockfd, int how);
-int socket(int domain, int type, int protocol);
-
-#endif /* _SYS_H__ */
+#endif /* _MISC_H__ */
