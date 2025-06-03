@@ -26,4 +26,8 @@
 #ifndef _SYS_H__
 #define _SYS_H__
 
+#ifndef NULL
+#define NULL ((void*)0)
+#endif /* NULL */
+
 #endif /* _SYS_H__ */
