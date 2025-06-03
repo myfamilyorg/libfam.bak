@@ -1,4 +1,5 @@
 #include <alloc.h>
+#include <channel.h>
 #include <criterion/criterion.h>
 #include <lock.h>
 #include <sys.h>
@@ -58,6 +59,7 @@ Test(core, lock1) {
 
 	if (two()) {
 		while (true) {
+			yield();
 			LockGuard lg1 = rlock(&state->lock1);
 			if (state->value1) break;
 		}
@@ -92,6 +94,7 @@ Test(core, lock2) {
 
 	if (two()) {
 		while (true) {
+			yield();
 			LockGuard lg1 = rlock(&state->lock1);
 			if (state->value1) break;
 		}
@@ -126,6 +129,7 @@ Test(core, lock3) {
 
 	if (two()) {
 		while (true) {
+			yield();
 			LockGuard lg1 = rlock(&state->lock1);
 			if (state->value1 == 2) break;
 		}
@@ -176,7 +180,7 @@ Test(core, lock4) {
 		}
 
 		// ensure that child1 succeeds and is second to update value2
-		while (!ALOAD(&state->value3));
+		while (!ALOAD(&state->value3)) yield();
 
 	} else {
 		if (two()) {
@@ -326,4 +330,23 @@ Test(core, alloc_resize) {
 	release(t3);
 	release(t4);
 	ASSERT_BYTES(0);
+}
+
+typedef struct {
+	int x;
+	int y;
+} TestChannel;
+
+Test(core, channel1) {
+	Channel ch1 = channel(sizeof(TestChannel));
+
+	if (two()) {
+		TestChannel res = {0};
+		while (recv_now(&ch1, &res));
+		cr_assert_eq(res.x, 1);
+		cr_assert_eq(res.y, 2);
+	} else {
+		send(&ch1, &(TestChannel){.x = 1, .y = 2});
+		exit(0);
+	}
 }

@@ -36,9 +36,10 @@ typedef struct ChannelElement {
 } ChannelElement;
 
 struct ChannelInner {
-	uint128_t head_state;
+	uint64_t head_seq;
 	uint64_t element_size;
 	uint32_t max_recv;
+	uint32_t waiting_workers;
 	ChannelElement *head;
 	ChannelElement *tail;
 };
@@ -61,7 +62,8 @@ Channel channel2(size_t element_size, uint32_t max_receivers) {
 	ret.inner->tail = ret.inner->head = NULL;
 	ret.inner->element_size = element_size;
 	ret.inner->max_recv = max_receivers;
-	ret.inner->head_state = 0;
+	ret.inner->head_seq = 0;
+	ret.inner->waiting_workers = 0;
 
 	for (i = 0; i < (int)max_receivers; i++) {
 		int fds[2];
@@ -90,16 +92,19 @@ Channel channel2(size_t element_size, uint32_t max_receivers) {
 bool channel_ok(Channel *channel) {
 	return channel != NULL && channel->inner != NULL;
 }
+
 int recv_now(Channel *channel, void *dst) {
 	size_t size;
 	ChannelElement *current_head;
 	ChannelElement *next;
 	ChannelElement *expected;
+	uint64_t initial_seq;
+	uint64_t final_seq;
 	int success;
 
 	size = channel->inner->element_size;
-
 	current_head = ALOAD(&channel->inner->head);
+	initial_seq = ALOAD(&channel->inner->head_seq);
 
 	if (current_head == NULL) {
 		return -1;
@@ -111,17 +116,25 @@ int recv_now(Channel *channel, void *dst) {
 		expected = current_head;
 		success = CAS(&channel->inner->head, &expected, next);
 		if (success) {
-			if (next == NULL) {
-				ASTORE(&channel->inner->tail, NULL);
+			if (next == NULL) ASTORE(&channel->inner->tail, NULL);
+			AADD(&channel->inner->head_seq, 1);
+			final_seq = ALOAD(&channel->inner->head_seq);
+			if (final_seq == initial_seq + 1) {
+				memcpy(dst,
+				       (char *)current_head +
+					   sizeof(ChannelElement),
+				       size);
+				release(current_head);
+			} else {
+				memcpy(dst,
+				       (char *)current_head +
+					   sizeof(ChannelElement),
+				       size);
 			}
-			memcpy(dst,
-			       (char *)current_head + sizeof(ChannelElement),
-			       size);
-			release(current_head);
 			return 0;
 		}
-
 		current_head = ALOAD(&channel->inner->head);
+		initial_seq = ALOAD(&channel->inner->head_seq);
 		if (current_head == NULL) {
 			return -1;
 		}
@@ -131,139 +144,63 @@ int recv_now(Channel *channel, void *dst) {
 
 void recv(Channel *channel, void *dst);
 
-/*
-int send(Channel *channel, const void *src) {
-	size_t size = channel->inner->element_size;
-	if (channel->inner->tail == NULL) {
-		channel->inner->tail = channel->inner->head =
-		    alloc(size + sizeof(ChannelElement));
-		if (!channel->inner->head) return -1;
-		channel->inner->head->next = NULL;
-		memcpy(channel->inner->head + sizeof(ChannelElement), src,
-		       size);
-	} else {
-		ChannelElement *elem = alloc(size + sizeof(ChannelElement));
-		if (!elem) return -1;
-		channel->inner->tail->next = elem;
-		channel->inner->tail = elem;
-		channel->inner->tail->next = NULL;
-		memcpy(channel->inner->tail + sizeof(ChannelElement), src,
-		       size);
+STATIC int notify(Channel *channel) {
+	int next = ASUB(&channel->inner->waiting_workers, 1);
+	if (next > 0) {
+		int *fd;
+		--next;
+		fd = (int *)((uint8_t *)channel + sizeof(Channel) +
+			     next * (sizeof(int) * 2) + sizeof(int));
 	}
-
 	return 0;
 }
-*/
-
-/*
-int send(Channel *channel, const void *src) {
-	size_t size = channel->inner->element_size;
-	size_t alloc_size = size + sizeof(ChannelElement);
-	ChannelElement *current_tail;
-
-	ChannelElement *elem = alloc(alloc_size);
-	if (!elem) return -1;
-	elem->next = NULL;
-	memcpy((char *)elem + sizeof(ChannelElement), src, size);
-
-	current_tail = ALOAD(&channel->inner->tail);
-
-	if (current_tail == NULL) {
-		ChannelElement *expected = NULL;
-		if (CAS(&channel->inner->tail, &expected, elem)) {
-			ASTORE(&channel->inner->head, elem);
-			return 0;
-		}
-		current_tail = ALOAD(&channel->inner->tail);
-	}
-
-	while (true) {
-		ChannelElement *last = current_tail;
-		ChannelElement *expected_next = NULL;
-		while (last->next != NULL) {
-			last = ALOAD(&last->next);
-		}
-
-		if (CAS(&last->next, &expected_next, elem)) {
-			ChannelElement *expected_tail = last;
-			CAS(&channel->inner->tail, &expected_tail, elem);
-			return 0;
-		}
-
-		current_tail = ALOAD(&channel->inner->tail);
-	}
-}
-*/
 
 int send(Channel *channel, const void *source) {
-	/* Declare all variables at block start (C89) */
 	size_t size;
 	size_t alloc_size;
 	ChannelElement *elem;
 	ChannelElement *current_tail;
 	ChannelElement *last;
 	ChannelElement *expected_tail;
-	__uint128_t current_head_state;
-	__uint128_t expected_head_state;
-	__uint128_t new_head_state;
-	uint64_t seq;
+	ChannelElement *expected_head;
 	int success;
 
-	/* Initialize variables */
 	size = channel->inner->element_size;
 	alloc_size = size + sizeof(ChannelElement);
 
-	/* Allocate new element */
 	elem = alloc(alloc_size);
 	if (!elem) return -1;
 	elem->next = NULL;
 	memcpy((char *)elem + sizeof(ChannelElement), source, size);
 
-	/* Load current tail atomically */
 	current_tail = ALOAD(&channel->inner->tail);
 
 	if (current_tail == NULL) {
-		/* Empty case: try to set both head and tail */
 		expected_tail = NULL;
 		success = CAS(&channel->inner->tail, &expected_tail, elem);
 		if (success) {
-			/* Update head_state atomically */
-			current_head_state = ALOAD(&channel->inner->head_state);
-			seq = current_head_state >> 64; /* Extract sequence */
-			new_head_state =
-			    ((__uint128_t)(seq + 1) << 64) | (uint64_t)elem;
-			expected_head_state = current_head_state;
-			success = CAS(&channel->inner->head_state,
-				      &expected_head_state, new_head_state);
-			if (!success) {
-				/* Rare: retry or assume single writer */
-				/* For simplicity, ignore retry */
+			expected_head = NULL;
+			success =
+			    CAS(&channel->inner->head, &expected_head, elem);
+			if (success) {
+				AADD(&channel->inner->head_seq, 1);
 			}
-			return 0;
+			return notify(channel);
 		}
-		/* CAS failed: reload tail */
 		current_tail = ALOAD(&channel->inner->tail);
 	}
 
-	/* Non-empty case: append to tail */
-	while (1) {
-		/* Find last node */
+	while (true) {
 		last = current_tail;
-		while (last->next != NULL) {
-			last = ALOAD(&last->next);
-		}
-
-		/* Try to link elem to last->next */
+		while (last->next != NULL) last = ALOAD(&last->next);
 		expected_tail = NULL;
 		success = CAS(&last->next, &expected_tail, elem);
 		if (success) {
-			/* Try to update tail (best effort) */
 			expected_tail = last;
 			CAS(&channel->inner->tail, &expected_tail, elem);
-			return 0;
+			return notify(channel);
 		}
-
-		/* CAS failed: reload tail and retry */
 		current_tail = ALOAD(&channel->inner->tail);
 	}
 }
+
