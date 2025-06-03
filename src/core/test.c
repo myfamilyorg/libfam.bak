@@ -535,3 +535,23 @@ Test(core, alloc1) {
 	ASSERT_BYTES(0);
 }
 
+Test(core, alloc_resize) {
+	char *t1, *t2, *t3, *t4, *tmp;
+	t1 = alloc(8);
+	t2 = alloc(8);
+	ASSERT_BYTES(16);
+	cr_assert_eq(t2, t1 + 8);
+	t3 = alloc(16);
+	t4 = alloc(16);
+	ASSERT_BYTES(48);
+	cr_assert_eq(t4, t3 + 16);
+	tmp = resize(t2, 16);
+	cr_assert_eq(tmp, t4 + 16);
+	ASSERT_BYTES(56);
+
+	release(tmp);
+	release(t1);
+	release(t3);
+	release(t4);
+	ASSERT_BYTES(0);
+}

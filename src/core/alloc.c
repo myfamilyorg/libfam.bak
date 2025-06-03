@@ -334,6 +334,9 @@ void *resize(void *ptr, size_t new_size) {
 		memcpy(new_ptr, ptr, new_size);
 		RELEASE_BIT((void *)((size_t)memory_base + sizeof(AllocHeader)),
 			    offset / CHUNK_SIZE, &h->data.last_free);
+#if MEMSAN == 1
+		allocated_bytes -= CHUNK_SIZE;
+#endif /* MEMSAN */
 		return new_ptr;
 	} else {
 		/* Slab allocation (<= MAX_SLAB_SIZE) */
@@ -366,6 +369,9 @@ void *resize(void *ptr, size_t new_size) {
 
 		/* Release old slab */
 		RELEASE_BIT(base, index, &chunk->last_free);
+#if MEMSAN == 1
+		allocated_bytes -= old_slab_size;
+#endif /* MEMSAN */
 
 		return new_ptr;
 	}

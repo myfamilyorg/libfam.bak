@@ -23,8 +23,13 @@
  *
  *******************************************************************************/
 
+#ifndef _TEST_H__
+#define _TEST_H__
+
 #if MEMSAN == 1
 #define ASSERT_BYTES(v) cr_assert_eq(get_allocated_bytes(), v)
 #else
 #define ASSERT_BYTES(v)
 #endif /* MEMSAN */
+
+#endif /* _TEST_H__ */
