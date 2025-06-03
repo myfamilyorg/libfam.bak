@@ -183,7 +183,7 @@ static void syscall_exit(int status) {
 }
 
 /* Declare execute_exits */
-void execute_exits();
+void execute_exits(void);
 
 /* System call definitions */
 DEFINE_SYSCALL0(57, pid_t, fork)
@@ -259,8 +259,7 @@ int sched_yield(void) {
 void exit(int status) {
 	execute_exits();
 	syscall_exit(status);
-	while (true)
-		;
+	while (true);
 }
 int munmap(void *addr, size_t len) {
 	int ret = syscall_munmap(addr, len);
@@ -315,12 +314,10 @@ int ftruncate(int fd, off_t length) {
 	SET_ERR
 }
 
-/*
 int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen) {
 	int ret = syscall_connect(sockfd, addr, addrlen);
 	SET_ERR
 }
-*/
 
 int setsockopt(int sockfd, int level, int optname, const void *optval,
 	       unsigned int optlen) {
