@@ -26,4 +26,8 @@
 #ifndef _TYPES_H__
 #define _TYPES_H__
 
+#ifndef NULL
+#define NULL ((void *)0)
+#endif
+
 #endif /* _TYPES_H__ */
