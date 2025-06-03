@@ -14,9 +14,9 @@ TFLAGS  = $(CSTYLE) -fno-builtin -O1 -Wno-unknown-warning-option -Wno-nonnull-co
 TCFLAGS = -O1 -Isrc/include -Wno-attributes -DSTATIC=
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
-    LDFLAGS = -shared -nostdlib -ffreestanding
+    LDFLAGS = -shared -nostdlib -ffreestanding -latomic
 else ifeq ($(UNAME_S),Darwin)
-    LDFLAGS = -shared
+    LDFLAGS = -shared -latomic
 else
     $(error Unsupported platform: $(UNAME_S))
 endif
