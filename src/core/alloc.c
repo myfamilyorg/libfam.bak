@@ -96,8 +96,9 @@ typedef struct {
 
 typedef struct {
 	uint32_t slab_size;
-	uint32_t last_free;
+	uint64_t last_free;
 	uint64_t next;
+	uint8_t padding[12];
 } Chunk;
 
 static void *memory_base = NULL;
@@ -147,7 +148,7 @@ STATIC void __attribute__((constructor)) init_memory(void) {
 	}
 }
 
-STATIC uint64_t allocate_chunk() {
+STATIC uint64_t allocate_chunk(void) {
 	AllocHeader *alloc_header = (AllocHeader *)memory_base;
 	uint64_t res;
 	NEXT_FREE_BIT((void *)((size_t)memory_base + sizeof(AllocHeader)),

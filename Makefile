@@ -10,7 +10,7 @@ CFLAGS  = -fPIC \
           -fno-builtin \
           -Wno-attributes \
           -DSTATIC=static
-TFLAGS  = $(CSTYLE) -O1 -Wno-unknown-warning-option -Wno-nonnull-compare -Isrc/include -Wno-attributes -DSTATIC=
+TFLAGS  = $(CSTYLE) -fno-builtin -O1 -Wno-unknown-warning-option -Wno-nonnull-compare -Isrc/include -Wno-attributes -DSTATIC=
 TCFLAGS = -O1 -Isrc/include -Wno-attributes -DSTATIC=
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)

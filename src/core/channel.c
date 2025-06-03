@@ -43,7 +43,9 @@ struct ChannelInner {
 	ChannelElement *tail;
 };
 
-void channel_cleanup(ChannelImpl *channel) {}
+void channel_cleanup(ChannelImpl *channel) {
+	if (!channel) return;
+}
 
 Channel channel(size_t element_size) {
 	return channel2(element_size, DEFAULT_MAX_RECV);

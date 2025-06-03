@@ -46,7 +46,7 @@ static struct sockaddr_in address = {0};
 static int opt = 1;
 unsigned int addr_len = sizeof(address);
 
-STATIC void robust_check_disconnect() {
+STATIC void robust_check_disconnect(void) {
 	uint64_t now = micros();
 	if (!ctx.lock_count &&
 	    now - ctx.last_lock_micros > (IDLE_MAX_MILLIS * 1000)) {
