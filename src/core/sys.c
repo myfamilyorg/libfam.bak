@@ -27,6 +27,8 @@
 
 #include <error.h>
 #include <fcntl.h>
+#include <linux/sched.h>
+#include <sched.h>
 #include <sys.h>
 #include <sys/epoll.h>
 #include <sys/mman.h>
@@ -182,9 +184,6 @@ static void syscall_exit(int status) {
 	);
 }
 
-/* Declare execute_exits */
-void execute_exits(void);
-
 /* System call definitions */
 DEFINE_SYSCALL0(57, pid_t, fork)
 DEFINE_SYSCALL1(22, int, pipe, int *, fds)
@@ -229,11 +228,21 @@ DEFINE_SYSCALL2(77, int, ftruncate, int, fd, off_t, length)
 DEFINE_SYSCALL3(38, int, setitimer, __itimer_which_t, which,
 		const struct itimerval *, new_value, struct itimerval *,
 		old_value)
+DEFINE_SYSCALL2(435, int, clone3, struct clone_args *, args, size_t, size)
+
+/* Declare execute_exits */
+void execute_exits(void);
 
 pid_t fork(void) {
 	int ret = syscall_fork();
 	SET_ERR
 }
+
+int clone3(struct clone_args *args, size_t size) {
+	int ret = syscall_clone3(args, size);
+	SET_ERR
+}
+
 int pipe(int fds[2]) {
 	int ret = syscall_pipe(fds);
 	SET_ERR
@@ -259,7 +268,8 @@ int sched_yield(void) {
 void exit(int status) {
 	execute_exits();
 	syscall_exit(status);
-	while (true);
+	while (true)
+		;
 }
 int munmap(void *addr, size_t len) {
 	int ret = syscall_munmap(addr, len);

@@ -50,4 +50,20 @@ int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
 int shutdown(int sockfd, int how);
 int socket(int domain, int type, int protocol);
 
+/* System calls applied */
+int getentropy(void *buffer, size_t length);
+int yield(void);
+int timeout(void (*task)(void), uint64_t milliseconds);
+void *map(size_t length);
+void *fmap(int fd, off_t offset, off_t size);
+void *smap(size_t length);
+int exists(const char *path);
+int file(const char *path);
+off_t fsize(int fd);
+int fresize(int fd, off_t length);
+int flush(int fd);
+int64_t micros(void);
+int sleepm(uint64_t millis);
+pid_t two(void);
+
 #endif /* _SYS_H__ */
