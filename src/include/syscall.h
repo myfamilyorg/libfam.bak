@@ -26,7 +26,6 @@
 #ifndef _SYSCALL_H__
 #define _SYSCALL_H__
 
-#include <sys/time.h>
 #include <types.h>
 
 struct clone_args;
@@ -35,6 +34,25 @@ struct timespec;
 struct timeval;
 struct epoll_event;
 struct timezone;
+
+#ifndef _SYS_TIME_H
+#define _SYS_TIME_H
+
+struct itimerval {
+	struct timeval {
+		long tv_sec;
+		long tv_usec;
+	} it_interval;
+	struct timeval it_value;
+};
+
+typedef int __itimer_which_t;
+
+#define ITIMER_REAL 0
+#define ITIMER_VIRTUAL 1
+#define ITIMER_PROF 2
+
+#endif
 
 pid_t fork(void);
 int pipe(int fds[2]);
