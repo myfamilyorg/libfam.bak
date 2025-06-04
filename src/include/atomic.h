@@ -23,3 +23,17 @@
  *
  *******************************************************************************/
 
+#ifndef _ATOMIC_H
+#define _ATOMIC_H
+
+#define AADD(a, v) __atomic_fetch_add(a, v, __ATOMIC_SEQ_CST)
+#define ASUB(a, v) __atomic_fetch_sub(a, v, __ATOMIC_SEQ_CST)
+#define ALOAD(a) __atomic_load_n(a, __ATOMIC_SEQ_CST)
+#define ASTORE(a, v) __atomic_store_n(a, v, __ATOMIC_SEQ_CST)
+#define AOR(a, v) __atomic_or_fetch(a, v, __ATOMIC_SEQ_CST)
+#define AAND(a, v) __atomic_and_fetch(a, v, __ATOMIC_SEQ_CST)
+#define CAS(a, expected, desired)                                \
+	__atomic_compare_exchange_n(a, expected, desired, false, \
+				    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+
+#endif /* _ATOMIC_H */

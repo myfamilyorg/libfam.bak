@@ -23,3 +23,26 @@
  *
  *******************************************************************************/
 
+#ifndef _LOCK_H
+#define _LOCK_H
+
+#include <types.h>
+
+typedef uint64_t Lock;
+
+#define LOCK_INIT 0
+
+typedef struct {
+	Lock *lock;
+	bool is_write;
+} LockGuardImpl;
+
+void lockguard_cleanup(LockGuardImpl *lg);
+
+#define LockGuard \
+	LockGuardImpl __attribute__((unused, cleanup(lockguard_cleanup)))
+
+LockGuard rlock(Lock *lock);
+LockGuard wlock(Lock *lock);
+
+#endif /* _LOCK_H */

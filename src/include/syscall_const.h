@@ -26,6 +26,10 @@
 #ifndef _SYSCALL_CONST_H
 #define _SYSCALL_CONST_H
 
+/* FUTEX */
+#define FUTEX_WAIT 0
+#define FUTEX_WAKE 1
+
 /* FCNTL */
 #define F_DUPFD 0
 #define F_GETFD 1

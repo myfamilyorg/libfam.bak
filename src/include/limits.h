@@ -107,6 +107,10 @@
 	 0xFFFFFFFFUL)
 #endif
 
+#ifndef INT_MAX
+#define INT_MAX __INT_MAX__
+#endif
+
 #ifndef SIZE_MAX
 #define SIZE_MAX UINT64_MAX
 #endif
