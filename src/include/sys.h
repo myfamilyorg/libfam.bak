@@ -23,24 +23,23 @@
  *
  *******************************************************************************/
 
-#ifndef _SYSCALL_H
-#define _SYSCALL_H
+#ifndef _SYS_H
+#define _SYS_H
 
 #include <types.h>
 
+/* direct system calls */
 pid_t fork(void);
 int pipe(int fds[2]);
 int unlink(const char *path);
-ssize_t write(int fd, const void *buf, size_t count);
-ssize_t read(int fd, void *buf, size_t count);
-int sched_yield(void);
-void exit(int status);
+ssize_t write(int fd, const void *buf, size_t length);
+ssize_t read(int fd, void *buf, size_t length);
+void exit(int);
 int munmap(void *addr, size_t len);
 int close(int fd);
 int fcntl(int fd, int op, ...);
-int clone3(struct clone_args *args, size_t size);
-int fdatasync(int fd);
-int ftruncate(int fd, off_t length);
+
+/* socket system calls */
 int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
 int setsockopt(int sockfd, int level, int optname, const void *optval,
 	       unsigned int optlen);
@@ -50,24 +49,21 @@ int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
 int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
 int shutdown(int sockfd, int how);
 int socket(int domain, int type, int protocol);
-int getrandom(void *buf, size_t len, unsigned int flags);
-void *mmap(void *addr, size_t length, int prot, int flags, int fd,
-	   off_t offset);
-int nanosleep(const struct timespec *req, struct timespec *rem);
-int gettimeofday(struct timeval *tv, void *tz);
-int settimeofday(const struct timeval *tv, const struct timezone *tz);
-int epoll_create1(int flags);
-int epoll_wait(int epfd, struct epoll_event *events, int maxevents,
-	       int timeout);
-int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
-int open(const char *pathname, int flags, ...);
-off_t lseek(int fd, off_t offset, int whence);
-int setitimer(__itimer_which_t which, const struct itimerval *new_value,
-	      struct itimerval *old_value);
-int rt_sigaction(int signum, const struct rt_sigaction *act,
-		 struct rt_sigaction *oldact, size_t sigsetsize);
-void restorer(void);
-long futux(uint32_t *uaddr, int futex_op, uint32_t val,
-	   const struct timespec *timeout, uint32_t *uaddr2, uint32_t val3);
 
-#endif /* _SYSCALL_H */
+/* system calls applied */
+int getentropy(void *buffer, size_t length);
+int yield(void);
+int timeout(void (*task)(void), uint64_t milliseconds);
+void *map(size_t length);
+void *fmap(int fd, off_t offset, off_t size);
+void *smap(size_t length);
+int exists(const char *path);
+int file(const char *path);
+off_t fsize(int fd);
+int fresize(int fd, off_t length);
+int flush(int fd);
+int64_t micros(void);
+int sleepm(uint64_t millis);
+pid_t two(void);
+
+#endif /* _SYS_H */

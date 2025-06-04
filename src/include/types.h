@@ -51,6 +51,13 @@ struct clone_args {
 	unsigned long set_tid_size;
 };
 
+struct rt_sigaction {
+	void (*k_sa_handler)(int);
+	unsigned long k_sa_flags;
+	void (*k_sa_restorer)(void);
+	unsigned long k_sa_mask;
+};
+
 struct sockaddr {
 	unsigned short sa_family;
 	char sa_data[14];
@@ -77,22 +84,6 @@ struct itimerval {
 };
 
 typedef int __itimer_which_t;
-
-#define F_DUPFD 0
-#define F_GETFD 1
-#define F_SETFD 2
-#define F_GETFL 3
-#define F_SETFL 4
-#define F_GETOWN 5
-#define F_SETOWN 6
-#define F_GETLEASE 10
-#define F_SETLEASE 1024
-
-#define GRND_RANDOM 0x0002
-
-#define ITIMER_REAL 0
-#define ITIMER_VIRTUAL 1
-#define ITIMER_PROF 2
 
 #ifndef NULL
 #define NULL ((void *)0)

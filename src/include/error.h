@@ -23,12 +23,10 @@
  *
  *******************************************************************************/
 
-#ifndef _ERROR_H__
-#define _ERROR_H__
+#ifndef _ERROR_H
+#define _ERROR_H
 
 /* Error codes for libfam */
-
-#ifndef EPERM /* check for header already defining them */
 #define SUCCESS 0
 #define EPERM 1		/* Operation not permitted */
 #define ENOENT 2	/* No such file or directory */
@@ -73,12 +71,11 @@
 #define EWOULDBLOCK EAGAIN
 
 /* libfam specific codes */
-#define EOVERFLOW 200
-#endif /* EPERM */
+#define EOVERFLOW 200 /* Overflow would occur */
 
 extern int err;
 
 const char *error_string(int err_code);
 void perror(const char *);
 
-#endif /* _ERROR_H__ */
+#endif /* _ERROR_H */

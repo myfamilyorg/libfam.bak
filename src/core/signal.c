@@ -1,0 +1,97 @@
+#include <error.h>
+#include <limits.h>
+#include <misc.h>
+#include <sys.h>
+#include <syscall.h>
+#include <syscall_const.h>
+
+static void sig_ign(int __attribute((unused)) sig) {}
+
+typedef struct {
+	void (*task)(void);
+	uint64_t exec_millis;
+} TaskEntry;
+
+#define MAX_TASKS 32
+STATIC TaskEntry pending_tasks[MAX_TASKS];
+STATIC int cur_tasks = 0;
+
+STATIC int set_next_timer(uint64_t now) {
+	int i;
+	uint64_t next_task_time = SIZE_MAX;
+
+	for (i = 0; i < cur_tasks; i++) {
+		if (pending_tasks[i].exec_millis < next_task_time)
+			next_task_time = pending_tasks[i].exec_millis;
+	};
+
+	if (next_task_time != SIZE_MAX) {
+		struct itimerval new_value = {0};
+		uint64_t delay_ms =
+		    (next_task_time > now) ? (next_task_time - now) : 1;
+		new_value.it_value.tv_sec = (long)(delay_ms / 1000);
+		new_value.it_value.tv_usec = (long)((delay_ms % 1000) * 1000);
+
+		if (setitimer(ITIMER_REAL, &new_value, NULL) < 0) return -1;
+	}
+
+	return 0;
+}
+
+STATIC void timeout_handler(int __attribute__((unused)) v) {
+	TaskEntry rem_tasks[MAX_TASKS];
+	int rem_task_count = 0;
+	uint64_t now = micros() / 1000;
+	int i;
+	for (i = 0; i < cur_tasks; i++) {
+		if (now >= pending_tasks[i].exec_millis) {
+			pending_tasks[i].task();
+		} else {
+			rem_tasks[rem_task_count++] = pending_tasks[i];
+		}
+	}
+	cur_tasks = rem_task_count;
+	for (i = 0; i < cur_tasks; i++) pending_tasks[i] = rem_tasks[i];
+	set_next_timer(now);
+}
+
+void __attribute__((constructor)) signals_init(void) {
+	struct rt_sigaction act = {0};
+	struct rt_sigaction act2 = {0};
+	act.k_sa_handler = sig_ign;
+	act.k_sa_flags = SA_RESTORER;
+	act.k_sa_restorer = restorer;
+	if (rt_sigaction(SIGPIPE, &act, NULL, 8) < 0) {
+		const char *msg = "WARN: could not register SIGPIPE handler\n";
+		int __attribute__((unused)) v = write(2, msg, strlen(msg));
+	}
+	act2.k_sa_handler = timeout_handler;
+	act2.k_sa_flags = SA_RESTORER;
+	act2.k_sa_restorer = restorer;
+	rt_sigaction(SIGALRM, &act2, NULL, 8);
+	cur_tasks = 0;
+}
+
+int timeout(void (*task)(void), uint64_t milliseconds) {
+	uint64_t now = micros() / 1000;
+	int ret;
+
+	if (!task || milliseconds == 0) {
+		err = EINVAL;
+		return -1;
+	}
+
+	if (cur_tasks == MAX_TASKS) {
+		err = EOVERFLOW;
+		return -1;
+	}
+
+	pending_tasks[cur_tasks].task = task;
+	pending_tasks[cur_tasks].exec_millis = now + milliseconds;
+	cur_tasks++;
+	ret = set_next_timer(now);
+	if (ret == -1) {
+		cur_tasks--;
+	}
+	return ret;
+}

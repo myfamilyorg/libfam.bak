@@ -23,11 +23,10 @@
  *
  *******************************************************************************/
 
-#define _GNU_SOURCE
-
 #include <error.h>
 #include <init.h>
 #include <syscall.h>
+#include <syscall_const.h>
 #include <types.h>
 
 #define SET_ERR             \
@@ -226,6 +225,9 @@ DEFINE_SYSCALL2(435, int, clone3, struct clone_args *, args, size_t, size)
 DEFINE_SYSCALL6(202, long, futex, uint32_t *, uaddr, int, futex_op, uint32_t,
 		val, const struct timespec *, timeout, uint32_t *, uaddr2,
 		uint32_t, val3)
+DEFINE_SYSCALL4(13, int, rt_sigaction, int, signum, const struct rt_sigaction *,
+		act, struct rt_sigaction *, oldact, size_t, sigsetsize)
+DEFINE_SYSCALL0(15, int, restorer)
 
 pid_t fork(void) {
 	int ret = syscall_fork();
@@ -360,7 +362,7 @@ long futux(uint32_t *uaddr, int futex_op, uint32_t val,
 	long ret = syscall_futex(uaddr, futex_op, val, timeout, uaddr2, val3);
 	SET_ERR
 }
-int getentropy(void *buf, size_t len) {
+int getrandom(void *buf, size_t len, unsigned int flags) {
 	size_t total;
 	if (len > 256) {
 		err = EIO;
@@ -373,7 +375,7 @@ int getentropy(void *buf, size_t len) {
 
 	total = 0;
 	while (total < len) {
-		ssize_t ret = syscall_getrandom(buf, len, GRND_RANDOM);
+		ssize_t ret = syscall_getrandom(buf, len, flags);
 
 		if (ret < 0) {
 			err = -ret;
@@ -446,3 +448,11 @@ int setitimer(__itimer_which_t which, const struct itimerval *new_value,
 	int ret = syscall_setitimer(which, new_value, old_value);
 	SET_ERR
 }
+
+int rt_sigaction(int signum, const struct rt_sigaction *act,
+		 struct rt_sigaction *oldact, size_t sigsetsize) {
+	int ret = syscall_rt_sigaction(signum, act, oldact, sigsetsize);
+	SET_ERR
+}
+
+void restorer(void) { int __attribute__((unused)) ret = syscall_restorer(); }

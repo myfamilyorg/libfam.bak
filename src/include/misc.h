@@ -28,19 +28,6 @@
 
 #include <types.h>
 
-#ifdef memset
-#undef memset
-#endif
-#ifdef memcpy
-#undef memcpy
-#endif
-#ifdef memmove
-#undef memmove
-#endif
-#ifdef bzero
-#undef bzero
-#endif
-
 size_t strlen(const char *S);
 char *strcpy(char *dest, const char *src);
 char *strcat(char *dest, const char *src);

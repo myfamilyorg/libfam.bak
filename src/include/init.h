@@ -23,11 +23,15 @@
  *
  *******************************************************************************/
 
-#ifndef _INIT_H__
-#define _INIT_H__
+#ifndef _INIT_H
+#define _INIT_H
 
-void signals_init(void);
-void execute_exits(void);
+/* Init tasks */
 void begin(void);
+void signals_init(void);
 
-#endif /* _INIT_H__ */
+/* Exit tasks */
+void execute_exits(void);
+int register_exit(void (*fn)(void));
+
+#endif /* _INIT_H */
