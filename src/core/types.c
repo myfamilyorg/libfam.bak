@@ -24,7 +24,7 @@
  *******************************************************************************/
 
 #include <misc.h>
-#include <sys.h>
+#include <syscall.h>
 #include <types.h>
 
 #define CheckEndian()                                                          \

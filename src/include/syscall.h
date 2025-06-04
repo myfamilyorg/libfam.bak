@@ -23,36 +23,10 @@
  *
  *******************************************************************************/
 
-#ifndef _SYSCALL_H__
-#define _SYSCALL_H__
+#ifndef _SYSCALL_H
+#define _SYSCALL_H
 
 #include <types.h>
-
-struct clone_args;
-struct sockaddr;
-struct timespec;
-struct timeval;
-struct epoll_event;
-struct timezone;
-
-#ifndef _SYS_TIME_H
-#define _SYS_TIME_H
-
-struct itimerval {
-	struct timeval {
-		long tv_sec;
-		long tv_usec;
-	} it_interval;
-	struct timeval it_value;
-};
-
-typedef int __itimer_which_t;
-
-#define ITIMER_REAL 0
-#define ITIMER_VIRTUAL 1
-#define ITIMER_PROF 2
-
-#endif
 
 pid_t fork(void);
 int pipe(int fds[2]);
@@ -93,4 +67,4 @@ int setitimer(__itimer_which_t which, const struct itimerval *new_value,
 long futux(uint32_t *uaddr, int futex_op, uint32_t val,
 	   const struct timespec *timeout, uint32_t *uaddr2, uint32_t val3);
 
-#endif /* _SYSCALL_H__ */
+#endif /* _SYSCALL_H */

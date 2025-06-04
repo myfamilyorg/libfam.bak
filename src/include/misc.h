@@ -23,10 +23,9 @@
  *
  *******************************************************************************/
 
-#ifndef _MISC_H__
-#define _MISC_H__
+#ifndef _MISC_H
+#define _MISC_H
 
-#include <sys.h>
 #include <types.h>
 
 #ifdef memset
@@ -61,4 +60,4 @@ uint128_t string_to_uint128(const char *buf, size_t len);
 int128_t string_to_int128(const char *buf, size_t len);
 void panic(const char *msg);
 
-#endif /* _MISC_H__ */
+#endif /* _MISC_H */

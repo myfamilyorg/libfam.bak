@@ -26,8 +26,76 @@
 #ifndef _TYPES_H__
 #define _TYPES_H__
 
+typedef union epoll_data {
+	void *ptr;
+	int fd;
+	unsigned int u32;
+	unsigned long u64;
+} epoll_data_t;
+
+struct epoll_event {
+	unsigned int events;
+	epoll_data_t data;
+};
+
+struct clone_args {
+	unsigned long flags;
+	unsigned long pidfd;
+	unsigned long child_tid;
+	unsigned long parent_tid;
+	unsigned long exit_signal;
+	unsigned long stack;
+	unsigned long stack_size;
+	unsigned long tls;
+	unsigned long set_tid;
+	unsigned long set_tid_size;
+};
+
+struct sockaddr {
+	unsigned short sa_family;
+	char sa_data[14];
+};
+
+struct timespec {
+	long tv_sec;
+	long tv_nsec;
+};
+
+struct timezone {
+	int tz_minuteswest;
+	int tz_dsttime;
+};
+
+struct timeval {
+	long tv_sec;
+	long tv_usec;
+};
+
+struct itimerval {
+	struct timeval it_interval;
+	struct timeval it_value;
+};
+
+typedef int __itimer_which_t;
+
+#define F_DUPFD 0
+#define F_GETFD 1
+#define F_SETFD 2
+#define F_GETFL 3
+#define F_SETFL 4
+#define F_GETOWN 5
+#define F_SETOWN 6
+#define F_GETLEASE 10
+#define F_SETLEASE 1024
+
+#define GRND_RANDOM 0x0002
+
+#define ITIMER_REAL 0
+#define ITIMER_VIRTUAL 1
+#define ITIMER_PROF 2
+
 #ifndef NULL
-#define NULL ((void*)0)
+#define NULL ((void *)0)
 #endif /* NULL */
 
 typedef signed char int8_t;

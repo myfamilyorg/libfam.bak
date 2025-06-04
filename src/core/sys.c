@@ -26,15 +26,7 @@
 #define _GNU_SOURCE
 
 #include <error.h>
-#include <fcntl.h>
 #include <init.h>
-#include <linux/sched.h>
-#include <sched.h>
-#include <sys.h>
-#include <sys/epoll.h>
-#include <sys/mman.h>
-#include <sys/random.h>
-#include <sys/time.h>
 #include <syscall.h>
 #include <types.h>
 
