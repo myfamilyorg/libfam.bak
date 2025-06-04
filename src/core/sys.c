@@ -27,6 +27,7 @@
 
 #include <error.h>
 #include <fcntl.h>
+#include <init.h>
 #include <linux/sched.h>
 #include <sched.h>
 #include <sys.h>
@@ -34,6 +35,7 @@
 #include <sys/mman.h>
 #include <sys/random.h>
 #include <sys/time.h>
+#include <syscall.h>
 #include <types.h>
 
 #define SET_ERR             \
@@ -229,9 +231,9 @@ DEFINE_SYSCALL3(38, int, setitimer, __itimer_which_t, which,
 		const struct itimerval *, new_value, struct itimerval *,
 		old_value)
 DEFINE_SYSCALL2(435, int, clone3, struct clone_args *, args, size_t, size)
-
-/* Declare execute_exits */
-void execute_exits(void);
+DEFINE_SYSCALL6(202, long, futex, uint32_t *, uaddr, int, futex_op, uint32_t,
+		val, const struct timespec *, timeout, uint32_t *, uaddr2,
+		uint32_t, val3)
 
 pid_t fork(void) {
 	int ret = syscall_fork();
@@ -361,6 +363,11 @@ int socket(int domain, int type, int protocol) {
 	SET_ERR
 }
 
+long futux(uint32_t *uaddr, int futex_op, uint32_t val,
+	   const struct timespec *timeout, uint32_t *uaddr2, uint32_t val3) {
+	long ret = syscall_futex(uaddr, futex_op, val, timeout, uaddr2, val3);
+	SET_ERR
+}
 int getentropy(void *buf, size_t len) {
 	size_t total;
 	if (len > 256) {

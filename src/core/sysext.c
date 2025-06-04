@@ -27,9 +27,11 @@
 
 #include <error.h>
 #include <fcntl.h>
+#include <init.h>
 #include <sys.h>
 #include <sys/mman.h>
 #include <sys/time.h>
+#include <syscall.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -37,6 +39,7 @@ static int has_begun = 0;
 
 void begin(void) {
 	if (!has_begun) {
+		signals_init();
 		has_begun = 1;
 	}
 }

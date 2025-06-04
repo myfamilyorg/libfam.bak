@@ -1,7 +1,8 @@
-#include <impl.h>
+#include <init.h>
 #include <linux/sched.h>
 #include <signal.h>
 #include <sys.h>
+#include <syscall.h>
 
 pid_t two(void) {
 	struct clone_args args = {0};
