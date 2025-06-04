@@ -23,8 +23,41 @@
  *
  *******************************************************************************/
 
-#include <stdio.h>
-#include <test.h>
+#ifndef _TEST_H
+#define _TEST_H
 
-Test(lock1) { assert_eq(1, 1); }
-Test(lock2) {}
+#include <misc.h>
+#include <sys.h>
+
+#define MAX_TESTS 1024
+#define MAX_TEST_NAME 128
+
+void add_test_fn(void (*test_fn)(void), const char *name);
+
+extern int exe_test;
+typedef struct {
+	void (*test_fn)(void);
+	char name[MAX_TEST_NAME + 1];
+} TestEntry;
+extern TestEntry tests[];
+
+#define Test(name)                                                         \
+	void __test_##name(void);                                          \
+	static void __attribute__((constructor)) __add_test_##name(void) { \
+		add_test_fn(__test_##name, #name);                         \
+	}                                                                  \
+	void __test_##name(void)
+
+#define assert_eq(x, y)                                                       \
+	if ((x) != (y)) {                                                     \
+		const char *msg_pre = "assertion failed in test: [";          \
+		const char *msg_post = "].";                                  \
+		write(2, msg_pre, strlen(msg_pre));                           \
+		write(2, tests[exe_test].name, strlen(tests[exe_test].name)); \
+		panic(msg_post);                                              \
+	}
+
+#define assert(x) \
+	if (!x) panic("assertion failed!");
+
+#endif /* _TEST_H */

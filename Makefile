@@ -10,7 +10,7 @@ CFLAGS  = -fPIC \
           -fno-builtin \
           -Wno-attributes \
           -DSTATIC=static
-TFLAGS  = $(CSTYLE) -fno-builtin -O1 -Wno-unknown-warning-option -Wno-nonnull-compare -Isrc/include -Wno-attributes -DSTATIC=
+TFLAGS  = $(CSTYLE) -fno-builtin -O1 -Isrc/include -Wno-attributes -DSTATIC=
 TCFLAGS = -O1 -Isrc/include -Wno-attributes -DSTATIC=
 UNAME_S := $(shell uname -s)
 LDFLAGS = -shared -nostdlib -ffreestanding
@@ -94,7 +94,7 @@ $(TEST_LIB): $(TEST_OBJECTS) $(TEST_ASM_OBJECTS) | $(LIBDIR)
 
 # Build test binary
 $(TEST_BIN): $(TEST_OBJ) $(TEST_LIB) | $(BINDIR)
-	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) -lfam_test -L/usr/local/lib -lcriterion -o $@
+	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) ./src/test/main.c -lfam_test -o $@
 
 # Create directories if they don't exist
 $(OBJDIR) $(TOBJDIR) $(TEST_OBJDIR) $(LIBDIR) $(BINDIR):
