@@ -31,100 +31,48 @@
 #include <syscall.h>
 #include <syscall_const.h>
 
-#define WFLAG ((uint64_t)1 << 63)
-#define WREQUEST ((uint64_t)1 << 62)
-#define WAITER_MASK ((uint64_t)0x3FFFFFFF << 32)
-#define READER_MASK ((uint64_t)0xFFFFFFFF)
-
-#define WAITER_ADDR(lock) ((uint32_t *)((char *)(lock) + 4))
-#define GET_WAITERS(state) ((uint32_t)((state >> 32) & 0x3FFFFFFF))
+#define WFLAG (0x1 << 31)
+#define WREQUEST (0x1 << 30)
 
 void lockguard_cleanup(LockGuardImpl *lg) {
-	uint64_t state;
-	if (!lg->lock)
-		panic(
-		    "lock error: Illegal state LockGuard had a null lock "
-		    "value");
-
 	if (lg->is_write) {
-		uint64_t wflag = WFLAG;
-		if (!CAS(lg->lock, &wflag, 0))
-			panic(
-			    "lock error: tried to write unlock a lock that is "
-			    "not a write lock!");
-		if (GET_WAITERS(ALOAD(lg->lock)) > 0)
-			futux(WAITER_ADDR(lg->lock), FUTEX_WAKE, INT_MAX, NULL,
-			      NULL, 0);
+		AAND(lg->lock, WREQUEST);
+		futex(lg->lock, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
 	} else {
-		if ((ALOAD(lg->lock) & WFLAG) != 0)
-			panic(
-			    "lock error: tried to read unlock a lock that is "
-			    "not a read lock!");
-		ASUB(lg->lock, 1);
-		state = ALOAD(lg->lock);
-		if ((state & READER_MASK) == 0 && (state & WREQUEST) &&
-		    GET_WAITERS(state) > 0)
-			futux(WAITER_ADDR(lg->lock), FUTEX_WAKE, 1, NULL, NULL,
-			      0);
+		uint32_t v = ASUB(lg->lock, 1);
+		if ((v & ~(WREQUEST | WFLAG)) == 1)
+			futex(lg->lock, FUTEX_WAKE, 1, NULL, NULL, 0);
 	}
 }
 
 LockGuardImpl rlock(Lock *lock) {
-	uint64_t state, desired;
-	LockGuardImpl ret;
+	LockGuardImpl ret = {0};
+	while (true) {
+		uint32_t cur = ALOAD(lock);
+		if ((cur & (WREQUEST | WFLAG)) == 0) {
+			if (CAS(lock, &cur, cur + 1)) break;
+		} else
+			futex(lock, FUTEX_WAIT, cur, NULL, NULL, 0);
+	}
 	ret.lock = lock;
 	ret.is_write = false;
-
-	while (true) {
-		state = ALOAD(lock);
-		if ((state & (WFLAG | WREQUEST)) == 0) {
-			desired = state + 1;
-			if (CAS(lock, &state, desired)) return ret;
-		} else {
-			uint32_t waiter_val = GET_WAITERS(state);
-			AADD(lock, ((uint64_t)1 << 32));
-			state = ALOAD(lock);
-			if (state & (WFLAG | WREQUEST)) {
-				futux(WAITER_ADDR(lock), FUTEX_WAIT,
-				      waiter_val + 1, NULL, NULL, 0);
-			}
-			ASUB(lock, ((uint64_t)1 << 32));
-		}
-	}
+	return ret;
 }
 
 LockGuardImpl wlock(Lock *lock) {
-	uint64_t state, desired;
-	LockGuardImpl ret;
+	LockGuardImpl ret = {0};
+	while (true) {
+		uint32_t cur = ALOAD(lock);
+		if ((cur & ~WREQUEST) == 0) {
+			if (CAS(lock, &cur, WFLAG)) break;
+		} else {
+			if ((cur & WREQUEST) == 0 &&
+			    !CAS(lock, &cur, cur | WREQUEST))
+				continue;
+			futex(lock, FUTEX_WAIT, cur | WREQUEST, NULL, NULL, 0);
+		}
+	}
 	ret.lock = lock;
 	ret.is_write = true;
-
-	while (true) {
-		state = ALOAD(lock);
-		if ((state & READER_MASK) == 0 &&
-		    (state & (WFLAG | WREQUEST)) == 0) {
-			desired = WFLAG;
-			if (CAS(lock, &state, desired)) return ret;
-		} else {
-			desired = state | WREQUEST;
-			if (CAS(lock, &state, desired)) break;
-		}
-	}
-
-	while (true) {
-		state = ALOAD(lock);
-		if (state != WREQUEST) {
-			uint32_t waiter_val = GET_WAITERS(state);
-			AADD(lock, ((uint64_t)1 << 32));
-			state = ALOAD(lock);
-			if (state != WREQUEST) {
-				futux(WAITER_ADDR(lock), FUTEX_WAIT,
-				      waiter_val + 1, NULL, NULL, 0);
-			}
-			ASUB(lock, ((uint64_t)1 << 32));
-			continue;
-		}
-		desired = WFLAG;
-		if (CAS(lock, &state, desired)) return ret;
-	}
+	return ret;
 }

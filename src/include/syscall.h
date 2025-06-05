@@ -67,7 +67,7 @@ int setitimer(__itimer_which_t which, const struct itimerval *new_value,
 int rt_sigaction(int signum, const struct rt_sigaction *act,
 		 struct rt_sigaction *oldact, size_t sigsetsize);
 void restorer(void);
-long futux(uint32_t *uaddr, int futex_op, uint32_t val,
+long futex(uint32_t *uaddr, int futex_op, uint32_t val,
 	   const struct timespec *timeout, uint32_t *uaddr2, uint32_t val3);
 
 #endif /* _SYSCALL_H */

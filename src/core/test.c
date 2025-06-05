@@ -23,8 +23,262 @@
  *
  *******************************************************************************/
 
+#include <atomic.h>
+#include <lock.h>
 #include <stdio.h>
+#include <sys.h>
+#include <syscall.h>
+#include <syscall_const.h>
 #include <test.h>
 
-Test(lock1) { assert_eq(1, 1); }
-Test(lock2) {}
+typedef struct {
+	Lock lock1;
+	Lock lock2;
+	Lock lock3;
+	Lock lock4;
+	Lock lock5;
+	int value1;
+	int value2;
+	int value3;
+	int value4;
+	int value5;
+	uint32_t uvalue1;
+	uint32_t uvalue2;
+} SharedStateData;
+
+Test(two1) {
+	void *base = smap(sizeof(SharedStateData));
+	SharedStateData *state = (SharedStateData *)base;
+	state->value1 = 0;
+	state->value2 = 0;
+	if (two()) {
+		while (!ALOAD(&state->value1));
+		state->value2++;
+	} else {
+		ASTORE(&state->value1, 1);
+		exit(0);
+	}
+	assert(state->value2);
+	munmap(base, sizeof(SharedStateData));
+}
+
+Test(futex1) {
+	void *base = smap(sizeof(SharedStateData));
+	SharedStateData *state = (SharedStateData *)base;
+	state->uvalue1 = (uint32_t)0;
+	if (two()) {
+		while (state->uvalue1 == 0) {
+			futex(&state->uvalue1, FUTEX_WAIT, 0, NULL, NULL, 0);
+		}
+		assert(state->uvalue1);
+		state->value2++;
+	} else {
+		state->uvalue1 = 1;
+		futex(&state->uvalue1, FUTEX_WAKE, 1, NULL, NULL, 0);
+		exit(0);
+	}
+	assert(state->value2);
+	munmap(base, sizeof(SharedStateData));
+}
+
+Test(lock0) {
+	Lock l1 = LOCK_INIT;
+	assert_eq(l1, 0);
+	{
+		LockGuard lg1 = rlock(&l1);
+		assert_eq(l1, 1);
+	}
+	assert_eq(l1, 0);
+	{
+		LockGuard lg1 = wlock(&l1);
+		uint32_t vabc = 0x1 << 31;
+		assert_eq(l1, vabc);
+	}
+	assert_eq(l1, 0);
+}
+
+Test(lock1) {
+	void *base = smap(sizeof(SharedStateData));
+	SharedStateData *state = (SharedStateData *)base;
+	state->lock1 = LOCK_INIT;
+	state->lock2 = LOCK_INIT;
+	state->value1 = 0;
+	state->value2 = 0;
+	state->value3 = 0;
+
+	if (two()) {
+		while (true) {
+			yield();
+			LockGuard lg1 = rlock(&state->lock1);
+			if (state->value1) break;
+		}
+		assert_eq(state->value3++, 1);
+		LockGuard lg2 = rlock(&state->lock2);
+		assert_eq(state->value2, 1);
+		assert_eq(state->value3++, 3);
+	} else {
+		{
+			LockGuard lg2 = wlock(&state->lock2);
+			assert_eq(state->value3++, 0);
+			{
+				LockGuard lg1 = wlock(&state->lock1);
+				state->value1 = 1;
+			}
+			sleepm(10);
+			state->value2 = 1;
+			assert_eq(state->value3++, 2);
+		}
+		exit(0);
+	}
+	munmap(base, sizeof(SharedStateData));
+}
+
+Test(lock2) {
+	void *base = smap(sizeof(SharedStateData));
+	SharedStateData *state = (SharedStateData *)base;
+	state->lock1 = LOCK_INIT;
+	state->lock2 = LOCK_INIT;
+	state->value1 = 0;
+	state->value2 = 0;
+	state->value3 = 0;
+
+	if (two()) {
+		while (true) {
+			yield();
+			LockGuard lg1 = rlock(&state->lock1);
+			if (state->value1) break;
+		}
+		assert_eq(state->value3++, 1);
+		LockGuard lg2 = wlock(&state->lock2);
+		assert_eq(state->value2, 1);
+		assert_eq(state->value3++, 3);
+	} else {
+		{
+			LockGuard lg2 = wlock(&state->lock2);
+			assert_eq(state->value3++, 0);
+			{
+				LockGuard lg1 = wlock(&state->lock1);
+				state->value1 = 1;
+			}
+			sleepm(10);
+			state->value2 = 1;
+			assert_eq(state->value3++, 2);
+		}
+		exit(0);
+	}
+}
+
+Test(lock3) {
+	void *base = smap(sizeof(SharedStateData));
+	SharedStateData *state = (SharedStateData *)base;
+	state->lock1 = LOCK_INIT;
+	state->lock2 = LOCK_INIT;
+	state->value1 = 0;
+	state->value2 = 0;
+	state->value3 = 0;
+
+	if (two()) {
+		while (true) {
+			yield();
+			LockGuard lg1 = rlock(&state->lock1);
+			if (state->value1 == 2) break;
+		}
+		LockGuard lg2 = wlock(&state->lock2);
+		assert_eq(state->value2, 2);
+	} else {
+		if (two()) {
+			LockGuard lg2 = rlock(&state->lock2);
+			state->value1++;
+			sleepm(10);
+			state->value2++;
+		} else {
+			LockGuard lg2 = rlock(&state->lock2);
+			state->value1++;
+			sleepm(10);
+			state->value2++;
+		}
+		exit(0);
+	}
+}
+
+Test(lock4) {
+	void *base = smap(sizeof(SharedStateData));
+	SharedStateData *state = (SharedStateData *)base;
+	state->lock1 = LOCK_INIT;
+	state->lock2 = LOCK_INIT;
+	state->value1 = 0;
+	state->value2 = 0;
+	state->value3 = 0;
+
+	if (two()) {
+		while (true) {
+			LockGuard lg1 = rlock(&state->lock1);
+			if (state->value1 == 2) break;
+		}
+
+		{
+			LockGuard lg2 = wlock(&state->lock2);
+			assert_eq(state->value2++, 0);
+
+			assert_eq(state->value3, 0);
+		}
+		while (!ALOAD(&state->value3)) yield();
+
+	} else {
+		if (two()) {
+			{
+				LockGuard lg2 = rlock(&state->lock2);
+				state->value1++;
+				sleepm(100);
+			}
+			{
+				LockGuard lg2 = rlock(&state->lock2);
+				assert_eq(state->value2++, 1);
+				state->value3++;
+			}
+			exit(0);
+		} else {
+			{
+				LockGuard lg2 = rlock(&state->lock2);
+				state->value1++;
+				sleepm(200);
+			}
+			exit(0);
+		}
+	}
+}
+
+Test(lock5) {
+	void *base = smap(sizeof(SharedStateData));
+	SharedStateData *state = (SharedStateData *)base;
+	state->lock1 = LOCK_INIT;
+	state->value1 = 0;
+	state->value2 = 0;
+	int size = 100;
+
+	if (two()) {
+		while (true) {
+			LockGuard lg = wlock(&state->lock1);
+			if (state->value1 % 2 == 0) state->value1++;
+			if (state->value1 >= size) break;
+		}
+		ASTORE(&state->value2, 1);
+		while (true) {
+			LockGuard lg = wlock(&state->lock1);
+			if (state->value2 == 0) break;
+		}
+		assert_eq(ALOAD(&state->value2), 0);
+	} else {
+		while (true) {
+			LockGuard lg = wlock(&state->lock1);
+			if (state->value1 % 2 == 1) state->value1++;
+			if (state->value1 >= size) break;
+		}
+		while (true) {
+			LockGuard lg = wlock(&state->lock1);
+			if (state->value2 == 1) break;
+		}
+		ASTORE(&state->value2, 0);
+		exit(0);
+	}
+}

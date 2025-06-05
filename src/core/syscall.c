@@ -264,8 +264,7 @@ int sched_yield(void) {
 void exit(int status) {
 	execute_exits();
 	syscall_exit(status);
-	while (true)
-		;
+	while (true);
 }
 int munmap(void *addr, size_t len) {
 	int ret = syscall_munmap(addr, len);
@@ -357,7 +356,7 @@ int socket(int domain, int type, int protocol) {
 	SET_ERR
 }
 
-long futux(uint32_t *uaddr, int futex_op, uint32_t val,
+long futex(uint32_t *uaddr, int futex_op, uint32_t val,
 	   const struct timespec *timeout, uint32_t *uaddr2, uint32_t val3) {
 	long ret = syscall_futex(uaddr, futex_op, val, timeout, uaddr2, val3);
 	SET_ERR
