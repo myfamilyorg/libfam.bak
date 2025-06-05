@@ -23,6 +23,7 @@
  *
  *******************************************************************************/
 
+#include <alloc.h>
 #include <atomic.h>
 #include <lock.h>
 #include <stdio.h>
@@ -360,5 +361,41 @@ Test(timeout3) {
 	}
 
 	munmap(state, sizeof(SharedStateData));
+}
+
+#define CHUNK_SIZE (1024 * 1024 * 4)
+
+Test(alloc1) {
+	char *t1, *t2, *t3, *t4, *t5;
+	t1 = alloc(CHUNK_SIZE);
+	t4 = alloc(8);
+	t5 = alloc(8);
+	t4[0] = 1;
+	t5[0] = 1;
+	assert(t4 != t5);
+	release(t4);
+	release(t5);
+	t4 = alloc(8);
+	t5 = alloc(8);
+	ASSERT_BYTES(16 + CHUNK_SIZE);
+	release(t4);
+	release(t5);
+	release(t1);
+	ASSERT_BYTES(0);
+
+	t1 = alloc(1024 * 1024);
+	assert(t1);
+	t2 = alloc(1024 * 1024);
+	assert(t2);
+	t3 = alloc(1024 * 1024);
+	assert(t3);
+	t4 = alloc(1024 * 1024);
+	assert(t4);
+	ASSERT_BYTES(4 * 1024 * 1024);
+	release(t1);
+	release(t2);
+	release(t3);
+	release(t4);
+	ASSERT_BYTES(0);
 }
 

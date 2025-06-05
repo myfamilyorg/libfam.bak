@@ -57,7 +57,19 @@ extern TestEntry tests[];
 		panic(msg_post);                                              \
 	}
 
-#define assert(x) \
-	if (!x) panic("assertion failed!");
+#define assert(x)                                                             \
+	if (!(x)) {                                                           \
+		const char *msg_pre = "assertion failed in test: [";          \
+		const char *msg_post = "].";                                  \
+		write(2, msg_pre, strlen(msg_pre));                           \
+		write(2, tests[exe_test].name, strlen(tests[exe_test].name)); \
+		panic(msg_post);                                              \
+	}
+
+#if MEMSAN == 1
+#define ASSERT_BYTES(v) assert_eq(get_allocated_bytes(), v)
+#else
+#define ASSERT_BYTES(v)
+#endif /* MEMSAN */
 
 #endif /* _TEST_H */
