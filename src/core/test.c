@@ -166,6 +166,7 @@ Test(lock2) {
 		}
 		exit(0);
 	}
+	munmap(state, sizeof(SharedStateData));
 }
 
 Test(lock3) {
@@ -199,6 +200,7 @@ Test(lock3) {
 		}
 		exit(0);
 	}
+	munmap(state, sizeof(SharedStateData));
 }
 
 Test(lock4) {
@@ -246,6 +248,7 @@ Test(lock4) {
 			exit(0);
 		}
 	}
+	munmap(state, sizeof(SharedStateData));
 }
 
 Test(lock5) {
@@ -281,4 +284,81 @@ Test(lock5) {
 		ASTORE(&state->value2, 0);
 		exit(0);
 	}
+	munmap(state, sizeof(SharedStateData));
 }
+
+Lock tfunlock = LOCK_INIT;
+int tfunv1 = 0;
+int tfunv2 = 0;
+int tfunv3 = 0;
+
+void tfun1() {
+	LockGuard l = wlock(&tfunlock);
+	tfunv1++;
+}
+
+void tfun2() {
+	LockGuard l = wlock(&tfunlock);
+	tfunv2++;
+}
+
+void tfun3() {
+	LockGuard l = wlock(&tfunlock);
+	tfunv3++;
+}
+
+Test(timeout1) {
+	timeout(tfun1, 100);
+	sleepm(300);
+	LockGuard l = rlock(&tfunlock);
+	assert_eq(tfunv1, 1);
+}
+
+Test(timeout2) {
+	tfunv1 = 0;
+	tfunv2 = 0;
+	tfunv3 = 0;
+
+	tfunlock = LOCK_INIT;
+	timeout(tfun1, 100);
+	timeout(tfun2, 200);
+	sleepm(1000);
+	{
+		LockGuard l = rlock(&tfunlock);
+		assert_eq(tfunv1, 1);
+		assert_eq(tfunv2, 0);
+	}
+	sleepm(200);
+	assert_eq(tfunv2, 1);
+}
+
+Test(timeout3) {
+	tfunv1 = 0;
+	tfunv2 = 0;
+	tfunv3 = 0;
+	SharedStateData *state =
+	    (SharedStateData *)smap(sizeof(SharedStateData));
+	state->value1 = 0;
+
+	timeout(tfun1, 100);
+	timeout(tfun2, 200);
+	if (two()) {
+		timeout(tfun3, 150);
+		for (int i = 0; i < 3; i++) sleepm(200);
+		assert_eq(tfunv1, 1);
+		assert_eq(tfunv2, 1);
+		assert_eq(tfunv3, 1);
+		while (!ALOAD(&state->value1));
+	} else {
+		timeout(tfun3, 150);
+		for (int i = 0; i < 3; i++) sleepm(200);
+		assert_eq(tfunv1, 0);
+		assert_eq(tfunv2, 0);
+		assert_eq(tfunv3, 1);
+		ASTORE(&state->value1, 1);
+		exit(0);
+	}
+
+	munmap(state, sizeof(SharedStateData));
+}
+
