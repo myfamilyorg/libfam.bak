@@ -27,7 +27,8 @@ jobs:
         run: |
           make clean test CC=gcc MEMSAN=1
           make clean test CC=clang MEMSAN=1
-          make clean all
+          make clean all CC=gcc
+          make clean all CC=clang
           ldd lib/libfam.so  | grep "statically linked" || { echo "not statically linked!"; exit 1; }
           UNDEFINED_COUNT=$(nm lib/libfam.so | grep " U " | grep -v "U environ" | wc -l)
           if [ "$UNDEFINED_COUNT" -ne 0 ]; then
