@@ -25,6 +25,7 @@
 
 #include <alloc.h>
 #include <atomic.h>
+#include <channel.h>
 #include <lock.h>
 #include <stdio.h>
 #include <sys.h>
@@ -399,3 +400,41 @@ Test(alloc1) {
 	ASSERT_BYTES(0);
 }
 
+typedef struct {
+	int x;
+	int y;
+} TestMessage;
+
+Test(channel1) {
+	Channel ch1 = channel(sizeof(TestMessage));
+	if (two()) {
+		TestMessage msg = {0};
+		while (true) {
+			int res = recv_now(&ch1, &msg);
+			if (res == -1) continue;
+			ASSERT_EQ(msg.x, 1);
+			ASSERT_EQ(msg.y, 2);
+			break;
+		}
+		ASSERT_EQ(recv_now(&ch1, &msg), -1);
+	} else {
+		send(&ch1, &(TestMessage){.x = 1, .y = 2});
+		exit(0);
+	}
+	channel_destroy(&ch1);
+}
+
+Test(channel2) {
+	Channel ch1 = channel(sizeof(TestMessage));
+	if (two()) {
+		TestMessage msg = {0};
+		recv(&ch1, &msg);
+		ASSERT_EQ(msg.x, 1);
+		ASSERT_EQ(msg.y, 2);
+		ASSERT_EQ(recv_now(&ch1, &msg), -1);
+	} else {
+		send(&ch1, &(TestMessage){.x = 1, .y = 2});
+		exit(0);
+	}
+	channel_destroy(&ch1);
+}
