@@ -27,5 +27,5 @@ jobs:
         run: |
           make clean test
           make clean all
-          ldd lib/libfam.so  | grep "statically linkxed" || exit 1;
+          ldd lib/libfam.so  | grep "statically linked" || exit 1;
           nm lib/libfam.so | grep " U " | grep -v "U environ"
