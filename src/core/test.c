@@ -440,6 +440,7 @@ Test(channel2) {
 }
 
 Test(channel3) {
+	ASSERT(0);
 	Channel ch1 = channel(sizeof(TestMessage));
 	if (two()) {
 		TestMessage msg = {0};
