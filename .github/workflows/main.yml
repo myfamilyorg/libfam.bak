@@ -25,7 +25,8 @@ jobs:
         run: uname -a
       - name: linux all
         run: |
-          make clean test
+          make clean test CC=gcc
+          make clean test CC=clang
           make clean all
           ldd lib/libfam.so  | grep "statically linked" || { echo "not statically linked!"; exit 1; }
           UNDEFINED_COUNT=$(nm lib/libfam.so | grep " U " | grep -v "U environ" | wc -l)
