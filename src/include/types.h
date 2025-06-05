@@ -36,7 +36,7 @@ typedef union epoll_data {
 struct epoll_event {
 	unsigned int events;
 	epoll_data_t data;
-};
+} __attribute__((packed));
 
 struct clone_args {
 	unsigned long flags;

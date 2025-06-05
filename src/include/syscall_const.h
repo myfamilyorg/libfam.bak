@@ -129,4 +129,20 @@
 /* SA_RESTORER - rt_sigaction */
 #define SA_RESTORER 0x04000000
 
+/* EPOLL */
+#define EPOLLIN 0x00000001	  /* Available for reading */
+#define EPOLLOUT 0x00000004	  /* Available for writing */
+#define EPOLLPRI 0x00000002	  /* Urgent data available */
+#define EPOLLERR 0x00000008	  /* Error condition */
+#define EPOLLHUP 0x00000010	  /* Hang up */
+#define EPOLLET 0x80000000	  /* Edge-triggered mode */
+#define EPOLLONESHOT 0x40000000	  /* One-shot mode */
+#define EPOLLRDHUP 0x00002000	  /* Peer closed connection */
+#define EPOLLWAKEUP 0x20000000	  /* Prevent suspend */
+#define EPOLLEXCLUSIVE 0x10000000 /* Exclusive wake-up mode */
+
+#define EPOLL_CTL_ADD 1 /* Add a file descriptor to the epoll instance */
+#define EPOLL_CTL_DEL 2 /* Add a file descriptor to the epoll instance */
+#define EPOLL_CTL_MOD 3 /* Modify an existing file descriptor's settings */
+
 #endif /* _SYSCALL_CONST_H */
