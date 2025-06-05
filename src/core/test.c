@@ -438,3 +438,26 @@ Test(channel2) {
 	}
 	channel_destroy(&ch1);
 }
+
+Test(channel3) {
+	Channel ch1 = channel(sizeof(TestMessage));
+	if (two()) {
+		TestMessage msg = {0};
+		recv(&ch1, &msg);
+		ASSERT_EQ(msg.x, 1);
+		ASSERT_EQ(msg.y, 2);
+		recv(&ch1, &msg);
+		ASSERT_EQ(msg.x, 3);
+		ASSERT_EQ(msg.y, 4);
+		recv(&ch1, &msg);
+		ASSERT_EQ(msg.x, 5);
+		ASSERT_EQ(msg.y, 6);
+		ASSERT_EQ(recv_now(&ch1, &msg), -1);
+	} else {
+		send(&ch1, &(TestMessage){.x = 1, .y = 2});
+		send(&ch1, &(TestMessage){.x = 3, .y = 4});
+		send(&ch1, &(TestMessage){.x = 5, .y = 6});
+		exit(0);
+	}
+	channel_destroy(&ch1);
+}
