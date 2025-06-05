@@ -48,7 +48,7 @@ extern TestEntry tests[];
 	}                                                                  \
 	void __test_##name(void)
 
-#define assert_eq(x, y)                                                       \
+#define ASSERT_EQ(x, y)                                                       \
 	if ((x) != (y)) {                                                     \
 		const char *msg_pre = "assertion failed in test: [";          \
 		const char *msg_post = "].";                                  \
@@ -57,7 +57,7 @@ extern TestEntry tests[];
 		panic(msg_post);                                              \
 	}
 
-#define assert(x)                                                             \
+#define ASSERT(x)                                                             \
 	if (!(x)) {                                                           \
 		const char *msg_pre = "assertion failed in test: [";          \
 		const char *msg_post = "].";                                  \
@@ -67,7 +67,7 @@ extern TestEntry tests[];
 	}
 
 #if MEMSAN == 1
-#define ASSERT_BYTES(v) assert_eq(get_allocated_bytes(), v)
+#define ASSERT_BYTES(v) ASSERT_EQ(get_allocated_bytes(), v)
 #else
 #define ASSERT_BYTES(v)
 #endif /* MEMSAN */

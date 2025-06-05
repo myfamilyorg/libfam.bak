@@ -59,7 +59,7 @@ Test(two1) {
 		ASTORE(&state->value1, 1);
 		exit(0);
 	}
-	assert(state->value2);
+	ASSERT(state->value2);
 	munmap(base, sizeof(SharedStateData));
 }
 
@@ -71,31 +71,31 @@ Test(futex1) {
 		while (state->uvalue1 == 0) {
 			futex(&state->uvalue1, FUTEX_WAIT, 0, NULL, NULL, 0);
 		}
-		assert(state->uvalue1);
+		ASSERT(state->uvalue1);
 		state->value2++;
 	} else {
 		state->uvalue1 = 1;
 		futex(&state->uvalue1, FUTEX_WAKE, 1, NULL, NULL, 0);
 		exit(0);
 	}
-	assert(state->value2);
+	ASSERT(state->value2);
 	munmap(base, sizeof(SharedStateData));
 }
 
 Test(lock0) {
 	Lock l1 = LOCK_INIT;
-	assert_eq(l1, 0);
+	ASSERT_EQ(l1, 0);
 	{
 		LockGuard lg1 = rlock(&l1);
-		assert_eq(l1, 1);
+		ASSERT_EQ(l1, 1);
 	}
-	assert_eq(l1, 0);
+	ASSERT_EQ(l1, 0);
 	{
 		LockGuard lg1 = wlock(&l1);
 		uint32_t vabc = 0x1 << 31;
-		assert_eq(l1, vabc);
+		ASSERT_EQ(l1, vabc);
 	}
-	assert_eq(l1, 0);
+	ASSERT_EQ(l1, 0);
 }
 
 Test(lock1) {
@@ -113,21 +113,21 @@ Test(lock1) {
 			LockGuard lg1 = rlock(&state->lock1);
 			if (state->value1) break;
 		}
-		assert_eq(state->value3++, 1);
+		ASSERT_EQ(state->value3++, 1);
 		LockGuard lg2 = rlock(&state->lock2);
-		assert_eq(state->value2, 1);
-		assert_eq(state->value3++, 3);
+		ASSERT_EQ(state->value2, 1);
+		ASSERT_EQ(state->value3++, 3);
 	} else {
 		{
 			LockGuard lg2 = wlock(&state->lock2);
-			assert_eq(state->value3++, 0);
+			ASSERT_EQ(state->value3++, 0);
 			{
 				LockGuard lg1 = wlock(&state->lock1);
 				state->value1 = 1;
 			}
 			sleepm(10);
 			state->value2 = 1;
-			assert_eq(state->value3++, 2);
+			ASSERT_EQ(state->value3++, 2);
 		}
 		exit(0);
 	}
@@ -149,21 +149,21 @@ Test(lock2) {
 			LockGuard lg1 = rlock(&state->lock1);
 			if (state->value1) break;
 		}
-		assert_eq(state->value3++, 1);
+		ASSERT_EQ(state->value3++, 1);
 		LockGuard lg2 = wlock(&state->lock2);
-		assert_eq(state->value2, 1);
-		assert_eq(state->value3++, 3);
+		ASSERT_EQ(state->value2, 1);
+		ASSERT_EQ(state->value3++, 3);
 	} else {
 		{
 			LockGuard lg2 = wlock(&state->lock2);
-			assert_eq(state->value3++, 0);
+			ASSERT_EQ(state->value3++, 0);
 			{
 				LockGuard lg1 = wlock(&state->lock1);
 				state->value1 = 1;
 			}
 			sleepm(10);
 			state->value2 = 1;
-			assert_eq(state->value3++, 2);
+			ASSERT_EQ(state->value3++, 2);
 		}
 		exit(0);
 	}
@@ -186,7 +186,7 @@ Test(lock3) {
 			if (state->value1 == 2) break;
 		}
 		LockGuard lg2 = wlock(&state->lock2);
-		assert_eq(state->value2, 2);
+		ASSERT_EQ(state->value2, 2);
 	} else {
 		if (two()) {
 			LockGuard lg2 = rlock(&state->lock2);
@@ -221,9 +221,9 @@ Test(lock4) {
 
 		{
 			LockGuard lg2 = wlock(&state->lock2);
-			assert_eq(state->value2++, 0);
+			ASSERT_EQ(state->value2++, 0);
 
-			assert_eq(state->value3, 0);
+			ASSERT_EQ(state->value3, 0);
 		}
 		while (!ALOAD(&state->value3)) yield();
 
@@ -236,7 +236,7 @@ Test(lock4) {
 			}
 			{
 				LockGuard lg2 = rlock(&state->lock2);
-				assert_eq(state->value2++, 1);
+				ASSERT_EQ(state->value2++, 1);
 				state->value3++;
 			}
 			exit(0);
@@ -271,7 +271,7 @@ Test(lock5) {
 			LockGuard lg = wlock(&state->lock1);
 			if (state->value2 == 0) break;
 		}
-		assert_eq(ALOAD(&state->value2), 0);
+		ASSERT_EQ(ALOAD(&state->value2), 0);
 	} else {
 		while (true) {
 			LockGuard lg = wlock(&state->lock1);
@@ -312,7 +312,7 @@ Test(timeout1) {
 	timeout(tfun1, 100);
 	sleepm(300);
 	LockGuard l = rlock(&tfunlock);
-	assert_eq(tfunv1, 1);
+	ASSERT_EQ(tfunv1, 1);
 }
 
 Test(timeout2) {
@@ -326,11 +326,11 @@ Test(timeout2) {
 	sleepm(1000);
 	{
 		LockGuard l = rlock(&tfunlock);
-		assert_eq(tfunv1, 1);
-		assert_eq(tfunv2, 0);
+		ASSERT_EQ(tfunv1, 1);
+		ASSERT_EQ(tfunv2, 0);
 	}
 	sleepm(200);
-	assert_eq(tfunv2, 1);
+	ASSERT_EQ(tfunv2, 1);
 }
 
 Test(timeout3) {
@@ -346,16 +346,16 @@ Test(timeout3) {
 	if (two()) {
 		timeout(tfun3, 150);
 		for (int i = 0; i < 3; i++) sleepm(200);
-		assert_eq(tfunv1, 1);
-		assert_eq(tfunv2, 1);
-		assert_eq(tfunv3, 1);
+		ASSERT_EQ(tfunv1, 1);
+		ASSERT_EQ(tfunv2, 1);
+		ASSERT_EQ(tfunv3, 1);
 		while (!ALOAD(&state->value1));
 	} else {
 		timeout(tfun3, 150);
 		for (int i = 0; i < 3; i++) sleepm(200);
-		assert_eq(tfunv1, 0);
-		assert_eq(tfunv2, 0);
-		assert_eq(tfunv3, 1);
+		ASSERT_EQ(tfunv1, 0);
+		ASSERT_EQ(tfunv2, 0);
+		ASSERT_EQ(tfunv3, 1);
 		ASTORE(&state->value1, 1);
 		exit(0);
 	}
@@ -372,7 +372,7 @@ Test(alloc1) {
 	t5 = alloc(8);
 	t4[0] = 1;
 	t5[0] = 1;
-	assert(t4 != t5);
+	ASSERT(t4 != t5);
 	release(t4);
 	release(t5);
 	t4 = alloc(8);
@@ -384,13 +384,13 @@ Test(alloc1) {
 	ASSERT_BYTES(0);
 
 	t1 = alloc(1024 * 1024);
-	assert(t1);
+	ASSERT(t1);
 	t2 = alloc(1024 * 1024);
-	assert(t2);
+	ASSERT(t2);
 	t3 = alloc(1024 * 1024);
-	assert(t3);
+	ASSERT(t3);
 	t4 = alloc(1024 * 1024);
-	assert(t4);
+	ASSERT(t4);
 	ASSERT_BYTES(4 * 1024 * 1024);
 	release(t1);
 	release(t2);
