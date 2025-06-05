@@ -28,4 +28,5 @@ jobs:
           make clean test
           make clean all
           ldd lib/libfam.so  | grep "statically linked" || { echo "not statically linked!"; exit 1; }
-          nm lib/libfam.so
+          UNDEFINED_COUNT=$(nm lib/libfam.so | grep " U " | grep -v "U environ" | wc -l)
+          echo $UNDEFINED_COUNT
