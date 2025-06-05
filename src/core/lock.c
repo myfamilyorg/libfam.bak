@@ -35,6 +35,7 @@
 #define WREQUEST (0x1 << 30)
 
 void lockguard_cleanup(LockGuardImpl *lg) {
+	printf("hi");
 	if (lg->is_write) {
 		AAND(lg->lock, WREQUEST);
 		futex(lg->lock, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
