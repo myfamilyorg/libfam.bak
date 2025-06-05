@@ -13,7 +13,7 @@ on:
   workflow_dispatch:  # This enables manual triggering
 
 jobs:
-  linux:
+  linux_amd64:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -35,3 +35,17 @@ jobs:
             echo "Error: Found $UNDEFINED_COUNT undefined symbols other than environ"
             exit 1
           fi
+  linux_aarch64:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [linux-aarch64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Check linux version
+        run: uname -a
+      - name: linux all
+        run: |
+          make clean all CC=gcc
+          make clean all CC=clang
