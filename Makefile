@@ -2,7 +2,8 @@ CC      = gcc
 CSTYLE  = -pedantic \
           -Wall \
           -Wextra \
-	  -std=c89
+	  -std=c89 \
+	  -Werror
 CFLAGS  = -fPIC \
 	  $(CSTYLE) \
           -O3 \
