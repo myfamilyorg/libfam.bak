@@ -67,9 +67,7 @@ jobs:
             apt-get install -y --no-install-recommends \
               make \
               gcc \
-              clang \
-              libc6-dev \
-              libasan6 &&
+              clang
             apt-get clean &&
             rm -rf /var/lib/apt/lists/* &&
             uname -a &&
