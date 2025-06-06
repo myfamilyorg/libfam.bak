@@ -1,5 +1,6 @@
 #include <types.h>
 
+#ifdef __aarch64__
 int __cas32(volatile uint32_t *a, uint32_t *expected, uint32_t desired) {
 	uint32_t result;
 	int success;
@@ -163,3 +164,7 @@ uint64_t __and64(volatile uint64_t *a, uint64_t v) {
 	    : "x4", "memory");
 	return old;
 }
+
+#elif defined(__amd64__)
+int __atomic_dummy() { return 0; }
+#endif
