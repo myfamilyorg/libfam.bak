@@ -72,13 +72,15 @@ Test(two1) {
 */
 
 Test(futex1) {
+	int p;
 	write(2, "a\n", 2);
 	void *base = smap(sizeof(SharedStateData));
 	SharedStateData *state = (SharedStateData *)base;
 	write(2, "b\n", 2);
 	state->uvalue1 = (uint32_t)0;
-	if (two()) {
+	if ((p = two())) {
 		write(2, "c\n", 2);
+		fprintf(stderr, "p=%i\n", p);
 		while (state->uvalue1 == 0) {
 			futex(&state->uvalue1, FUTEX_WAIT, 0, NULL, NULL, 0);
 		}
