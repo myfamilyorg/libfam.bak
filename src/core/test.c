@@ -69,18 +69,24 @@ Test(two1) {
 */
 
 Test(futex1) {
+	printf("pre smap\n");
 	void *base = smap(sizeof(SharedStateData));
 	SharedStateData *state = (SharedStateData *)base;
+	printf("smap complete\n");
 	state->uvalue1 = (uint32_t)0;
 	if (two()) {
+		printf("busy wait\n");
 		while (state->uvalue1 == 0) {
 			futex(&state->uvalue1, FUTEX_WAIT, 0, NULL, NULL, 0);
 		}
+		printf("busy wait complete\n");
 		ASSERT(state->uvalue1);
 		state->value2++;
 	} else {
 		state->uvalue1 = 1;
+		printf("futex msg\n");
 		futex(&state->uvalue1, FUTEX_WAKE, 1, NULL, NULL, 0);
+		printf("futex complete\n");
 		exit(0);
 	}
 	ASSERT(state->value2);
