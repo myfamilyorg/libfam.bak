@@ -43,7 +43,7 @@
 		__asm__ volatile(              \
 		    "mov x8, %1\n"             \
 		    "svc #0\n"                 \
-		    "mov x0, %0\n"             \
+		    "mov %0, x0\n"             \
 		    : "=r"(result)             \
 		    : "r"((long)(sysno))       \
 		    : "x8", "x0", "memory");   \
@@ -57,7 +57,7 @@
 		    "mov x8, %1\n"                          \
 		    "mov x0, %2\n"                          \
 		    "svc #0\n"                              \
-		    "mov x0, %0\n"                          \
+		    "mov %0, x0\n"                          \
 		    : "=r"(result)                          \
 		    : "r"((long)(sysno)), "r"((long)(arg1)) \
 		    : "x8", "x0", "memory");                \
@@ -72,7 +72,7 @@
 		    "mov x0, %2\n"                                             \
 		    "mov x1, %3\n"                                             \
 		    "svc #0\n"                                                 \
-		    "mov x0, %0\n"                                             \
+		    "mov %0, x0\n"                                             \
 		    : "=r"(result)                                             \
 		    : "r"((long)(sysno)), "r"((long)(arg1)), "r"((long)(arg2)) \
 		    : "x8", "x0", "x1", "memory");                             \
@@ -89,7 +89,7 @@
 		    "mov x1, %3\n"                                           \
 		    "mov x2, %4\n"                                           \
 		    "svc #0\n"                                               \
-		    "mov x0, %0\n"                                           \
+		    "mov %0, x0\n"                                           \
 		    : "=r"(result)                                           \
 		    : "r"((long)(sysno)), "r"((long)(arg1)),                 \
 		      "r"((long)(arg2)), "r"((long)(arg3))                   \
@@ -109,7 +109,7 @@
 		    "mov x2, %4\n"                                            \
 		    "mov x3, %5\n"                                            \
 		    "svc #0\n"                                                \
-		    "mov x0, %0\n"                                            \
+		    "mov %0, x0\n"                                            \
 		    : "=r"(result)                                            \
 		    : "r"((long)(sysno)), "r"((long)(arg1)),                  \
 		      "r"((long)(arg2)), "r"((long)(arg3)), "r"((long)(arg4)) \
@@ -130,7 +130,7 @@
 		    "mov x3, %5\n"                                             \
 		    "mov x4, %6\n"                                             \
 		    "svc #0\n"                                                 \
-		    "mov x0, %0\n"                                             \
+		    "mov %0, x0\n"                                             \
 		    : "=r"(result)                                             \
 		    : "r"((long)(sysno)), "r"((long)(arg1)),                   \
 		      "r"((long)(arg2)), "r"((long)(arg3)), "r"((long)(arg4)), \
@@ -153,7 +153,7 @@
 		    "mov x4, %6\n"                                             \
 		    "mov x5, %7\n"                                             \
 		    "svc #0\n"                                                 \
-		    "mov x0, %0\n"                                             \
+		    "mov %0, x0\n"                                             \
 		    : "=r"(result)                                             \
 		    : "r"((long)(sysno)), "r"((long)(arg1)),                   \
 		      "r"((long)(arg2)), "r"((long)(arg3)), "r"((long)(arg4)), \
