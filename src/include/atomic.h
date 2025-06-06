@@ -38,6 +38,13 @@
 #define CAS(a, expected, desired)                                \
 	__atomic_compare_exchange_n(a, expected, desired, false, \
 				    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+#define AADD32(a, v) AADD(a, v)
+#define ASUB32(a, v) ASUB(a, v)
+#define ALOAD32(a) ALOAD(a)
+#define ASTORE32(a, v) ASTORE(a, v)
+#define AOR32(a, v) AOR(a, v)
+#define AAND32(a, v) AAND(a, v)
+#define CAS32(a, expected, desired) CAS(a, expected, desired)
 
 #elif defined(__aarch64__)
 
