@@ -71,6 +71,7 @@ jobs:
             apt-get clean &&
             rm -rf /var/lib/apt/lists/* &&
             uname -a &&
+            make clean all && nm lib/libfam.so | grep " U " &&
             make clean test CC=gcc MEMSAN=1 &&
             make clean test CC=clang MEMSAN=1 &&
             make clean all CC=gcc &&
