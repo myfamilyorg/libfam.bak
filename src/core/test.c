@@ -81,6 +81,7 @@ Test(futex1) {
 	if ((p = two())) {
 		write(2, "c\n", 2);
 		fprintf(stderr, "p=%i\n", p);
+		perror("pid");
 		while (state->uvalue1 == 0) {
 			futex(&state->uvalue1, FUTEX_WAIT, 0, NULL, NULL, 0);
 		}
