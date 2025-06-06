@@ -45,16 +45,14 @@ size_t strlen(const char *X) {
 
 char *strcpy(char *dest, const char *src) {
 	char *ptr = dest;
-	while ((*ptr++ = *src++))
-		;
+	while ((*ptr++ = *src++));
 	return dest;
 }
 
 char *strcat(char *dest, const char *src) {
 	char *ptr = dest;
 	while (*ptr) ptr++;
-	while ((*ptr++ = *src++))
-		;
+	while ((*ptr++ = *src++));
 	return dest;
 }
 
@@ -426,6 +424,62 @@ uint128_t __udivti3(uint128_t a, uint128_t b) {
 	}
 
 	return quotient;
+}
+
+uint128_t __umodti3(uint128_t a, uint128_t b) {
+	uint128_t quotient;
+	uint128_t remainder;
+	int shift, i;
+	/* Handle division by zero */
+	if (b == 0) {
+		__builtin_trap(); /* Trigger undefined behavior or abort */
+	}
+
+	/* If b is a 64-bit value, use simpler division */
+	if ((b >> 64) == 0) {
+		uint64_t b_lo = (uint64_t)b, a_hi, a_lo, rem;
+		if (b_lo == 0) {
+			__builtin_trap();
+		}
+		/* Extract high and low 64 bits of a */
+		a_hi = (uint64_t)(a >> 64);
+		a_lo = (uint64_t)a;
+
+		/* If a_hi < b_lo, remainder is a_lo % b_lo */
+		if (a_hi == 0) {
+			return (uint128_t)(a_lo % b_lo);
+		}
+
+		/* Perform long division */
+		rem = a_hi;
+		rem = (rem << 32) | (a_lo >> 32);
+		rem = rem % b_lo;
+		rem = (rem << 32) | (a_lo & 0xffffffff);
+		return (uint128_t)(rem % b_lo);
+	}
+
+	/* General case: 128-bit division */
+	quotient = 0;
+	remainder = a;
+
+	/* Normalize: shift b until its highest bit is 1 */
+	shift = __builtin_clzll((uint64_t)(b >> 64));
+	if (shift == 64) {
+		shift += __builtin_clzll((uint64_t)b);
+	}
+	b <<= shift;
+	remainder <<= shift;
+
+	/* Long division loop */
+	for (i = 0; i <= shift; i++) {
+		if (remainder >= b) {
+			remainder -= b;
+			quotient |= (uint128_t)1 << (shift - i);
+		}
+		b >>= 1;
+	}
+
+	return remainder;
 }
 
 int b64_encode(const void *buf_in, size_t in_len, char *buf_out) {
