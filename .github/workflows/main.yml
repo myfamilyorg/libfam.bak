@@ -39,26 +39,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4  # Update to latest version for better compatibility
+        uses: actions/checkout@v4
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3  # Update to latest version
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3  # Add Buildx for multi-arch support
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache APT packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ hashFiles('**/Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
 
       - name: Verify QEMU setup
-        run: docker run --rm --platform linux/arm64 arm64v8/ubuntu:latest uname -m
+        run: docker run --rm --platform linux/arm64 arm64v8/debian:bullseye-slim uname -m
 
       - name: Run in ARM64 environment
         run: |
-          docker run --rm --platform linux/arm64 -v $(pwd):/work -w /work arm64v8/ubuntu:latest bash -c "
-            uname -a &&
+          docker run --rm --platform linux/arm64 -v $(pwd):/work -w /work arm64v8/debian:bullseye-slim bash -c "
             apt-get update &&
-            apt-get install -y make gcc clang &&
+            apt-get install -y --no-install-recommends \
+              make \
+              gcc \
+              clang \
+              libc6-dev \
+              libasan6 &&
+            apt-get clean &&
+            rm -rf /var/lib/apt/lists/* &&
+            uname -a &&
             make clean test CC=gcc MEMSAN=1 &&
-             make clean test CC=clang MEMSAN=1 &&
+            make clean test CC=clang MEMSAN=1 &&
             make clean all CC=gcc &&
             make clean all CC=clang"
