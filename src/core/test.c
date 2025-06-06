@@ -33,7 +33,10 @@
 #include <syscall_const.h>
 #include <test.h>
 
-Test(write1) { write(2, "test\n", 5); }
+Test(write1) {
+	write(2, "test\n", 5);
+	write(2, "abcd\n", 5);
+}
 
 typedef struct {
 	Lock lock1;
