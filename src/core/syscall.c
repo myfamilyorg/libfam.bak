@@ -322,6 +322,15 @@ static void syscall_exit(int status) {
 	);
 }
 
+static void syscall_restorer(void) {
+	__asm__ volatile(
+	    "movq $15, %%rax\n" /* rt_sigreturn (x86-64) */
+	    "syscall\n"
+	    :
+	    :
+	    : "%rax", "%rcx", "%r11", "memory");
+}
+
 #endif /* Arch */
 
 #ifdef __aarch64__
@@ -426,7 +435,6 @@ DEFINE_SYSCALL6(202, long, futex, uint32_t *, uaddr, int, futex_op, uint32_t,
 		uint32_t, val3)
 DEFINE_SYSCALL4(13, int, rt_sigaction, int, signum, const struct rt_sigaction *,
 		act, struct rt_sigaction *, oldact, size_t, sigsetsize)
-DEFINE_SYSCALL0(15, int, restorer)
 
 #endif /* Arch */
 
@@ -655,4 +663,4 @@ int rt_sigaction(int signum, const struct rt_sigaction *act,
 	SET_ERR
 }
 
-void restorer(void) { int __attribute__((unused)) ret = syscall_restorer(); }
+void restorer(void) { syscall_restorer(); }
