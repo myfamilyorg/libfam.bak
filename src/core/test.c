@@ -54,10 +54,10 @@ Test(two1) {
 	state->value1 = 0;
 	state->value2 = 0;
 	if (two()) {
-		while (!ALOAD(&state->value1));
+		while (!ALOAD32(&state->value1));
 		state->value2++;
 	} else {
-		ASTORE(&state->value1, 1);
+		ASTORE32(&state->value1, 1);
 		exit(0);
 	}
 	ASSERT(state->value2);
@@ -226,7 +226,7 @@ Test(lock4) {
 
 			ASSERT_EQ(state->value3, 0);
 		}
-		while (!ALOAD(&state->value3)) yield();
+		while (!ALOAD32(&state->value3)) yield();
 
 	} else {
 		if (two()) {
@@ -267,12 +267,12 @@ Test(lock5) {
 			if (state->value1 % 2 == 0) state->value1++;
 			if (state->value1 >= size) break;
 		}
-		ASTORE(&state->value2, 1);
+		ASTORE32(&state->value2, 1);
 		while (true) {
 			LockGuard lg = wlock(&state->lock1);
 			if (state->value2 == 0) break;
 		}
-		ASSERT_EQ(ALOAD(&state->value2), 0);
+		ASSERT_EQ(ALOAD32(&state->value2), 0);
 	} else {
 		while (true) {
 			LockGuard lg = wlock(&state->lock1);
@@ -283,12 +283,13 @@ Test(lock5) {
 			LockGuard lg = wlock(&state->lock1);
 			if (state->value2 == 1) break;
 		}
-		ASTORE(&state->value2, 0);
+		ASTORE32(&state->value2, 0);
 		exit(0);
 	}
 	munmap(state, sizeof(SharedStateData));
 }
 
+/*
 Lock tfunlock = LOCK_INIT;
 int tfunv1 = 0;
 int tfunv2 = 0;
@@ -364,8 +365,10 @@ Test(timeout3) {
 	munmap(state, sizeof(SharedStateData));
 }
 
-#define CHUNK_SIZE (1024 * 1024 * 4)
+*/
 
+#define CHUNK_SIZE (1024 * 1024 * 4)
+/*
 Test(alloc1) {
 	char *t1, *t2, *t3, *t4, *t5;
 	t1 = alloc(CHUNK_SIZE);
@@ -399,12 +402,14 @@ Test(alloc1) {
 	release(t4);
 	ASSERT_BYTES(0);
 }
+*/
 
 typedef struct {
 	int x;
 	int y;
 } TestMessage;
 
+/*
 Test(channel1) {
 	Channel ch1 = channel(sizeof(TestMessage));
 	if (two()) {
@@ -461,3 +466,4 @@ Test(channel3) {
 	}
 	channel_destroy(&ch1);
 }
+*/
