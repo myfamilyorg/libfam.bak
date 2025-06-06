@@ -39,14 +39,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4  # Update to latest version for better compatibility
+
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3  # Update to latest version
         with:
           platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3  # Add Buildx for multi-arch support
+
+      - name: Verify QEMU setup
+        run: docker run --rm --platform linux/arm64 arm64v8/ubuntu:latest uname -m
+
       - name: Run in ARM64 environment
         run: |
-          docker run --rm -v $(pwd):/work -w /work arm64v8/ubuntu:latest bash -c "
+          docker run --rm --platform linux/arm64 -v $(pwd):/work -w /work arm64v8/ubuntu:latest bash -c "
             uname -a &&
             apt-get update &&
             apt-get install -y make gcc clang &&
