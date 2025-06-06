@@ -52,4 +52,4 @@ jobs:
             apt-get install -y make gcc clang &&
             make clean test CC=gcc MEMSAN=1 &&
             make clean all CC=gcc &&
-            make clean all CC=clang
+            make clean all CC=clang"
