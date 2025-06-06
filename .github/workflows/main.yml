@@ -37,18 +37,19 @@ jobs:
           fi
   linux_aarch64:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        platform: [linux-aarch64]
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Check linux version
-        run: uname -a
-      - name: linux all
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64
+      - name: Run in ARM64 environment
         run: |
-          make clean test CC=gcc MEMSAN=1
-          make clean test CC=clang MEMSAN=1
-          make clean all CC=gcc
-          make clean all CC=clang
-
+          docker run --rm -v $(pwd):/work -w /work arm64v8/ubuntu:latest bash -c "
+            uname -a &&
+            apt-get update &&
+            apt-get install -y make gcc clang &&
+            make clean test CC=gcc MEMSAN=1 &&
+            make clean all CC=gcc &&
+            make clean all CC=clang
