@@ -54,10 +54,10 @@ Test(two1) {
 	state->value1 = 0;
 	state->value2 = 0;
 	if (two()) {
-		while (!ALOAD32(&state->value1));
+		while (!ALOAD(&state->value1));
 		state->value2++;
 	} else {
-		ASTORE32(&state->value1, 1);
+		ASTORE(&state->value1, 1);
 		exit(0);
 	}
 	ASSERT(state->value2);
@@ -226,7 +226,7 @@ Test(lock4) {
 
 			ASSERT_EQ(state->value3, 0);
 		}
-		while (!ALOAD32(&state->value3)) yield();
+		while (!ALOAD(&state->value3)) yield();
 
 	} else {
 		if (two()) {
@@ -267,12 +267,12 @@ Test(lock5) {
 			if (state->value1 % 2 == 0) state->value1++;
 			if (state->value1 >= size) break;
 		}
-		ASTORE32(&state->value2, 1);
+		ASTORE(&state->value2, 1);
 		while (true) {
 			LockGuard lg = wlock(&state->lock1);
 			if (state->value2 == 0) break;
 		}
-		ASSERT_EQ(ALOAD32(&state->value2), 0);
+		ASSERT_EQ(ALOAD(&state->value2), 0);
 	} else {
 		while (true) {
 			LockGuard lg = wlock(&state->lock1);
@@ -283,7 +283,7 @@ Test(lock5) {
 			LockGuard lg = wlock(&state->lock1);
 			if (state->value2 == 1) break;
 		}
-		ASTORE32(&state->value2, 0);
+		ASTORE(&state->value2, 0);
 		exit(0);
 	}
 	munmap(state, sizeof(SharedStateData));
