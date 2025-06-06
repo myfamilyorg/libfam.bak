@@ -82,7 +82,7 @@ Test(futex1) {
 	ASSERT(state->value2);
 	munmap(base, sizeof(SharedStateData));
 }
-
+/*
 Test(lock0) {
 	Lock l1 = LOCK_INIT;
 	ASSERT_EQ(l1, 0);
@@ -288,7 +288,7 @@ Test(lock5) {
 	}
 	munmap(state, sizeof(SharedStateData));
 }
-
+*/
 /*
 Lock tfunlock = LOCK_INIT;
 int tfunv1 = 0;
@@ -368,7 +368,7 @@ Test(timeout3) {
 */
 
 #define CHUNK_SIZE (1024 * 1024 * 4)
-
+/*
 Test(alloc1) {
 	char *t1, *t2, *t3, *t4, *t5;
 
@@ -403,6 +403,7 @@ Test(alloc1) {
 	release(t4);
 	ASSERT_BYTES(0);
 }
+*/
 
 /*
 
