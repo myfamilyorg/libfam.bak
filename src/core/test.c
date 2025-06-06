@@ -50,7 +50,6 @@ typedef struct {
 	uint32_t uvalue2;
 } SharedStateData;
 
-/*
 Test(two1) {
 	void *base = smap(sizeof(SharedStateData));
 	SharedStateData *state = (SharedStateData *)base;
@@ -66,7 +65,7 @@ Test(two1) {
 	ASSERT(state->value2);
 	munmap(base, sizeof(SharedStateData));
 }
-
+/*
 Test(futex1) {
 	void *base = smap(sizeof(SharedStateData));
 	SharedStateData *state = (SharedStateData *)base;
