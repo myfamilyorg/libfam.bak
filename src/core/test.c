@@ -368,7 +368,7 @@ Test(timeout3) {
 */
 
 #define CHUNK_SIZE (1024 * 1024 * 4)
-/*
+
 Test(alloc1) {
 	char *t1, *t2, *t3, *t4, *t5;
 	t1 = alloc(CHUNK_SIZE);
@@ -402,14 +402,12 @@ Test(alloc1) {
 	release(t4);
 	ASSERT_BYTES(0);
 }
-*/
 
 typedef struct {
 	int x;
 	int y;
 } TestMessage;
 
-/*
 Test(channel1) {
 	Channel ch1 = channel(sizeof(TestMessage));
 	if (two()) {
@@ -466,4 +464,4 @@ Test(channel3) {
 	}
 	channel_destroy(&ch1);
 }
-*/
+
