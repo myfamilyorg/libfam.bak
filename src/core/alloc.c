@@ -28,7 +28,6 @@
 #include <env.h>
 #include <error.h>
 #include <misc.h>
-
 #define SHM_SIZE_DEFAULT (CHUNK_SIZE * 64)
 
 #ifndef CHUNK_SIZE
@@ -44,7 +43,7 @@
 		size_t max_words;                                             \
 		uint64_t *bitmap;                                             \
 		size_t local_last_free;                                       \
-		(result) = (uint64_t) - 1;                                    \
+		(result) = (uint64_t)-1;                                      \
 		bitmap = (uint64_t *)((unsigned char *)(base));               \
 		max_words = ((max) + 63) >> 6;                                \
 		local_last_free = ALOAD(last_free_ptr);                       \
@@ -55,7 +54,8 @@
 				size_t index =                                \
 				    local_last_free * 64 + bit_value;         \
 				if (index < max) {                            \
-					if (CAS(&bitmap[local_last_free],     \
+					if (__cas64(                          \
+						&bitmap[local_last_free],     \
 						&word,                        \
 						word | (1UL << bit_value))) { \
 						(result) = index;             \
@@ -66,12 +66,12 @@
 			}                                                     \
 			local_last_free++;                                    \
 		}                                                             \
-		if ((result) == (uint64_t) - 1 &&                             \
+		if ((result) == (uint64_t)-1 &&                               \
 		    local_last_free > ALOAD(last_free_ptr)) {                 \
 			uint64_t expected = ALOAD(last_free_ptr);             \
-			while (                                               \
-			    expected < local_last_free &&                     \
-			    !CAS(last_free_ptr, &expected, local_last_free))  \
+			while (expected < local_last_free &&                  \
+			       !__cas64(last_free_ptr, &expected,             \
+					local_last_free))                     \
 				expected = ALOAD(last_free_ptr);              \
 		}                                                             \
 	} while (0)
@@ -80,9 +80,9 @@
 		size_t new_last_free = index / 64;                        \
 		uint64_t expected = ALOAD(last_free_ptr);                 \
 		uint64_t *bitmap = (uint64_t *)((unsigned char *)(base)); \
-		AAND(&bitmap[index / 64], ~(1UL << (index % 64)));        \
+		__and64(&bitmap[index / 64], ~(1UL << (index % 64)));     \
 		while (expected > new_last_free &&                        \
-		       !CAS(last_free_ptr, &expected, new_last_free))     \
+		       !__cas64(last_free_ptr, &expected, new_last_free)) \
 			expected = ALOAD(last_free_ptr);                  \
 	} while (0)
 #define CHUNK_OFFSET                                             \
@@ -195,7 +195,7 @@ STATIC uint64_t atomic_load_or_allocate(uint64_t *ptr, uint32_t slab_size) {
 		chunk->slab_size = slab_size;
 		chunk->last_free = 0;
 
-		if (CAS(ptr, &expected, new_value)) {
+		if (__cas64(ptr, &expected, new_value)) {
 			cur = new_value;
 			break;
 		}

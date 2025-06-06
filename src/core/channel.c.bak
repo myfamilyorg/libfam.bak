@@ -65,7 +65,7 @@ STATIC void check_retired(Channel *channel) {
 	ChannelElement *retired;
 	if (!channel || !channel->inner) return;
 
-	retired = (ChannelElement *)ALOAD(&channel->inner->retired);
+	retired = ALOAD(&channel->inner->retired);
 	if (retired && retired->micros != 0) {
 		uint64_t now = micros();
 		if (now >= retired->micros + MIN_TIMEOUT_AGE) {
@@ -126,11 +126,11 @@ int recv_now(Channel *channel, void *dst) {
 	static uint64_t recv_count = 0;
 	if (++recv_count % 10 == 0) check_retired(channel);
 
-	current_head = (ChannelElement *)ALOAD(&channel->inner->head);
+	current_head = ALOAD(&channel->inner->head);
 	if (current_head == NULL) return -1;
 	size = channel->inner->element_size;
 	initial_seq = ALOAD(&channel->inner->head_seq);
-	next = (ChannelElement *)ALOAD(&current_head->next);
+	next = ALOAD(&current_head->next);
 
 	while (true) {
 		expected = current_head;
@@ -150,20 +150,20 @@ int recv_now(Channel *channel, void *dst) {
 				ChannelElement *old_retired;
 				current_head->micros = micros();
 				do {
-					old_retired = (ChannelElement *)ALOAD(
-					    &channel->inner->retired);
+					old_retired =
+					    ALOAD(&channel->inner->retired);
 					current_head->next = old_retired;
 				} while (!CAS(&channel->inner->retired,
 					      &old_retired, current_head));
 			}
 			return 0;
 		}
-		current_head = (ChannelElement *)ALOAD(&channel->inner->head);
+		current_head = ALOAD(&channel->inner->head);
 		initial_seq = ALOAD(&channel->inner->head_seq);
 		if (current_head == NULL) {
 			return -1;
 		}
-		next = (ChannelElement *)ALOAD(&current_head->next);
+		next = ALOAD(&current_head->next);
 	}
 }
 
@@ -194,7 +194,7 @@ int send(Channel *channel, const void *source) {
 	elem->next = NULL;
 	memcpy((char *)elem + sizeof(ChannelElement), source, size);
 
-	current_tail = (ChannelElement *)ALOAD(&channel->inner->tail);
+	current_tail = ALOAD(&channel->inner->tail);
 
 	if (current_tail == NULL) {
 		expected_tail = NULL;
@@ -208,13 +208,12 @@ int send(Channel *channel, const void *source) {
 			}
 			return notify(channel);
 		}
-		current_tail = (ChannelElement *)ALOAD(&channel->inner->tail);
+		current_tail = ALOAD(&channel->inner->tail);
 	}
 
 	while (true) {
 		last = current_tail;
-		while (last->next != NULL)
-			last = (ChannelElement *)ALOAD(&last->next);
+		while (last->next != NULL) last = ALOAD(&last->next);
 		expected_tail = NULL;
 		success = CAS(&last->next, &expected_tail, elem);
 		if (success) {
@@ -222,6 +221,6 @@ int send(Channel *channel, const void *source) {
 			CAS(&channel->inner->tail, &expected_tail, elem);
 			return notify(channel);
 		}
-		current_tail = (ChannelElement *)ALOAD(&channel->inner->tail);
+		current_tail = ALOAD(&channel->inner->tail);
 	}
 }
