@@ -48,6 +48,7 @@ jobs:
       - name: linux all
         run: |
           make clean test CC=gcc MEMSAN=1
+          make clean test CC=clang MEMSAN=1
           make clean all CC=gcc
           make clean all CC=clang
 
