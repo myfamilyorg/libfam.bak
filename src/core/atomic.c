@@ -171,9 +171,8 @@ int __cas32(volatile uint32_t *a, uint32_t *expected, uint32_t desired) {
 	uint32_t old = *expected;
 	int success;
 	__asm__ volatile(
-	    "lock cmpxchgl %2, %1\n" /* Compare *a with old, swap with desired
-					if equal */
-	    "sete %b0\n" /* Set success = 1 if swap occurred, 0 otherwise */
+	    "lock cmpxchgl %2, %1\n"
+	    "sete %b0\n"
 	    : "=q"(success), "+m"(*a), "+a"(old)
 	    : "r"(desired)
 	    : "memory");
@@ -183,11 +182,10 @@ int __cas32(volatile uint32_t *a, uint32_t *expected, uint32_t desired) {
 
 uint32_t __add32(volatile uint32_t *a, uint32_t v) {
 	uint32_t old;
-	__asm__ volatile(
-	    "lock xaddl %0, %1\n" /* Atomically add v to *a, return old value */
-	    : "=r"(old), "+m"(*a)
-	    : "0"(v)
-	    : "memory");
+	__asm__ volatile("lock xaddl %0, %1\n"
+			 : "=r"(old), "+m"(*a)
+			 : "0"(v)
+			 : "memory");
 	return old;
 }
 
@@ -196,8 +194,8 @@ uint32_t __sub32(volatile uint32_t *a, uint32_t v) { return __add32(a, -v); }
 uint32_t __load32(volatile uint32_t *a) {
 	uint32_t value;
 	__asm__ volatile(
-	    "movl %1, %0\n" /* Load *a with acquire semantics */
-	    "mfence\n"	    /* Full memory barrier for acquire */
+	    "movl %1, %0\n"
+	    "mfence\n"
 	    : "=r"(value)
 	    : "m"(*a)
 	    : "memory");
@@ -206,34 +204,36 @@ uint32_t __load32(volatile uint32_t *a) {
 
 void __store32(volatile uint32_t *a, uint32_t v) {
 	__asm__ volatile(
-	    "mfence\n"	    /* Full memory barrier for release */
-	    "movl %1, %0\n" /* Store v to *a */
+	    "mfence\n"
+	    "movl %1, %0\n"
 	    : "=m"(*a)
 	    : "r"(v)
 	    : "memory");
 }
 
 uint32_t __or32(volatile uint32_t *a, uint32_t v) {
-	uint32_t old;
+	uint32_t old, new_val;
 	__asm__ volatile(
-	    "lock xchgl %0, %1\n"    /* Exchange to get old value */
-	    "orl %2, %0\n"	     /* OR with v */
-	    "lock cmpxchgl %0, %1\n" /* Swap back if unchanged */
+	    "1: movl %2, %0\n"	     /* Load *a into old */
+	    "movl %0, %1\n"	     /* Copy old to new_val */
+	    "orl %3, %1\n"	     /* OR with v */
+	    "lock cmpxchgl %1, %2\n" /* Try to swap new_val into *a */
 	    "jnz 1b\n"		     /* Retry if cmpxchg failed */
-	    : "=r"(old), "+m"(*a)
+	    : "=&a"(old), "=&r"(new_val), "+m"(*a)
 	    : "r"(v)
 	    : "memory", "cc");
 	return old;
 }
 
 uint32_t __and32(volatile uint32_t *a, uint32_t v) {
-	uint32_t old;
+	uint32_t old, new_val;
 	__asm__ volatile(
-	    "lock xchgl %0, %1\n"    /* Exchange to get old value */
-	    "andl %2, %0\n"	     /* AND with v */
-	    "lock cmpxchgl %0, %1\n" /* Swap back if unchanged */
+	    "1: movl %2, %0\n"	     /* Load *a into old */
+	    "movl %0, %1\n"	     /* Copy old to new_val */
+	    "andl %3, %1\n"	     /* AND with v */
+	    "lock cmpxchgl %1, %2\n" /* Try to swap new_val into *a */
 	    "jnz 1b\n"		     /* Retry if cmpxchg failed */
-	    : "=r"(old), "+m"(*a)
+	    : "=&a"(old), "=&r"(new_val), "+m"(*a)
 	    : "r"(v)
 	    : "memory", "cc");
 	return old;
@@ -243,9 +243,8 @@ int __cas64(volatile uint64_t *a, uint64_t *expected, uint64_t desired) {
 	uint64_t old = *expected;
 	int success;
 	__asm__ volatile(
-	    "lock cmpxchgq %2, %1\n" /* Compare *a with old, swap with desired
-					if equal */
-	    "sete %b0\n" /* Set success = 1 if swap occurred, 0 otherwise */
+	    "lock cmpxchgq %2, %1\n"
+	    "sete %b0\n"
 	    : "=q"(success), "+m"(*a), "+a"(old)
 	    : "r"(desired)
 	    : "memory");
@@ -256,8 +255,8 @@ int __cas64(volatile uint64_t *a, uint64_t *expected, uint64_t desired) {
 uint64_t __load64(volatile uint64_t *a) {
 	uint64_t value;
 	__asm__ volatile(
-	    "movq %1, %0\n" /* Load *a with acquire semantics */
-	    "mfence\n"	    /* Full memory barrier for acquire */
+	    "movq %1, %0\n"
+	    "mfence\n"
 	    : "=r"(value)
 	    : "m"(*a)
 	    : "memory");
@@ -266,11 +265,10 @@ uint64_t __load64(volatile uint64_t *a) {
 
 uint64_t __add64(volatile uint64_t *a, uint64_t v) {
 	uint64_t old;
-	__asm__ volatile(
-	    "lock xaddq %0, %1\n" /* Atomically add v to *a, return old value */
-	    : "=r"(old), "+m"(*a)
-	    : "0"(v)
-	    : "memory");
+	__asm__ volatile("lock xaddq %0, %1\n"
+			 : "=r"(old), "+m"(*a)
+			 : "0"(v)
+			 : "memory");
 	return old;
 }
 
@@ -278,37 +276,38 @@ uint64_t __sub64(volatile uint64_t *a, uint64_t v) { return __add64(a, -v); }
 
 void __store64(volatile uint64_t *a, uint64_t v) {
 	__asm__ volatile(
-	    "mfence\n"	    /* Full memory barrier for release */
-	    "movq %1, %0\n" /* Store v to *a */
+	    "mfence\n"
+	    "movq %1, %0\n"
 	    : "=m"(*a)
 	    : "r"(v)
 	    : "memory");
 }
 
 uint64_t __or64(volatile uint64_t *a, uint64_t v) {
-	uint64_t old;
+	uint64_t old, new_val;
 	__asm__ volatile(
-	    "lock xchgq %0, %1\n"    /* Exchange to get old value */
-	    "orq %2, %0\n"	     /* OR with v */
-	    "lock cmpxchgq %0, %1\n" /* Swap back if unchanged */
+	    "1: movq %2, %0\n"	     /* Load *a into old */
+	    "movq %0, %1\n"	     /* Copy old to new_val */
+	    "orq %3, %1\n"	     /* OR with v */
+	    "lock cmpxchgq %1, %2\n" /* Try to swap new_val into *a */
 	    "jnz 1b\n"		     /* Retry if cmpxchg failed */
-	    : "=r"(old), "+m"(*a)
+	    : "=&a"(old), "=&r"(new_val), "+m"(*a)
 	    : "r"(v)
 	    : "memory", "cc");
 	return old;
 }
 
 uint64_t __and64(volatile uint64_t *a, uint64_t v) {
-	uint64_t old;
+	uint64_t old, new_val;
 	__asm__ volatile(
-	    "lock xchgq %0, %1\n"    /* Exchange to get old value */
-	    "andq %2, %0\n"	     /* AND with v */
-	    "lock cmpxchgq %0, %1\n" /* Swap back if unchanged */
+	    "1: movq %2, %0\n"	     /* Load *a into old */
+	    "movq %0, %1\n"	     /* Copy old to new_val */
+	    "andq %3, %1\n"	     /* AND with v */
+	    "lock cmpxchgq %1, %2\n" /* Try to swap new_val into *a */
 	    "jnz 1b\n"		     /* Retry if cmpxchg failed */
-	    : "=r"(old), "+m"(*a)
+	    : "=&a"(old), "=&r"(new_val), "+m"(*a)
 	    : "r"(v)
 	    : "memory", "cc");
 	return old;
 }
-
 #endif
