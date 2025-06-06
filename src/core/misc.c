@@ -452,6 +452,64 @@ uint128_t __umodti3(uint128_t a, uint128_t b) {
 	return remainder;
 }
 
+uint128_t __udivti3(uint128_t a, uint128_t b) {
+	uint64_t b_lo;
+	uint64_t a_hi;
+	uint64_t a_lo;
+	uint64_t quo;
+	uint128_t quotient;
+	uint128_t remainder;
+	int shift;
+	int i;
+
+	/* Handle division by zero */
+	if (b == 0) {
+		__builtin_trap();
+	}
+
+	/* If b fits in 64 bits, optimize */
+	if ((b >> 64) == 0) {
+		b_lo = (uint64_t)b;
+		if (b_lo == 0) {
+			__builtin_trap();
+		}
+		a_hi = (uint64_t)(a >> 64);
+		a_lo = (uint64_t)a;
+
+		if (a_hi == 0) {
+			return (uint128_t)(a_lo / b_lo);
+		}
+
+		quo = a_hi;
+		quo = (quo << 32) | (a_lo >> 32);
+		quo = quo / b_lo;
+		quo = (quo << 32) | ((a_lo & 0xffffffff) / b_lo);
+		return (uint128_t)quo;
+	}
+
+	/* General 128-bit case */
+	quotient = 0;
+	remainder = a;
+	shift = __builtin_clzll((uint64_t)(b >> 64));
+	if (shift == 64) {
+		shift = shift + __builtin_clzll((uint64_t)b);
+	}
+	b = b << shift;
+	remainder = remainder << shift;
+
+	i = 0;
+	while (i <= shift) {
+		if (remainder >= b) {
+			remainder = remainder - b;
+			quotient = quotient | ((uint128_t)1 << (shift - i));
+		}
+		b = b >> 1;
+		i = i + 1;
+	}
+
+	return quotient;
+}
+
 int b64_encode(const void *buf_in, size_t in_len, char *buf_out) {
 	/* Base64 alphabet */
 	static const char *b64_table =
