@@ -397,60 +397,33 @@ size_t double_to_string(char *buf, double v, int max_decimals) {
 	return pos;
 }
 
-uint128_t __udivti3(uint128_t a, uint128_t b) {
-	int shift;
-	uint128_t quotient, remainder;
-	if (b == 0) return 0; /* Avoid division by zero */
-	if (a < b) return 0;  /* Early exit if dividend < divisor */
-
-	quotient = 0;
-	remainder = a;
-	shift = 0;
-
-	/* Normalize divisor: shift left until highest bit is 1 */
-	while (b < ((uint128_t)1 << 127)) {
-		b <<= 1;
-		shift++;
-	}
-
-	/* Long division */
-	while (shift >= 0) {
-		if (remainder >= b) {
-			remainder -= b;
-			quotient |= (uint128_t)1 << shift;
-		}
-		b >>= 1;
-		shift--;
-	}
-
-	return quotient;
-}
-
 uint128_t __umodti3(uint128_t a, uint128_t b) {
-	uint128_t quotient;
+	uint64_t b_lo;
+	uint64_t a_hi;
+	uint64_t a_lo;
+	uint64_t rem;
 	uint128_t remainder;
-	int shift, i;
+	int shift;
+	int i;
+
 	/* Handle division by zero */
 	if (b == 0) {
-		__builtin_trap(); /* Trigger undefined behavior or abort */
+		__builtin_trap();
 	}
 
-	/* If b is a 64-bit value, use simpler division */
+	/* If b fits in 64 bits, optimize */
 	if ((b >> 64) == 0) {
-		uint64_t b_lo = (uint64_t)b, a_hi, a_lo, rem;
+		b_lo = (uint64_t)b;
 		if (b_lo == 0) {
 			__builtin_trap();
 		}
-		/* Extract high and low 64 bits of a */
 		a_hi = (uint64_t)(a >> 64);
 		a_lo = (uint64_t)a;
 
-		/* If a_hi < b_lo, remainder is a_lo % b_lo */
 		if (a_hi == 0) {
 			return (uint128_t)(a_lo % b_lo);
 		}
 
-		/* Perform long division */
 		rem = a_hi;
 		rem = (rem << 32) | (a_lo >> 32);
 		rem = rem % b_lo;
@@ -458,25 +431,22 @@ uint128_t __umodti3(uint128_t a, uint128_t b) {
 		return (uint128_t)(rem % b_lo);
 	}
 
-	/* General case: 128-bit division */
-	quotient = 0;
+	/* General 128-bit case */
 	remainder = a;
-
-	/* Normalize: shift b until its highest bit is 1 */
 	shift = __builtin_clzll((uint64_t)(b >> 64));
 	if (shift == 64) {
-		shift += __builtin_clzll((uint64_t)b);
+		shift = shift + __builtin_clzll((uint64_t)b);
 	}
-	b <<= shift;
-	remainder <<= shift;
+	b = b << shift;
+	remainder = remainder << shift;
 
-	/* Long division loop */
-	for (i = 0; i <= shift; i++) {
+	i = 0;
+	while (i <= shift) {
 		if (remainder >= b) {
-			remainder -= b;
-			quotient |= (uint128_t)1 << (shift - i);
+			remainder = remainder - b;
 		}
-		b >>= 1;
+		b = b >> 1;
+		i = i + 1;
 	}
 
 	return remainder;
