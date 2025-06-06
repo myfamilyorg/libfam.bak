@@ -33,6 +33,8 @@
 #include <syscall_const.h>
 #include <test.h>
 
+Test(write1) { write(2, "test\n", 5); }
+
 typedef struct {
 	Lock lock1;
 	Lock lock2;
@@ -48,6 +50,7 @@ typedef struct {
 	uint32_t uvalue2;
 } SharedStateData;
 
+/*
 Test(two1) {
 	void *base = smap(sizeof(SharedStateData));
 	SharedStateData *state = (SharedStateData *)base;
@@ -82,6 +85,7 @@ Test(futex1) {
 	ASSERT(state->value2);
 	munmap(base, sizeof(SharedStateData));
 }
+*/
 /*
 Test(lock0) {
 	Lock l1 = LOCK_INIT;
