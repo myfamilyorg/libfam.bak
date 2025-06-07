@@ -69,7 +69,5 @@ int rt_sigaction(int signum, const struct rt_sigaction *act,
 void restorer(void);
 long futex(uint32_t *uaddr, int futex_op, uint32_t val,
 	   const struct timespec *timeout, uint32_t *uaddr2, uint32_t val3);
-int clone(int (*fn)(void *), void *stack, int flags, void *arg,
-	  pid_t *parent_tid, void *tls, pid_t *child_tid);
 
 #endif /* _SYSCALL_H */
