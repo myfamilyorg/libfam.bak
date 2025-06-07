@@ -9,10 +9,9 @@ CFLAGS  = -fPIC \
           -O3 \
           -fno-stack-protector \
           -fno-builtin \
-          -Wno-attributes \
-          -DSTATIC=static
-TFLAGS  = $(CSTYLE) -fno-builtin -O1 -Isrc/include -Wno-attributes -DSTATIC=
-TCFLAGS = -O1 -Isrc/include -Wno-attributes -DSTATIC=
+          -Wno-attributes
+TFLAGS  = $(CSTYLE) -fno-builtin -O1 -Isrc/include -Wno-attributes
+TCFLAGS = -O1 -Isrc/include -Wno-attributes
 UNAME_S := $(shell uname -s)
 LDFLAGS = -shared -nostdlib -ffreestanding
 FILTER  = "*"
@@ -63,7 +62,7 @@ all: $(LIBDIR)/libfam.so
 # Rule for library objects (C files for 'all')
 $(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
 	@mkdir -p $(@D)
-	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(CFLAGS) -c $< -o $@
+	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(CFLAGS) -DSTATIC=static -c $< -o $@
 
 # Rule for assembly objects (for 'all')
 $(OBJDIR)/%.o: $(SRCDIR)/%.S | $(OBJDIR)
@@ -73,7 +72,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.S | $(OBJDIR)
 # Rule for test library objects (C files for 'test')
 $(TEST_OBJDIR)/%.o: $(SRCDIR)/%.c | $(TEST_OBJDIR)
 	@mkdir -p $(@D)
-	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(TFLAGS) -fPIC -c $< -o $@
+	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(TFLAGS) -DSTATIC= -fPIC -c $< -o $@
 
 # Rule for test assembly objects (for 'test')
 $(TEST_OBJDIR)/%.o: $(SRCDIR)/%.S | $(TEST_OBJDIR)
@@ -83,7 +82,7 @@ $(TEST_OBJDIR)/%.o: $(SRCDIR)/%.S | $(TEST_OBJDIR)
 # Rule for test objects (C files for runtests)
 $(TOBJDIR)/%.o: $(SRCDIR)/%.c | $(TOBJDIR)
 	@mkdir -p $(@D)
-	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(TCFLAGS) -c $< -o $@
+	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(TCFLAGS) -DSTATIC= -c $< -o $@
 
 # Build shared library (for 'all')
 $(LIBDIR)/libfam.so: $(OBJECTS) $(ASM_OBJECTS) | $(LIBDIR)
