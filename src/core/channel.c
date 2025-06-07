@@ -32,7 +32,6 @@
 #include <syscall_const.h>
 
 #define MIN_TIMEOUT_AGE (1000 * 1000 * 60) /* 1 minute in micros */
-int printf(const char *, ...);
 typedef struct ChannelElement {
 	struct ChannelElement *next;
 	uint64_t micros;

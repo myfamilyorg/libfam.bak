@@ -288,7 +288,7 @@ Test(lock5) {
 	}
 	munmap(state, sizeof(SharedStateData));
 }
-/*
+
 Lock tfunlock = LOCK_INIT;
 int tfunv1 = 0;
 int tfunv2 = 0;
@@ -310,7 +310,7 @@ void tfun3() {
 }
 
 Test(timeout1) {
-	timeout(tfun1, 100);
+	ASSERT(!timeout(tfun1, 100));
 	sleepm(300);
 	LockGuard l = rlock(&tfunlock);
 	ASSERT_EQ(tfunv1, 1);
@@ -363,8 +363,6 @@ Test(timeout3) {
 
 	munmap(state, sizeof(SharedStateData));
 }
-
-*/
 
 #define CHUNK_SIZE (1024 * 1024 * 4)
 

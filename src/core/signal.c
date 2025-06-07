@@ -40,7 +40,6 @@ typedef struct {
 #define MAX_TASKS 32
 STATIC TaskEntry pending_tasks[MAX_TASKS];
 STATIC int cur_tasks = 0;
-
 STATIC int set_next_timer(uint64_t now) {
 	int i;
 	uint64_t next_task_time = SIZE_MAX;
@@ -56,7 +55,6 @@ STATIC int set_next_timer(uint64_t now) {
 		    (next_task_time > now) ? (next_task_time - now) : 1;
 		new_value.it_value.tv_sec = (long)(delay_ms / 1000);
 		new_value.it_value.tv_usec = (long)((delay_ms % 1000) * 1000);
-
 		if (setitimer(ITIMER_REAL, &new_value, NULL) < 0) return -1;
 	}
 
@@ -96,7 +94,6 @@ void __attribute__((constructor)) signals_init(void) {
 	rt_sigaction(SIGALRM, &act2, NULL, 8);
 	cur_tasks = 0;
 }
-
 int timeout(void (*task)(void), uint64_t milliseconds) {
 	uint64_t now = micros() / 1000;
 	int ret;

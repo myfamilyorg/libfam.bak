@@ -374,7 +374,7 @@ DEFINE_SYSCALL3(56, int, open, const char *, pathname, int, flags, mode_t, mode)
 DEFINE_SYSCALL3(62, off_t, lseek, int, fd, off_t, offset, int, whence)
 DEFINE_SYSCALL1(83, int, fdatasync, int, fd)
 DEFINE_SYSCALL2(46, int, ftruncate, int, fd, off_t, length)
-DEFINE_SYSCALL3(104, int, setitimer, __itimer_which_t, which,
+DEFINE_SYSCALL3(103, int, setitimer, __itimer_which_t, which,
 		const struct itimerval *, new_value, struct itimerval *,
 		old_value)
 DEFINE_SYSCALL2(435, int, clone3, struct clone_args *, args, size_t, size)
