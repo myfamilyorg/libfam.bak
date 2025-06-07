@@ -33,11 +33,6 @@
 #include <syscall_const.h>
 #include <test.h>
 
-Test(write1) {
-	write(2, "test\n", 5);
-	write(2, "abcd\n", 5);
-}
-
 typedef struct {
 	Lock lock1;
 	Lock lock2;
@@ -53,7 +48,6 @@ typedef struct {
 	uint32_t uvalue2;
 } SharedStateData;
 
-/*
 Test(two1) {
 	void *base = smap(sizeof(SharedStateData));
 	SharedStateData *state = (SharedStateData *)base;
@@ -69,37 +63,26 @@ Test(two1) {
 	ASSERT(state->value2);
 	munmap(base, sizeof(SharedStateData));
 }
-*/
 
 Test(futex1) {
-	int p;
-	write(2, "a\n", 2);
 	void *base = smap(sizeof(SharedStateData));
 	SharedStateData *state = (SharedStateData *)base;
-	write(2, "b\n", 2);
 	state->uvalue1 = (uint32_t)0;
-	if ((p = two())) {
-		write(2, "c\n", 2);
-		fprintf(stderr, "p=%i\n", p);
-		perror("pid");
+	if (two()) {
 		while (state->uvalue1 == 0) {
 			futex(&state->uvalue1, FUTEX_WAIT, 0, NULL, NULL, 0);
 		}
-		write(2, "d\n", 2);
 		ASSERT(state->uvalue1);
 		state->value2++;
 	} else {
 		state->uvalue1 = 1;
-		write(2, "e\n", 2);
 		futex(&state->uvalue1, FUTEX_WAKE, 1, NULL, NULL, 0);
-		write(2, "f\n", 2);
 		exit(0);
 	}
 	ASSERT(state->value2);
 	munmap(base, sizeof(SharedStateData));
 }
 
-/*
 Test(lock0) {
 	Lock l1 = LOCK_INIT;
 	ASSERT_EQ(l1, 0);
@@ -305,7 +288,6 @@ Test(lock5) {
 	}
 	munmap(state, sizeof(SharedStateData));
 }
-*/
 /*
 Lock tfunlock = LOCK_INIT;
 int tfunv1 = 0;
@@ -385,7 +367,7 @@ Test(timeout3) {
 */
 
 #define CHUNK_SIZE (1024 * 1024 * 4)
-/*
+
 Test(alloc1) {
 	char *t1, *t2, *t3, *t4, *t5;
 
@@ -420,7 +402,6 @@ Test(alloc1) {
 	release(t4);
 	ASSERT_BYTES(0);
 }
-*/
 
 /*
 
