@@ -1,4 +1,4 @@
-div>
+<div>
     <img class="myfamily" src="docs/MyFamilyLogo.png"/>
 </div>
 
