@@ -33,8 +33,8 @@ COVDIR=".cov"
 CC="gcc"
 CFLAGS="-DPAGE_SIZE=16384 -I${INCLDIR} -O0 -Wno-attributes -DMEMSAN=0 -DSTATIC= -g"
 COVFLAGS="--coverage -O1"
-LDFLAGS="--coverage -v"
-LIBGCOV="/usr/lib/gcc/x86_64-linux-gnu/13/libgcov.a"
+LDFLAGS="--coverage"
+LIBCGCOV=""
 
 # Source files
 TEST_SRC="src/core/test.c src/store/test.c src/net/test.c"
@@ -50,7 +50,6 @@ LIB_OBJS=$(echo ${CORE_SRC} | sed "s|${SRCDIR}/|${TEST_OBJDIR}/|g" | sed "s|\.c|
 COV_BIN="${BINDIR}/runtests_cov"
 
 # Clean up
-echo "Cleaning up..."
 rm -rf ${TOBJDIR} ${TEST_OBJDIR} ${BINDIR}/runtests_cov ${COVDIR}/* *.gcov
 
 # Create directories
@@ -62,7 +61,6 @@ mkdir -p ${BINDIR}
 for src in ${TEST_SRC}; do
     obj=${src/${SRCDIR}/${TOBJDIR}}
     obj=${obj/.c/.cov.o}
-    echo "Compiling ${src}..."
     ${CC} ${CFLAGS} ${COVFLAGS} -c ${src} -o ${obj}
 done
 
@@ -70,21 +68,18 @@ done
 for src in ${CORE_SRC}; do
     obj=${src/${SRCDIR}/${TEST_OBJDIR}}
     obj=${obj/.c/.cov.o}
-    echo "Compiling ${src}..."
-    ${CC} ${CFLAGS} ${COVFLAGS} -fPIC -c ${src} -o ${obj}
+    COMMAND="${CC} ${CFLAGS} ${COVFLAGS} -fPIC -c ${src} -o ${obj}"
+    echo ${COMMAND}
+    ${COMMAND}
 done
 
 # Link test binary
-echo "Linking ${COV_BIN}..."
-${CC} ${LDFLAGS} ${TEST_OBJS} ${LIB_OBJS} -I${INCLDIR} src/test/main.c ${LIBGCOV} -lc -lgcc -o ${COV_BIN}
-
-# Ensure write permissions
-echo "Setting permissions..."
-chmod -R u+rw ${TOBJDIR} ${TEST_OBJDIR} 2>/dev/null || true
+COMMAND="${CC} ${LDFLAGS} ${TEST_OBJS} ${LIB_OBJS} -I${INCLDIR} src/test/main.c ${LIBGCOV} -lc -lgcc -o ${COV_BIN}"
+echo ${COMMAND}
+${COMMAND}
 
 # Run tests
-echo "Running tests for coverage..."
-./${COV_BIN} || { echo "Tests failed; check errors above"; exit 1; }
+./${COV_BIN} 2> /dev/null || { echo "Tests failed; check errors above"; exit 1; }
 
 cp -rp ${TEST_OBJDIR}/* ${COVDIR}
 
@@ -96,6 +91,11 @@ for dir in *; do
     fi
 done
 cd ..
+
+echo "------------------------------------------------------------------------------------------";
+linesum=0;
+coveredsum=0;
+
 
 cd ${COVDIR}
 for dir in *; do
@@ -116,8 +116,6 @@ for dir in *; do
         done
     fi
 
-    linesum=0;
-    coveredsum=0;
     for file in *.c; do
         if [ -f "$file" ] && [ "test.c" != "$file" ] && [ "main.c" != "$file" ]; then
             cd ../..
@@ -134,7 +132,7 @@ for dir in *; do
             BASENAME=$file
             ratio=`awk "BEGIN {print $percent / 100}"`;
             covered=`awk "BEGIN {print int($ratio * $lines)}"`;
-            linessum=`awk "BEGIN {print $linessum + $lines}"`;
+            linesum=`awk "BEGIN {print $linesum+ $lines}"`;
             coveredsum=`awk "BEGIN {print $coveredsum + $covered}"`;
 	    printf "${GREEN}%-20s${RESET} %6s%% -${YELLOW} [%3s/%3s]${RESET}\n" "${BASENAME}" "${percent}" "${covered}" "${lines}"
 
@@ -147,3 +145,6 @@ for dir in *; do
     cd ..
 done
 
+echo "------------------------------------------------------------------------------------------";
+codecov=`awk "BEGIN {printf \"%.2f\", 100 * $coveredsum / $linesum}"`
+echo "Coverage: ${codecov}% [$coveredsum / $linesum]";
