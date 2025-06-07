@@ -162,6 +162,28 @@
 		return (ret_type)result;                                       \
 	}
 
+static int syscall_clone(int (*fn)(void *), void *stack, int flags, void *arg,
+			 pid_t *parent_tid, void *tls, pid_t *child_tid) {
+	long result;
+	__asm__ volatile(
+	    "mov x8, %1\n"
+	    "mov x0, %2\n"
+	    "mov x1, %3\n"
+	    "mov x2, %4\n"
+	    "mov x3, %5\n"
+	    "mov x4, %6\n"
+	    "mov x5, %7\n"
+	    "mov x6, %8\n"
+	    "svc #0\n"
+	    "mov %0, x0\n"
+	    : "=r"(result)
+	    : "r"((long)220), "r"((long)fn), "r"((long)stack), "r"((long)flags),
+	      "r"((long)arg), "r"((long)parent_tid), "r"((long)tls),
+	      "r"((long)child_tid)
+	    : "x8", "x0", "x1", "x2", "x3", "x4", "x5", "x6", "memory");
+	return (int)result;
+}
+
 static void syscall_exit(int status) {
 	__asm__ volatile(
 	    "mov x8, #93\n" /* exit syscall number (ARM64) */
@@ -310,6 +332,29 @@ static void syscall_restorer(void) {
 				   "%rdx", "%r10", "%r8", "%r9", "memory");  \
 		return (ret_type)result;                                     \
 	}
+
+static int syscall_clone(int (*fn)(void *), void *stack, int flags, void *arg,
+			 pid_t *parent_tid, void *tls, pid_t *child_tid) {
+	long result;
+	__asm__ volatile(
+	    "movq $56, %%rax\n"
+	    "movq %1, %%rdi\n"
+	    "movq %2, %%rsi\n"
+	    "movq %3, %%rdx\n"
+	    "movq %4, %%r10\n"
+	    "movq %5, %%r8\n"
+	    "movq %6, %%r9\n"
+	    "movq %7, %%r12\n"
+	    "movq %%r12, %%r10\n"
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)
+	    : "r"((long)fn), "r"((long)stack), "r"((long)flags), "r"((long)arg),
+	      "r"((long)parent_tid), "r"((long)tls), "r"((long)child_tid)
+	    : "%rax", "%rcx", "%r11", "%rdi", "%rsi", "%rdx", "%r10", "%r8",
+	      "%r9", "%r12", "memory");
+	return (int)result;
+}
 
 static void syscall_exit(int status) {
 	__asm__ volatile(
@@ -660,6 +705,13 @@ int setitimer(__itimer_which_t which, const struct itimerval *new_value,
 int rt_sigaction(int signum, const struct rt_sigaction *act,
 		 struct rt_sigaction *oldact, size_t sigsetsize) {
 	int ret = syscall_rt_sigaction(signum, act, oldact, sigsetsize);
+	SET_ERR
+}
+
+int clone(int (*fn)(void *), void *stack, int flags, void *arg,
+	  pid_t *parent_tid, void *tls, pid_t *child_tid) {
+	int ret =
+	    syscall_clone(fn, stack, flags, arg, parent_tid, tls, child_tid);
 	SET_ERR
 }
 

@@ -23,13 +23,11 @@
  *
  *******************************************************************************/
 
-#define _GNU_SOURCE
-
 #include <error.h>
 #include <init.h>
-#include <syscall_const.h>
 #include <sys.h>
 #include <syscall.h>
+#include <syscall_const.h>
 
 int file(const char *path) {
 	int ret = open(path, O_CREAT | O_RDWR, 0600);
@@ -66,10 +64,6 @@ off_t fsize(int fd) {
 
 int fresize(int fd, off_t length) {
 	int ret = ftruncate(fd, length);
-#ifdef __APPLE__
-	if (ret == -1) err = errno;
-#endif
-
 	return ret;
 }
 
@@ -77,9 +71,6 @@ void *map(size_t length) {
 	void *v = mmap(NULL, length, PROT_READ | PROT_WRITE,
 		       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (v == MAP_FAILED) {
-#ifdef __APPLE__
-		err = errno;
-#endif
 		return NULL;
 	}
 	return v;
@@ -88,10 +79,6 @@ void *fmap(int fd, off_t offset, off_t size) {
 	void *v =
 	    mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, offset);
 	if (v == MAP_FAILED) {
-#ifdef __APPLE__
-		err = errno;
-#endif
-
 		return NULL;
 	}
 	return v;
@@ -101,9 +88,6 @@ void *smap(size_t length) {
 	void *v = mmap(NULL, length, PROT_READ | PROT_WRITE,
 		       MAP_ANONYMOUS | MAP_SHARED, -1, 0);
 	if (v == MAP_FAILED) {
-#ifdef __APPLE__
-		err = errno;
-#endif
 		return NULL;
 	}
 	return v;
@@ -111,17 +95,11 @@ void *smap(size_t length) {
 
 int flush(int fd) {
 	int ret = fdatasync(fd);
-#ifdef __APPLE__
-	if (ret == -1) err = errno;
-#endif
 	return ret;
 }
 
 int sched_yield(void);
 int yield(void) {
 	int ret = sched_yield();
-#ifdef __APPLE__
-	if (ret == -1) err = errno;
-#endif
 	return ret;
 }
