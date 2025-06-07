@@ -11,7 +11,7 @@ INCLDIR="src/include"
 TOBJDIR=".tobj"
 TEST_OBJDIR=".testobj"
 BINDIR="bin"
-COVDIR="coverage"
+COVDIR=".cov"
 
 # Compiler and flags
 CC="gcc"
@@ -29,17 +29,18 @@ SRC="${TEST_SRC} ${CORE_SRC}"
 TEST_OBJS=$(echo ${TEST_SRC} | sed "s|${SRCDIR}/|${TOBJDIR}/|g" | sed "s|\.c|\.cov.o|g")
 LIB_OBJS=$(echo ${CORE_SRC} | sed "s|${SRCDIR}/|${TEST_OBJDIR}/|g" | sed "s|\.c|\.cov.o|g")
 
+
 # Output binary
 COV_BIN="${BINDIR}/runtests_cov"
 
 # Clean up
 echo "Cleaning up..."
-rm -rf ${TOBJDIR} ${TEST_OBJDIR} ${BINDIR}/runtests_cov ${COVDIR} *.gcov
+rm -rf ${TOBJDIR} ${TEST_OBJDIR} ${BINDIR}/runtests_cov ${COVDIR}/* *.gcov
 
 # Create directories
 mkdir -p ${TOBJDIR}/core ${TOBJDIR}/store ${TOBJDIR}/net
 mkdir -p ${TEST_OBJDIR}/core
-mkdir -p ${BINDIR} ${COVDIR}
+mkdir -p ${BINDIR}
 
 # Compile test source files
 for src in ${TEST_SRC}; do
@@ -68,4 +69,49 @@ chmod -R u+rw ${TOBJDIR} ${TEST_OBJDIR} 2>/dev/null || true
 # Run tests
 echo "Running tests for coverage..."
 ./${COV_BIN} || { echo "Tests failed; check errors above"; exit 1; }
+
+cp -rp ${TEST_OBJDIR}/* ${COVDIR}
+
+cd ${SRCDIR};
+for dir in *; do
+    if ls $dir/*.c > /dev/null 2>&1; then
+        echo "mkdir -p ../${COVDIR}/$dir"
+        mkdir -p ../${COVDIR}/$dir
+        cp $dir/*.c ../${COVDIR}/$dir
+    fi
+done
+cd ..
+
+cd ${COVDIR}
+for dir in *; do
+    pwd
+    echo $dir
+    cd $dir
+    if ls *.o > /dev/null 2>&1; then
+        for file in *.o; do
+            mv $file ${file%.cov.o}.o
+        done
+    fi
+    if ls *.gcda > /dev/null 2>&1; then
+        for file in *.gcda; do
+            mv $file ${file%.cov.gcda}.gcda
+        done
+    fi
+    if ls *.gcno > /dev/null 2>&1; then
+        for file in *.gcno; do
+            mv $file ${file%.cov.gcno}.gcno
+        done
+    fi
+    for file in *.c; do
+        if [ -f "$file" ] && [ "test.c" != "$file" ] && [ "main.c" != "$file" ]; then
+            cd ../..
+            gcov ${COVDIR}/$dir/$file
+            if ls *.gcov > /dev/null 2>&1; then
+                mv *.gcov ${COVDIR}/$dir
+            fi
+            cd ${COVDIR}/$dir
+        fi
+    done
+    cd ..
+done
 

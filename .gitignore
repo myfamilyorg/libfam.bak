@@ -4,3 +4,4 @@
 .testobj/*
 lib/*
 bin/*
+.cov
