@@ -43,7 +43,7 @@ jobs:
       - name: Install QEMU and Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-system-arm qemu-efi-aarch64 cloud-image-utils linux-image-arm64
+          sudo apt-get install -y qemu-system-arm qemu-efi-aarch64 cloud-image-utils
       - name: Cache Debian Image
         uses: actions/cache@v4
         with:
@@ -53,10 +53,19 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           wget -O debian-11-arm64.qcow2 https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-arm64.qcow2
-      - name: Prepare Kernel
+      - name: Download Kernel
         run: |
-          # Locate kernel from linux-image-arm64
-          cp /boot/vmlinuz-* vmlinuz-5.10-arm64
+          # Download Debian 11 ARM64 kernel (5.10)
+          wget -O vmlinuz-5.10-arm64 http://deb.debian.org/debian/dists/bullseye/main/installer-arm64/current/images/netboot/vmlinuz
+      - name: Verify EFI
+        run: |
+          # Verify EFI firmware
+          if [ -f /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw ]; then
+            echo "EFI found"
+          else
+            echo "EFI not found"
+            exit 1
+          fi
       - name: Run QEMU System Emulation
         run: |
           # Create cloud-init for SSH access
@@ -71,11 +80,11 @@ jobs:
               shell: /bin/bash
           EOF
           cloud-localds user-data.img user-data
-          # Start QEMU
+          # Start QEMU with log
           qemu-system-aarch64 \
             -machine virt \
             -cpu cortex-a57 \
-            -m 1G \
+            -m 2G \
             -drive file=debian-11-arm64.qcow2,format=qcow2 \
             -drive file=user-data.img,format=raw \
             -nographic \
@@ -84,9 +93,16 @@ jobs:
             -kernel vmlinuz-5.10-arm64 \
             -append "root=/dev/vda1 console=ttyAMA0" \
             -serial mon:stdio \
-            -drive if=pflash,format=raw,file=/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw &
+            -drive if=pflash,format=raw,file=/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw > qemu.log 2>&1 &
           # Wait for VM to boot
-          sleep 90
+          sleep 120
+          # Check SSH
+          for i in {1..5}; do
+            if ssh -o StrictHostKeyChecking=no -p 2222 runner@localhost "uptime"; then
+              break
+            fi
+            sleep 30
+          done
           # SSH into VM
           ssh -o StrictHostKeyChecking=no -p 2222 runner@localhost << 'EOF'
             sudo apt-get update
@@ -98,4 +114,13 @@ jobs:
       - name: Debug on Failure
         if: failure()
         run: |
-          cat output.log
+          if [ -f output.log ]; then
+            cat output.log
+          else
+            echo "output.log not found"
+          fi
+          if [ -f qemu.log ]; then
+            cat qemu.log
+          else
+            echo "qemu.log not found"
+          fi
