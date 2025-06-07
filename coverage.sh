@@ -148,3 +148,8 @@ done
 echo "------------------------------------------------------------------------------------------";
 codecov=`awk "BEGIN {printf \"%.2f\", 100 * $coveredsum / $linesum}"`
 echo "Coverage: ${codecov}% [$coveredsum / $linesum]";
+
+timestamp=`date +%s`
+echo "$codecov" > /tmp/cc_final;
+echo "$timestamp $codecov $coveredsum $linesum" > /tmp/cc.txt
+
