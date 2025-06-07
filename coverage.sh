@@ -5,6 +5,22 @@
 
 set -e  # Exit on error
 
+if [ "$NO_COLOR" = "" ]; then
+   GREEN="\033[32m";
+   CYAN="\033[36m";
+   YELLOW="\033[33m";
+   BRIGHT_RED="\033[91m";
+   RESET="\033[0m";
+   BLUE="\033[34m";
+else
+   GREEN="";
+   CYAN="";
+   YELLOW="";
+   BRIGHT_RED="";
+   RESET="";
+   BLUE="";
+fi
+
 # Directories
 SRCDIR="src"
 INCLDIR="src/include"
@@ -75,7 +91,6 @@ cp -rp ${TEST_OBJDIR}/* ${COVDIR}
 cd ${SRCDIR};
 for dir in *; do
     if ls $dir/*.c > /dev/null 2>&1; then
-        echo "mkdir -p ../${COVDIR}/$dir"
         mkdir -p ../${COVDIR}/$dir
         cp $dir/*.c ../${COVDIR}/$dir
     fi
@@ -84,8 +99,6 @@ cd ..
 
 cd ${COVDIR}
 for dir in *; do
-    pwd
-    echo $dir
     cd $dir
     if ls *.o > /dev/null 2>&1; then
         for file in *.o; do
@@ -102,10 +115,29 @@ for dir in *; do
             mv $file ${file%.cov.gcno}.gcno
         done
     fi
+
+    linesum=0;
+    coveredsum=0;
     for file in *.c; do
         if [ -f "$file" ] && [ "test.c" != "$file" ] && [ "main.c" != "$file" ]; then
             cd ../..
-            gcov ${COVDIR}/$dir/$file
+
+            percent=`gcov ${COVDIR}/$dir/$file 2> /dev/null | grep "^Lines" | head -1 | cut -f2 -d ' ' | cut -f2 -d ':' | cut -f1 -d '%' | tr -d \\n`;
+            if [ "$percent" == "" ]; then
+                percent=0.00;
+            fi;
+            lines=`gcov ${COVDIR}/$dir/$file 2> /dev/null | grep "^Lines" | head -1 | cut -f4 -d ' ' | tr -d \\n`;
+	    if [ "$lines" == "" ]; then
+                lines=0;
+	    fi
+
+            BASENAME=$file
+            ratio=`awk "BEGIN {print $percent / 100}"`;
+            covered=`awk "BEGIN {print int($ratio * $lines)}"`;
+            linessum=`awk "BEGIN {print $linessum + $lines}"`;
+            coveredsum=`awk "BEGIN {print $coveredsum + $covered}"`;
+	    printf "${GREEN}%-20s${RESET} %6s%% -${YELLOW} [%3s/%3s]${RESET}\n" "${BASENAME}" "${percent}" "${covered}" "${lines}"
+
             if ls *.gcov > /dev/null 2>&1; then
                 mv *.gcov ${COVDIR}/$dir
             fi
