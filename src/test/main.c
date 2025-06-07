@@ -20,6 +20,8 @@ int main() {
 	printf("Running %i tests...\n", cur_tests);
 
 	for (exe_test = 0; exe_test < cur_tests; exe_test++) {
+		printf("running test %i [%s]\n", exe_test,
+		       tests[exe_test].name);
 		tests[exe_test].test_fn();
 	}
 	printf("Success! %i tests passed!\n", cur_tests);
