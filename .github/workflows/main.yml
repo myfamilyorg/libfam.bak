@@ -40,86 +40,36 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Install QEMU and Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-system-arm qemu-efi-aarch64 cloud-image-utils
-      - name: Cache Debian Image
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache APT packages
         uses: actions/cache@v4
         with:
-          path: debian-11-arm64.qcow2
-          key: ${{ runner.os }}-debian-image-${{ hashFiles('debian-11-arm64.qcow2') }}
-      - name: Download Debian ARM64 Image
-        if: steps.cache.outputs.cache-hit != 'true'
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ hashFiles('**/Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+
+      - name: Verify QEMU setup
+        run: docker run --rm --platform linux/arm64 arm64v8/debian:bullseye-slim uname -m
+
+      - name: Run in ARM64 environment
         run: |
-          wget -O debian-11-arm64.qcow2 https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-arm64.qcow2
-      - name: Download Kernel
-        run: |
-          # Download Debian 11 ARM64 kernel (5.10)
-          wget -O linux-5.10-arm64 http://deb.debian.org/debian/dists/bullseye/main/installer-arm64/current/images/netboot/debian-installer/arm64/linux || \
-          { echo "Kernel download failed"; exit 1; }
-      - name: Verify EFI
-        run: |
-          # Verify EFI firmware
-          if [ -f /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw ]; then
-            echo "EFI found"
-          else
-            echo "EFI not found"
-            exit 1
-          fi
-      - name: Run QEMU System Emulation
-        run: |
-          # Create cloud-init for SSH access
-          cat << 'EOF' > user-data
-          #cloud-config
-          users:
-            - name: runner
-              ssh-authorized-keys:
-                - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... # Replace with your SSH public key
-              sudo: ALL=(ALL) NOPASSWD:ALL
-              groups: sudo
-              shell: /bin/bash
-          EOF
-          cloud-localds user-data.img user-data
-          # Start QEMU with log
-          qemu-system-aarch64 \
-            -machine virt \
-            -cpu cortex-a57 \
-            -m 2G \
-            -drive file=debian-11-arm64.qcow2,format=qcow2 \
-            -drive file=user-data.img,format=raw \
-            -nographic \
-            -netdev user,id=net0,hostfwd=tcp::2222-:22 \
-            -device virtio-net-device,netdev=net0 \
-            -kernel linux-5.10-arm64 \
-            -append "root=/dev/vda1 console=ttyAMA0" \
-            -serial mon:stdio \
-            -drive if=pflash,format=raw,file=/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw > qemu.log 2>&1 &
-          # Wait for VM to boot
-          for i in {1..5}; do
-            if ssh -o StrictHostKeyChecking=no -p 2222 runner@localhost "uptime"; then
-              break
-            fi
-            sleep 30
-          done
-          # SSH into VM
-          ssh -o StrictHostKeyChecking=no -p 2222 runner@localhost << 'EOF'
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends make gcc clang
-            sudo apt-get clean
-            cd /work
-            make clean test || { echo "Make failed"; exit 1; }
-          EOF
-      - name: Debug on Failure
-        if: failure()
-        run: |
-          if [ -f output.log ]; then
-            cat output.log
-          else
-            echo "output.log not found"
-          fi
-          if [ -f qemu.log ]; then
-            cat qemu.log
-          else
-            echo "qemu.log not found"
-          fi
+          docker run --rm --platform linux/arm64 -v $(pwd):/work -w /work arm64v8/debian:bullseye-slim bash -c "
+            apt-get update &&
+            apt-get install -y --no-install-recommends \
+              make \
+              gcc \
+              clang
+            apt-get clean &&
+            rm -rf /var/lib/apt/lists/* &&
+            uname -a &&
+            make clean all CC=gcc &&
+            make clean all CC=clang"
