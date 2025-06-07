@@ -36,51 +36,45 @@ jobs:
             exit 1
           fi
   linux_aarch64:
-  runs-on: ubuntu-latest
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Install QEMU System Emulation
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y qemu-system-arm
-
-    - name: Download Debian ARM64 Image
-      run: |
-        wget -O debian-11-arm64.qcow2 https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-arm64.qcow2
-        # Optional: Resize image to reduce size (e.g., 2GB)
-        qemu-img resize debian-11-arm64.qcow2 2G
-
-    - name: Run QEMU System Emulation
-      run: |
-        # Start QEMU in background with SSH access
-        qemu-system-aarch64 \
-          -machine virt \
-          -cpu cortex-a57 \
-          -m 1G \
-          -drive file=debian-11-arm64.qcow2,format=qcow2 \
-          -nographic \
-          -netdev user,id=net0,hostfwd=tcp::2222-:22 \
-          -device virtio-net-device,netdev=net0 \
-          -kernel /boot/vmlinuz-5.10.0-20-arm64 \
-          -append "root=/dev/vda1 console=ttyAMA0" \
-          -chardev stdio,id=char0 \
-          -serial chardev:char0 \
-          -drive if=pflash,format=raw,file=/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw &
-        # Wait for VM to boot
-        sleep 30
-        # SSH into VM, install dependencies, and run tests
-        ssh -o StrictHostKeyChecking=no -p 2222 localhost << 'EOF'
+      - name: Install QEMU System Emulation
+        run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends make gcc clang
-          sudo apt-get clean
-          cd /work
-          make
-          ./your_program > output.log 2>&1
-        EOF
+          sudo apt-get install -y qemu-system-arm
 
-    - name: Debug on Failure
-      if: failure()
-      run: |
-        cat output.log
+      - name: Download Debian ARM64 Image
+        run: |
+          wget -O debian-11-arm64.qcow2 https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-arm64.qcow2
+          # Optional: Resize image to reduce size (e.g., 2GB)
+          qemu-img resize debian-11-arm64.qcow2 2G
+
+      - name: Run QEMU System Emulation
+        run: |
+          # Start QEMU in background with SSH access
+          qemu-system-aarch64 \
+            -machine virt \
+            -cpu cortex-a57 \
+            -m 1G \
+            -drive file=debian-11-arm64.qcow2,format=qcow2 \
+            -nographic \
+            -netdev user,id=net0,hostfwd=tcp::2222-:22 \
+            -device virtio-net-device,netdev=net0 \
+            -kernel /boot/vmlinuz-5.10.0-20-arm64 \
+            -append "root=/dev/vda1 console=ttyAMA0" \
+            -chardev stdio,id=char0 \
+            -serial chardev:char0 \
+            -drive if=pflash,format=raw,file=/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw &
+          # Wait for VM to boot
+          sleep 30
+          # SSH into VM, install dependencies, and run tests
+          ssh -o StrictHostKeyChecking=no -p 2222 localhost << 'EOF'
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends make gcc clang
+            sudo apt-get clean
+            make clean test
+          EOF
+
