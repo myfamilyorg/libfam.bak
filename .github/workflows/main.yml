@@ -55,8 +55,8 @@ jobs:
           wget -O debian-11-arm64.qcow2 https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-arm64.qcow2
       - name: Download Kernel
         run: |
-          # Download Debian 11 ARM64 kernel (5.10) from specific release
-          wget -O vmlinuz-5.10-arm64 http://deb.debian.org/debian/dists/bullseye/main/installer-arm64/20210731+deb11u12/images/netboot/vmlinuz || \
+          # Download Debian 11 ARM64 kernel (5.10)
+          wget -O linux-5.10-arm64 http://deb.debian.org/debian/dists/bullseye/main/installer-arm64/current/images/netboot/debian-installer/arm64/linux || \
           { echo "Kernel download failed"; exit 1; }
       - name: Verify EFI
         run: |
@@ -91,7 +91,7 @@ jobs:
             -nographic \
             -netdev user,id=net0,hostfwd=tcp::2222-:22 \
             -device virtio-net-device,netdev=net0 \
-            -kernel vmlinuz-5.10-arm64 \
+            -kernel linux-5.10-arm64 \
             -append "root=/dev/vda1 console=ttyAMA0" \
             -serial mon:stdio \
             -drive if=pflash,format=raw,file=/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw > qemu.log 2>&1 &
