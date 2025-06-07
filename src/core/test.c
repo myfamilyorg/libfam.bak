@@ -403,8 +403,6 @@ Test(alloc1) {
 	ASSERT_BYTES(0);
 }
 
-/*
-
 typedef struct {
 	int x;
 	int y;
@@ -467,4 +465,3 @@ Test(channel3) {
 	channel_destroy(&ch1);
 }
 
-*/
