@@ -450,7 +450,7 @@ Test(channel2) {
 }
 
 Test(channel3) {
-	int size = 1;
+	int size = 10;
 	for (int i = 0; i < size; i++) {
 		Channel ch1 = channel(sizeof(TestMessage));
 		if (two()) {
@@ -475,6 +475,7 @@ Test(channel3) {
 			exit(0);
 		}
 		channel_destroy(&ch1);
+		ASSERT_BYTES(0);
 	}
 }
 

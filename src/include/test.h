@@ -69,9 +69,11 @@ extern TestEntry tests[];
 	}
 
 #if MEMSAN == 1
-#define ASSERT_BYTES(v) ASSERT_EQ(get_allocated_bytes(), v)
+#define ASSERT_BYTES(v) ASSERT_EQ(get_allocated_bytes(), v, "ASSERT_BYTES")
+#define ASSERT_NOT_BYTES_0() ASSERT(get_allocated_bytes(), "ASSERT_NOT_BYTES")
 #else
 #define ASSERT_BYTES(v)
+#define ASSERT_NOT_BYTES_0()
 #endif /* MEMSAN */
 
 #endif /* _TEST_H */
