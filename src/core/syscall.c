@@ -348,7 +348,7 @@ static void syscall_restorer(void) {
 	    : "%rax", "%rcx", "%r11", "memory");
 }
 
-static int sys_waitid(int idtype, pid_t id, siginfo_t *infop, int options) {
+static int syscall_waitid(int idtype, pid_t id, siginfo_t *infop, int options) {
 	long result;
 	__asm__ volatile(
 	    "movq $247, %%rax\n"
