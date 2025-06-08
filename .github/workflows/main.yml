@@ -51,40 +51,24 @@ jobs:
             git push https://${{ secrets.LIBFAM_PAT}}@github.com/myfamilyorg/libfam.git
           fi
   linux_aarch64:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        platform: [linux-aarch64]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Cache APT packages
-        uses: actions/cache@v4
-        with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-${{ hashFiles('**/Dockerfile') }}
-          restore-keys: |
-            ${{ runner.os }}-apt-
-
-      - name: Verify QEMU setup
-        run: docker run --rm --platform linux/arm64 arm64v8/debian:bullseye-slim uname -m
-
-      - name: Run in ARM64 environment
+        uses: actions/checkout@v3
+      - name: Check linux version
+        run: uname -a
+      - name: build/test
         run: |
-          docker run --rm --platform linux/arm64 -v $(pwd):/work -w /work arm64v8/debian:bullseye-slim bash -c "
-            apt-get update &&
-            apt-get install -y --no-install-recommends \
-              make \
-              gcc \
-              clang
-            apt-get clean &&
-            rm -rf /var/lib/apt/lists/* &&
-            uname -a &&
-            make clean all CC=gcc &&
-            make clean all CC=clang"
+          make clean test CC=gcc MEMSAN=1
+          make clean test CC=clang MEMSAN=1
+          make clean all CC=gcc
+          make clean all CC=clang
+          ldd lib/libfam.so  | grep "statically linked" || { echo "not statically linked!"; exit 1; }
+          UNDEFINED_COUNT=$(nm lib/libfam.so | grep " U " | grep -v "U environ" | wc -l)
+          if [ "$UNDEFINED_COUNT" -ne 0 ]; then
+            echo "Error: Found $UNDEFINED_COUNT undefined symbols other than environ"
+            exit 1
+          fi
