@@ -30,6 +30,8 @@
 #include <misc.h>
 #define SHM_SIZE_DEFAULT (CHUNK_SIZE * 64)
 
+int printf(const char *, ...);
+
 #ifndef CHUNK_SIZE
 #define CHUNK_SIZE (0x1 << 22) /* 4mb */
 #endif
@@ -43,7 +45,7 @@
 		size_t max_words;                                             \
 		uint64_t *bitmap;                                             \
 		size_t local_last_free;                                       \
-		(result) = (uint64_t) - 1;                                    \
+		(result) = (uint64_t)-1;                                      \
 		bitmap = (uint64_t *)((unsigned char *)(base));               \
 		max_words = ((max) + 63) >> 6;                                \
 		local_last_free = ALOAD(last_free_ptr);                       \
@@ -66,7 +68,7 @@
 			}                                                     \
 			local_last_free++;                                    \
 		}                                                             \
-		if ((result) == (uint64_t) - 1 &&                             \
+		if ((result) == (uint64_t)-1 &&                               \
 		    local_last_free > ALOAD(last_free_ptr)) {                 \
 			uint64_t expected = ALOAD(last_free_ptr);             \
 			while (expected < local_last_free &&                  \
@@ -246,6 +248,7 @@ STATIC void *allocate_slab(size_t size) {
 }
 
 void *alloc(size_t size) {
+	void *ret;
 	if (size > CHUNK_SIZE) {
 		err = EINVAL;
 		return NULL;
@@ -256,11 +259,14 @@ void *alloc(size_t size) {
 		__add64(allocated_bytes, CHUNK_SIZE);
 #endif /* MEMSAN */
 
-		return (void *)((size_t)memory_base + sizeof(AllocHeader) +
-				bitmap_pages * PAGE_SIZE + CHUNK_SIZE * chunk);
+		ret = (void *)((size_t)memory_base + sizeof(AllocHeader) +
+			       bitmap_pages * PAGE_SIZE + CHUNK_SIZE * chunk);
 	} else {
-		return allocate_slab(size);
+		ret = allocate_slab(size);
 	}
+
+	printf("----------->alloc =%p\n", ret);
+	return ret;
 }
 
 void release(void *ptr) {
@@ -268,14 +274,17 @@ void release(void *ptr) {
 	size_t offset =
 	    (size_t)ptr - ((size_t)memory_base + sizeof(AllocHeader) +
 			   bitmap_pages * PAGE_SIZE);
+	printf("--------->release %p\n", ptr);
 	if (ptr == NULL ||
 	    (size_t)ptr < (size_t)memory_base + sizeof(AllocHeader) +
 			      bitmap_pages * PAGE_SIZE ||
 	    (size_t)ptr >= (size_t)memory_base + sizeof(AllocHeader) +
 			       bitmap_pages * PAGE_SIZE + get_memory_bytes()) {
 		err = EINVAL;
+		printf("einval\n");
 		return;
 	}
+	printf("a\n");
 
 	if (offset % CHUNK_SIZE == 0) {
 		RELEASE_BIT((void *)((size_t)memory_base + sizeof(AllocHeader)),
@@ -296,6 +305,8 @@ void release(void *ptr) {
 		__sub64(allocated_bytes, slab_size);
 #endif /* MEMSAN */
 	}
+
+	printf("b\n");
 }
 
 void *resize(void *ptr, size_t new_size) {

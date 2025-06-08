@@ -486,6 +486,41 @@ Test(channel3) {
 	}
 }
 
+Test(channel_notify) {
+	Channel ch1 = channel(sizeof(TestMessage));
+	Channel ch2 = channel(sizeof(TestMessage));
+
+	if (two()) {
+		TestMessage msg = {0}, msg2 = {0};
+		msg.x = 100;
+		send(&ch2, &msg);
+
+		recv(&ch1, &msg2);
+		ASSERT_EQ(msg2.x, 1, "msg.x");
+		ASSERT_EQ(msg2.y, 2, "msg.y");
+		ASSERT_EQ(recv_now(&ch1, &msg), -1, "recv_now");
+
+	} else {
+		TestMessage msg = {0};
+		recv(&ch2, &msg);
+
+		ASSERT_EQ(msg.x, 100, "x=100");
+		send(&ch1, &(TestMessage){.x = 1, .y = 2});
+		channel_destroy(&ch2);
+
+		printf("exit2\n");
+		sleepm(500);
+		exit(0);
+	}
+	sleepm(100);
+	printf("destroy 1\n");
+	channel_destroy(&ch1);
+	sleepm(100);
+	printf("destroy 2\n");
+	channel_destroy(&ch2);
+	printf("done\n");
+}
+
 int *__error(void);
 
 Test(errors) {
