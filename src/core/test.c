@@ -521,27 +521,30 @@ Test(pipe) {
 	}
 }
 
-/*
 Test(files1) {
 	const char *fname = "/tmp/ftest.tmp";
+	err = 0;
 	int fd = file(fname);
 	ASSERT(fd > 0);
 	ASSERT(exists(fname));
-	ASSERT(!fsize(fd));
-	write(fd, "abc", 3);
-	flush(fd);
-	ASSERT_EQ(fsize(fd), 3);
-	fresize(fd, 2);
-	ASSERT_EQ(fsize(fd), 2);
-	int dup = fcntl(fd, F_DUPFD);
-	ASSERT(dup != fd);
+	/*
+		ASSERT(!fsize(fd));
+		printf("5\n");
+		write(fd, "abc", 3);
+		flush(fd);
+		printf("6\n");
+		ASSERT_EQ(fsize(fd), 3);
+		fresize(fd, 2);
+		ASSERT_EQ(fsize(fd), 2);
+		int dup = fcntl(fd, F_DUPFD);
+		ASSERT(dup != fd);
+		*/
 
-	ASSERT(!unlink(fname));
-	ASSERT(!exists(fname));
+	// ASSERT(!unlink(fname));
+	//  ASSERT(!exists(fname));
 	close(fd);
-	close(dup);
+	// close(dup);
 }
-*/
 
 Test(entropy) {
 	uint8_t buf[1024];

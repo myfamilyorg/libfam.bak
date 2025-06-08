@@ -369,7 +369,8 @@ DEFINE_SYSCALL4(22, int, epoll_wait, int, epfd, struct epoll_event *, events,
 		int, maxevents, int, timeout)
 DEFINE_SYSCALL4(21, int, epoll_ctl, int, epfd, int, op, int, fd,
 		struct epoll_event *, event)
-DEFINE_SYSCALL3(56, int, open, const char *, pathname, int, flags, mode_t, mode)
+DEFINE_SYSCALL4(56, int, open, int, x, const char *, pathname, int, flags,
+		mode_t, mode)
 DEFINE_SYSCALL3(62, off_t, lseek, int, fd, off_t, offset, int, whence)
 DEFINE_SYSCALL1(83, int, fdatasync, int, fd)
 DEFINE_SYSCALL2(46, int, ftruncate, int, fd, off_t, length)
@@ -635,7 +636,11 @@ int open(const char *pathname, int flags, ...) {
 		mode = __builtin_va_arg(ap, mode_t);
 		__builtin_va_end(ap);
 	}
+#ifdef __aarch64__
+	ret = syscall_open(-100, pathname, flags, mode);
+#elif defined(__amd64__)
 	ret = syscall_open(pathname, flags, mode);
+#endif
 	SET_ERR
 }
 
