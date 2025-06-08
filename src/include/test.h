@@ -48,22 +48,24 @@ extern TestEntry tests[];
 	}                                                                  \
 	void __test_##name(void)
 
-#define ASSERT_EQ(x, y)                                                       \
+#define ASSERT_EQ(x, y, msg)                                                  \
 	if ((x) != (y)) {                                                     \
 		const char *msg_pre = "assertion failed in test: [";          \
-		const char *msg_post = "].";                                  \
+		const char *msg_post = "]. ";                                 \
 		write(2, msg_pre, strlen(msg_pre));                           \
 		write(2, tests[exe_test].name, strlen(tests[exe_test].name)); \
-		panic(msg_post);                                              \
+		write(2, msg_post, strlen(msg_post));                         \
+		panic(msg);                                                   \
 	}
 
-#define ASSERT(x)                                                             \
+#define ASSERT(x, msg)                                                        \
 	if (!(x)) {                                                           \
 		const char *msg_pre = "assertion failed in test: [";          \
-		const char *msg_post = "].";                                  \
+		const char *msg_post = "]. ";                                 \
 		write(2, msg_pre, strlen(msg_pre));                           \
 		write(2, tests[exe_test].name, strlen(tests[exe_test].name)); \
-		panic(msg_post);                                              \
+		write(2, msg_post, strlen(msg_post));                         \
+		panic(msg);                                                   \
 	}
 
 #if MEMSAN == 1
