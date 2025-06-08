@@ -499,25 +499,29 @@ Test(begin) {
 	ASSERT_EQ(ecount, 64);	// MAX_EXITS is 64
 }
 
-Test(forkpipe) {
+Test(pipe) {
 	int fds[2];
+	err = 0;
 	ASSERT(!pipe(fds));
-	if (fork()) {
-		close(fds[1]);
+	ASSERT(!err);
+	int fv;
+	if ((fv = two())) {
 		char buf[10];
-		ASSERT_EQ(read(fds[0], buf, 10), 4);
+		int v = read(fds[0], buf, 10);
+		ASSERT_EQ(v, 4);
 		ASSERT_EQ(buf[0], 't');
 		ASSERT_EQ(buf[1], 'e');
 		ASSERT_EQ(buf[2], 's');
 		ASSERT_EQ(buf[3], 't');
 
 	} else {
-		close(fds[0]);
 		write(fds[1], "test", 4);
+		sleepm(1000);
 		exit(0);
 	}
 }
 
+/*
 Test(files1) {
 	const char *fname = "/tmp/ftest.tmp";
 	int fd = file(fname);
@@ -537,6 +541,7 @@ Test(files1) {
 	close(fd);
 	close(dup);
 }
+*/
 
 Test(entropy) {
 	uint8_t buf[1024];

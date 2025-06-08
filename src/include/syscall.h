@@ -28,7 +28,6 @@
 
 #include <types.h>
 
-pid_t fork(void);
 int pipe(int fds[2]);
 int unlink(const char *path);
 ssize_t write(int fd, const void *buf, size_t count);

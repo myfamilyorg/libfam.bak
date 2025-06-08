@@ -29,8 +29,7 @@
 #include <types.h>
 
 /* direct system calls */
-pid_t fork(void);
-int pipe(int fds[2]);
+int pipe2(int fds[2], int flags);
 int unlink(const char *path);
 ssize_t write(int fd, const void *buf, size_t length);
 ssize_t read(int fd, void *buf, size_t length);
@@ -51,6 +50,7 @@ int shutdown(int sockfd, int how);
 int socket(int domain, int type, int protocol);
 
 /* system calls applied */
+int pipe(int fds[2]);
 int getentropy(void *buffer, size_t length);
 int yield(void);
 int timeout(void (*task)(void), uint64_t milliseconds);

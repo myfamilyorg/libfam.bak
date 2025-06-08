@@ -334,8 +334,7 @@ static void syscall_restorer(void) {
 #endif /* Arch */
 
 #ifdef __aarch64__
-DEFINE_SYSCALL0(2, pid_t, fork)
-DEFINE_SYSCALL1(59, int, pipe, int *, fds)
+DEFINE_SYSCALL2(59, int, pipe2, int *, fds, int, flags)
 DEFINE_SYSCALL1(35, int, unlink, const char *, path)
 DEFINE_SYSCALL3(64, ssize_t, write, int, fd, const void *, buf, size_t, count)
 DEFINE_SYSCALL3(63, ssize_t, read, int, fd, void *, buf, size_t, count)
@@ -386,8 +385,7 @@ DEFINE_SYSCALL4(134, int, rt_sigaction, int, signum,
 		size_t, sigsetsize)
 #elif defined(__amd64__)
 /* System call definitions */
-DEFINE_SYSCALL0(57, pid_t, fork)
-DEFINE_SYSCALL1(22, int, pipe, int *, fds)
+DEFINE_SYSCALL2(293, int, pipe2, int *, fds, int, flags)
 DEFINE_SYSCALL1(87, int, unlink, const char *, path)
 DEFINE_SYSCALL3(1, ssize_t, write, int, fd, const void *, buf, size_t, count)
 DEFINE_SYSCALL3(0, ssize_t, read, int, fd, void *, buf, size_t, count)
@@ -438,18 +436,13 @@ DEFINE_SYSCALL4(13, int, rt_sigaction, int, signum, const struct rt_sigaction *,
 
 #endif /* Arch */
 
-pid_t fork(void) {
-	int ret = syscall_fork();
-	SET_ERR
-}
-
 int clone3(struct clone_args *args, size_t size) {
 	int ret = syscall_clone3(args, size);
 	SET_ERR
 }
 
-int pipe(int fds[2]) {
-	int ret = syscall_pipe(fds);
+int pipe2(int fds[2], int flags) {
+	int ret = syscall_pipe2(fds, flags);
 	SET_ERR
 }
 int unlink(const char *path) {

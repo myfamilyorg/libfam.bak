@@ -104,6 +104,8 @@ int yield(void) {
 	return ret;
 }
 
+int pipe(int fds[2]) { return pipe2(fds, 0); }
+
 int getentropy(void *buffer, size_t length) {
 	return getrandom(buffer, length, GRND_RANDOM);
 }
