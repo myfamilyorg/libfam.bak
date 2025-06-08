@@ -178,6 +178,4 @@ uint64_t __and64(volatile uint64_t *a, uint64_t v) {
 	return old;
 }
 
-#elif defined(__amd64__)
-void _atomic_dummy__(void) {}
 #endif
