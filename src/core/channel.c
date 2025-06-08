@@ -41,16 +41,6 @@ typedef struct ChannelElement {
 	uint64_t micros;
 } ChannelElement;
 
-/*
-struct ChannelInner {
-	uint64_t head_seq;
-	uint64_t element_size;
-	ChannelElement *retired;
-	ChannelElement *head;
-	ChannelElement *tail;
-	uint32_t futex;
-};
-*/
 struct ChannelInner {
 	uint64_t head_seq;
 	uint64_t element_size;
