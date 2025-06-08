@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Check linux version
         run: uname -a
-      - name: linux all
+      - name: build/test
         run: |
           make clean test CC=gcc MEMSAN=1
           make clean test CC=clang MEMSAN=1
@@ -35,6 +35,8 @@ jobs:
             echo "Error: Found $UNDEFINED_COUNT undefined symbols other than environ"
             exit 1
           fi
+       - name: coverage
+         run: |
           ./scripts/coverage.sh
   linux_aarch64:
     runs-on: ubuntu-latest
