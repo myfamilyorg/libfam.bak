@@ -32,7 +32,7 @@ COVDIR=".cov"
 # Compiler and flags
 CC="gcc"
 CFLAGS="-DPAGE_SIZE=16384 -I${INCLDIR} -O0 -Wno-attributes -DMEMSAN=0 -DSTATIC= -g"
-COVFLAGS="--coverage -O1"
+COVFLAGS="--coverage -O1 -DTEST=1"
 LDFLAGS="--coverage"
 LIBCGCOV=""
 
@@ -79,6 +79,7 @@ echo ${COMMAND}
 ${COMMAND}
 
 # Run tests
+export TEST_PATTERN="*"; # ensure test patterns is set for tests
 ./${COV_BIN} 2> /dev/null || { echo "Tests failed; check errors above"; exit 1; }
 
 cp -rp ${TEST_OBJDIR}/* ${COVDIR}

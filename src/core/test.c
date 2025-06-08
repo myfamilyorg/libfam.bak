@@ -26,6 +26,8 @@
 #include <alloc.h>
 #include <atomic.h>
 #include <channel.h>
+#include <env.h>
+#include <error.h>
 #include <lock.h>
 #include <stdio.h>
 #include <sys.h>
@@ -47,6 +49,11 @@ typedef struct {
 	uint32_t uvalue1;
 	uint32_t uvalue2;
 } SharedStateData;
+
+Test(env) {
+	ASSERT(getenv("TEST_PATTERN"));
+	ASSERT(!getenv("__TEST_PATTERNS__"));
+}
 
 Test(two1) {
 	void *base = smap(sizeof(SharedStateData));
@@ -463,3 +470,14 @@ Test(channel3) {
 	channel_destroy(&ch1);
 }
 
+int *__error(void);
+
+Test(errors) {
+	ASSERT(!strcmp("Success", error_string(SUCCESS)));
+	ASSERT(!strcmp("Operation not permitted", error_string(EPERM)));
+	err = 0;
+	ASSERT_EQ(*__error(), 0);
+	perror_set_no_write(true);
+	perror("test");
+	perror_set_no_write(false);
+}

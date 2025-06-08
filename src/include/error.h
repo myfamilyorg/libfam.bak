@@ -26,6 +26,12 @@
 #ifndef _ERROR_H
 #define _ERROR_H
 
+#ifndef TEST
+#define TEST 0
+#endif /* TEST */
+
+#include <types.h>
+
 /* Error codes for libfam */
 #define SUCCESS 0
 #define EPERM 1		/* Operation not permitted */
@@ -77,5 +83,12 @@ extern int err;
 
 const char *error_string(int err_code);
 void perror(const char *);
+
+#if TEST == 1
+extern bool _debug_no_write;
+static void __attribute__((unused)) perror_set_no_write(bool value) {
+	_debug_no_write = value;
+}
+#endif /* TEST == 1 */
 
 #endif /* _ERROR_H */

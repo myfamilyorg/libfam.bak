@@ -29,18 +29,19 @@
 
 int err = 0;
 int *__error(void) { return &err; }
+bool _debug_no_write = false;
 
 void perror(const char *s) {
 	int len = 0, v = 2;
 	const char *err_msg;
 	if (s == NULL) return;
 	len = strlen(s);
-	if (len) v = write(2, s, len);
-	if (len && v == len) v = write(2, ": ", 2);
+	if (!_debug_no_write && len) v = write(2, s, len);
+	if (!_debug_no_write && len && v == len) v = write(2, ": ", 2);
 	if (v == 2) err_msg = error_string(err);
 	if (v == 2) len = strlen(err_msg);
-	if (v == 2) v = write(2, err_msg, len);
-	if (v == len) v = write(2, "\n", 1);
+	if (!_debug_no_write && v == 2) v = write(2, err_msg, len);
+	if (!_debug_no_write && v == len) v = write(2, "\n", 1);
 }
 
 const char *error_string(int err_code) {

@@ -10,8 +10,8 @@ CFLAGS  = -fPIC \
           -fno-stack-protector \
           -fno-builtin \
           -Wno-attributes
-TFLAGS  = $(CSTYLE) -fno-builtin -O1 -Isrc/include -Wno-attributes
-TCFLAGS = -O1 -Isrc/include -Wno-attributes
+TFLAGS  = $(CSTYLE) -fno-builtin -O1 -Isrc/include -Wno-attributes -DTEST=1
+TCFLAGS = -O1 -Isrc/include -Wno-attributes -DTEST=1
 UNAME_S := $(shell uname -s)
 LDFLAGS = -shared -nostdlib -ffreestanding
 FILTER  = "*"
