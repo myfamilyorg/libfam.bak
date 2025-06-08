@@ -50,6 +50,7 @@ int shutdown(int sockfd, int how);
 int socket(int domain, int type, int protocol);
 
 /* system calls applied */
+int open(const char *pathname, int flags, mode_t mode);
 int pipe(int fds[2]);
 int getentropy(void *buffer, size_t length);
 int yield(void);

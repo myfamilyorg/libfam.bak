@@ -34,7 +34,7 @@ int file(const char *path) {
 	return ret;
 }
 int exists(const char *path) {
-	int fd = open(path, O_RDWR);
+	int fd = open(path, O_RDWR, 0600);
 	if (fd > 0) {
 		close(fd);
 		return 1;
@@ -46,6 +46,10 @@ int64_t micros(void) {
 	struct timeval tv;
 	if (gettimeofday(&tv, NULL) == -1) return -1;
 	return (int64_t)tv.tv_sec * 1000000 + tv.tv_usec;
+}
+
+int open(const char *path, int flags, mode_t mode) {
+	return openat(-100, path, flags, mode);
 }
 
 int sleepm(uint64_t millis) {
