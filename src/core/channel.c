@@ -31,8 +31,6 @@
 #include <syscall.h>
 #include <syscall_const.h>
 
-int printf(const char *, ...);
-
 #define MIN_TIMEOUT_AGE (1000 * 1000 * 60) /* 1 minute in micros */
 
 static uint64_t send_count = 0;
@@ -84,7 +82,6 @@ STATIC void check_retired(Channel *channel) {
 	if (retired && retired->micros != 0) {
 		uint64_t now = micros();
 		if (now >= retired->micros + MIN_TIMEOUT_AGE) {
-			printf("retire\n");
 			if (__cas64((uint64_t *)&channel->inner->retired,
 				    (uint64_t *)&retired, (uint64_t)NULL)) {
 				free_element_list(retired);
