@@ -527,6 +527,7 @@ Test(files1) {
 	err = 0;
 	int fd = file(fname);
 	ASSERT(fd > 0);
+
 	ASSERT(exists(fname));
 
 	err = 0;

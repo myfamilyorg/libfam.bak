@@ -59,7 +59,7 @@ int epoll_create1(int flags);
 int epoll_wait(int epfd, struct epoll_event *events, int maxevents,
 	       int timeout);
 int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
-int openat(int dfd, const char *pathname, int flags, ...);
+int openat(int dfd, const char *pathname, int flags, mode_t mode);
 off_t lseek(int fd, off_t offset, int whence);
 int setitimer(__itimer_which_t which, const struct itimerval *new_value,
 	      struct itimerval *old_value);
