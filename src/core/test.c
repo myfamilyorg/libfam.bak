@@ -450,29 +450,32 @@ Test(channel2) {
 }
 
 Test(channel3) {
-	Channel ch1 = channel(sizeof(TestMessage));
-	if (two()) {
-		TestMessage msg = {0};
-		recv(&ch1, &msg);
-		ASSERT_EQ(msg.x, 1, "msg.x 1");
-		ASSERT_EQ(msg.y, 2, "msg.y 2");
-		recv(&ch1, &msg);
-		ASSERT_EQ(msg.x, 3, "msg.x 3");
-		ASSERT_EQ(msg.y, 4, "msg.y 4");
-		recv(&ch1, &msg);
-		ASSERT_EQ(msg.x, 5, "msg.x 5");
-		ASSERT_EQ(msg.y, 6, "msg.y 6");
-		ASSERT_EQ(recv_now(&ch1, &msg), -1, "recv_now");
-	} else {
-		ASSERT(send(&ch1, &(TestMessage){.x = 1, .y = 2}) >= 0,
-		       "send1");
-		ASSERT(send(&ch1, &(TestMessage){.x = 3, .y = 4}) >= 0,
-		       "send2");
-		ASSERT(send(&ch1, &(TestMessage){.x = 5, .y = 6}) >= 0,
-		       "send3");
-		exit(0);
+	int size = 1;
+	for (int i = 0; i < size; i++) {
+		Channel ch1 = channel(sizeof(TestMessage));
+		if (two()) {
+			TestMessage msg = {0};
+			recv(&ch1, &msg);
+			ASSERT_EQ(msg.x, 1, "msg.x 1");
+			ASSERT_EQ(msg.y, 2, "msg.y 2");
+			recv(&ch1, &msg);
+			ASSERT_EQ(msg.x, 3, "msg.x 3");
+			ASSERT_EQ(msg.y, 4, "msg.y 4");
+			recv(&ch1, &msg);
+			ASSERT_EQ(msg.x, 5, "msg.x 5");
+			ASSERT_EQ(msg.y, 6, "msg.y 6");
+			ASSERT_EQ(recv_now(&ch1, &msg), -1, "recv_now");
+		} else {
+			ASSERT(send(&ch1, &(TestMessage){.x = 1, .y = 2}) >= 0,
+			       "send1");
+			ASSERT(send(&ch1, &(TestMessage){.x = 3, .y = 4}) >= 0,
+			       "send2");
+			ASSERT(send(&ch1, &(TestMessage){.x = 5, .y = 6}) >= 0,
+			       "send3");
+			exit(0);
+		}
+		channel_destroy(&ch1);
 	}
-	channel_destroy(&ch1);
 }
 
 int *__error(void);

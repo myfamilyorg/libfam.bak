@@ -31,7 +31,13 @@
 #include <syscall.h>
 #include <syscall_const.h>
 
+int printf(const char *, ...);
+
 #define MIN_TIMEOUT_AGE (1000 * 1000 * 60) /* 1 minute in micros */
+
+static uint64_t send_count = 0;
+static uint64_t recv_count = 0;
+
 typedef struct ChannelElement {
 	struct ChannelElement *next;
 	uint64_t micros;
@@ -78,12 +84,23 @@ STATIC void check_retired(Channel *channel) {
 	if (retired && retired->micros != 0) {
 		uint64_t now = micros();
 		if (now >= retired->micros + MIN_TIMEOUT_AGE) {
+			printf("retire\n");
 			if (__cas64((uint64_t *)&channel->inner->retired,
 				    (uint64_t *)&retired, (uint64_t)NULL)) {
 				free_element_list(retired);
 			}
 		}
 	}
+}
+
+STATIC void retire_head(Channel *channel, ChannelElement *current_head) {
+	ChannelElement *old_retired;
+	current_head->micros = micros();
+	do {
+		old_retired = ALOAD(&channel->inner->retired);
+		current_head->next = old_retired;
+	} while (!__cas64((uint64_t *)&channel->inner->retired,
+			  (uint64_t *)&old_retired, (uint64_t)current_head));
 }
 
 void channel_destroy(Channel *channel) {
@@ -126,57 +143,32 @@ bool channel_ok(Channel *channel) {
 }
 
 int recv_now(Channel *channel, void *dst) {
-	size_t size;
 	ChannelElement *current_head;
 	ChannelElement *next;
-	ChannelElement *expected;
-	uint64_t initial_seq;
-	uint64_t final_seq;
-	int success;
-	static uint64_t recv_count = 0;
-	if (++recv_count % 10 == 0) check_retired(channel);
-
-	current_head = ALOAD(&channel->inner->head);
-	if (current_head == NULL) return -1;
-	size = channel->inner->element_size;
-	initial_seq = ALOAD(&channel->inner->head_seq);
-	next = ALOAD(&current_head->next);
+	uint64_t initial_seq = ALOAD(&channel->inner->head_seq);
+	uint64_t final_seq, expected_head;
+	if (++recv_count % 100 == 0) check_retired(channel);
 
 	while (true) {
-		expected = current_head;
-		success = __cas64((uint64_t *)&channel->inner->head,
-				  (uint64_t *)&expected, (uint64_t)next);
-		if (success) {
-			if (next == NULL) ASTORE(&channel->inner->tail, NULL);
+		current_head = ALOAD(&channel->inner->head);
+		if (current_head == NULL) return -1;
+		next = ALOAD(&current_head->next);
+
+		expected_head = (uint64_t)current_head;
+		if (__cas64((uint64_t *)&channel->inner->head, &expected_head,
+			    (uint64_t)next)) {
 			__add64(&channel->inner->head_seq, 1);
 			final_seq = ALOAD(&channel->inner->head_seq);
 
 			memcpy(dst,
-			       (char *)current_head + sizeof(ChannelElement),
-			       size);
-
-			if (final_seq == initial_seq + 1) {
+			       (uint8_t *)current_head + sizeof(ChannelElement),
+			       channel->inner->element_size);
+			if (final_seq == initial_seq + 1)
 				release(current_head);
-			} else {
-				ChannelElement *old_retired;
-				current_head->micros = micros();
-				do {
-					old_retired =
-					    ALOAD(&channel->inner->retired);
-					current_head->next = old_retired;
-				} while (!__cas64(
-				    (uint64_t *)&channel->inner->retired,
-				    (uint64_t *)&old_retired,
-				    (uint64_t)current_head));
-			}
+			else
+				retire_head(channel, current_head);
 			return 0;
 		}
-		current_head = ALOAD(&channel->inner->head);
-		initial_seq = ALOAD(&channel->inner->head_seq);
-		if (current_head == NULL) {
-			return -1;
-		}
-		next = ALOAD(&current_head->next);
 	}
 }
 
@@ -188,59 +180,35 @@ void recv(Channel *channel, void *dst) {
 }
 
 int send(Channel *channel, const void *source) {
-	size_t size;
-	size_t alloc_size;
-	ChannelElement *elem;
-	ChannelElement *current_tail;
-	ChannelElement *last;
-	ChannelElement *expected_tail;
-	ChannelElement *expected_head;
-	int success;
-	static uint64_t send_count = 0;
-	if (++send_count % 10 == 0) check_retired(channel);
+	ChannelElement *elem, *current_head, *last;
+	uint64_t expected_null = 0;
 
-	size = channel->inner->element_size;
-	alloc_size = size + sizeof(ChannelElement);
-
-	elem = alloc(alloc_size);
+	if (++send_count % 100 == 0) check_retired(channel);
+	elem = alloc(channel->inner->element_size + sizeof(ChannelElement));
 	if (!elem) return -1;
 	elem->next = NULL;
-	memcpy((char *)elem + sizeof(ChannelElement), source, size);
-
-	current_tail = ALOAD(&channel->inner->tail);
-
-	if (current_tail == NULL) {
-		expected_tail = NULL;
-		success = __cas64((uint64_t *)&channel->inner->tail,
-				  (uint64_t *)&expected_tail, (uint64_t)elem);
-		if (success) {
-			expected_head = NULL;
-			success =
-			    __cas64((uint64_t *)&channel->inner->head,
-				    (uint64_t *)&expected_head, (uint64_t)elem);
-			if (success) {
-				__add64((uint64_t *)&channel->inner->head_seq,
-					1);
-			}
-			return notify(channel);
-		}
-		current_tail = ALOAD(&channel->inner->tail);
-	}
+	memcpy((char *)elem + sizeof(ChannelElement), source,
+	       channel->inner->element_size);
 
 	while (true) {
-		last = current_tail;
-		while (last->next != NULL) {
-			last = ALOAD(&last->next);
+		while ((current_head = ALOAD(&channel->inner->head)) == NULL) {
+			if (__cas64((uint64_t *)&channel->inner->tail,
+				    &expected_null, (uint64_t)elem)) {
+				ASTORE(&channel->inner->head, elem);
+				__add64((uint64_t *)&channel->inner->head_seq,
+					1);
+				return notify(channel);
+			}
 		}
-		expected_tail = NULL;
-		success = __cas64((uint64_t *)&last->next,
-				  (uint64_t *)&expected_tail, (uint64_t)elem);
-		if (success) {
-			expected_tail = last;
+
+		last = ALOAD(&channel->inner->tail);
+		if (!last) continue;
+		if (__cas64((uint64_t *)&last->next, &expected_null,
+			    (uint64_t)elem)) {
+			uint64_t expected_last = (uint64_t)last;
 			__cas64((uint64_t *)&channel->inner->tail,
-				(uint64_t *)&expected_tail, (uint64_t)elem);
+				&expected_last, (uint64_t)elem);
 			return notify(channel);
 		}
-		current_tail = ALOAD(&channel->inner->tail);
 	}
 }
