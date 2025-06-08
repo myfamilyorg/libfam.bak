@@ -41,11 +41,15 @@ int mregister(int multiplex, int fd, int flags, void *attach) {
 	int event_flags = 0;
 
 	if (flags & MULTIPLEX_FLAG_READ) {
-		event_flags |= EPOLLIN;
+		event_flags |= (EPOLLIN | EPOLLET | EPOLLRDHUP);
+	}
+
+	if (flags & MULTIPLEX_FLAG_ACCEPT) {
+		event_flags |= (EPOLLIN | EPOLLEXCLUSIVE | EPOLLET);
 	}
 
 	if (flags & MULTIPLEX_FLAG_WRITE) {
-		event_flags |= EPOLLOUT;
+		event_flags |= (EPOLLOUT | EPOLLET);
 	}
 
 	ev.events = event_flags;
