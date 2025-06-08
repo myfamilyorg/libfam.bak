@@ -335,7 +335,7 @@ static void syscall_restorer(void) {
 
 #ifdef __aarch64__
 DEFINE_SYSCALL2(59, int, pipe2, int *, fds, int, flags)
-DEFINE_SYSCALL3(35, int, unlink, int, x, const char *, path, int, flag)
+DEFINE_SYSCALL3(35, int, unlinkat, int, dfd, const char *, path, int, flag)
 DEFINE_SYSCALL3(64, ssize_t, write, int, fd, const void *, buf, size_t, count)
 DEFINE_SYSCALL3(63, ssize_t, read, int, fd, void *, buf, size_t, count)
 DEFINE_SYSCALL2(215, int, munmap, void *, addr, size_t, len)
@@ -387,7 +387,7 @@ DEFINE_SYSCALL4(134, int, rt_sigaction, int, signum,
 #elif defined(__amd64__)
 /* System call definitions */
 DEFINE_SYSCALL2(293, int, pipe2, int *, fds, int, flags)
-DEFINE_SYSCALL1(87, int, unlink, const char *, path)
+DEFINE_SYSCALL3(87, int, unlinkat, int, dfd, const char *, path, int, flags)
 DEFINE_SYSCALL3(1, ssize_t, write, int, fd, const void *, buf, size_t, count)
 DEFINE_SYSCALL3(0, ssize_t, read, int, fd, void *, buf, size_t, count)
 DEFINE_SYSCALL2(11, int, munmap, void *, addr, size_t, len)
@@ -447,12 +447,8 @@ int pipe2(int fds[2], int flags) {
 	int ret = syscall_pipe2(fds, flags);
 	SET_ERR
 }
-int unlink(const char *path) {
-#ifdef __amd64__
-	int ret = syscall_unlink(path);
-#elif defined(__aarch64__)
-	int ret = syscall_unlink(-100, path, 0);
-#endif
+int unlinkat(int dfd, const char *path, int flags) {
+	int ret = syscall_unlinkat(dfd, path, flags);
 	SET_ERR
 }
 ssize_t write(int fd, const void *buf, size_t count) {

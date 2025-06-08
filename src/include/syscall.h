@@ -29,7 +29,7 @@
 #include <types.h>
 
 int pipe(int fds[2]);
-int unlink(const char *path);
+int unlinkat(int dfd, const char *path, int flags);
 ssize_t write(int fd, const void *buf, size_t count);
 ssize_t read(int fd, void *buf, size_t count);
 int sched_yield(void);
