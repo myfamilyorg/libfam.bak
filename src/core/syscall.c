@@ -371,7 +371,7 @@ DEFINE_SYSCALL4(21, int, epoll_ctl, int, epfd, int, op, int, fd,
 		struct epoll_event *, event)
 DEFINE_SYSCALL4(56, int, openat, int, dfd, const char *, pathname, int, flags,
 		mode_t, mode)
-DEFINE_SYSCALL3(62, off_t, lseek, int, fd, off_t, offset, int, whence)
+DEFINE_SYSCALL3(61, off_t, lseek, int, fd, off_t, offset, int, whence)
 DEFINE_SYSCALL1(83, int, fdatasync, int, fd)
 DEFINE_SYSCALL2(46, int, ftruncate, int, fd, off_t, length)
 DEFINE_SYSCALL3(103, int, setitimer, __itimer_which_t, which,
