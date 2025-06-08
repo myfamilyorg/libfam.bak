@@ -156,6 +156,7 @@ int recv_now(Channel *channel, void *dst) {
 				expected_head = (uint64_t)head;
 				if (__cas64((uint64_t *)&channel->inner->head,
 					    &expected_head, (uint64_t)next)) {
+					release(head);
 					return 0;
 				}
 			}
