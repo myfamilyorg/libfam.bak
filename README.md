@@ -1,4 +1,4 @@
-# BitcoinMW
+# LibFam
 
 [![CI Pipeline](https://github.com/myfamilyorg/libfam/actions/workflows/main.yml/badge.svg)](https://github.com/myfamilyorg/libfam/actions/workflows/main.yml)
 [![Release Version](https://img.shields.io/github/v/release/myfamilyorg/libfam.svg?color=blue)](https://github.com/myfamilyorg/libfam/releases)
