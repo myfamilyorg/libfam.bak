@@ -144,6 +144,10 @@ int recv_now(Channel *channel, void *dst) {
 		expected_head = (uint64_t)current_head;
 		if (__cas64((uint64_t *)&channel->inner->head, &expected_head,
 			    (uint64_t)next)) {
+			ChannelElement *actual_next =
+			    ALOAD(&current_head->next);
+			if (actual_next != next) continue;
+
 			__add64(&channel->inner->head_seq, 1);
 			final_seq = ALOAD(&channel->inner->head_seq);
 
@@ -154,6 +158,7 @@ int recv_now(Channel *channel, void *dst) {
 				release(current_head);
 			else
 				retire_head(channel, current_head);
+
 			return 0;
 		}
 	}
