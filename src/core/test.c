@@ -450,9 +450,10 @@ Test(channel2) {
 }
 
 Test(channel3) {
-	int size = 10;
+	int size = 1000;
 	for (int i = 0; i < size; i++) {
 		Channel ch1 = channel(sizeof(TestMessage));
+		// printf("i=%d\n", i);
 		if (two()) {
 			TestMessage msg = {0};
 			recv(&ch1, &msg);

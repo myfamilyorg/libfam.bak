@@ -1,3 +1,4 @@
+#include <env.h>
 #include <misc.h>
 #include <stdio.h>
 #include <test.h>
@@ -17,14 +18,25 @@ void add_test_fn(void (*test_fn)(void), const char *name) {
 }
 
 int main() {
-	printf("Running %i tests...\n", cur_tests);
+	int test_count = 0;
+	char *tp;
+
+	tp = getenv("TEST_PATTERN");
+	if (!tp || !strcmp(tp, "*"))
+		printf("Running %i tests...\n", cur_tests);
+	else
+		printf("Running test %s...\n", tp);
 
 	for (exe_test = 0; exe_test < cur_tests; exe_test++) {
-		printf("running test %i [%s]\n", exe_test,
-		       tests[exe_test].name);
-		tests[exe_test].test_fn();
+		if (!tp || !strcmp(tp, "*") ||
+		    !strcmp(tests[exe_test].name, tp)) {
+			printf("running test %i [%s]\n", test_count,
+			       tests[exe_test].name);
+			tests[exe_test].test_fn();
+			test_count++;
+		}
 	}
-	printf("Success! %i tests passed!\n", cur_tests);
+	printf("Success! %i tests passed!\n", test_count);
 
 	return 0;
 }
