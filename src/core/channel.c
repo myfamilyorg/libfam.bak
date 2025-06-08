@@ -136,6 +136,9 @@ bool channel_ok(Channel *channel) {
 }
 
 int recv_now(Channel *channel, void *dst) {
+	uint64_t initial_seq = ALOAD(&channel->inner->head_seq), final_seq;
+	if (++recv_count % 100 == 0) check_retired(channel);
+
 	while (true) {
 		uint64_t expected_head, expected_tail;
 		ChannelElement *head = ALOAD(&channel->inner->head);
@@ -156,7 +159,13 @@ int recv_now(Channel *channel, void *dst) {
 				expected_head = (uint64_t)head;
 				if (__cas64((uint64_t *)&channel->inner->head,
 					    &expected_head, (uint64_t)next)) {
-					release(head);
+					final_seq =
+					    ALOAD(&channel->inner->head_seq);
+
+					if (final_seq == initial_seq + 1)
+						release(head);
+					else
+						retire_head(channel, head);
 					return 0;
 				}
 			}
@@ -179,6 +188,8 @@ int send(Channel *channel, const void *source) {
 	       channel->inner->element_size);
 	node->next = NULL;
 
+	if (++send_count % 100 == 0) check_retired(channel);
+
 	while (true) {
 		ChannelElement *tail = ALOAD(&channel->inner->tail);
 		ChannelElement *next = ALOAD(&tail->next);
@@ -187,7 +198,15 @@ int send(Channel *channel, const void *source) {
 			if (next == NULL) {
 				if (__cas64((uint64_t *)&tail->next,
 					    &expected_next, (uint64_t)node)) {
-					uint64_t expected_tail = (uint64_t)tail;
+					uint64_t expected_tail;
+					ChannelElement *head =
+					    ALOAD(&channel->inner->head);
+					if (head == tail)
+						__add64(
+						    &channel->inner->head_seq,
+						    1);
+
+					expected_tail = (uint64_t)tail;
 					__cas64(
 					    (uint64_t *)&channel->inner->tail,
 					    &expected_tail, (uint64_t)node);
