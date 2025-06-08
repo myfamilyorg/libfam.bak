@@ -52,6 +52,8 @@ int open(const char *path, int flags, mode_t mode) {
 	return openat(-100, path, flags, mode);
 }
 
+int unlink(const char *path) { return unlinkat(-100, path, 0); }
+
 int sleepm(uint64_t millis) {
 	struct timespec req;
 	int ret;
