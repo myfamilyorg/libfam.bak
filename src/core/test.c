@@ -29,6 +29,7 @@
 #include <env.h>
 #include <error.h>
 #include <init.h>
+#include <limits.h>
 #include <lock.h>
 #include <stdio.h>
 #include <sys.h>
@@ -496,4 +497,75 @@ Test(begin) {
 
 	execute_exits();
 	ASSERT_EQ(ecount, 64);	// MAX_EXITS is 64
+}
+
+Test(forkpipe) {
+	int fds[2];
+	ASSERT(!pipe(fds));
+	if (fork()) {
+		close(fds[1]);
+		char buf[10];
+		ASSERT_EQ(read(fds[0], buf, 10), 4);
+		ASSERT_EQ(buf[0], 't');
+		ASSERT_EQ(buf[1], 'e');
+		ASSERT_EQ(buf[2], 's');
+		ASSERT_EQ(buf[3], 't');
+
+	} else {
+		close(fds[0]);
+		write(fds[1], "test", 4);
+		exit(0);
+	}
+}
+
+Test(files1) {
+	const char *fname = "/tmp/ftest.tmp";
+	int fd = file(fname);
+	ASSERT(fd > 0);
+	ASSERT(exists(fname));
+	ASSERT(!fsize(fd));
+	write(fd, "abc", 3);
+	flush(fd);
+	ASSERT_EQ(fsize(fd), 3);
+	fresize(fd, 2);
+	ASSERT_EQ(fsize(fd), 2);
+	int dup = fcntl(fd, F_DUPFD);
+	ASSERT(dup != fd);
+
+	ASSERT(!unlink(fname));
+	ASSERT(!exists(fname));
+	close(fd);
+	close(dup);
+}
+
+Test(entropy) {
+	uint8_t buf[1024];
+	uint128_t v1 = 0, v2 = 0;
+	ASSERT(!getentropy(buf, 64));
+	ASSERT(getentropy(buf, 1024));
+	ASSERT(getentropy(NULL, 100));
+	ASSERT_EQ(v1, v2);
+	getentropy(&v1, sizeof(uint128_t));
+	getentropy(&v2, sizeof(uint128_t));
+	ASSERT(v1 != v2);
+	ASSERT(v1 != 0);
+	ASSERT(v2 != 0);
+}
+
+Test(map_err) {
+	char buf[100];
+	err = 0;
+	void *v = mmap(buf, 100, PROT_READ | PROT_WRITE, MAP_SHARED, -1, 0);
+	ASSERT((long)v == -1);
+	ASSERT_EQ(err, EBADF);
+	v = map(PAGE_SIZE);
+	ASSERT(v);
+	ASSERT(!munmap(v, PAGE_SIZE));
+	err = 0;
+	ASSERT(!map(SIZE_MAX));
+	ASSERT_EQ(err, ENOMEM);
+	ASSERT(fmap(1, SIZE_MAX, SIZE_MAX) == NULL);
+	yield();
+	ASSERT(smap(SIZE_MAX) == NULL);
+	ASSERT(settimeofday(NULL, NULL));
 }

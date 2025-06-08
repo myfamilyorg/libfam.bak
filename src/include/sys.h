@@ -55,7 +55,7 @@ int getentropy(void *buffer, size_t length);
 int yield(void);
 int timeout(void (*task)(void), uint64_t milliseconds);
 void *map(size_t length);
-void *fmap(int fd, off_t offset, off_t size);
+void *fmap(int fd, off_t size, off_t offset);
 void *smap(size_t length);
 int exists(const char *path);
 int file(const char *path);

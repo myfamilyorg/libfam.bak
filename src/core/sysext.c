@@ -75,7 +75,7 @@ void *map(size_t length) {
 	}
 	return v;
 }
-void *fmap(int fd, off_t offset, off_t size) {
+void *fmap(int fd, off_t size, off_t offset) {
 	void *v =
 	    mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, offset);
 	if (v == MAP_FAILED) {
@@ -102,4 +102,8 @@ int sched_yield(void);
 int yield(void) {
 	int ret = sched_yield();
 	return ret;
+}
+
+int getentropy(void *buffer, size_t length) {
+	return getrandom(buffer, length, GRND_RANDOM);
 }

@@ -599,7 +599,7 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 	void *ret;
 	ret = syscall_mmap(addr, length, prot, flags, fd, offset);
 
-	if ((long)ret == -1) {
+	if ((long)ret < 0) {
 		err = -(long)ret;
 		return (void *)-1;
 	}
