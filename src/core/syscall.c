@@ -387,7 +387,7 @@ DEFINE_SYSCALL4(134, int, rt_sigaction, int, signum,
 #elif defined(__amd64__)
 /* System call definitions */
 DEFINE_SYSCALL2(293, int, pipe2, int *, fds, int, flags)
-DEFINE_SYSCALL3(87, int, unlinkat, int, dfd, const char *, path, int, flags)
+DEFINE_SYSCALL3(263, int, unlinkat, int, dfd, const char *, path, int, flags)
 DEFINE_SYSCALL3(1, ssize_t, write, int, fd, const void *, buf, size_t, count)
 DEFINE_SYSCALL3(0, ssize_t, read, int, fd, void *, buf, size_t, count)
 DEFINE_SYSCALL2(11, int, munmap, void *, addr, size_t, len)
