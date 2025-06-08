@@ -487,10 +487,12 @@ Test(channel3) {
 }
 
 Test(channel_notify) {
+	siginfo_t info = {0};
 	Channel ch1 = channel(sizeof(TestMessage));
 	Channel ch2 = channel(sizeof(TestMessage));
 
-	if (two()) {
+	int pid = two();
+	if (pid) {
 		TestMessage msg = {0}, msg2 = {0};
 		msg.x = 100;
 		send(&ch2, &msg);
@@ -506,19 +508,12 @@ Test(channel_notify) {
 
 		ASSERT_EQ(msg.x, 100, "x=100");
 		send(&ch1, &(TestMessage){.x = 1, .y = 2});
-		channel_destroy(&ch2);
-
-		printf("exit2\n");
-		sleepm(500);
 		exit(0);
 	}
-	sleepm(100);
-	printf("destroy 1\n");
+	waitid(0, pid, &info, 4);
+
 	channel_destroy(&ch1);
-	sleepm(100);
-	printf("destroy 2\n");
 	channel_destroy(&ch2);
-	printf("done\n");
 }
 
 int *__error(void);

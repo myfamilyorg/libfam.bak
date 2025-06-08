@@ -265,7 +265,7 @@ void *alloc(size_t size) {
 		ret = allocate_slab(size);
 	}
 
-	printf("----------->alloc =%p\n", ret);
+	/*printf("----------->alloc =%p\n", ret);*/
 	return ret;
 }
 
@@ -274,17 +274,15 @@ void release(void *ptr) {
 	size_t offset =
 	    (size_t)ptr - ((size_t)memory_base + sizeof(AllocHeader) +
 			   bitmap_pages * PAGE_SIZE);
-	printf("--------->release %p\n", ptr);
+	/*printf("--------->release %p\n", ptr);*/
 	if (ptr == NULL ||
 	    (size_t)ptr < (size_t)memory_base + sizeof(AllocHeader) +
 			      bitmap_pages * PAGE_SIZE ||
 	    (size_t)ptr >= (size_t)memory_base + sizeof(AllocHeader) +
 			       bitmap_pages * PAGE_SIZE + get_memory_bytes()) {
 		err = EINVAL;
-		printf("einval\n");
 		return;
 	}
-	printf("a\n");
 
 	if (offset % CHUNK_SIZE == 0) {
 		RELEASE_BIT((void *)((size_t)memory_base + sizeof(AllocHeader)),
@@ -305,8 +303,6 @@ void release(void *ptr) {
 		__sub64(allocated_bytes, slab_size);
 #endif /* MEMSAN */
 	}
-
-	printf("b\n");
 }
 
 void *resize(void *ptr, size_t new_size) {

@@ -44,9 +44,7 @@ typedef struct ChannelElement {
 } ChannelElement;
 
 struct ChannelInner {
-	uint64_t head_seq;
 	uint64_t element_size;
-	ChannelElement *retired;
 	ChannelElement *head;
 	ChannelElement *tail;
 	uint32_t futex;
@@ -57,79 +55,11 @@ STATIC int notify(Channel *channel) {
 	return futex(&channel->inner->futex, FUTEX_WAKE, 1, NULL, NULL, 0);
 }
 
-STATIC void free_element_list(ChannelElement *list) {
-	ChannelElement *current = list;
-	while (current) {
-		ChannelElement *next = current->next;
-		release(current);
-		current = next;
-	}
-}
-
-STATIC void check_retired(Channel *channel) {
-	ChannelElement *retired;
-	if (!channel || !channel->inner) return;
-	printf("=======================================================cr\n");
-
-	retired = ALOAD(&channel->inner->retired);
-	if (retired && retired->micros != 0) {
-		uint64_t now = micros();
-		printf("check ret at %lld\n", now);
-		if (now >= retired->micros + MIN_TIMEOUT_AGE) {
-			if (__cas64((uint64_t *)&channel->inner->retired,
-				    (uint64_t *)&retired, (uint64_t)NULL)) {
-				printf("free element list\n");
-				free_element_list(retired);
-			}
-		}
-	}
-}
-
-STATIC void retire_head(Channel *channel, ChannelElement *current_head) {
-	ChannelElement *old_retired;
-	printf("ret head %p\n", current_head);
-	current_head->micros = micros();
-	do {
-		old_retired = ALOAD(&channel->inner->retired);
-		printf("old_retired=%p\n", old_retired);
-		current_head->next = old_retired;
-	} while (!__cas64((uint64_t *)&channel->inner->retired,
-			  (uint64_t *)&old_retired, (uint64_t)current_head));
-}
-
 void channel_destroy(Channel *channel) {
 	if (channel && channel->inner) {
 		ChannelElement *current;
-		/*
-		ChannelElement *current = ALOAD(&channel->inner->head);
-		printf("dest\n");
-		while (current) {
-			ChannelElement *next = ALOAD(&current->next);
-			release(current);
-			current = next;
-		}
-		printf("1\n");
-		*/
-
-		current = ALOAD(&channel->inner->retired);
-		printf("1.1 %p\n", current);
-
-		while (current) {
-			ChannelElement *next;
-			printf("z %p\n", current);
-			next = ALOAD(&current->next);
-			printf("rel %p\n", current);
-			release(current);
-			printf("x\n");
-			current = next;
-			printf("y\n");
-		}
-
-		printf("2\n");
-		channel->inner->retired = NULL;
 
 		current = ALOAD(&channel->inner->head);
-		printf("dest\n");
 		while (current) {
 			ChannelElement *next = ALOAD(&current->next);
 			release(current);
@@ -155,8 +85,6 @@ Channel channel(size_t element_size) {
 	ret.inner->tail->next = NULL;
 	ret.inner->head->next = NULL;
 	ret.inner->element_size = element_size;
-	ret.inner->head_seq = 0;
-	ret.inner->retired = NULL;
 
 	return ret;
 }
@@ -166,12 +94,6 @@ bool channel_ok(Channel *channel) {
 }
 
 int recv_now(Channel *channel, void *dst) {
-	uint64_t initial_seq = ALOAD(&channel->inner->head_seq), final_seq;
-
-	if (++recv_count % 100 == 0) {
-		check_retired(channel);
-	}
-
 	while (true) {
 		uint64_t expected_head, expected_tail;
 		ChannelElement *head = ALOAD(&channel->inner->head);
@@ -192,14 +114,7 @@ int recv_now(Channel *channel, void *dst) {
 				expected_head = (uint64_t)head;
 				if (__cas64((uint64_t *)&channel->inner->head,
 					    &expected_head, (uint64_t)next)) {
-					final_seq =
-					    ALOAD(&channel->inner->head_seq);
-
-					if (final_seq == initial_seq + 1)
-						release(head);
-					else {
-						retire_head(channel, head);
-					}
+					release(head);
 					return 0;
 				}
 			}
@@ -236,13 +151,6 @@ int send(Channel *channel, const void *source) {
 				if (__cas64((uint64_t *)&tail->next,
 					    &expected_next, (uint64_t)node)) {
 					uint64_t expected_tail;
-					ChannelElement *head =
-					    ALOAD(&channel->inner->head);
-					printf("tail->next=%p\n", tail->next);
-					if (head == tail)
-						__add64(
-						    &channel->inner->head_seq,
-						    1);
 
 					expected_tail = (uint64_t)tail;
 					__cas64(
