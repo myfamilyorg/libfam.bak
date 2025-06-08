@@ -30,7 +30,8 @@
 
 #define MULTIPLEX_FLAG_NONE 0
 #define MULTIPLEX_FLAG_READ 0x1
-#define MULTIPLEX_FLAG_WRITE (0x1 << 1)
+#define MULTIPLEX_FLAG_ACCEPT (0x1 << 1)
+#define MULTIPLEX_FLAG_WRITE (0x1 << 2)
 
 typedef struct {
 	uint8_t opaque[12];
