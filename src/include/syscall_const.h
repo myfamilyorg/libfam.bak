@@ -145,4 +145,8 @@
 #define EPOLL_CTL_DEL 2 /* Add a file descriptor to the epoll instance */
 #define EPOLL_CTL_MOD 3 /* Modify an existing file descriptor's settings */
 
+/* Waitid */
+#define WNOHANG 1
+#define P_PID 0
+
 #endif /* _SYSCALL_CONST_H */

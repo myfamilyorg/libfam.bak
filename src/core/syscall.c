@@ -384,6 +384,8 @@ DEFINE_SYSCALL6(98, long, futex, uint32_t *, uaddr, int, futex_op, uint32_t,
 DEFINE_SYSCALL4(134, int, rt_sigaction, int, signum,
 		const struct rt_sigaction *, act, struct rt_sigaction *, oldact,
 		size_t, sigsetsize)
+DEFINE_SYSCALL4(95, int, waitid, int, id_type, int, id, void *, siginfo, int,
+		options)
 #elif defined(__amd64__)
 /* System call definitions */
 DEFINE_SYSCALL2(293, int, pipe2, int *, fds, int, flags)
@@ -435,6 +437,8 @@ DEFINE_SYSCALL6(202, long, futex, uint32_t *, uaddr, int, futex_op, uint32_t,
 		uint32_t, val3)
 DEFINE_SYSCALL4(13, int, rt_sigaction, int, signum, const struct rt_sigaction *,
 		act, struct rt_sigaction *, oldact, size_t, sigsetsize)
+DEFINE_SYSCALL4(247, int, waitid, int, id_type, int, id, void *, siginfo, int,
+		options)
 
 #endif /* Arch */
 
@@ -651,3 +655,9 @@ int rt_sigaction(int signum, const struct rt_sigaction *act,
 }
 
 void restorer(void) { syscall_restorer(); }
+
+pid_t waitid(int id_type, int id, void *sigs, int options) {
+	pid_t ret = syscall_waitid(id_type, id, sigs, options);
+	SET_ERR
+}
+

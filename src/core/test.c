@@ -453,8 +453,10 @@ Test(channel3) {
 	int size = 1000;
 	for (int i = 0; i < size; i++) {
 		Channel ch1 = channel(sizeof(TestMessage));
-		// printf("i=%d\n", i);
-		if (two()) {
+		err = 0;
+		int pid = two();
+		ASSERT(pid != -1, "two != -1");
+		if (pid) {
 			TestMessage msg = {0};
 			recv(&ch1, &msg);
 			ASSERT_EQ(msg.x, 1, "msg.x 1");
@@ -466,6 +468,9 @@ Test(channel3) {
 			ASSERT_EQ(msg.x, 5, "msg.x 5");
 			ASSERT_EQ(msg.y, 6, "msg.y 6");
 			ASSERT_EQ(recv_now(&ch1, &msg), -1, "recv_now");
+			err = 0;
+			waitid(P_PID, pid, NULL, 0);
+
 		} else {
 			ASSERT(send(&ch1, &(TestMessage){.x = 1, .y = 2}) >= 0,
 			       "send1");
