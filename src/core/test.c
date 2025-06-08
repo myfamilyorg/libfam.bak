@@ -578,3 +578,16 @@ Test(map_err) {
 	ASSERT(smap(SIZE_MAX) == NULL);
 	ASSERT(settimeofday(NULL, NULL));
 }
+
+Test(misc_atomic) {
+	uint32_t x = 2;
+	__or32(&x, 1);
+	ASSERT_EQ(x, 3);
+
+	uint64_t y = 2;
+	__or64(&y, 1);
+	ASSERT_EQ(y, 3);
+
+	__sub64(&y, 1);
+	ASSERT_EQ(y, 2);
+}

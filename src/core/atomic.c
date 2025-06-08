@@ -44,24 +44,6 @@ uint32_t __add32(volatile uint32_t *a, uint32_t v) {
 
 uint32_t __sub32(volatile uint32_t *a, uint32_t v) { return __add32(a, -v); }
 
-uint32_t __load32(volatile uint32_t *a) {
-	uint32_t value;
-	__asm__ volatile(
-	    "ldar %w0, [%1]\n" /* Load with acquire ordering 32-bit */
-	    : "=r"(value)
-	    : "r"(a)
-	    : "memory");
-	return value;
-}
-
-void __store32(volatile uint32_t *a, uint32_t v) {
-	__asm__ volatile(
-	    "stlr %w1, [%0]\n" /* Store with release ordering 32-bit */
-	    :
-	    : "r"(a), "r"(v)
-	    : "memory");
-}
-
 uint32_t __or32(volatile uint32_t *a, uint32_t v) {
 	uint32_t old, tmp;
 	__asm__ volatile(
@@ -116,16 +98,6 @@ int __cas64(volatile uint64_t *a, uint64_t *expected, uint64_t desired) {
 	return success;
 }
 
-uint64_t __load64(volatile uint64_t *a) {
-	uint64_t value;
-	__asm__ volatile(
-	    "ldar %0, [%1]\n" /* Load with acquire ordering 64-bit */
-	    : "=r"(value)
-	    : "r"(a)
-	    : "memory");
-	return value;
-}
-
 uint64_t __add64(volatile uint64_t *a, uint64_t v) {
 	uint64_t old, tmp;
 	__asm__ volatile(
@@ -141,14 +113,6 @@ uint64_t __add64(volatile uint64_t *a, uint64_t v) {
 }
 
 uint64_t __sub64(volatile uint64_t *a, uint64_t v) { return __add64(a, -v); }
-
-void __store64(volatile uint64_t *a, uint64_t v) {
-	__asm__ volatile(
-	    "stlr %1, [%0]\n" /* Store with release ordering 64-bit */
-	    :
-	    : "r"(a), "r"(v)
-	    : "memory");
-}
 
 uint64_t __or64(volatile uint64_t *a, uint64_t v) {
 	uint64_t old, tmp;
