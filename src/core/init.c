@@ -44,6 +44,7 @@ static size_t exit_count = 0;
 int register_exit(void (*fn)(void)) {
 	size_t index = exit_count++;
 	if (index >= MAX_EXIT) {
+		exit_count--;
 		err = ENOSPC;
 		return -1;
 	}

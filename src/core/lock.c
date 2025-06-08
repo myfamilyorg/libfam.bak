@@ -66,9 +66,10 @@ LockGuardImpl wlock(Lock *lock) {
 		if ((cur & ~WREQUEST) == 0) {
 			if (__cas32(lock, &cur, WFLAG)) break;
 		} else {
-			if ((cur & WREQUEST) == 0 &&
-			    !__cas32(lock, &cur, cur | WREQUEST))
-				continue;
+			if ((cur & WREQUEST) == 0) {
+				int32_t desired = cur | WREQUEST;
+				if (!__cas32(lock, &cur, desired)) continue;
+			}
 			futex(lock, FUTEX_WAIT, cur | WREQUEST, NULL, NULL, 0);
 		}
 	}

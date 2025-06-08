@@ -28,6 +28,7 @@
 #include <channel.h>
 #include <env.h>
 #include <error.h>
+#include <init.h>
 #include <lock.h>
 #include <stdio.h>
 #include <sys.h>
@@ -480,4 +481,19 @@ Test(errors) {
 	perror_set_no_write(true);
 	perror("test");
 	perror_set_no_write(false);
+}
+
+extern int cur_tasks;
+int ecount = 0;
+void my_exit(void) { ecount++; }
+
+Test(begin) {
+	cur_tasks = 1;
+	begin();
+	ASSERT_EQ(cur_tasks, 0);
+	for (int i = 0; i < 64; i++) ASSERT(!register_exit(my_exit));
+	for (int i = 0; i < 3; i++) ASSERT(register_exit(my_exit));
+
+	execute_exits();
+	ASSERT_EQ(ecount, 64);	// MAX_EXITS is 64
 }
