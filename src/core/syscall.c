@@ -179,6 +179,23 @@ static void syscall_restorer(void) {
 		: "x8", "memory");
 }
 
+static int syscall_waitid(int idtype, int id, siginfo_t *infop, int options) {
+	long result;
+	__asm__ volatile(
+	    "mov x8, #95\n"
+	    "mov x0, %1\n"
+	    "mov x1, %2\n"
+	    "mov x2, %3\n"
+	    "mov x3, %4\n"
+	    "svc #0\n"
+	    "mov %0, x0\n"
+	    : "=r"(result)
+	    : "r"((long)idtype), "r"((long)id), "r"((long)infop),
+	      "r"((long)options)
+	    : "x8", "x0", "x1", "x2", "x3", "memory");
+	return (int)result;
+}
+
 #elif defined(__amd64__)
 
 #define DEFINE_SYSCALL0(sysno, ret_type, name)                        \
@@ -331,6 +348,23 @@ static void syscall_restorer(void) {
 	    : "%rax", "%rcx", "%r11", "memory");
 }
 
+static int sys_waitid(int idtype, pid_t id, siginfo_t *infop, int options) {
+	long result;
+	__asm__ volatile(
+	    "movq $247, %%rax\n"
+	    "movq %1, %%rdi\n"
+	    "movq %2, %%rsi\n"
+	    "movq %3, %%rdx\n"
+	    "movq %4, %%r10\n"
+	    "syscall\n"
+	    "movq %%rax, %0\n"
+	    : "=r"(result)
+	    : "r"((long)idtype), "r"((long)id), "r"((long)infop),
+	      "r"((long)options)
+	    : "rax", "rdi", "rsi", "rdx", "r10", "rcx", "r11", "memory");
+	return (int)result;
+}
+
 #endif /* Arch */
 
 #ifdef __aarch64__
@@ -384,8 +418,6 @@ DEFINE_SYSCALL6(98, long, futex, uint32_t *, uaddr, int, futex_op, uint32_t,
 DEFINE_SYSCALL4(134, int, rt_sigaction, int, signum,
 		const struct rt_sigaction *, act, struct rt_sigaction *, oldact,
 		size_t, sigsetsize)
-DEFINE_SYSCALL4(95, int, waitid, int, id_type, int, id, void *, siginfo, int,
-		options)
 #elif defined(__amd64__)
 /* System call definitions */
 DEFINE_SYSCALL2(293, int, pipe2, int *, fds, int, flags)
@@ -437,9 +469,6 @@ DEFINE_SYSCALL6(202, long, futex, uint32_t *, uaddr, int, futex_op, uint32_t,
 		uint32_t, val3)
 DEFINE_SYSCALL4(13, int, rt_sigaction, int, signum, const struct rt_sigaction *,
 		act, struct rt_sigaction *, oldact, size_t, sigsetsize)
-DEFINE_SYSCALL4(247, int, waitid, int, id_type, int, id, void *, siginfo, int,
-		options)
-
 #endif /* Arch */
 
 int clone3(struct clone_args *args, size_t size) {
@@ -656,7 +685,7 @@ int rt_sigaction(int signum, const struct rt_sigaction *act,
 
 void restorer(void) { syscall_restorer(); }
 
-pid_t waitid(int id_type, int id, void *sigs, int options) {
+pid_t waitid(int id_type, int id, siginfo_t *sigs, int options) {
 	pid_t ret = syscall_waitid(id_type, id, sigs, options);
 	SET_ERR
 }

@@ -83,6 +83,13 @@ struct itimerval {
 	struct timeval it_value;
 };
 
+typedef struct {
+	int si_pid;
+	int si_code;
+	int si_status;
+	char pad[128 - 3 * sizeof(int)];
+} siginfo_t;
+
 typedef int __itimer_which_t;
 
 #ifndef NULL

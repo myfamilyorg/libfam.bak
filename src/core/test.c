@@ -450,6 +450,7 @@ Test(channel2) {
 }
 
 Test(channel3) {
+	siginfo_t info = {0};
 	int size = 1000;
 	for (int i = 0; i < size; i++) {
 		Channel ch1 = channel(sizeof(TestMessage));
@@ -469,7 +470,7 @@ Test(channel3) {
 			ASSERT_EQ(msg.y, 6, "msg.y 6");
 			ASSERT_EQ(recv_now(&ch1, &msg), -1, "recv_now");
 			err = 0;
-			waitid(P_PID, pid, NULL, 0);
+			waitid(0, pid, &info, 4);
 
 		} else {
 			ASSERT(send(&ch1, &(TestMessage){.x = 1, .y = 2}) >= 0,
