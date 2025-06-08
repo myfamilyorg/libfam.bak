@@ -87,4 +87,5 @@ jobs:
             rm -rf /var/lib/apt/lists/* &&
             uname -a &&
             make clean all CC=gcc &&
-            make clean all CC=clang"
+            make clean all CC=clang &&
+            make clean test CC=gcc"
