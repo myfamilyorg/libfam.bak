@@ -40,6 +40,7 @@ uint64_t __and64(uint64_t *ptr, uint64_t value);
 uint64_t __add64(uint64_t *ptr, uint64_t value);
 uint64_t __sub64(uint64_t *ptr, uint64_t value);
 uint64_t __or64(volatile uint64_t *a, uint64_t v);
+
 #elif defined(__amd64__)
 
 #define __add32(a, v) __atomic_fetch_add(a, v, __ATOMIC_SEQ_CST)
