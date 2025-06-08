@@ -35,8 +35,8 @@ jobs:
             echo "Error: Found $UNDEFINED_COUNT undefined symbols other than environ"
             exit 1
           fi
-       - name: coverage
-         run: |
+      - name: coverage
+        run: |
           ./scripts/coverage.sh
   linux_aarch64:
     runs-on: ubuntu-latest
