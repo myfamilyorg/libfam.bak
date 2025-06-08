@@ -37,7 +37,19 @@ jobs:
           fi
       - name: coverage
         run: |
-          ./scripts/coverage.sh
+          mkdir -p ../_coverage/
+          git clone https://anything:${{ secrets.LIBFAM_PAT}}@github.com/myfamilyorg/libfam.git ../_coverage/libfam
+          ./scripts/coverage.sh || exit 1;
+          ./scripts/update_code_coverage.sh
+          cp docs/code_coverage.html ../_coverage/libfam/docs
+          cp README.md ../_coverage/libfam
+          cd ../_coverage/libfam
+          git config user.name "Coverage-Bot"
+          git config user.email "noreply@pipeline.com"
+          git commit -am "Coverage-Bot: Updated repo (via main.yml script) Source Version is $GITHUB_SHA";
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            git push https://${{ secrets.LIBFAM_PAT}}@github.com/myfamilyorg/libfam.git
+          fi
   linux_aarch64:
     runs-on: ubuntu-latest
     steps:
