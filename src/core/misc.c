@@ -290,11 +290,6 @@ int128_t string_to_int128(const char *buf, size_t len) {
 	return result;
 }
 
-/* Convert a double to a decimal string in buf.
- * Caller must provide a buffer of at least 41 uint8_ts (sign + 17 digits +
- * point + 17 digits + null). Returns the length of the string (excluding null
- * terminator).
- */
 size_t double_to_string(char *buf, double v, int max_decimals) {
 	char temp[41];
 	size_t pos = 0;
@@ -343,6 +338,21 @@ size_t double_to_string(char *buf, double v, int max_decimals) {
 		return pos;
 	}
 
+	/* Check for overflow in integer part */
+	if (v >= 18446744073709551616.0) { /* 2^64 */
+		if (is_negative) {
+			buf[pos++] = '-';
+		}
+		temp[0] = 'i';
+		temp[1] = 'n';
+		temp[2] = 'f';
+		len = 3;
+		memcpy(buf + pos, temp, len);
+		len += pos;
+		buf[len] = '\0';
+		return len;
+	}
+
 	/* Clamp max_decimals (0–17 for double precision) */
 	if (max_decimals < 0) max_decimals = 0;
 	if (max_decimals > 17) max_decimals = 17;
@@ -351,6 +361,15 @@ size_t double_to_string(char *buf, double v, int max_decimals) {
 	int_part = (uint64_t)v;
 	frac_part = v - (double)int_part;
 	int_start = pos;
+
+	/* Round to max_decimals and handle carry-over */
+	if (max_decimals > 0) {
+		double rounding = 0.5;
+		for (i = 0; i < max_decimals; i++) rounding /= 10.0;
+		v += rounding;
+		int_part = (uint64_t)v;
+		frac_part = v - (double)int_part;
+	}
 
 	if (int_part == 0) {
 		buf[pos++] = '0';
@@ -368,18 +387,16 @@ size_t double_to_string(char *buf, double v, int max_decimals) {
 	if (frac_part > 0 && max_decimals > 0) {
 		int digits = 0;
 		size_t frac_start;
-		double rounding;
 
 		buf[pos++] = '.';
 		frac_start = pos;
-		/* Round to max_decimals */
-		rounding = 0.5;
-		for (i = 0; i < max_decimals; i++) rounding /= 10.0;
-		frac_part += rounding;
 		while (frac_part > 0 && digits < max_decimals) {
 			int digit;
 			frac_part *= 10;
 			digit = (int)frac_part;
+			if (digit > 9)
+				digit =
+				    9; /* Cap digit to prevent invalid chars */
 			buf[pos++] = '0' + digit;
 			frac_part -= digit;
 			digits++;

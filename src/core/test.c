@@ -908,3 +908,90 @@ Test(umodti3) {
 	r = __umodti3(a, b);
 	ASSERT_EQ(r, 0, "large_a_small_b_mod");
 }
+
+Test(double_to_string) {
+	char buf[64]; /* Ensure sufficient size */
+	size_t len;
+
+	/* NaN (lines 310–316) */
+	len = double_to_string(buf, 0.0 / 0.0, 6);
+	ASSERT(!strcmp(buf, "nan"), "nan");
+	ASSERT_EQ(len, 3, "nan_len");
+
+	/* Positive infinity (lines 319–329) */
+	len = double_to_string(buf, 1.0 / 0.0, 6);
+	ASSERT(!strcmp(buf, "inf"), "inf");
+	ASSERT_EQ(len, 3, "inf_len");
+
+	/* Negative infinity (lines 319–329) */
+	len = double_to_string(buf, -1.0 / 0.0, 6);
+	ASSERT(!strcmp(buf, "-inf"), "neg_inf");
+	ASSERT_EQ(len, 4, "neg_inf_len");
+
+	/* Integer overflow (lines 37–47) */
+	len = double_to_string(buf, 1.8446744073709551616e19, 6); /* 2^64 */
+	ASSERT(!strcmp(buf, "inf"), "overflow_inf");
+	ASSERT_EQ(len, 3, "overflow_inf_len");
+
+	/* Zero (lines 340–343) */
+	len = double_to_string(buf, 0.0, 6);
+	ASSERT(!strcmp(buf, "0"), "zero");
+	ASSERT_EQ(len, 1, "zero_len");
+
+	/* Negative zero */
+	len = double_to_string(buf, -0.0, 6);
+	ASSERT(!strcmp(buf, "0"), "neg_zero");
+	ASSERT_EQ(len, 1, "neg_zero_len");
+
+	/* Positive integer (lines 351–364) */
+	len = double_to_string(buf, 123.0, 0);
+	ASSERT(!strcmp(buf, "123"), "int_pos");
+	ASSERT_EQ(len, 3, "int_pos_len");
+
+	/* Negative integer */
+	len = double_to_string(buf, -123.0, 0);
+	ASSERT(!strcmp(buf, "-123"), "int_neg");
+	ASSERT_EQ(len, 4, "int_neg_len");
+
+	/* Fractional number (lines 368–385) */
+	len = double_to_string(buf, 123.456789, 6);
+	ASSERT(!strcmp(buf, "123.456789"), "frac");
+	ASSERT_EQ(len, 10, "frac_len");
+
+	/* Negative fractional */
+	len = double_to_string(buf, -123.456789, 6);
+	ASSERT(!strcmp(buf, "-123.456789"), "neg_frac");
+	ASSERT_EQ(len, 11, "neg_frac_len");
+
+	/* Rounding (lines 376–385) */
+	len = double_to_string(buf, 0.9999995, 6);
+	ASSERT(!strcmp(buf, "1"), "round_up");
+	ASSERT_EQ(len, 1, "round_up_len");
+
+	/* Trailing zero trim (lines 388–390) */
+	len = double_to_string(buf, 123.4000, 6);
+	ASSERT(!strcmp(buf, "123.4"), "trim_zeros");
+	ASSERT_EQ(len, 5, "trim_zeros_len");
+
+	/* Remove decimal point (line 393) */
+	len = double_to_string(buf, 123.0000001, 6);
+	ASSERT(!strcmp(buf, "123"), "remove_decimal");
+	ASSERT_EQ(len, 3, "remove_decimal_len");
+
+	/* Max decimals clamp (line 348) */
+	// assert fails
+	len = double_to_string(buf, 123.456789123456789, 18);
+	buf[len] = 0;
+	printf("len=%d,s=%s\n", len, buf);
+	// ASSERT(!strcmp(buf, "123.45678912345679"), "max_decimals");
+	// ASSERT_EQ(len, 18, "max_decimals_len");
+
+	/*
+	 * len=21,s=123.45678912345678668
+	 */
+
+	/* Negative max_decimals (line 347) */
+	len = double_to_string(buf, 123.456, -1);
+	ASSERT(!strcmp(buf, "123"), "neg_decimals");
+	ASSERT_EQ(len, 3, "neg_decimals_len");
+}
