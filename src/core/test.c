@@ -546,6 +546,7 @@ Test(channel_notify) {
 	if (pid) {
 		TestMessage msg = {0}, msg2 = {0};
 		msg.x = 100;
+		sleepm(10);  // wait to ensure recv is in wait state
 		send(&ch2, &msg);
 
 		recv(&ch1, &msg2);
@@ -565,6 +566,25 @@ Test(channel_notify) {
 
 	channel_destroy(&ch1);
 	channel_destroy(&ch2);
+}
+
+Test(channel_cycle) {
+	Channel ch1 = channel2(sizeof(TestMessage), 8);
+	TestMessage msg;
+	for (int i = 0; i < 8; i++) send(&ch1, &(TestMessage){.x = 1, .y = 2});
+	recv(&ch1, &msg);
+	recv(&ch1, &msg);
+	send(&ch1, &(TestMessage){.x = 1, .y = 2});
+
+	if (two()) {
+		msg.x = 0;
+		recv(&ch1, &msg);
+		ASSERT_EQ(msg.x, 1, "1");
+	} else {
+		sleepm(10);
+		send(&ch1, &msg);
+		exit(0);
+	}
 }
 
 Test(channel_err) {

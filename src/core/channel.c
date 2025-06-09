@@ -50,11 +50,11 @@ struct ChannelInner {
 
 #define NEXT_POS(channel, pos) ((pos + 1) % channel->inner->capacity)
 
-STATIC int notify(Channel *channel) {
+STATIC int notify(Channel *channel, uint64_t num_messages) {
 	uint32_t exp = 1;
 	if (__cas32(&channel->inner->wait, &exp, 0))
-		return futex(&channel->inner->wait, FUTEX_WAKE, 1, NULL, NULL,
-			     0);
+		return futex(&channel->inner->wait, FUTEX_WAKE, num_messages,
+			     NULL, NULL, 0);
 	return 0;
 }
 
@@ -88,7 +88,7 @@ Channel channel2(size_t element_size, size_t capacity) {
 bool channel_ok(Channel *channel) { return channel && channel->inner != NULL; }
 
 void recv(Channel *channel, void *dst) {
-	uint64_t tail, head;
+	uint64_t tail, head, num_messages;
 
 	while (recv_now(channel, dst) == -1) {
 		ASTORE(&channel->inner->wait, 1);
@@ -99,7 +99,12 @@ void recv(Channel *channel, void *dst) {
 	tail = ALOAD(&channel->inner->tail);
 	head = ALOAD(&channel->inner->head);
 	if (tail != head) {
-		futex(&channel->inner->wait, FUTEX_WAKE, 1, NULL, NULL, 0);
+		num_messages = (tail >= head)
+				   ? (tail - head)
+				   : (tail - head + channel->inner->capacity);
+		if (num_messages)
+			futex(&channel->inner->wait, FUTEX_WAKE, num_messages,
+			      NULL, NULL, 0);
 	}
 }
 
@@ -120,7 +125,7 @@ int recv_now(Channel *channel, void *dst) {
 }
 
 int send(Channel *channel, const void *src) {
-	uint64_t tail, head;
+	uint64_t tail, head, num_messages;
 	do {
 		head = ALOAD(&channel->inner->head);
 		tail = ALOAD(&channel->inner->tail);
@@ -132,6 +137,11 @@ int send(Channel *channel, const void *src) {
 		       channel->inner->element_size);
 	} while (
 	    !__cas64(&channel->inner->head, &head, NEXT_POS(channel, head)));
-	return notify(channel);
+
+	num_messages = (tail >= head)
+			   ? (tail - head)
+			   : (tail - head + channel->inner->capacity);
+
+	return notify(channel, num_messages);
 }
 
