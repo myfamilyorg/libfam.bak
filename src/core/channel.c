@@ -33,8 +33,6 @@
 
 #define DEFAULT_CAPACITY 1024
 
-int printf(const char *, ...);
-
 struct ChannelInner {
 	size_t element_size;
 	size_t capacity;
