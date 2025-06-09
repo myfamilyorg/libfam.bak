@@ -404,7 +404,6 @@ uint128_t __umodti3(uint128_t a, uint128_t b) {
 	uint64_t a_lo;
 	uint64_t rem;
 	uint128_t remainder;
-	uint128_t quotient;
 	int shift;
 
 	/* Handle division by zero */
@@ -439,7 +438,6 @@ uint128_t __umodti3(uint128_t a, uint128_t b) {
 
 	/* General 128-bit case */
 	remainder = a;
-	quotient = 0;
 	shift = __builtin_clzl((uint64_t)(b >> 64));
 	if (shift == 64) {
 		shift += __builtin_clzl((uint64_t)b);
@@ -455,7 +453,6 @@ uint128_t __umodti3(uint128_t a, uint128_t b) {
 	while (shift >= 0) {
 		if (remainder >= b) {
 			remainder -= b;
-			quotient |= ((uint128_t)1) << shift;
 		}
 		b >>= 1;
 		shift--;
