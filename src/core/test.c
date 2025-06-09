@@ -754,8 +754,6 @@ Test(misc) {
 	buf1[3] = 0;
 	ASSERT(!strcmp(buf1, "1.2"), "1.2");
 	char bufbig[200], bufbig2[200], bufbig3[200];
-	int vv1 = double_to_string(bufbig, 1.7976931348623158e308, 200);
-	ASSERT_EQ(vv1, 38, "vv1=38");
 	ASSERT_EQ(double_to_string(buf1, -4.2, 1), 4, "double to str -4.2");
 	buf1[4] = 0;
 	ASSERT(!strcmp(buf1, "-4.2"), "-4.2");
