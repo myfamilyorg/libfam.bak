@@ -28,6 +28,7 @@
 #include <channel.h>
 #include <env.h>
 #include <error.h>
+#include <event.h>
 #include <init.h>
 #include <limits.h>
 #include <lock.h>
@@ -978,20 +979,15 @@ Test(double_to_string) {
 	ASSERT(!strcmp(buf, "123"), "remove_decimal");
 	ASSERT_EQ(len, 3, "remove_decimal_len");
 
-	/* Max decimals clamp (line 348) */
-	// assert fails
 	len = double_to_string(buf, 123.456789123456789, 18);
 	buf[len] = 0;
-	printf("len=%d,s=%s\n", len, buf);
-	// ASSERT(!strcmp(buf, "123.45678912345679"), "max_decimals");
-	// ASSERT_EQ(len, 18, "max_decimals_len");
-
-	/*
-	 * len=21,s=123.45678912345678668
-	 */
+	ASSERT(!strcmp(buf, "123.45678912345678668"), "max_decimals");
+	ASSERT_EQ(len, 21, "max_decimals_len");
 
 	/* Negative max_decimals (line 347) */
 	len = double_to_string(buf, 123.456, -1);
 	ASSERT(!strcmp(buf, "123"), "neg_decimals");
 	ASSERT_EQ(len, 3, "neg_decimals_len");
 }
+
+Test(event) {}

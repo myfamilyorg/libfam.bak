@@ -390,13 +390,11 @@ size_t double_to_string(char *buf, double v, int max_decimals) {
 
 		buf[pos++] = '.';
 		frac_start = pos;
-		while (frac_part > 0 && digits < max_decimals) {
+		while (digits < max_decimals) { /* Stop at max_decimals */
 			int digit;
 			frac_part *= 10;
 			digit = (int)frac_part;
-			if (digit > 9)
-				digit =
-				    9; /* Cap digit to prevent invalid chars */
+			if (digit > 9) digit = 9; /* Cap digit */
 			buf[pos++] = '0' + digit;
 			frac_part -= digit;
 			digits++;
