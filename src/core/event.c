@@ -70,11 +70,10 @@ int mregister(int multiplex, int fd, int flags, void *attach) {
 
 	return 0;
 }
-
+int printf(const char *, ...);
 int mwait(int multiplex, Event *events, int max_events,
 	  int64_t timeout_millis) {
 	int timeout = (timeout_millis >= 0) ? (int)timeout_millis : -1;
-
 	return epoll_wait(multiplex, (struct epoll_event *)events, max_events,
 			  timeout);
 }

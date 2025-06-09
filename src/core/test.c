@@ -990,4 +990,21 @@ Test(double_to_string) {
 	ASSERT_EQ(len, 3, "neg_decimals_len");
 }
 
-Test(event) {}
+Test(event) {
+	Event events[10];
+	int val = 101;
+	int fds[2];
+	int mplex = multiplex();
+	ASSERT(mplex > 0, "mplex");
+	pipe(fds);
+	ASSERT_EQ(mregister(mplex, fds[0], MULTIPLEX_FLAG_READ, &val), 0,
+		  "mreg");
+	ASSERT_EQ(write(fds[1], "abc", 3), 3, "write");
+	err = 0;
+	int x = mwait(mplex, events, 10, 10);
+	ASSERT_EQ(x, 1, "mwait");
+
+	close(mplex);
+	close(fds[0]);
+	close(fds[1]);
+}
