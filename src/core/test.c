@@ -689,6 +689,9 @@ Test(misc_atomic) {
 	ASSERT(!__cas32(&a, &b, 0), "cas32");
 }
 
+uint128_t __umodti3(uint128_t a, uint128_t b);
+uint128_t __udivti3(uint128_t a, uint128_t b);
+
 Test(misc) {
 	ASSERT(strcmpn("1abc", "1def", 4) < 0, "strcmpn1");
 	ASSERT(strcmpn("1ubc", "1def", 4) > 0, "strcmpn2");
@@ -745,4 +748,31 @@ Test(misc) {
 	char sx[100];
 	int len = uint128_t_to_string(sx, UINT128_MAX);
 	ASSERT_EQ(string_to_int128(sx, len), 0, "overflow int128");
+
+	// double_to_string(char *buf, double v, int max_decimals)
+	ASSERT_EQ(double_to_string(buf1, 1.2, 1), 3, "double to str 1.2");
+	buf1[3] = 0;
+	ASSERT(!strcmp(buf1, "1.2"), "1.2");
+	char bufbig[200], bufbig2[200], bufbig3[200];
+	int vv1 = double_to_string(bufbig, 1.7976931348623158e308, 200);
+	ASSERT_EQ(vv1, 38, "vv1=38");
+	ASSERT_EQ(double_to_string(buf1, -4.2, 1), 4, "double to str -4.2");
+	buf1[4] = 0;
+	ASSERT(!strcmp(buf1, "-4.2"), "-4.2");
+	ASSERT_EQ(double_to_string(bufbig, 0.123, 3), 5, "0.123");
+
+	ASSERT_EQ(__umodti3(11, 10), 1, "11 % 10");
+	ASSERT_EQ(__udivti3(31, 10), 3, "31 / 10");
+
+	//     #####:  514:int b64_encode(const void *buf_in, size_t in_len,
+	//     char *buf_out) {
+	// #####:  559:int b64_decode(const void *buf_in, size_t in_len, char
+	// *buf_out) {
+
+	strcpy(bufbig, "0123456789");
+	len = b64_encode(bufbig, 10, bufbig2);
+	b64_decode(bufbig2, len, bufbig3);
+	ASSERT(!strcmp(bufbig, bufbig3), "b64");
+	buf2[0] = buf2[1] = buf2[2] = buf2[3] = '1';
+	ASSERT_EQ(b64_decode(buf2, 3, bufbig), -1, "invalid decode");
 }
