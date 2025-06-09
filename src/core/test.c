@@ -465,20 +465,27 @@ typedef struct {
 
 Test(channel1) {
 	Channel ch1 = channel(sizeof(TestMessage));
-	if (two()) {
-		TestMessage msg = {0};
-		while (true) {
-			int res = recv_now(&ch1, &msg);
-			if (res == -1) continue;
-			ASSERT_EQ(msg.x, 1, "msg.x");
-			ASSERT_EQ(msg.y, 2, "msg.y");
-			break;
-		}
-		ASSERT_EQ(recv_now(&ch1, &msg), -1, "recv_now");
-	} else {
-		send(&ch1, &(TestMessage){.x = 1, .y = 2});
-		exit(0);
-	}
+	TestMessage msg = {0}, msg2 = {0};
+	msg.x = 1;
+	msg.y = 2;
+	send(&ch1, &msg);
+	ASSERT(!recv_now(&ch1, &msg2), "recv1");
+	ASSERT_EQ(msg2.x, 1, "x=1");
+	ASSERT_EQ(msg2.y, 2, "y=2");
+
+	msg.x = 3;
+	msg.y = 4;
+	send(&ch1, &msg);
+	msg.x = 5;
+	msg.y = 6;
+	send(&ch1, &msg);
+	ASSERT(!recv_now(&ch1, &msg2), "recv2");
+	ASSERT_EQ(msg2.x, 3, "x=3");
+	ASSERT_EQ(msg2.y, 4, "y=4");
+	ASSERT(!recv_now(&ch1, &msg2), "recv3");
+	ASSERT_EQ(msg2.x, 5, "x=5");
+	ASSERT_EQ(msg2.y, 6, "y=6");
+	ASSERT(recv_now(&ch1, &msg2), "recv none");
 	channel_destroy(&ch1);
 }
 
@@ -487,18 +494,15 @@ Test(channel2) {
 	if (two()) {
 		TestMessage msg = {0};
 		recv(&ch1, &msg);
-		ASSERT_EQ(msg.x, 1, "msg.x");
-		ASSERT_EQ(msg.y, 2, "msg.y");
-		ASSERT_EQ(recv_now(&ch1, &msg), -1, "recv_now");
+		ASSERT_EQ(msg.x, 1, "x=1");
+		ASSERT_EQ(msg.y, 2, "y=2");
 	} else {
 		send(&ch1, &(TestMessage){.x = 1, .y = 2});
 		exit(0);
 	}
-	channel_destroy(&ch1);
 }
 
 Test(channel3) {
-	siginfo_t info = {0};
 	int size = 1000;
 	for (int i = 0; i < size; i++) {
 		Channel ch1 = channel(sizeof(TestMessage));
@@ -517,9 +521,7 @@ Test(channel3) {
 			ASSERT_EQ(msg.x, 5, "msg.x 5");
 			ASSERT_EQ(msg.y, 6, "msg.y 6");
 			ASSERT_EQ(recv_now(&ch1, &msg), -1, "recv_now");
-			err = 0;
-			waitid(0, pid, &info, 4);
-
+			ASSERT(!waitid(0, pid, NULL, 4), "waitpid");
 		} else {
 			ASSERT(send(&ch1, &(TestMessage){.x = 1, .y = 2}) >= 0,
 			       "send1");
@@ -540,6 +542,7 @@ Test(channel_notify) {
 	Channel ch2 = channel(sizeof(TestMessage));
 
 	int pid = two();
+	ASSERT(pid >= 0, "pid>=0");
 	if (pid) {
 		TestMessage msg = {0}, msg2 = {0};
 		msg.x = 100;
@@ -562,6 +565,27 @@ Test(channel_notify) {
 
 	channel_destroy(&ch1);
 	channel_destroy(&ch2);
+}
+
+Test(channel_err) {
+	err = 0;
+	Channel ch1 = channel(0);
+	ASSERT_EQ(err, EINVAL, "einval");
+	ASSERT(!channel_ok(&ch1), "ok");
+	err = 0;
+	Channel ch2 = channel2(8, 0);
+	ASSERT_EQ(err, EINVAL, "einval2");
+	ASSERT(!channel_ok(&ch1), "ok2");
+
+	Channel ch3 = channel2(sizeof(TestMessage), 8);
+	for (int i = 0; i < 8; i++) {
+		ASSERT(!send(&ch3, &(TestMessage){.x = 1, .y = 2}), "sendi");
+	}
+	ASSERT(send(&ch3, &(TestMessage){.x = 1, .y = 2}), "senderr");
+
+	channel_destroy(&ch1);
+	channel_destroy(&ch2);
+	channel_destroy(&ch3);
 }
 
 int *__error(void);
