@@ -656,5 +656,9 @@ Test(misc_atomic) {
 
 	__sub64(&y, 1);
 	ASSERT_EQ(y, 2, "sub64");
+
+	int a = 0;
+	int b = 1;
+	ASSERT(!__cas32(&a, &b, 0), "cas32");
 }
 
