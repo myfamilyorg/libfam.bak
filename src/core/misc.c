@@ -402,7 +402,6 @@ uint128_t __umodti3(uint128_t a, uint128_t b) {
 	uint64_t b_lo;
 	uint64_t a_hi;
 	uint64_t a_lo;
-	uint64_t rem;
 	uint128_t remainder;
 	int shift;
 
@@ -429,24 +428,26 @@ uint128_t __umodti3(uint128_t a, uint128_t b) {
 			return (uint128_t)(a_lo % b_lo);
 		}
 
-		rem = a_hi;
-		rem = (rem << 32) | (a_lo >> 32);
-		rem = rem % b_lo;
-		rem = (rem << 32) | (a_lo & 0xffffffff);
-		return (uint128_t)(rem % b_lo);
+		/* Compute remainder for a_hi != 0 */
+		remainder = a_hi % b_lo;
+		remainder = (remainder << 32) | (a_lo >> 32);
+		remainder = remainder % b_lo;
+		remainder = (remainder << 32) | (a_lo & 0xffffffff);
+		remainder = remainder % b_lo;
+		return remainder;
 	}
 
 	/* General 128-bit case */
 	remainder = a;
-	shift = __builtin_clzl((uint64_t)(b >> 64));
-	if (shift == 64) {
-		shift += __builtin_clzl((uint64_t)b);
-	}
 
-	/* Normalize b so its MSB is set */
+	/* Align b with remainder's MSB */
+	shift = 0;
+	while ((b << shift) <= remainder && shift < 128) {
+		shift++;
+	}
 	if (shift > 0) {
-		b = b << shift;
-		remainder = remainder << shift;
+		shift--;
+		b <<= shift;
 	}
 
 	/* Division loop */
@@ -465,7 +466,6 @@ uint128_t __udivti3(uint128_t a, uint128_t b) {
 	uint64_t b_lo;
 	uint64_t a_hi;
 	uint64_t a_lo;
-	uint64_t quo;
 	uint128_t quotient;
 	uint128_t remainder;
 	int shift;
@@ -493,25 +493,27 @@ uint128_t __udivti3(uint128_t a, uint128_t b) {
 			return (uint128_t)(a_lo / b_lo);
 		}
 
-		quo = a_hi;
-		quo = (quo << 32) | (a_lo >> 32);
-		quo = quo / b_lo;
-		quo = (quo << 32) | ((a_lo & 0xffffffff) / b_lo);
-		return (uint128_t)quo;
+		/* Compute quotient for a_hi != 0 */
+		quotient = (uint128_t)a_hi / b_lo;
+		quotient <<= 32;
+		quotient |= (uint128_t)(a_lo >> 32) / b_lo;
+		quotient <<= 32;
+		quotient |= (uint128_t)(a_lo & 0xffffffff) / b_lo;
+		return quotient;
 	}
 
 	/* General 128-bit case */
 	quotient = 0;
 	remainder = a;
-	shift = __builtin_clzl((uint64_t)(b >> 64));
-	if (shift == 64) {
-		shift += __builtin_clzl((uint64_t)b);
-	}
 
-	/* Normalize b so its MSB is set */
+	/* Align b with remainder's MSB */
+	shift = 0;
+	while ((b << shift) <= remainder && shift < 128) {
+		shift++;
+	}
 	if (shift > 0) {
-		b = b << shift;
-		remainder = remainder << shift;
+		shift--; /* Adjust to highest valid shift */
+		b <<= shift;
 	}
 
 	/* Division loop */

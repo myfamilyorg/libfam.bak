@@ -840,3 +840,71 @@ Test(misc) {
 	ASSERT_EQ(double_to_string(bufbig, 0.0, 3), 1, "d2str0.0");
 	ASSERT_EQ(bufbig[0], '0', "0");
 }
+
+Test(udivti3) {
+	uint128_t a, b, q;
+
+	a = 16;
+	b = ((uint128_t)1) << 65;
+	q = __udivti3(a, b);
+	ASSERT_EQ(q, 0, "small_a_div");
+
+	a = 100;
+	b = 10;
+	q = __udivti3(a, b);
+	ASSERT_EQ(q, 10, "64bit_small_div");
+
+	a = ((uint128_t)1) << 80;
+	b = 2;
+	q = __udivti3(a, b);
+	ASSERT_EQ(q, ((uint128_t)1) << 79, "64bit_large_div");
+
+	a = ((uint128_t)100) << 65;
+	b = ((uint128_t)10) << 65;
+	q = __udivti3(a, b);
+	ASSERT_EQ(q, 10, "128bit_div");
+
+	a = ((uint128_t)1) << 65;
+	b = ((uint128_t)1) << 65;
+	q = __udivti3(a, b);
+	ASSERT_EQ(q, 1, "128bit_div");
+
+	a = ((uint128_t)1) << 100;
+	b = ((uint128_t)1) << 10;
+	q = __udivti3(a, b);
+	ASSERT_EQ(q, ((uint128_t)1) << 90, "large_a_small_b_div");
+}
+
+Test(umodti3) {
+	uint128_t a, b, r;
+
+	a = 16;
+	b = ((uint128_t)1) << 65;
+	r = __umodti3(a, b);
+	ASSERT_EQ(r, 16, "small_a_mod");
+
+	a = 100;
+	b = 7;
+	r = __umodti3(a, b);
+	ASSERT_EQ(r, 2, "64bit_small_mod");
+
+	a = ((uint128_t)1) << 80;
+	b = 3;
+	r = __umodti3(a, b);
+	ASSERT_EQ(r, 1, "64bit_large_mod");
+
+	a = ((uint128_t)100) << 65;
+	b = ((uint128_t)7) << 65;
+	r = __umodti3(a, b);
+	ASSERT_EQ(r, ((uint128_t)2) << 65, "128bit_mod");
+
+	a = ((uint128_t)1) << 65;
+	b = ((uint128_t)1) << 65;
+	r = __umodti3(a, b);
+	ASSERT_EQ(r, 0, "equal_mod");
+
+	a = ((uint128_t)1) << 100;
+	b = ((uint128_t)1) << 10;
+	r = __umodti3(a, b);
+	ASSERT_EQ(r, 0, "large_a_small_b_mod");
+}
