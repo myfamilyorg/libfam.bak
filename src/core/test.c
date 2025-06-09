@@ -566,9 +566,70 @@ Test(channel_notify) {
 int *__error(void);
 
 Test(errors) {
-	ASSERT(!strcmp("Success", error_string(SUCCESS)), "success");
+	ASSERT(!strcmp("Success", error_string(0)), "success");
 	ASSERT(!strcmp("Operation not permitted", error_string(EPERM)),
 	       "eperm");
+	ASSERT(!strcmp("No such file or directory", error_string(ENOENT)),
+	       "enoent");
+	ASSERT(!strcmp("No such process", error_string(ESRCH)), "esrch");
+	ASSERT(!strcmp("Interrupted system call", error_string(EINTR)),
+	       "eintr");
+	ASSERT(!strcmp("Input/output error", error_string(EIO)), "eio");
+	ASSERT(!strcmp("No such device or address", error_string(ENXIO)),
+	       "enxio");
+	ASSERT(!strcmp("Argument list too long", error_string(E2BIG)), "e2big");
+	ASSERT(!strcmp("Exec format error", error_string(ENOEXEC)), "enoexec");
+	ASSERT(!strcmp("Bad file descriptor", error_string(EBADF)), "ebadf");
+	ASSERT(!strcmp("No child processes", error_string(ECHILD)), "echild");
+	ASSERT(
+	    !strcmp("Resource temporarily unavailable", error_string(EAGAIN)),
+	    "eagain");
+	ASSERT(!strcmp("Out of memory", error_string(ENOMEM)), "enomem");
+	ASSERT(!strcmp("Permission denied", error_string(EACCES)), "eacces");
+	ASSERT(!strcmp("Bad address", error_string(EFAULT)), "efault");
+	ASSERT(!strcmp("Block device required", error_string(ENOTBLK)),
+	       "enotblk");
+	ASSERT(!strcmp("Device or resource busy", error_string(EBUSY)),
+	       "ebusy");
+	ASSERT(!strcmp("File exists", error_string(EEXIST)), "eexist");
+	ASSERT(!strcmp("Invalid cross-device link", error_string(EXDEV)),
+	       "exdev");
+	ASSERT(!strcmp("No such device", error_string(ENODEV)), "enodev");
+	ASSERT(!strcmp("Not a directory", error_string(ENOTDIR)), "enotdir");
+	ASSERT(!strcmp("Is a directory", error_string(EISDIR)), "eisdir");
+	ASSERT(!strcmp("Invalid argument", error_string(EINVAL)), "einval");
+	ASSERT(!strcmp("Too many open files in system", error_string(ENFILE)),
+	       "enfile");
+	ASSERT(!strcmp("Too many open files", error_string(EMFILE)), "emfile");
+	ASSERT(!strcmp("Not a typewriter", error_string(ENOTTY)), "enotty");
+	ASSERT(!strcmp("Text file busy", error_string(ETXTBSY)), "etxtbsy");
+	ASSERT(!strcmp("File too large", error_string(EFBIG)), "efbig");
+	ASSERT(!strcmp("No space left on device", error_string(ENOSPC)),
+	       "enospc");
+	ASSERT(!strcmp("Illegal seek", error_string(ESPIPE)), "espipe");
+	ASSERT(!strcmp("Read-only file system", error_string(EROFS)), "erofs");
+	ASSERT(!strcmp("Too many links", error_string(EMLINK)), "emlink");
+	ASSERT(!strcmp("Broken pipe", error_string(EPIPE)), "epipe");
+	ASSERT(!strcmp("Numerical argument out of domain", error_string(EDOM)),
+	       "edom");
+	ASSERT(!strcmp("Numerical result out of range", error_string(ERANGE)),
+	       "erange");
+	ASSERT(!strcmp("Resource deadlock avoided", error_string(EDEADLK)),
+	       "edeadlk");
+	ASSERT(!strcmp("File name too long", error_string(ENAMETOOLONG)),
+	       "enametoolong");
+	ASSERT(!strcmp("No locks available", error_string(ENOLCK)), "enolck");
+	ASSERT(!strcmp("Function not implemented", error_string(ENOSYS)),
+	       "enosys");
+	ASSERT(!strcmp("Directory not empty", error_string(ENOTEMPTY)),
+	       "enotempty");
+	ASSERT(
+	    !strcmp("Too many levels of symbolic links", error_string(ELOOP)),
+	    "eloop");
+	ASSERT(!strcmp("Numerical overflow", error_string(EOVERFLOW)),
+	       "eoverflow");
+	ASSERT(!strcmp("Unknown error", error_string(-1)), "unknown");
+
 	err = 0;
 	ASSERT_EQ(*__error(), 0, "__error");
 	perror_set_no_write(true);
@@ -708,6 +769,11 @@ Test(misc) {
 	byteszero(buf2, 10);
 	ASSERT_EQ(buf2[0], 0, "byteszero");
 
+	memset(buf2, 'a', 10);
+	memset((uint8_t *)buf2 + 3, 'b', 7);
+	memorymove((uint8_t *)buf2 + 3, (uint8_t *)buf2, 7);
+	ASSERT_EQ(buf2[3], 'a', "b0");
+
 	ASSERT_EQ(uint128_t_to_string(buf1, 100), 3, "100 len");
 	ASSERT(!strcmpn(buf1, "100", 3), "100");
 	ASSERT_EQ(uint128_t_to_string(buf1, 0), 1, "0 len");
@@ -749,7 +815,6 @@ Test(misc) {
 	int len = uint128_t_to_string(sx, UINT128_MAX);
 	ASSERT_EQ(string_to_int128(sx, len), 0, "overflow int128");
 
-	// double_to_string(char *buf, double v, int max_decimals)
 	ASSERT_EQ(double_to_string(buf1, 1.2, 1), 3, "double to str 1.2");
 	buf1[3] = 0;
 	ASSERT(!strcmp(buf1, "1.2"), "1.2");
@@ -761,11 +826,9 @@ Test(misc) {
 
 	ASSERT_EQ(__umodti3(11, 10), 1, "11 % 10");
 	ASSERT_EQ(__udivti3(31, 10), 3, "31 / 10");
-
-	//     #####:  514:int b64_encode(const void *buf_in, size_t in_len,
-	//     char *buf_out) {
-	// #####:  559:int b64_decode(const void *buf_in, size_t in_len, char
-	// *buf_out) {
+	uint128_t y = ((uint128_t)1) << 64;
+	uint128_t x = __umodti3(y, ((uint128_t)1) << 66);
+	ASSERT_EQ(x, y, "big mod");
 
 	strcpy(bufbig, "0123456789");
 	len = b64_encode(bufbig, 10, bufbig2);
@@ -773,4 +836,7 @@ Test(misc) {
 	ASSERT(!strcmp(bufbig, bufbig3), "b64");
 	buf2[0] = buf2[1] = buf2[2] = buf2[3] = '1';
 	ASSERT_EQ(b64_decode(buf2, 3, bufbig), -1, "invalid decode");
+
+	ASSERT_EQ(double_to_string(bufbig, 0.0, 3), 1, "d2str0.0");
+	ASSERT_EQ(bufbig[0], '0', "0");
 }

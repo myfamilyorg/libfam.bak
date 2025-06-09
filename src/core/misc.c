@@ -404,12 +404,17 @@ uint128_t __umodti3(uint128_t a, uint128_t b) {
 	uint64_t a_lo;
 	uint64_t rem;
 	uint128_t remainder;
+	uint128_t quotient;
 	int shift;
-	int i;
 
 	/* Handle division by zero */
 	if (b == 0) {
 		__builtin_trap();
+	}
+
+	/* Early return if a < b */
+	if (a < b) {
+		return a;
 	}
 
 	/* If b fits in 64 bits, optimize */
@@ -434,20 +439,26 @@ uint128_t __umodti3(uint128_t a, uint128_t b) {
 
 	/* General 128-bit case */
 	remainder = a;
-	shift = __builtin_clzll((uint64_t)(b >> 64));
+	quotient = 0;
+	shift = __builtin_clzl((uint64_t)(b >> 64));
 	if (shift == 64) {
-		shift = shift + __builtin_clzll((uint64_t)b);
+		shift += __builtin_clzl((uint64_t)b);
 	}
-	b = b << shift;
-	remainder = remainder << shift;
 
-	i = 0;
-	while (i <= shift) {
+	/* Normalize b so its MSB is set */
+	if (shift > 0) {
+		b = b << shift;
+		remainder = remainder << shift;
+	}
+
+	/* Division loop */
+	while (shift >= 0) {
 		if (remainder >= b) {
-			remainder = remainder - b;
+			remainder -= b;
+			quotient |= ((uint128_t)1) << shift;
 		}
-		b = b >> 1;
-		i = i + 1;
+		b >>= 1;
+		shift--;
 	}
 
 	return remainder;
@@ -461,11 +472,15 @@ uint128_t __udivti3(uint128_t a, uint128_t b) {
 	uint128_t quotient;
 	uint128_t remainder;
 	int shift;
-	int i;
 
 	/* Handle division by zero */
 	if (b == 0) {
 		__builtin_trap();
+	}
+
+	/* Early return if a < b */
+	if (a < b) {
+		return 0;
 	}
 
 	/* If b fits in 64 bits, optimize */
@@ -491,21 +506,25 @@ uint128_t __udivti3(uint128_t a, uint128_t b) {
 	/* General 128-bit case */
 	quotient = 0;
 	remainder = a;
-	shift = __builtin_clzll((uint64_t)(b >> 64));
+	shift = __builtin_clzl((uint64_t)(b >> 64));
 	if (shift == 64) {
-		shift = shift + __builtin_clzll((uint64_t)b);
+		shift += __builtin_clzl((uint64_t)b);
 	}
-	b = b << shift;
-	remainder = remainder << shift;
 
-	i = 0;
-	while (i <= shift) {
+	/* Normalize b so its MSB is set */
+	if (shift > 0) {
+		b = b << shift;
+		remainder = remainder << shift;
+	}
+
+	/* Division loop */
+	while (shift >= 0) {
 		if (remainder >= b) {
-			remainder = remainder - b;
-			quotient = quotient | ((uint128_t)1 << (shift - i));
+			remainder -= b;
+			quotient |= ((uint128_t)1) << shift;
 		}
-		b = b >> 1;
-		i = i + 1;
+		b >>= 1;
+		shift--;
 	}
 
 	return quotient;
