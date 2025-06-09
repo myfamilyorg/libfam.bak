@@ -446,12 +446,14 @@ Test(resize) {
 	ASSERT_EQ(resize(t3, 0), NULL, "resize 0");
 	t3 = alloc(8);
 	ASSERT_EQ(resize(t3, CHUNK_SIZE + 1), NULL, "greater than CHUNK_SIZE");
+	release(t3);
 
 	ASSERT_EQ(resize((void *)100, 10), NULL, "out of range");
 
 	void *t4 = alloc(CHUNK_SIZE);
 	void *t5 = resize(t4, 32);
 	ASSERT(t5, "resize down from chunk");
+	release(t5);
 }
 
 typedef struct {
