@@ -399,8 +399,8 @@ DEFINE_SYSCALL2(169, int, gettimeofday, struct timeval *, tv, void *, tz)
 DEFINE_SYSCALL2(170, int, settimeofday, const struct timeval *, tv,
 		const void *, tz)
 DEFINE_SYSCALL1(20, int, epoll_create1, int, flags)
-DEFINE_SYSCALL6(22, int, epoll_wait, int, epfd, struct epoll_event *, events,
-		int, maxevents, int, timeout, void *, sigs, int, size)
+DEFINE_SYSCALL6(22, int, epoll_pwait, int, epfd, struct epoll_event *, events,
+		int, maxevents, int, timeout, const sigset_t *, sigs, int, size)
 DEFINE_SYSCALL4(21, int, epoll_ctl, int, epfd, int, op, int, fd,
 		struct epoll_event *, event)
 DEFINE_SYSCALL4(56, int, openat, int, dfd, const char *, pathname, int, flags,
@@ -451,8 +451,8 @@ DEFINE_SYSCALL2(96, int, gettimeofday, struct timeval *, tv, void *, tz)
 DEFINE_SYSCALL2(164, int, settimeofday, const struct timeval *, tv,
 		const void *, tz)
 DEFINE_SYSCALL1(291, int, epoll_create1, int, flags)
-DEFINE_SYSCALL4(232, int, epoll_wait, int, epfd, struct epoll_event *, events,
-		int, maxevents, int, timeout)
+DEFINE_SYSCALL6(281, int, epoll_pwait, int, epfd, struct epoll_event *, events,
+		int, maxevents, int, timeout, const sigset_t *, sigs, int, size)
 DEFINE_SYSCALL4(233, int, epoll_ctl, int, epfd, int, op, int, fd,
 		struct epoll_event *, event)
 DEFINE_SYSCALL4(257, int, openat, int, dfd, const char *, pathname, int, flags,
@@ -652,19 +652,12 @@ int epoll_create1(int flags) {
 	SET_ERR
 }
 
-#ifdef __aarch64__
-int epoll_wait(int epfd, struct epoll_event *events, int maxevents,
-	       int timeout) {
-	int ret = syscall_epoll_wait(epfd, events, maxevents, timeout, NULL, 0);
+int epoll_pwait(int epfd, struct epoll_event *events, int maxevents,
+		int timeout, const sigset_t *sigmask, size_t size) {
+	int ret = syscall_epoll_pwait(epfd, events, maxevents, timeout, sigmask,
+				      size);
 	SET_ERR
 }
-#else
-int epoll_wait(int epfd, struct epoll_event *events, int maxevents,
-	       int timeout) {
-	int ret = syscall_epoll_wait(epfd, events, maxevents, timeout);
-	SET_ERR
-}
-#endif
 
 int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
 	int ret = syscall_epoll_ctl(epfd, op, fd, event);

@@ -74,8 +74,8 @@ int printf(const char *, ...);
 int mwait(int multiplex, Event *events, int max_events,
 	  int64_t timeout_millis) {
 	int timeout = (timeout_millis >= 0) ? (int)timeout_millis : -1;
-	return epoll_wait(multiplex, (struct epoll_event *)events, max_events,
-			  timeout);
+	return epoll_pwait(multiplex, (struct epoll_event *)events, max_events,
+			   timeout, NULL, 0);
 }
 
 int event_is_read(Event event) {

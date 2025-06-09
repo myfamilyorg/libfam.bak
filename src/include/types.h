@@ -26,6 +26,8 @@
 #ifndef _TYPES_H__
 #define _TYPES_H__
 
+#define _NSIG 64
+
 typedef union epoll_data {
 	void *ptr;
 	int fd;
@@ -89,6 +91,10 @@ typedef struct {
 	int si_status;
 	char pad[128 - 3 * sizeof(int)];
 } siginfo_t;
+
+typedef struct {
+	unsigned long bits[_NSIG / (8 * sizeof(unsigned long))];
+} sigset_t;
 
 typedef int __itimer_which_t;
 

@@ -56,8 +56,8 @@ int nanosleep(const struct timespec *req, struct timespec *rem);
 int gettimeofday(struct timeval *tv, void *tz);
 int settimeofday(const struct timeval *tv, const struct timezone *tz);
 int epoll_create1(int flags);
-int epoll_wait(int epfd, struct epoll_event *events, int maxevents,
-	       int timeout);
+int epoll_pwait(int epfd, struct epoll_event *events, int maxevents,
+		int timeout, const sigset_t *sigmask, size_t size);
 int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
 int openat(int dfd, const char *pathname, int flags, mode_t mode);
 off_t lseek(int fd, off_t offset, int whence);
