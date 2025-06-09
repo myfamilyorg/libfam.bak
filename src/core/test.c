@@ -373,6 +373,26 @@ Test(timeout3) {
 	munmap(state, sizeof(SharedStateData));
 }
 
+Test(timeout4) {
+	ASSERT(timeout(NULL, 100), "timeout NULL");
+	tfunv1 = 0;
+
+	for (int i = 0; i < 32; i++) {
+		ASSERT(!timeout(tfun1, 10), "timout");
+	}
+
+	err = 0;
+	ASSERT(timeout(tfun1, 10), "overflow");
+	ASSERT_EQ(err, EOVERFLOW, "overflow err check");
+
+	while (true) {
+		sleepm(1);
+		if (tfunv1 != 32) continue;
+		ASSERT_EQ(tfunv1, 32, "tfunv");
+		break;
+	}
+}
+
 #define CHUNK_SIZE (1024 * 1024 * 4)
 
 Test(alloc1) {
