@@ -695,7 +695,7 @@ int rt_sigaction(int signum, const struct rt_sigaction *act,
 
 void restorer(void) { syscall_restorer(); }
 
-pid_t waitid(int id_type, int id, siginfo_t *sigs, int options) {
+int waitid(idtype_t id_type, id_t id, siginfo_t *sigs, int options) {
 	pid_t ret = syscall_waitid(id_type, id, sigs, options);
 	SET_ERR
 }

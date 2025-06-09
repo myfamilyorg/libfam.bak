@@ -111,6 +111,8 @@ typedef __uint128_t uint128_t;
 typedef long off_t;
 typedef unsigned int mode_t;
 
+typedef int idtype_t;
+typedef int id_t;
 typedef int32_t pid_t;
 typedef unsigned long size_t;
 typedef long ssize_t;
