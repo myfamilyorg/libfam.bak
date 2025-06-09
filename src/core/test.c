@@ -427,7 +427,31 @@ Test(alloc1) {
 	release(t2);
 	release(t3);
 	release(t4);
+	ASSERT(!alloc(CHUNK_SIZE + 1), "over alloc fail");
+	err = 0;
+	release(NULL);
+	ASSERT_EQ(err, EINVAL, "release null");
+
 	ASSERT_BYTES(0);
+}
+
+Test(resize) {
+	char *t1 = resize(NULL, 8), *t2, *t3;
+	ASSERT(t1, "t1 not null");
+	t2 = resize(t1, 16);
+	ASSERT(t1 != t2, "t1!=t2");
+	t3 = resize(t2, 8);
+	ASSERT_EQ(t1, t3, "t1 == t3");
+
+	ASSERT_EQ(resize(t3, 0), NULL, "resize 0");
+	t3 = alloc(8);
+	ASSERT_EQ(resize(t3, CHUNK_SIZE + 1), NULL, "greater than CHUNK_SIZE");
+
+	ASSERT_EQ(resize((void *)100, 10), NULL, "out of range");
+
+	void *t4 = alloc(CHUNK_SIZE);
+	void *t5 = resize(t4, 32);
+	ASSERT(t5, "resize down from chunk");
 }
 
 typedef struct {

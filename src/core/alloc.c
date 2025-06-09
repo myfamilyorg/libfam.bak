@@ -30,8 +30,6 @@
 #include <misc.h>
 #define SHM_SIZE_DEFAULT (CHUNK_SIZE * 64)
 
-int printf(const char *, ...);
-
 #ifndef CHUNK_SIZE
 #define CHUNK_SIZE (0x1 << 22) /* 4mb */
 #endif
@@ -126,13 +124,15 @@ uint64_t get_allocated_bytes(void) { return *allocated_bytes; }
 
 STATIC size_t get_memory_bytes(void) {
 	size_t shm_size = SHM_SIZE_DEFAULT;
-	char *smembytes = getenv("SHARED_MEMORY_BYTES");
+	char *smembytes;
+	smembytes = getenv("SHARED_MEMORY_BYTES");
 	if (smembytes) {
 		size_t bytes = string_to_uint128(smembytes, strlen(smembytes));
-		if (bytes != 0 && bytes % CHUNK_SIZE != 0) {
+		if (bytes < CHUNK_SIZE * 4 || bytes % CHUNK_SIZE != 0) {
 			const char *msg =
 			    "WARN: SHARED_MEMORY_BYTES must be divisible by "
-			    "CHUNK_SIZE. Using default.\n";
+			    "CHUNK_SIZE and greater than or equal CHUNK_SIZE * "
+			    "4. Using default.\n";
 			write(2, msg, strlen(msg));
 		} else {
 			shm_size = bytes;
@@ -265,7 +265,6 @@ void *alloc(size_t size) {
 		ret = allocate_slab(size);
 	}
 
-	/*printf("----------->alloc =%p\n", ret);*/
 	return ret;
 }
 
@@ -274,7 +273,6 @@ void release(void *ptr) {
 	size_t offset =
 	    (size_t)ptr - ((size_t)memory_base + sizeof(AllocHeader) +
 			   bitmap_pages * PAGE_SIZE);
-	/*printf("--------->release %p\n", ptr);*/
 	if (ptr == NULL ||
 	    (size_t)ptr < (size_t)memory_base + sizeof(AllocHeader) +
 			      bitmap_pages * PAGE_SIZE ||
