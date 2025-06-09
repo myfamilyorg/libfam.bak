@@ -31,6 +31,7 @@
 #include <init.h>
 #include <limits.h>
 #include <lock.h>
+#include <misc.h>
 #include <stdio.h>
 #include <sys.h>
 #include <syscall.h>
@@ -688,3 +689,60 @@ Test(misc_atomic) {
 	ASSERT(!__cas32(&a, &b, 0), "cas32");
 }
 
+Test(misc) {
+	ASSERT(strcmpn("1abc", "1def", 4) < 0, "strcmpn1");
+	ASSERT(strcmpn("1ubc", "1def", 4) > 0, "strcmpn2");
+
+	const char *s = "abcdefghi";
+	ASSERT_EQ(substr(s, "def") - s, 3, "strstr");
+	char buf1[10];
+	char buf2[10];
+	memset(buf1, 'b', 10);
+	memset(buf2, 'a', 10);
+	memorymove(buf2, buf1, 8);
+	ASSERT_EQ(buf2[0], 'b', "b");
+	ASSERT_EQ(buf2[9], 'a', "a");
+	byteszero(buf2, 10);
+	ASSERT_EQ(buf2[0], 0, "byteszero");
+
+	ASSERT_EQ(uint128_t_to_string(buf1, 100), 3, "100 len");
+	ASSERT(!strcmpn(buf1, "100", 3), "100");
+	ASSERT_EQ(uint128_t_to_string(buf1, 0), 1, "0 len");
+	ASSERT_EQ(buf1[0], '0', "0 value");
+	ASSERT_EQ(int128_t_to_string(buf1, -10), 3, "-10 len");
+	ASSERT_EQ(buf1[0], '-', "-10 value");
+	ASSERT_EQ(buf1[1], '1', "-10 value2");
+	ASSERT_EQ(buf1[2], '0', "-10 value3");
+	ASSERT_EQ(int128_t_to_string(buf1, 10), 2, "10 len");
+
+	ASSERT_EQ(string_to_uint128(" 123", 4), 123, "123");
+	err = 0;
+	ASSERT_EQ(string_to_uint128("", 0), 0, "EINVAL");
+	ASSERT_EQ(err, EINVAL, "EINVALVAL");
+
+	ASSERT_EQ(string_to_uint128(" ", 1), 0, "0 err");
+	ASSERT_EQ(string_to_uint128("i", 1), 0, "i err");
+	ASSERT_EQ(
+	    string_to_uint128("340282366920938463463374607431768211456", 39), 0,
+	    "overflow");
+	ASSERT_EQ(
+	    string_to_uint128("3402823669209384634633746074317682114560", 40),
+	    0, "overflow");
+
+	err = 0;
+	int128_t v = string_to_int128("123", 3);
+	ASSERT_EQ(err, SUCCESS, "success");
+	ASSERT_EQ(string_to_int128("123", 3), 123, "123");
+	ASSERT_EQ(string_to_int128("", 0), 0, "0 len");
+	err = 0;
+	int128_t v2 = string_to_int128("111", 3);
+	ASSERT_EQ(v2, 111, "111");
+	ASSERT_EQ(string_to_int128(" 1234", 5), 1234, "1234");
+	ASSERT_EQ(string_to_int128(" ", 1), 0, "0");
+	ASSERT_EQ(string_to_int128("-3", 2), -3, "-3");
+	ASSERT_EQ(string_to_int128("+5", 2), 5, "+5");
+	ASSERT_EQ(string_to_int128("-", 1), 0, "-");
+	char sx[100];
+	int len = uint128_t_to_string(sx, UINT128_MAX);
+	ASSERT_EQ(string_to_int128(sx, len), 0, "overflow int128");
+}

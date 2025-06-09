@@ -80,7 +80,7 @@ int strcmpn(const char *X, const char *Y, size_t n) {
 	return (uint8_t)*X - (uint8_t)*Y;
 }
 
-char *strstr(const char *s, const char *sub) {
+char *substr(const char *s, const char *sub) {
 	if (s == NULL || sub == NULL) return NULL;
 	for (; *s; s++) {
 		const char *tmps = s, *tmpsub = sub;
@@ -122,7 +122,7 @@ void *memcpy(void *dest, const void *src, size_t n) {
 	return dest;
 }
 
-void *memmove(void *dest, const void *src, size_t n) {
+void *memorymove(void *dest, const void *src, size_t n) {
 	uint8_t *d = (uint8_t *)dest;
 	const uint8_t *s = (uint8_t *)src;
 	size_t i;
@@ -144,7 +144,7 @@ void *memmove(void *dest, const void *src, size_t n) {
 	return dest;
 }
 
-void bzero(void *s, size_t len) { memset(s, 0, len); }
+void byteszero(void *s, size_t len) { memset(s, 0, len); }
 
 size_t uint128_t_to_string(char *buf, uint128_t v) {
 	char temp[40];
@@ -274,6 +274,7 @@ int128_t string_to_int128(const char *buf, size_t len) {
 	}
 
 	/* Use string_to_uint128 for absolute value */
+	err = 0;
 	abs_value = string_to_uint128(buf + i, len - i);
 	if (err == EINVAL) {
 		return (int128_t)0; /* Propagate error */
