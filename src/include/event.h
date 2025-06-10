@@ -34,7 +34,10 @@
 #define MULTIPLEX_FLAG_WRITE (0x1 << 2)
 
 typedef struct {
-	uint8_t opaque[16];
+	uint8_t opaque[12];
+#ifdef __aarch64__
+	uint8_t opaque2[4]; /* to account for non packing */
+#endif
 } Event;
 
 int multiplex(void);

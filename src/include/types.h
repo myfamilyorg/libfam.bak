@@ -38,7 +38,10 @@ typedef union epoll_data {
 struct epoll_event {
 	unsigned int events;
 	epoll_data_t data;
-};
+}
+#ifdef __amd64__
+__attribute__((packed));
+#endif /* packed on __amd64__ */
 
 struct clone_args {
 	unsigned long flags;
