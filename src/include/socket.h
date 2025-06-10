@@ -23,26 +23,28 @@
  *
  *******************************************************************************/
 
-#include <error.h>
-#include <socket.h>
-#include <stdio.h>
-#include <test.h>
+#ifndef _SOCKET_H
+#define _SOCKET_H
 
-Test(socket_connect) {
-	char buf[10] = {0};
-	int server = -1;
-	int port = socket_listen(&server, (uint8_t[]){127, 0, 0, 1}, 0, 10);
-	int conn = socket_connect((uint8_t[]){127, 0, 0, 1}, port);
+#include <types.h>
 
-	write(conn, "test", 4);
-	int inbound = socket_accept(server);
-	ASSERT_EQ(read(inbound, buf, 10), 4, "read");
-	ASSERT_EQ(buf[0], 't', "t");
-	ASSERT_EQ(buf[1], 'e', "e");
-	ASSERT_EQ(buf[2], 's', "s");
-	ASSERT_EQ(buf[3], 't', "t");
+#define AF_INET 2
+#define SOCK_STREAM 1
+#define SOL_SOCKET 1
+#define SO_REUSEADDR 2
 
-	close(inbound);
-	close(server);
-	close(conn);
-}
+typedef unsigned int socklen_t;
+
+struct sockaddr_in {
+	unsigned short sin_family;
+	unsigned short sin_port;
+	unsigned int sin_addr;
+	unsigned char sin_zero[8];
+};
+
+int socket_connect(const uint8_t addr[4], uint16_t port);
+int socket_listen(int *fd, const uint8_t addr[4], uint16_t port,
+		  uint16_t backlog);
+int socket_accept(int fd);
+
+#endif /* _SOCKET_H */

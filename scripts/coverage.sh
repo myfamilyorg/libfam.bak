@@ -38,13 +38,12 @@ LIBCGCOV=""
 
 # Source files
 TEST_SRC="src/core/test.c src/store/test.c src/net/test.c"
-CORE_SRC=$(ls src/core/*.c | grep -v test.c)
-SRC="${TEST_SRC} ${CORE_SRC}"
+# Include non-test .c files from core, store, and net
+CORE_SRC=$(ls src/core/*.c src/store/*.c src/net/*.c 2>/dev/null | grep -v test.c)
 
 # Object files
 TEST_OBJS=$(echo ${TEST_SRC} | sed "s|${SRCDIR}/|${TOBJDIR}/|g" | sed "s|\.c|\.cov.o|g")
 LIB_OBJS=$(echo ${CORE_SRC} | sed "s|${SRCDIR}/|${TEST_OBJDIR}/|g" | sed "s|\.c|\.cov.o|g")
-
 
 # Output binary
 COV_BIN="${BINDIR}/runtests_cov"
@@ -54,7 +53,7 @@ rm -rf ${TOBJDIR} ${TEST_OBJDIR} ${BINDIR}/runtests_cov ${COVDIR}/* *.gcov
 
 # Create directories
 mkdir -p ${TOBJDIR}/core ${TOBJDIR}/store ${TOBJDIR}/net
-mkdir -p ${TEST_OBJDIR}/core
+mkdir -p ${TEST_OBJDIR}/core ${TEST_OBJDIR}/store ${TEST_OBJDIR}/net
 mkdir -p ${BINDIR}
 
 # Compile test source files
@@ -79,13 +78,16 @@ echo ${COMMAND}
 ${COMMAND}
 
 # Run tests
-export TEST_PATTERN="*"; # ensure test patterns is set for tests
+export TEST_PATTERN="*"; # ensure test pattern is set for tests
 export SHARED_MEMORY_BYTES="67108865"; # use invalid size to trigger default
 ./${COV_BIN} 2> /dev/null || { echo "Tests failed; check errors above"; exit 1; }
 
+# Copy object files for coverage
+mkdir -p ${COVDIR}
 cp -rp ${TEST_OBJDIR}/* ${COVDIR}
 
-cd ${SRCDIR};
+# Copy source files for coverage analysis
+cd ${SRCDIR}
 for dir in *; do
     if ls $dir/*.c > /dev/null 2>&1; then
         mkdir -p ../${COVDIR}/$dir

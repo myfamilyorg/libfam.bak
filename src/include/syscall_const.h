@@ -86,6 +86,7 @@
 /* Open */
 #define O_CREAT 0100
 #define O_RDWR 02
+#define O_NONBLOCK 04000
 #define SEEK_END 2
 
 /* SIGNALS */
