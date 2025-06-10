@@ -23,8 +23,11 @@
  *
  *******************************************************************************/
 
+#include <alloc.h>
+#include <atomic.h>
 #include <error.h>
 #include <event.h>
+#include <evh.h>
 #include <socket.h>
 #include <stdio.h>
 #include <syscall_const.h>
@@ -103,4 +106,62 @@ Test(multi_socket) {
 		while (write(client, "h", 1) != 1);
 		exit(0);
 	}
+}
+
+uint32_t acc = 0;
+int on_accept(void *ctx, Connection *conn) {
+	__add32(&acc, 1);
+	return 0;
+}
+
+Evh evh1;
+
+int on_recv(void *ctx, Connection *conn, size_t rlen) {
+	char buf[1024 * 64];
+	InboundData *ib = &conn->data.inbound;
+	memcpy(buf, ib->rbuf, ib->rbuf_offset);
+	buf[ib->rbuf_offset] = 0;
+
+	LockGuard lg = wlock(&ib->lock);
+	ib->wbuf_capacity = 1024;
+	ib->wbuf_offset = 11;
+	ib->wbuf = alloc(1024);
+	memcpy(ib->wbuf, "0123456789\n", 11);
+	evh_wpend(&evh1, conn);
+
+	return 0;
+}
+
+int on_close(void *ctx, Connection *conn) { return 0; }
+
+Test(evh1) {
+	ASSERT(!evh_start(&evh1, NULL), "evh_start");
+	Connection *conn = alloc(sizeof(Connection));
+	conn->conn_type = Acceptor;
+	conn->data.acceptor.on_accept = on_accept;
+	conn->data.acceptor.on_recv = on_recv;
+	conn->data.acceptor.on_close = on_close;
+	socket_listen(&conn->socket, (uint8_t[]){127, 0, 0, 1}, 9090, 10);
+	evh_register(&evh1, conn);
+
+	int tconn = socket_connect((uint8_t[]){127, 0, 0, 1}, 9090);
+	write(tconn, "test1\n", 6);
+
+	char buf[100];
+	int total = 0;
+	while (total < 11) {
+		err = 0;
+		int x = read(tconn, buf + total, 100 - total);
+		if (err == EAGAIN) continue;
+		ASSERT(x >= 0, "x>=0");
+		total += x;
+	}
+	ASSERT_EQ(total, 11, "11");
+	ASSERT_EQ(buf[0], '0', "0");
+	ASSERT_EQ(buf[1], '1', "1");
+	evh_stop(&evh1);
+	close(conn->socket);
+	close(tconn);
+	release(conn);
+	// ASSERT_EQ(ALOAD(&acc), 1, "acc=1");
 }

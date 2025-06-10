@@ -45,7 +45,7 @@ typedef struct {
 } AcceptorData;
 
 typedef struct {
-	int multiplex;
+	int mplex;
 	OnRecvFn on_recv;
 	OnCloseFn on_close;
 	Lock lock;
@@ -69,11 +69,12 @@ struct Connection {
 
 typedef struct {
 	int wakeup;
-	bool close;
+	int mplex;
 } Evh;
 
 int evh_register(Evh *evh, Connection *connection);
 int evh_start(Evh *evh, void *ctx);
 int evh_stop(Evh *evh);
+int evh_wpend(Evh *evh, Connection *connection);
 
 #endif /* _EVH_H */

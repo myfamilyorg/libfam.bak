@@ -24,14 +24,17 @@
  *******************************************************************************/
 
 #include <init.h>
+#include <sys.h>
 #include <syscall.h>
 #include <syscall_const.h>
 #include <types.h>
 
-pid_t two(void) {
+pid_t two(void) { return two2(true); }
+
+pid_t two2(bool share_fds) {
 	struct clone_args args = {0};
 	long ret;
-	args.flags = CLONE_FILES;
+	args.flags = share_fds ? CLONE_FILES : 0;
 	args.pidfd = 0;
 	args.child_tid = 0;
 	args.parent_tid = 0;

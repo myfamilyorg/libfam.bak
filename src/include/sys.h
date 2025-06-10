@@ -66,5 +66,6 @@ int flush(int fd);
 int64_t micros(void);
 int sleepm(uint64_t millis);
 pid_t two(void);
+pid_t two2(bool share_fds);
 
 #endif /* _SYS_H */
