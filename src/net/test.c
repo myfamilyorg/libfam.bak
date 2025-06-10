@@ -108,13 +108,13 @@ Test(multi_socket) {
 	}
 }
 
-uint32_t acc = 0;
+uint64_t *value;
+Evh evh1;
+
 int on_accept(void *ctx, Connection *conn) {
-	__add32(&acc, 1);
+	__add64(value, 1);
 	return 0;
 }
-
-Evh evh1;
 
 int on_recv(void *ctx, Connection *conn, size_t rlen) {
 	char buf[1024 * 64];
@@ -135,6 +135,9 @@ int on_recv(void *ctx, Connection *conn, size_t rlen) {
 int on_close(void *ctx, Connection *conn) { return 0; }
 
 Test(evh1) {
+	value = alloc(sizeof(uint64_t));
+	*value = 0;
+
 	ASSERT(!evh_start(&evh1, NULL), "evh_start");
 	Connection *conn = alloc(sizeof(Connection));
 	conn->conn_type = Acceptor;
@@ -163,5 +166,6 @@ Test(evh1) {
 	close(conn->socket);
 	close(tconn);
 	release(conn);
-	// ASSERT_EQ(ALOAD(&acc), 1, "acc=1");
+	ASSERT_EQ(ALOAD(value), 1, "value=1");
+	release(value);
 }

@@ -193,7 +193,7 @@ Test(lock3) {
 
 	if (two()) {
 		while (true) {
-			yield();
+			sleepm(1);
 			LockGuard lg1 = rlock(&state->lock1);
 			if (state->value1 == 2) break;
 		}
@@ -201,12 +201,12 @@ Test(lock3) {
 		ASSERT_EQ(state->value2, 2, "val2 2");
 	} else {
 		if (two()) {
-			LockGuard lg2 = rlock(&state->lock2);
+			LockGuard lg2 = wlock(&state->lock2);
 			state->value2++;
 			sleepm(10);
 			state->value1++;
 		} else {
-			LockGuard lg2 = rlock(&state->lock2);
+			LockGuard lg2 = wlock(&state->lock2);
 			state->value2++;
 			sleepm(10);
 			state->value1++;
