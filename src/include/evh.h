@@ -77,4 +77,7 @@ int evh_start(Evh *evh, void *ctx);
 int evh_stop(Evh *evh);
 int evh_wpend(Evh *evh, Connection *connection);
 
+int connection_close(Connection *connection);
+int connection_write(Connection *connection, const uint8_t *buf, size_t len);
+
 #endif /* _EVH_H */

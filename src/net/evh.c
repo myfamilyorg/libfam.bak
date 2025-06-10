@@ -28,6 +28,7 @@
 #include <error.h>
 #include <event.h>
 #include <evh.h>
+#include <misc.h>
 #include <socket.h>
 #include <sys.h>
 #include <syscall.h>
@@ -92,14 +93,18 @@ STATIC int check_capacity(Connection *conn) {
 }
 
 STATIC int proc_close(Connection *conn, void *ctx) {
+	int res;
 	InboundData *ib = &conn->data.inbound;
 	LockGuard lg;
 	ib->is_closed = true;
 	ib->on_close(ctx, conn);
 	lg = wlock(&ib->lock);
 	if (ib->rbuf_capacity) release(ib->rbuf);
+	ib->rbuf_capacity = 0;
+	ib->rbuf_offset = 0;
+	res = close(conn->socket);
 	release(conn);
-	return close(conn->socket);
+	return res;
 }
 
 STATIC int proc_read(Connection *conn, void *ctx) {
@@ -145,6 +150,9 @@ STATIC int proc_write(Evh *evh, Connection *conn,
 			ib->wbuf_offset = 0;
 			ib->wbuf_capacity = 0;
 		}
+	} else {
+		memorymove(ib->wbuf, ib->wbuf + cur, ib->wbuf_offset - cur);
+		ib->wbuf_offset -= cur;
 	}
 
 	return 0;
