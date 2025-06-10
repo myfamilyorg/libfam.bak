@@ -202,14 +202,14 @@ Test(lock3) {
 	} else {
 		if (two()) {
 			LockGuard lg2 = rlock(&state->lock2);
-			state->value1++;
-			sleepm(10);
 			state->value2++;
+			sleepm(10);
+			state->value1++;
 		} else {
 			LockGuard lg2 = rlock(&state->lock2);
-			state->value1++;
-			sleepm(10);
 			state->value2++;
+			sleepm(10);
+			state->value1++;
 		}
 		exit(0);
 	}

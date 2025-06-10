@@ -150,4 +150,9 @@
 #define WNOHANG 1
 #define P_PID 0
 
+/* shutdown */
+#define SHUT_RD 0
+#define SHUT_WR 1
+#define SHUT_RDWR 2
+
 #endif /* _SYSCALL_CONST_H */

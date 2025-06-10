@@ -80,7 +80,7 @@ ${COMMAND}
 # Run tests
 export TEST_PATTERN="*"; # ensure test pattern is set for tests
 export SHARED_MEMORY_BYTES="67108865"; # use invalid size to trigger default
-./${COV_BIN} 2> /dev/null || { echo "Tests failed; check errors above"; exit 1; }
+./${COV_BIN} || { echo "Tests failed; check errors above"; exit 1; }
 
 # Copy object files for coverage
 mkdir -p ${COVDIR}

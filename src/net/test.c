@@ -26,6 +26,7 @@
 #include <error.h>
 #include <socket.h>
 #include <stdio.h>
+#include <syscall_const.h>
 #include <test.h>
 
 Test(socket_connect) {
@@ -42,6 +43,7 @@ Test(socket_connect) {
 	ASSERT_EQ(buf[2], 's', "s");
 	ASSERT_EQ(buf[3], 't', "t");
 
+	shutdown(inbound, SHUT_RDWR);
 	close(inbound);
 	close(server);
 	close(conn);
