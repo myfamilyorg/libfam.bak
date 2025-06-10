@@ -24,6 +24,7 @@
  *******************************************************************************/
 
 #include <error.h>
+#include <event.h>
 #include <socket.h>
 #include <stdio.h>
 #include <syscall_const.h>
@@ -47,4 +48,51 @@ Test(socket_connect) {
 	close(inbound);
 	close(server);
 	close(conn);
+}
+
+typedef struct {
+	int fd;
+	int v;
+} ConnectionInfo;
+
+Test(multi_socket) {
+	char buf[10];
+	int server, inbound, client, mplex, port;
+	Event events[10];
+
+	mplex = multiplex();
+	port = socket_listen(&server, (uint8_t[]){127, 0, 0, 1}, 0, 10);
+	client = socket_connect((uint8_t[]){127, 0, 0, 1}, port);
+	mregister(mplex, server, MULTIPLEX_FLAG_ACCEPT, &server);
+
+	if (two()) {
+		bool exit = false;
+		while (!exit) {
+			err = 0;
+			int v = mwait(mplex, events, 10, -1);
+			for (int i = 0; i < v; i++) {
+				if (event_attachment(events[i]) == &server) {
+					inbound = socket_accept(server);
+					mregister(mplex, inbound,
+						  MULTIPLEX_FLAG_READ,
+						  &inbound);
+				} else if (event_attachment(events[i]) ==
+					   &inbound) {
+					ASSERT_EQ(read(inbound, buf, 10), 1,
+						  "inb read");
+					ASSERT_EQ(buf[0], 'h', "h");
+					exit = true;
+					break;
+				}
+			}
+		}
+
+		close(client);
+		close(mplex);
+		close(inbound);
+		close(server);
+	} else {
+		while (write(client, "h", 1) != 1);
+		exit(0);
+	}
 }
