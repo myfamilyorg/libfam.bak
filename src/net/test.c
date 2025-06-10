@@ -81,6 +81,10 @@ Test(multi_socket) {
 					ASSERT_EQ(read(inbound, buf, 10), 1,
 						  "inb read");
 					ASSERT_EQ(buf[0], 'h', "h");
+					ASSERT(event_is_read(events[i]),
+					       "is_read");
+					ASSERT(!event_is_write(events[i]),
+					       "is_write");
 					exit = true;
 					break;
 				}

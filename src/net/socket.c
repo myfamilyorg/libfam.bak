@@ -28,6 +28,20 @@
 #include <syscall.h>
 #include <syscall_const.h>
 
+STATIC int set_nonblocking(int socket) {
+	int flags;
+	if ((flags = fcntl(socket, F_GETFL, 0)) == -1) {
+		close(socket);
+		return -1;
+	}
+	if (fcntl(socket, F_SETFL, flags | O_NONBLOCK) == -1) {
+		close(socket);
+		return -1;
+	}
+
+	return 0;
+}
+
 STATIC unsigned short htons(unsigned short host) {
 	return ((host & 0xFF) << 8) | ((host >> 8) & 0xFF);
 }
@@ -37,7 +51,6 @@ STATIC unsigned short ntohs(unsigned short net) {
 }
 
 int socket_connect(const uint8_t addr[4], uint16_t port) {
-	int flags;
 	struct sockaddr_in address = {0};
 	int ret = socket(AF_INET, SOCK_STREAM, 0);
 	if (ret < 0) return ret;
@@ -51,23 +64,13 @@ int socket_connect(const uint8_t addr[4], uint16_t port) {
 		return -1;
 	}
 
-	flags = fcntl(ret, F_GETFL, 0);
-	if (flags == -1) {
-		close(ret);
-		return -1;
-	}
-
-	if (fcntl(ret, F_SETFL, flags | O_NONBLOCK) != 0) {
-		close(ret);
-		return -1;
-	}
-
+	if (set_nonblocking(ret) == -1) return -1;
 	return ret;
 }
 
 int socket_listen(int *fd, const uint8_t addr[4], uint16_t port,
 		  uint16_t backlog) {
-	int opt = 1, flags;
+	int opt = 1;
 	struct sockaddr_in address;
 	socklen_t addr_len;
 	int ret = socket(AF_INET, SOCK_STREAM, 0);
@@ -79,15 +82,7 @@ int socket_listen(int *fd, const uint8_t addr[4], uint16_t port,
 		return -1;
 	}
 
-	if ((flags = fcntl(ret, F_GETFL, 0)) == -1) {
-		close(ret);
-		return -1;
-	}
-
-	if (fcntl(ret, F_SETFL, flags | O_NONBLOCK)) {
-		close(ret);
-		return -1;
-	}
+	if (set_nonblocking(ret) == -1) return -1;
 
 	address.sin_family = AF_INET;
 	memcpy(&address.sin_addr, addr, 4);
@@ -115,20 +110,9 @@ int socket_listen(int *fd, const uint8_t addr[4], uint16_t port,
 }
 
 int socket_accept(int fd) {
-	int flags, ret = accept(fd, NULL, NULL);
+	int ret = accept(fd, NULL, NULL);
 	if (ret < 0) return -1;
-	flags = fcntl(ret, F_GETFL, 0);
-
-	if ((flags = fcntl(ret, F_GETFL, 0)) == -1) {
-		close(ret);
-		return -1;
-	}
-
-	if (fcntl(ret, F_SETFL, flags | O_NONBLOCK) == -1) {
-		close(ret);
-		return -1;
-	}
-
+	if (set_nonblocking(ret) == -1) return -1;
 	return ret;
 }
 
