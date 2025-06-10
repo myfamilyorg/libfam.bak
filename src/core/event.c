@@ -60,9 +60,9 @@ int mregister(int multiplex, int fd, int flags, void *attach) {
 
 	if (epoll_ctl(multiplex, EPOLL_CTL_ADD, fd, &ev) < 0) {
 		if (err == EEXIST) {
-			if (epoll_ctl(multiplex, EPOLL_CTL_MOD, fd, &ev) < 0) {
+			if (epoll_ctl(multiplex, EPOLL_CTL_MOD, fd, &ev) < 0)
 				return -1;
-			}
+
 		} else {
 			return -1;
 		}

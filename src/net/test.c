@@ -85,6 +85,10 @@ Test(multi_socket) {
 					       "is_read");
 					ASSERT(!event_is_write(events[i]),
 					       "is_write");
+					ASSERT(!mregister(mplex, inbound,
+							  MULTIPLEX_FLAG_WRITE,
+							  NULL),
+					       "write reg");
 					exit = true;
 					break;
 				}
