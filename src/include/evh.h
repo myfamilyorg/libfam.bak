@@ -71,6 +71,7 @@ struct Connection {
 typedef struct {
 	int wakeup;
 	int mplex;
+	int stopped;
 } Evh;
 
 int evh_register(Evh *evh, Connection *connection);

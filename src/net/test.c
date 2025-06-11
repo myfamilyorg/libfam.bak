@@ -217,9 +217,9 @@ Test(test_evh2) {
 	ASSERT_EQ(ALOAD(value2), 105, "105");
 	connection_close(client);
 	evh_stop(&evh2);
-	release(value2);
 	release(conn);
-	sleepm(100);
+	release(value2);
 
+	sleepm(100);
 	ASSERT_BYTES(0);
 }

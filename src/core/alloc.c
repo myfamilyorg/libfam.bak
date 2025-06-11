@@ -119,7 +119,7 @@ static void __attribute__((constructor)) setup_allocated_bytes(void) {
 	allocated_bytes = smap(sizeof(uint64_t));
 	*allocated_bytes = 0;
 }
-uint64_t get_allocated_bytes(void) { return *allocated_bytes; }
+uint64_t get_allocated_bytes(void) { return ALOAD(allocated_bytes); }
 #endif /* MEMSAN */
 
 STATIC size_t get_memory_bytes(void) {

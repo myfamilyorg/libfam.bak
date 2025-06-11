@@ -193,6 +193,7 @@ STATIC void event_loop(Evh *evh, void *ctx, int wakeup) {
 	}
 end_while:
 	close(evh->mplex);
+	ASTORE(&evh->stopped, 1);
 }
 
 STATIC int init_event_loop(Evh *evh, void *ctx) {
@@ -239,6 +240,7 @@ int evh_register(Evh *evh, Connection *connection) {
 
 int evh_start(Evh *evh, void *ctx) {
 	evh->mplex = multiplex();
+	evh->stopped = false;
 	if (evh->mplex == -1) return -1;
 	if (init_event_loop(evh, ctx) == -1) {
 		close(evh->mplex);
@@ -248,5 +250,8 @@ int evh_start(Evh *evh, void *ctx) {
 	return 0;
 }
 
-int evh_stop(Evh *evh) { return close(evh->wakeup); }
+int evh_stop(Evh *evh) {
+	return close(evh->wakeup);
+	while (!ALOAD(&evh->stopped)) yield();
+}
 
