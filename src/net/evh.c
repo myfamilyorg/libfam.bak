@@ -221,15 +221,10 @@ int evh_register(Evh *evh, Connection *connection) {
 		return mregister(evh->mplex, connection->socket,
 				 MULTIPLEX_FLAG_ACCEPT, connection);
 	else {
+		connection->data.inbound.mplex = evh->mplex;
 		return mregister(evh->mplex, connection->socket,
 				 MULTIPLEX_FLAG_READ, connection);
 	}
-}
-
-int evh_wpend(Evh *evh, Connection *connection) {
-	return mregister(evh->mplex, connection->socket,
-			 MULTIPLEX_FLAG_WRITE | MULTIPLEX_FLAG_READ,
-			 connection);
 }
 
 int evh_start(Evh *evh, void *ctx) {

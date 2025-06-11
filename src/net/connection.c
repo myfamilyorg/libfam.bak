@@ -32,6 +32,7 @@
 #include <socket.h>
 #include <syscall.h>
 #include <syscall_const.h>
+
 Connection *evh_acceptor(uint8_t addr[4], uint16_t port, uint16_t backlog,
 			 OnRecvFn on_recv_fn, OnAcceptFn on_accept_fn,
 			 OnCloseFn on_close_fn) {
@@ -56,13 +57,13 @@ uint16_t evh_acceptor_port(Connection *conn) {
 	return 0;
 }
 
-Connection *evh_client(Evh *evh, uint8_t addr[4], uint16_t port,
-		       OnRecvFn on_recv, OnCloseFn on_close) {
+Connection *evh_client(uint8_t addr[4], uint16_t port, OnRecvFn on_recv_fn,
+		       OnCloseFn on_close_fn) {
 	Connection *client = alloc(sizeof(Connection));
+	if (client == NULL) return NULL;
 	client->conn_type = Outbound;
-	client->data.inbound.on_recv = on_recv;
-	client->data.inbound.on_close = on_close;
-	client->data.inbound.mplex = evh->mplex;
+	client->data.inbound.on_recv = on_recv_fn;
+	client->data.inbound.on_close = on_close_fn;
 	client->data.inbound.lock = LOCK_INIT;
 	client->data.inbound.is_closed = false;
 	client->data.inbound.rbuf = NULL;
@@ -72,17 +73,19 @@ Connection *evh_client(Evh *evh, uint8_t addr[4], uint16_t port,
 	client->data.inbound.wbuf_capacity = 0;
 	client->data.inbound.wbuf_offset = 0;
 	client->socket = socket_connect(addr, port);
+	if (client->socket == -1) {
+		release(client);
+		return NULL;
+	}
 	return client;
 }
 
 int connection_close(Connection *connection) {
 	LockGuard lg = wlock(&connection->data.inbound.lock);
 	InboundData *ib = &connection->data.inbound;
-
+	if (ib->is_closed) return -1;
 	ib->is_closed = true;
-	shutdown(connection->socket, SHUT_RDWR);
-
-	return 0;
+	return shutdown(connection->socket, SHUT_RDWR);
 }
 int connection_write(Connection *connection, const void *buf, size_t len) {
 	ssize_t wlen = 0;

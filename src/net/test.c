@@ -201,8 +201,8 @@ Test(test_evh2) {
 	port = evh_acceptor_port(conn);
 	evh_register(&evh2, conn);
 
-	Connection *client = evh_client(&evh2, (uint8_t[]){127, 0, 0, 1}, port,
-					on_recv2, on_close2);
+	Connection *client =
+	    evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2);
 	ASSERT(client->socket > 0, "connect");
 	evh_register(&evh2, client);
 

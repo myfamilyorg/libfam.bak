@@ -76,13 +76,12 @@ typedef struct {
 int evh_register(Evh *evh, Connection *connection);
 int evh_start(Evh *evh, void *ctx);
 int evh_stop(Evh *evh);
-int evh_wpend(Evh *evh, Connection *connection);
 
 Connection *evh_acceptor(uint8_t addr[4], uint16_t port, uint16_t backlog,
 			 OnRecvFn on_recv, OnAcceptFn on_accept,
 			 OnCloseFn on_close);
-Connection *evh_client(Evh *evh, uint8_t addr[4], uint16_t port,
-		       OnRecvFn on_recv, OnCloseFn on_close);
+Connection *evh_client(uint8_t addr[4], uint16_t port, OnRecvFn on_recv,
+		       OnCloseFn on_close);
 uint16_t evh_acceptor_port(Connection *conn);
 int connection_close(Connection *connection);
 int connection_write(Connection *connection, const void *buf, size_t len);
