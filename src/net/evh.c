@@ -96,12 +96,19 @@ STATIC int proc_close(Connection *conn, void *ctx) {
 	int res;
 	InboundData *ib = &conn->data.inbound;
 	LockGuard lg;
-	ib->is_closed = true;
+
 	ib->on_close(ctx, conn);
-	lg = wlock(&ib->lock);
 	if (ib->rbuf_capacity) release(ib->rbuf);
 	ib->rbuf_capacity = 0;
 	ib->rbuf_offset = 0;
+
+	{
+		lg = wlock(&ib->lock);
+		ib->is_closed = true;
+		if (ib->wbuf_capacity) release(ib->wbuf);
+		ib->wbuf_capacity = 0;
+		ib->wbuf_offset = 0;
+	}
 	res = close(conn->socket);
 	release(conn);
 	return res;
@@ -112,7 +119,10 @@ STATIC int proc_read(Connection *conn, void *ctx) {
 		InboundData *ib;
 		ssize_t rlen;
 
-		if (check_capacity(conn) == -1) break;
+		if (check_capacity(conn) == -1) {
+			proc_close(conn, ctx);
+			break;
+		}
 		ib = &conn->data.inbound;
 		err = 0;
 		rlen = read(conn->socket, ib->rbuf + ib->rbuf_offset,
