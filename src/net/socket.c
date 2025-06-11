@@ -28,7 +28,15 @@
 #include <syscall.h>
 #include <syscall_const.h>
 
-STATIC int set_nonblocking(int socket) {
+STATIC unsigned short htons(unsigned short host) {
+	return ((host & 0xFF) << 8) | ((host >> 8) & 0xFF);
+}
+
+STATIC unsigned short ntohs(unsigned short net) {
+	return ((net & 0xFF) << 8) | ((net >> 8) & 0xFF);
+}
+
+int set_nonblocking(int socket) {
 	int flags;
 	if ((flags = fcntl(socket, F_GETFL, 0)) == -1) {
 		close(socket);
@@ -40,14 +48,6 @@ STATIC int set_nonblocking(int socket) {
 	}
 
 	return 0;
-}
-
-STATIC unsigned short htons(unsigned short host) {
-	return ((host & 0xFF) << 8) | ((host >> 8) & 0xFF);
-}
-
-STATIC unsigned short ntohs(unsigned short net) {
-	return ((net & 0xFF) << 8) | ((net >> 8) & 0xFF);
 }
 
 int socket_connect(const uint8_t addr[4], uint16_t port) {

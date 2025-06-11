@@ -128,3 +128,14 @@ int connection_write(Connection *connection, const void *buf, size_t len) {
 	return 0;
 }
 
+void connection_clear_rbuf_through(Connection *conn, size_t off) {
+	InboundData *ib = &conn->data.inbound;
+	if (off > ib->rbuf_offset) return;
+	memorymove(ib->rbuf, ib->rbuf + off, ib->rbuf_offset - off);
+	ib->rbuf_offset -= off;
+}
+
+void connection_clear_rbuf(Connection *conn) {
+	InboundData *ib = &conn->data.inbound;
+	ib->rbuf_offset = 0;
+}

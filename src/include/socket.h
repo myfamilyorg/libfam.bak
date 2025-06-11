@@ -42,6 +42,7 @@ struct sockaddr_in {
 	unsigned char sin_zero[8];
 };
 
+int set_nonblocking(int socket);
 int socket_connect(const uint8_t addr[4], uint16_t port);
 int socket_listen(int *fd, const uint8_t addr[4], uint16_t port,
 		  uint16_t backlog);

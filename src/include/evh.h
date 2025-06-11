@@ -71,7 +71,7 @@ struct Connection {
 typedef struct {
 	int wakeup;
 	int mplex;
-	int stopped;
+	uint64_t *stopped;
 } Evh;
 
 int evh_register(Evh *evh, Connection *connection);
@@ -86,5 +86,7 @@ Connection *evh_client(uint8_t addr[4], uint16_t port, OnRecvFn on_recv,
 uint16_t evh_acceptor_port(Connection *conn);
 int connection_close(Connection *connection);
 int connection_write(Connection *connection, const void *buf, size_t len);
+void connection_clear_rbuf_through(Connection *conn, size_t off);
+void connection_clear_rbuf(Connection *conn);
 
 #endif /* _EVH_H */

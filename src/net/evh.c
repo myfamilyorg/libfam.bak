@@ -32,6 +32,7 @@
 #include <socket.h>
 #include <sys.h>
 #include <syscall.h>
+#include <syscall_const.h>
 
 #define MAX_EVENTS 128
 #define MIN_EXCESS 1024
@@ -42,11 +43,11 @@ Connection wakeup_attachment = {0};
 
 int printf(const char *, ...);
 
-STATIC int proc_wakeup(Evh *evh __attribute__((unused)), int wakeup) {
+STATIC int proc_wakeup(int wakeup) {
 	char buf[1];
 	int v;
 	v = read(wakeup, buf, 1);
-	if (v == 0) return -1;
+	if (v <= 0) return -1;
 	return 0;
 }
 
@@ -54,7 +55,10 @@ STATIC int proc_acceptor(Evh *evh, Connection *acceptor, void *ctx) {
 	while (true) {
 		Connection *nconn;
 		int fd = socket_accept(acceptor->socket);
-		if (fd == -1) break;
+		if (fd == -1) {
+			if (err != EAGAIN) perror("socket_accept");
+			break;
+		}
 		nconn = alloc(sizeof(Connection));
 		if (nconn == NULL) {
 			/* Cannot allocate memory, drop connection */
@@ -64,7 +68,6 @@ STATIC int proc_acceptor(Evh *evh, Connection *acceptor, void *ctx) {
 
 		nconn->conn_type = Inbound;
 		nconn->socket = fd;
-		nconn->data.inbound.mplex = evh->mplex;
 		nconn->data.inbound.on_recv = acceptor->data.acceptor.on_recv;
 		nconn->data.inbound.on_close = acceptor->data.acceptor.on_close;
 		nconn->data.inbound.lock = LOCK_INIT;
@@ -74,8 +77,14 @@ STATIC int proc_acceptor(Evh *evh, Connection *acceptor, void *ctx) {
 		nconn->data.inbound.wbuf_capacity = 0;
 		nconn->data.inbound.wbuf_offset = 0;
 		nconn->data.inbound.wbuf = nconn->data.inbound.rbuf = NULL;
+		if (evh_register(evh, nconn) == -1) {
+			perror("evh_register");
+			close(fd);
+			release(nconn);
+			continue;
+		}
+
 		acceptor->data.acceptor.on_accept(ctx, nconn);
-		evh_register(evh, nconn);
 	}
 	return 0;
 }
@@ -149,12 +158,19 @@ STATIC int proc_write(Evh *evh, Connection *conn,
 
 	while (cur < ib->wbuf_offset) {
 		wlen = write(sock, ib->wbuf + cur, ib->wbuf_offset - cur);
-		if (wlen < 0) break;
+		if (wlen < 0) {
+			shutdown(sock, SHUT_RDWR);
+			return -1;
+		}
 		cur += wlen;
 	}
 
 	if (cur == ib->wbuf_offset) {
-		mregister(evh->mplex, sock, MULTIPLEX_FLAG_READ, conn);
+		if (mregister(evh->mplex, sock, MULTIPLEX_FLAG_READ, conn) ==
+		    -1) {
+			shutdown(sock, SHUT_RDWR);
+			return -1;
+		}
 		if (ib->wbuf_capacity) {
 			release(ib->wbuf);
 			ib->wbuf_offset = 0;
@@ -177,8 +193,7 @@ STATIC void event_loop(Evh *evh, void *ctx, int wakeup) {
 		for (i = 0; i < count; i++) {
 			Connection *conn = event_attachment(events[i]);
 			if (conn == &wakeup_attachment) {
-				if (proc_wakeup(evh, wakeup) == -1)
-					goto end_while;
+				if (proc_wakeup(wakeup) == -1) goto end_while;
 			} else {
 				if (conn->conn_type == Acceptor) {
 					proc_acceptor(evh, conn, ctx);
@@ -193,7 +208,8 @@ STATIC void event_loop(Evh *evh, void *ctx, int wakeup) {
 	}
 end_while:
 	close(evh->mplex);
-	ASTORE(&evh->stopped, 1);
+	close(wakeup);
+	ASTORE(evh->stopped, 1);
 }
 
 STATIC int init_event_loop(Evh *evh, void *ctx) {
@@ -204,6 +220,8 @@ STATIC int init_event_loop(Evh *evh, void *ctx) {
 	}
 
 	evh->wakeup = fds[1];
+
+	set_nonblocking(fds[0]);
 
 	if (mregister(evh->mplex, fds[0], MULTIPLEX_FLAG_READ,
 		      &wakeup_attachment) == -1) {
@@ -240,10 +258,16 @@ int evh_register(Evh *evh, Connection *connection) {
 
 int evh_start(Evh *evh, void *ctx) {
 	evh->mplex = multiplex();
-	evh->stopped = false;
+	evh->stopped = alloc(sizeof(uint64_t));
+	if (evh->stopped == NULL) {
+		close(evh->mplex);
+		return -1;
+	}
+	*(evh->stopped) = false;
 	if (evh->mplex == -1) return -1;
 	if (init_event_loop(evh, ctx) == -1) {
 		close(evh->mplex);
+		release(evh->stopped);
 		return -1;
 	}
 
@@ -251,7 +275,9 @@ int evh_start(Evh *evh, void *ctx) {
 }
 
 int evh_stop(Evh *evh) {
-	return close(evh->wakeup);
-	while (!ALOAD(&evh->stopped)) yield();
+	if (close(evh->wakeup) == -1) return -1;
+	while (!ALOAD(evh->stopped)) yield();
+	release(evh->stopped);
+	return 0;
 }
 
