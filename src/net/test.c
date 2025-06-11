@@ -163,6 +163,7 @@ Test(test_evh1) {
 	ASSERT_EQ(ALOAD(value), 1, "value=1");
 	release(value);
 
+	sleepm(100);
 	ASSERT_BYTES(0);
 }
 
@@ -218,5 +219,7 @@ Test(test_evh2) {
 	evh_stop(&evh2);
 	release(value2);
 	release(conn);
+	sleepm(100);
+
 	ASSERT_BYTES(0);
 }
