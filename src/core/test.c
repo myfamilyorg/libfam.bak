@@ -26,6 +26,7 @@
 #include <alloc.h>
 #include <atomic.h>
 #include <channel.h>
+#include <colors.h>
 #include <env.h>
 #include <error.h>
 #include <event.h>
@@ -38,6 +39,8 @@
 #include <syscall.h>
 #include <syscall_const.h>
 #include <test.h>
+
+int setenv(const char *name, const char *value, int overwrite);
 
 typedef struct {
 	Lock lock1;
@@ -1051,4 +1054,22 @@ Test(event) {
 	close(mplex);
 	close(fds[0]);
 	close(fds[1]);
+}
+
+Test(colors) {
+	char buf[1024];
+	int len =
+	    snprintf(buf, 1024, "%s1%s%s2%s%s3%s%s4%s%s5%s%s6%s%s7%s%s8%s", RED,
+		     RESET, GREEN, RESET, CYAN, RESET, YELLOW, RESET, MAGENTA,
+		     RESET, DIMMED, RESET, BLUE, RESET, BRIGHT_RED, RESET);
+	buf[len] = 0;
+	ASSERT_EQ(len, 79, "len=79");
+	setenv("NO_COLOR", "1", true);
+	len =
+	    snprintf(buf, 1024, "%s1%s%s2%s%s3%s%s4%s%s5%s%s6%s%s7%s%s8%s", RED,
+		     RESET, GREEN, RESET, CYAN, RESET, YELLOW, RESET, MAGENTA,
+		     RESET, DIMMED, RESET, BLUE, RESET, BRIGHT_RED, RESET);
+
+	ASSERT_EQ(len, 8, "len=8");
+	buf[len] = 0;
 }

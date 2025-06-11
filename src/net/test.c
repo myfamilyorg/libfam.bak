@@ -201,6 +201,7 @@ Test(test_evh2) {
 
 	Connection *client =
 	    evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2);
+	ASSERT(!evh_acceptor_port(client), "evh_acceptor_port on client err");
 	ASSERT(client->socket > 0, "connect");
 	evh_register(&evh2, client);
 
@@ -220,3 +221,83 @@ Test(test_evh2) {
 
 	ASSERT_BYTES(0);
 }
+
+Test(test_evh_coverage) {
+	Connection *conn = evh_acceptor((uint8_t[]){127, 0, 0, 1}, 0, 10,
+					on_recv2, on_accept2, on_close2);
+	uint16_t port = evh_acceptor_port(conn);
+	ASSERT(!evh_acceptor((uint8_t[]){127, 0, 0, 1}, port, 10, on_recv2,
+			     on_accept2, on_close2),
+	       "listen on same port");
+	close(conn->socket);
+	release(conn);
+	ASSERT(
+	    !evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2),
+	    "connect failure");
+
+	ASSERT_BYTES(0);
+}
+
+Test(test_evh_other_situations) {
+	Connection *conn = evh_acceptor((uint8_t[]){127, 0, 0, 1}, 0, 10,
+					on_recv2, on_accept2, on_close2);
+	uint16_t port = evh_acceptor_port(conn);
+
+	Connection *client =
+	    evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2);
+
+	ASSERT(!connection_close(client), "conn_close");
+
+	close(conn->socket);
+	release(conn);
+	release(client);
+
+	ASSERT_BYTES(0);
+}
+
+Test(test_evh_other_situations2) {
+	Connection *conn = evh_acceptor((uint8_t[]){127, 0, 0, 1}, 0, 10,
+					on_recv2, on_accept2, on_close2);
+	uint16_t port = evh_acceptor_port(conn);
+
+	Connection *client =
+	    evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2);
+	ASSERT(client, "client");
+
+	close(conn->socket);
+	ASSERT(connection_write(client, "test", 4), "write_err");
+	ASSERT(connection_close(client), "conn_close");
+	release(conn);
+	release(client);
+
+	ASSERT_BYTES(0);
+}
+
+Test(test_evh_clear) {
+	Connection *conn = evh_acceptor((uint8_t[]){127, 0, 0, 1}, 0, 10,
+					on_recv2, on_accept2, on_close2);
+	uint16_t port = evh_acceptor_port(conn);
+
+	Connection *client =
+	    evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2);
+
+	client->data.inbound.rbuf = alloc(1024);
+	client->data.inbound.rbuf_capacity = 1024;
+	client->data.inbound.rbuf_offset = 100;
+
+	connection_clear_rbuf_through(client, 200);
+	ASSERT_EQ(client->data.inbound.rbuf_offset, 100, "offset=100");
+	connection_clear_rbuf_through(client, 50);
+	ASSERT_EQ(client->data.inbound.rbuf_offset, 50, "offset=50");
+	connection_clear_rbuf(client);
+	ASSERT_EQ(client->data.inbound.rbuf_offset, 0, "offset=0");
+
+	ASSERT(!connection_close(client), "conn_close");
+	close(conn->socket);
+	release(conn);
+	release(client);
+	release(client->data.inbound.rbuf);
+
+	ASSERT_BYTES(0);
+}
+
