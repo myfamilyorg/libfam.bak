@@ -93,12 +93,14 @@ int connection_write(Connection *connection, const void *buf, size_t len) {
 	LockGuard lg = wlock(&ib->lock);
 	if (ib->is_closed) return -1;
 	if (!ib->wbuf_offset) {
+		size_t offset = 0;
 	write_block:
 		err = 0;
-		wlen = write(connection->socket, (uint8_t *)buf, len);
-		if (err == EINTR)
+		wlen = write(connection->socket, (uint8_t *)buf + offset, len);
+		if (err == EINTR) {
+			if (wlen > 0) offset += wlen;
 			goto write_block;
-		else if (err == EAGAIN)
+		} else if (err == EAGAIN)
 			wlen = 0; /* Set for other logic */
 		else if (err) {	  /* shutdown for other errors */
 			shutdown(connection->socket, SHUT_RDWR);
@@ -107,9 +109,13 @@ int connection_write(Connection *connection, const void *buf, size_t len) {
 		}
 
 		if ((size_t)wlen == len) return 0;
-		mregister(ib->mplex, connection->socket,
-			  MULTIPLEX_FLAG_READ | MULTIPLEX_FLAG_WRITE,
-			  connection);
+		if (mregister(ib->mplex, connection->socket,
+			      MULTIPLEX_FLAG_READ | MULTIPLEX_FLAG_WRITE,
+			      connection) == -1) {
+			shutdown(connection->socket, SHUT_RDWR);
+			ib->is_closed = true;
+			return -1;
+		}
 	}
 
 	if (ib->wbuf_offset + len - wlen > ib->wbuf_capacity) {
