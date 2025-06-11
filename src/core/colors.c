@@ -28,9 +28,9 @@
 #include <misc.h>
 #include <types.h>
 
-int no_color() { return getenv("NO_COLOR") != NULL; }
+int no_color(void) { return getenv("NO_COLOR") != NULL; }
 
-const char *get_dimmed() {
+const char *get_dimmed(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -38,7 +38,7 @@ const char *get_dimmed() {
 	}
 }
 
-const char *get_red() {
+const char *get_red(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -46,7 +46,7 @@ const char *get_red() {
 	}
 }
 
-const char *get_bright_red() {
+const char *get_bright_red(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -54,7 +54,7 @@ const char *get_bright_red() {
 	}
 }
 
-const char *get_green() {
+const char *get_green(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -62,7 +62,7 @@ const char *get_green() {
 	}
 }
 
-const char *get_yellow() {
+const char *get_yellow(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -70,7 +70,7 @@ const char *get_yellow() {
 	}
 }
 
-const char *get_cyan() {
+const char *get_cyan(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -78,7 +78,7 @@ const char *get_cyan() {
 	}
 }
 
-const char *get_magenta() {
+const char *get_magenta(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -86,7 +86,7 @@ const char *get_magenta() {
 	}
 }
 
-const char *get_blue() {
+const char *get_blue(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -94,7 +94,7 @@ const char *get_blue() {
 	}
 }
 
-const char *get_reset() {
+const char *get_reset(void) {
 	if (no_color()) {
 		return "";
 	} else {
