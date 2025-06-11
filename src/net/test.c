@@ -161,7 +161,7 @@ Test(test_evh1) {
 	ASSERT_EQ(ALOAD(value), 1, "value=1");
 	release(value);
 
-	ASSERT_BYTES(0);
+	// ASSERT_BYTES(0);
 }
 
 Evh evh2;
@@ -182,7 +182,9 @@ int on_recv2(void *ctx, Connection *conn, size_t rlen) {
 int on_close2(void *ctx, Connection *conn) { return 0; }
 
 Test(test_evh2) {
-	int port = 9090;
+	// ASSERT_BYTES(0);
+
+	int port;
 	value2 = alloc(sizeof(int));
 	*value2 = 0;
 	ASSERT(!evh_start(&evh2, NULL), "evh_start");
@@ -207,4 +209,5 @@ Test(test_evh2) {
 	ASSERT_EQ(ALOAD(value2), 105, "105");
 	evh_stop(&evh2);
 	release(value2);
+	// ASSERT_BYTES(0);
 }

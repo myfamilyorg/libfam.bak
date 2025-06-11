@@ -84,7 +84,7 @@ int connection_close(Connection *connection) {
 
 	return 0;
 }
-int connection_write(Connection *connection, const uint8_t *buf, size_t len) {
+int connection_write(Connection *connection, const void *buf, size_t len) {
 	ssize_t wlen = 0;
 	InboundData *ib = &connection->data.inbound;
 	LockGuard lg = wlock(&ib->lock);
@@ -92,7 +92,7 @@ int connection_write(Connection *connection, const uint8_t *buf, size_t len) {
 	if (!ib->wbuf_offset) {
 	write_block:
 		err = 0;
-		wlen = write(connection->socket, buf, len);
+		wlen = write(connection->socket, (uint8_t *)buf, len);
 		if (err == EINTR)
 			goto write_block;
 		else if (err == EAGAIN)
@@ -119,7 +119,7 @@ int connection_write(Connection *connection, const uint8_t *buf, size_t len) {
 		ib->wbuf = tmp;
 		ib->wbuf_capacity = ib->wbuf_offset + len - wlen;
 	}
-	memcpy(ib->wbuf + ib->wbuf_offset, buf + wlen, len - wlen);
+	memcpy(ib->wbuf + ib->wbuf_offset, (uint8_t *)buf + wlen, len - wlen);
 	ib->wbuf_offset += len - wlen;
 
 	return 0;

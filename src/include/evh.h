@@ -85,6 +85,6 @@ Connection *evh_client(Evh *evh, uint8_t addr[4], uint16_t port,
 		       OnRecvFn on_recv, OnCloseFn on_close);
 uint16_t evh_acceptor_port(Connection *conn);
 int connection_close(Connection *connection);
-int connection_write(Connection *connection, const uint8_t *buf, size_t len);
+int connection_write(Connection *connection, const void *buf, size_t len);
 
 #endif /* _EVH_H */
