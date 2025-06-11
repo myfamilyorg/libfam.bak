@@ -222,6 +222,5 @@ Test(test_evh2) {
 	release(conn);
 
 	sleepm(100);
-	printf("final assert\n");
 	ASSERT_BYTES(0);
 }
