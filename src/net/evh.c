@@ -41,8 +41,6 @@
 /* marker for wakeup */
 Connection wakeup_attachment = {0};
 
-int printf(const char *, ...);
-
 STATIC int proc_wakeup(int wakeup) {
 	char buf[1];
 	int v;
@@ -190,9 +188,7 @@ STATIC void event_loop(Evh *evh, void *ctx, int wakeup) {
 	Event events[MAX_EVENTS];
 
 	while (true) {
-		/*printf("sleep id=%ld\n", evh->id);*/
 		count = mwait(evh->mplex, events, MAX_EVENTS, -1);
-		/*printf("wakeup id=%ld\n", evh->id);*/
 		for (i = 0; i < count; i++) {
 			Connection *conn = event_attachment(events[i]);
 			if (conn == &wakeup_attachment) {

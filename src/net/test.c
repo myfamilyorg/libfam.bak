@@ -319,5 +319,4 @@ Test(ws1) {
 	    .port = 9090, .addr = {0, 0, 0, 0}, .workers = 2, .backlog = 10};
 	Ws *ws = init_ws(&config, ws_on_message, ws_on_open, ws_on_close);
 	start_ws(ws);
-	// sleepm(1000 * 1000);
 }

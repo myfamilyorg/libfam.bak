@@ -45,8 +45,7 @@ int mregister(int multiplex, int fd, int flags, void *attach) {
 	}
 
 	if (flags & MULTIPLEX_FLAG_ACCEPT) {
-		event_flags |= (EPOLLIN | EPOLLEXCLUSIVE);
-		/*event_flags |= (EPOLLIN | EPOLLET);*/
+		event_flags |= (EPOLLIN | EPOLLET);
 	}
 
 	if (flags & MULTIPLEX_FLAG_WRITE) {
