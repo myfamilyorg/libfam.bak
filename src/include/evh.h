@@ -46,9 +46,9 @@ typedef struct {
 } AcceptorData;
 
 typedef struct {
-	int mplex;
 	OnRecvFn on_recv;
 	OnCloseFn on_close;
+	int mplex;
 	Lock lock;
 	bool is_closed;
 	uint8_t *rbuf;

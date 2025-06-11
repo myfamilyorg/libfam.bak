@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <syscall_const.h>
 #include <test.h>
+#include <ws.h>
 
 Test(socket_connect) {
 	char buf[10] = {0};
@@ -301,3 +302,8 @@ Test(test_evh_clear) {
 	ASSERT_BYTES(0);
 }
 
+int proc_wakeup(int fd);
+
+Test(test_evh_direct) { ASSERT_EQ(proc_wakeup(-1), -1, "proc_wakeup"); }
+
+Test(ws1) {}

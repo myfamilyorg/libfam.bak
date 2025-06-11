@@ -23,57 +23,29 @@
  *
  *******************************************************************************/
 
-#include <atomic.h>
-#include <limits.h>
-#include <lock.h>
-#include <misc.h>
-#include <sys.h>
-#include <syscall.h>
-#include <syscall_const.h>
+#include <error.h>
+#include <evh.h>
+#include <ws.h>
 
-#define WFLAG (0x1 << 31)
-#define WREQUEST (0x1 << 30)
+typedef struct {
+	Evh evh;
+} WsImpl;
 
-void lockguard_cleanup(LockGuardImpl *lg) {
-	if (lg->is_write) {
-		ASTORE(lg->lock, 0);
-		futex(lg->lock, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
-	} else {
-		uint32_t v = __sub32(lg->lock, 1);
-		if ((v & ~(WREQUEST | WFLAG)) == 1)
-			futex(lg->lock, FUTEX_WAKE, 1, NULL, NULL, 0);
+typedef struct {
+	Connection conn;
+} WsConnectionImpl;
+
+#define STATIC_ASSERT(condition, message) \
+	typedef char static_assert_##message[(condition) ? 1 : -1]
+
+STATIC_ASSERT(sizeof(WsConnectionImpl) == sizeof(WsConnection),
+	      ws_connection_impl_size);
+STATIC_ASSERT(sizeof(WsImpl) == sizeof(Ws), ws_impl_size);
+
+int stop_ws(Ws* ws) {
+	if (ws == NULL) {
+		err = EINVAL;
+		return -1;
 	}
-}
-
-LockGuardImpl rlock(Lock *lock) {
-	LockGuardImpl ret = {0};
-	while (true) {
-		uint32_t cur = ALOAD(lock);
-		if ((cur & (WREQUEST | WFLAG)) == 0) {
-			if (__cas32(lock, &cur, cur + 1)) break;
-		} else
-			futex(lock, FUTEX_WAIT, cur, NULL, NULL, 0);
-	}
-	ret.lock = lock;
-	ret.is_write = false;
-	return ret;
-}
-
-LockGuardImpl wlock(Lock *lock) {
-	LockGuardImpl ret = {0};
-	while (true) {
-		uint32_t cur = ALOAD(lock);
-		if ((cur & ~WREQUEST) == 0) {
-			if (__cas32(lock, &cur, WFLAG)) break;
-		} else {
-			if ((cur & WREQUEST) == 0) {
-				int32_t desired = cur | WREQUEST;
-				if (!__cas32(lock, &cur, desired)) continue;
-			}
-			futex(lock, FUTEX_WAIT, cur | WREQUEST, NULL, NULL, 0);
-		}
-	}
-	ret.lock = lock;
-	ret.is_write = true;
-	return ret;
+	return 0;
 }

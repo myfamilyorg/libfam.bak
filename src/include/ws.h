@@ -23,57 +23,44 @@
  *
  *******************************************************************************/
 
-#include <atomic.h>
-#include <limits.h>
-#include <lock.h>
-#include <misc.h>
-#include <sys.h>
-#include <syscall.h>
-#include <syscall_const.h>
+#ifndef _WS_H
+#define _WS_H
 
-#define WFLAG (0x1 << 31)
-#define WREQUEST (0x1 << 30)
+#define WS_CONNECTION_SIZE 88
+#define WS_SIZE 16
 
-void lockguard_cleanup(LockGuardImpl *lg) {
-	if (lg->is_write) {
-		ASTORE(lg->lock, 0);
-		futex(lg->lock, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
-	} else {
-		uint32_t v = __sub32(lg->lock, 1);
-		if ((v & ~(WREQUEST | WFLAG)) == 1)
-			futex(lg->lock, FUTEX_WAKE, 1, NULL, NULL, 0);
-	}
-}
+typedef struct {
+	uint8_t *buffer;
+	size_t len;
+} WsMessage;
 
-LockGuardImpl rlock(Lock *lock) {
-	LockGuardImpl ret = {0};
-	while (true) {
-		uint32_t cur = ALOAD(lock);
-		if ((cur & (WREQUEST | WFLAG)) == 0) {
-			if (__cas32(lock, &cur, cur + 1)) break;
-		} else
-			futex(lock, FUTEX_WAIT, cur, NULL, NULL, 0);
-	}
-	ret.lock = lock;
-	ret.is_write = false;
-	return ret;
-}
+typedef struct {
+	uint8_t opaque[WS_CONNECTION_SIZE];
+} WsConnection;
 
-LockGuardImpl wlock(Lock *lock) {
-	LockGuardImpl ret = {0};
-	while (true) {
-		uint32_t cur = ALOAD(lock);
-		if ((cur & ~WREQUEST) == 0) {
-			if (__cas32(lock, &cur, WFLAG)) break;
-		} else {
-			if ((cur & WREQUEST) == 0) {
-				int32_t desired = cur | WREQUEST;
-				if (!__cas32(lock, &cur, desired)) continue;
-			}
-			futex(lock, FUTEX_WAIT, cur | WREQUEST, NULL, NULL, 0);
-		}
-	}
-	ret.lock = lock;
-	ret.is_write = true;
-	return ret;
-}
+typedef struct {
+	uint16_t port;
+	uint8_t addr[4];
+	uint16_t backlog;
+} WsConfig;
+
+typedef struct {
+	uint8_t opaque[WS_SIZE];
+} Ws;
+
+typedef void (*OnOpen)(void *ctx, WsConnection *conn);
+typedef void (*OnClose)(void *ctx, WsConnection *conn, int code,
+			const char *reason);
+typedef int (*OnMessage)(void *ctx, WsConnection *conn, WsMessage *msg);
+int send_ws_message(WsConnection *conn, WsMessage *msg);
+
+int init_ws(Ws *ws, WsConfig *config, void *ctx, OnMessage on_message,
+	    OnOpen on_open, OnClose on_close);
+int start_ws(Ws *ws);
+int stop_ws(Ws *ws);
+
+uint64_t connection_id(WsConnection *connection);
+int connect_ws(Ws *ws, WsConnection *conn, const char *url, void *ctx);
+int close_ws_connection(WsConnection *conn, int code, const char *reason);
+
+#endif /* _WS_H */
