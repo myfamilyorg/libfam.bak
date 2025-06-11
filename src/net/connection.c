@@ -29,8 +29,51 @@
 #include <evh.h>
 #include <lock.h>
 #include <misc.h>
+#include <socket.h>
 #include <syscall.h>
 #include <syscall_const.h>
+Connection *evh_acceptor(uint8_t addr[4], uint16_t port, uint16_t backlog,
+			 OnRecvFn on_recv_fn, OnAcceptFn on_accept_fn,
+			 OnCloseFn on_close_fn) {
+	int pval;
+	Connection *conn = alloc(sizeof(Connection));
+	if (conn == NULL) return NULL;
+	conn->conn_type = Acceptor;
+	conn->data.acceptor.on_accept = on_accept_fn;
+	conn->data.acceptor.on_recv = on_recv_fn;
+	conn->data.acceptor.on_close = on_close_fn;
+	pval = socket_listen(&conn->socket, addr, port, backlog);
+	if (pval == -1) {
+		release(conn);
+		return NULL;
+	}
+	conn->data.acceptor.port = pval;
+	return conn;
+}
+uint16_t evh_acceptor_port(Connection *conn) {
+	if (conn->conn_type == Acceptor) return conn->data.acceptor.port;
+	err = EINVAL;
+	return 0;
+}
+
+Connection *evh_client(Evh *evh, uint8_t addr[4], uint16_t port,
+		       OnRecvFn on_recv, OnCloseFn on_close) {
+	Connection *client = alloc(sizeof(Connection));
+	client->conn_type = Outbound;
+	client->data.inbound.on_recv = on_recv;
+	client->data.inbound.on_close = on_close;
+	client->data.inbound.mplex = evh->mplex;
+	client->data.inbound.lock = LOCK_INIT;
+	client->data.inbound.is_closed = false;
+	client->data.inbound.rbuf = NULL;
+	client->data.inbound.rbuf_capacity = 0;
+	client->data.inbound.rbuf_offset = 0;
+	client->data.inbound.wbuf = NULL;
+	client->data.inbound.wbuf_capacity = 0;
+	client->data.inbound.wbuf_offset = 0;
+	client->socket = socket_connect(addr, port);
+	return client;
+}
 
 int connection_close(Connection *connection) {
 	LockGuard lg = wlock(&connection->data.inbound.lock);

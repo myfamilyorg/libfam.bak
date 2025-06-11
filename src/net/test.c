@@ -126,18 +126,17 @@ int on_recv(void *ctx, Connection *conn, size_t rlen) {
 
 int on_close(void *ctx, Connection *conn) { return 0; }
 
-Test(evh1) {
+Test(test_evh1) {
+	ASSERT_BYTES(0);
 	int port;
 	value = alloc(sizeof(uint64_t));
 	*value = 0;
 
 	ASSERT(!evh_start(&evh1, NULL), "evh_start");
-	Connection *conn = alloc(sizeof(Connection));
-	conn->conn_type = Acceptor;
-	conn->data.acceptor.on_accept = on_accept;
-	conn->data.acceptor.on_recv = on_recv;
-	conn->data.acceptor.on_close = on_close;
-	port = socket_listen(&conn->socket, (uint8_t[]){127, 0, 0, 1}, 0, 10);
+	Connection *conn = evh_acceptor((uint8_t[]){127, 0, 0, 1}, 0, 10,
+					on_recv, on_accept, on_close);
+	port = evh_acceptor_port(conn);
+
 	evh_register(&evh1, conn);
 
 	int tconn = socket_connect((uint8_t[]){127, 0, 0, 1}, port);
@@ -161,6 +160,8 @@ Test(evh1) {
 	release(conn);
 	ASSERT_EQ(ALOAD(value), 1, "value=1");
 	release(value);
+
+	ASSERT_BYTES(0);
 }
 
 Evh evh2;
@@ -173,40 +174,25 @@ int on_recv2(void *ctx, Connection *conn, size_t rlen) {
 	InboundData *ib = &conn->data.inbound;
 	int *v = (int *)(ib->rbuf + ib->rbuf_offset - rlen);
 	int nv = *v + 1;
-	ASTORE(value, nv);
+	ASTORE(value2, nv);
 	if (nv < 105) connection_write(conn, (uint8_t *)&nv, sizeof(int));
 	return 0;
 }
 
 int on_close2(void *ctx, Connection *conn) { return 0; }
 
-Test(evh2) {
-	int port;
+Test(test_evh2) {
+	int port = 9090;
 	value2 = alloc(sizeof(int));
-	*value = 0;
+	*value2 = 0;
 	ASSERT(!evh_start(&evh2, NULL), "evh_start");
-	Connection *conn = alloc(sizeof(Connection));
-	conn->conn_type = Acceptor;
-	conn->data.acceptor.on_accept = on_accept2;
-	conn->data.acceptor.on_recv = on_recv2;
-	conn->data.acceptor.on_close = on_close2;
-	port = socket_listen(&conn->socket, (uint8_t[]){127, 0, 0, 1}, 0, 10);
+	Connection *conn = evh_acceptor((uint8_t[]){127, 0, 0, 1}, 0, 10,
+					on_recv2, on_accept2, on_close2);
+	port = evh_acceptor_port(conn);
 	evh_register(&evh2, conn);
 
-	Connection *client = alloc(sizeof(Connection));
-	client->conn_type = Outbound;
-	client->data.inbound.on_recv = on_recv2;
-	client->data.inbound.on_close = on_close2;
-	client->data.inbound.mplex = evh2.mplex;
-	client->data.inbound.lock = LOCK_INIT;
-	client->data.inbound.is_closed = false;
-	client->data.inbound.rbuf = NULL;
-	client->data.inbound.rbuf_capacity = 0;
-	client->data.inbound.rbuf_offset = 0;
-	client->data.inbound.wbuf = NULL;
-	client->data.inbound.wbuf_capacity = 0;
-	client->data.inbound.wbuf_offset = 0;
-	client->socket = socket_connect((uint8_t[]){127, 0, 0, 1}, port);
+	Connection *client = evh_client(&evh2, (uint8_t[]){127, 0, 0, 1}, port,
+					on_recv2, on_close2);
 	ASSERT(client->socket > 0, "connect");
 	evh_register(&evh2, client);
 
@@ -217,5 +203,8 @@ Test(evh2) {
 		yield();
 		if (ALOAD(value2) == 105) break;
 	}
+
 	ASSERT_EQ(ALOAD(value2), 105, "105");
+	evh_stop(&evh2);
+	release(value2);
 }
