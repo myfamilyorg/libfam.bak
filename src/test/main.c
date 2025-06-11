@@ -1,3 +1,4 @@
+#include <colors.h>
 #include <env.h>
 #include <misc.h>
 #include <stdio.h>
@@ -36,7 +37,7 @@ int main() {
 			test_count++;
 		}
 	}
-	printf("Success! %i tests passed!\n", test_count);
-
+	printf("%sSuccess%s! %i %stests passed!%s\n", GREEN, RESET, test_count,
+	       CYAN, CYAN);
 	return 0;
 }
