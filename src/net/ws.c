@@ -23,29 +23,113 @@
  *
  *******************************************************************************/
 
+#include <alloc.h>
+#include <atomic.h>
 #include <error.h>
 #include <evh.h>
 #include <ws.h>
 
-typedef struct {
-	Evh evh;
-} WsImpl;
+int printf(const char *, ...);
 
-typedef struct {
-	Connection conn;
-} WsConnectionImpl;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
-#define STATIC_ASSERT(condition, message) \
-	typedef char static_assert_##message[(condition) ? 1 : -1]
+struct Ws {
+	Evh *evh;
+	uint64_t workers;
+	OnMessage on_message;
+	OnOpen on_open;
+	OnClose on_close;
+	WsConfig config;
+	uint64_t next_id;
+};
 
-STATIC_ASSERT(sizeof(WsConnectionImpl) == sizeof(WsConnection),
-	      ws_connection_impl_size);
-STATIC_ASSERT(sizeof(WsImpl) == sizeof(Ws), ws_impl_size);
+struct WsConnection {
+	Connection connection;
+	uint64_t id;
+};
 
-int stop_ws(Ws* ws) {
+STATIC int ws_on_recv_proc(void *ctx, Connection *conn, size_t rlen) {
+	Ws *ws = ctx;
+	WsConnection *wsconn = (WsConnection *)conn;
+	/*printf("on recv %ld: len=%lu\n", wsconn->id, rlen);*/
+	return 0;
+}
+
+STATIC int ws_on_accept_proc(void *ctx, Connection *conn) {
+	Ws *ws = ctx;
+	WsConnection *wsconn = (WsConnection *)conn;
+	wsconn->id = __add64(&ws->next_id, 1);
+	ws->on_open(wsconn);
+	return 0;
+}
+STATIC int ws_on_close_proc(void *ctx, Connection *conn) {
+	Ws *ws = ctx;
+	WsConnection *wsconn = (WsConnection *)conn;
+	ws->on_close(wsconn);
+	return 0;
+}
+
+Ws *init_ws(WsConfig *config, OnMessage on_message, OnOpen on_open,
+	    OnClose on_close) {
+	Ws *ret = alloc(sizeof(Ws));
+	if (ret == NULL) return NULL;
+	ret->evh = alloc(sizeof(Evh) * config->workers);
+	if (ret->evh == NULL) {
+		release(ret);
+		return NULL;
+	}
+	ret->workers = config->workers;
+	ret->config = *config;
+	ret->on_message = on_message;
+	ret->on_open = on_open;
+	ret->on_close = on_close;
+	ret->next_id = 0;
+	return ret;
+}
+
+int start_ws(Ws *ws) {
+	uint64_t i;
+	Connection *acceptor =
+	    evh_acceptor(ws->config.addr, ws->config.port, ws->config.backlog,
+			 ws_on_recv_proc, ws_on_accept_proc, ws_on_close_proc);
+
+	if (acceptor == NULL) return -1;
+
+	for (i = 0; i < ws->workers; i++) {
+		ws->evh[i].id = i;
+		if (evh_start(&ws->evh[i], ws,
+			      sizeof(WsConnection) - sizeof(Connection)) ==
+		    -1) {
+			release(acceptor);
+			return -1;
+		}
+
+		/*printf("register acceptor %i with %i\n", acceptor->socket,
+		       ws->evh[i].mplex);*/
+		if (evh_register(&ws->evh[i], acceptor) == -1) {
+			release(acceptor);
+			evh_stop(&ws->evh[i]);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+int stop_ws(Ws *ws) {
 	if (ws == NULL) {
 		err = EINVAL;
 		return -1;
 	}
 	return 0;
 }
+
+uint64_t connection_id(WsConnection *conn) { return conn->id; }
+WsConnection *connect_ws(Ws *ws, const char *url);
+int close_ws_connection(WsConnection *conn, int code, const char *reason);
+int send_ws_message(WsConnection *conn, WsMessage *msg);
+
+#pragma GCC diagnostic pop
+

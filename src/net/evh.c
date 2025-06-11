@@ -59,7 +59,8 @@ STATIC int proc_acceptor(Evh *evh, Connection *acceptor, void *ctx) {
 			if (err != EAGAIN) perror("socket_accept");
 			break;
 		}
-		nconn = alloc(sizeof(Connection));
+		nconn =
+		    alloc(sizeof(Connection) + evh->connection_alloc_overhead);
 		if (nconn == NULL) {
 			/* Cannot allocate memory, drop connection */
 			close(fd);
@@ -189,7 +190,9 @@ STATIC void event_loop(Evh *evh, void *ctx, int wakeup) {
 	Event events[MAX_EVENTS];
 
 	while (true) {
+		/*printf("sleep id=%ld\n", evh->id);*/
 		count = mwait(evh->mplex, events, MAX_EVENTS, -1);
+		/*printf("wakeup id=%ld\n", evh->id);*/
 		for (i = 0; i < count; i++) {
 			Connection *conn = event_attachment(events[i]);
 			if (conn == &wakeup_attachment) {
@@ -256,8 +259,9 @@ int evh_register(Evh *evh, Connection *connection) {
 	}
 }
 
-int evh_start(Evh *evh, void *ctx) {
+int evh_start(Evh *evh, void *ctx, uint64_t connection_alloc_overhead) {
 	evh->mplex = multiplex();
+	evh->connection_alloc_overhead = connection_alloc_overhead;
 	evh->stopped = alloc(sizeof(uint64_t));
 	if (evh->stopped == NULL) {
 		close(evh->mplex);

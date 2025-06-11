@@ -135,7 +135,7 @@ Test(test_evh1) {
 	value = alloc(sizeof(uint64_t));
 	*value = 0;
 
-	ASSERT(!evh_start(&evh1, NULL), "evh_start");
+	ASSERT(!evh_start(&evh1, NULL, 0), "evh_start");
 	Connection *conn = evh_acceptor((uint8_t[]){127, 0, 0, 1}, 0, 10,
 					on_recv, on_accept, on_close);
 	port = evh_acceptor_port(conn);
@@ -192,7 +192,7 @@ Test(test_evh2) {
 	int port;
 	value2 = alloc(sizeof(int));
 	*value2 = 0;
-	ASSERT(!evh_start(&evh2, NULL), "evh_start");
+	ASSERT(!evh_start(&evh2, NULL, 0), "evh_start");
 
 	Connection *conn = evh_acceptor((uint8_t[]){127, 0, 0, 1}, 0, 10,
 					on_recv2, on_accept2, on_close2);
@@ -201,7 +201,7 @@ Test(test_evh2) {
 	evh_register(&evh2, conn);
 
 	Connection *client =
-	    evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2);
+	    evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2, 0);
 	ASSERT(!evh_acceptor_port(client), "evh_acceptor_port on client err");
 	ASSERT(client->socket > 0, "connect");
 	evh_register(&evh2, client);
@@ -232,9 +232,9 @@ Test(test_evh_coverage) {
 	       "listen on same port");
 	close(conn->socket);
 	release(conn);
-	ASSERT(
-	    !evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2),
-	    "connect failure");
+	ASSERT(!evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2,
+			   0),
+	       "connect failure");
 
 	ASSERT_BYTES(0);
 }
@@ -245,7 +245,7 @@ Test(test_evh_other_situations) {
 	uint16_t port = evh_acceptor_port(conn);
 
 	Connection *client =
-	    evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2);
+	    evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2, 0);
 
 	ASSERT(!connection_close(client), "conn_close");
 
@@ -262,7 +262,7 @@ Test(test_evh_other_situations2) {
 	uint16_t port = evh_acceptor_port(conn);
 
 	Connection *client =
-	    evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2);
+	    evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2, 0);
 	ASSERT(client, "client");
 
 	close(conn->socket);
@@ -280,7 +280,7 @@ Test(test_evh_clear) {
 	uint16_t port = evh_acceptor_port(conn);
 
 	Connection *client =
-	    evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2);
+	    evh_client((uint8_t[]){127, 0, 0, 1}, port, on_recv2, on_close2, 0);
 
 	client->data.inbound.rbuf = alloc(1024);
 	client->data.inbound.rbuf_capacity = 1024;
@@ -306,4 +306,18 @@ int proc_wakeup(int fd);
 
 Test(test_evh_direct) { ASSERT_EQ(proc_wakeup(-1), -1, "proc_wakeup"); }
 
-Test(ws1) {}
+void ws_on_open(WsConnection *conn) {
+	printf("ws open id = %ld\n", connection_id(conn));
+}
+void ws_on_close(WsConnection *conn) {
+	printf("ws close id = %ld\n", connection_id(conn));
+}
+int ws_on_message(WsConnection *conn, WsMessage *msg) { return 0; }
+
+Test(ws1) {
+	WsConfig config = {
+	    .port = 9090, .addr = {0, 0, 0, 0}, .workers = 2, .backlog = 10};
+	Ws *ws = init_ws(&config, ws_on_message, ws_on_open, ws_on_close);
+	start_ws(ws);
+	// sleepm(1000 * 1000);
+}

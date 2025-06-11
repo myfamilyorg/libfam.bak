@@ -58,8 +58,10 @@ uint16_t evh_acceptor_port(Connection *conn) {
 }
 
 Connection *evh_client(uint8_t addr[4], uint16_t port, OnRecvFn on_recv_fn,
-		       OnCloseFn on_close_fn) {
-	Connection *client = alloc(sizeof(Connection));
+		       OnCloseFn on_close_fn,
+		       uint64_t connection_alloc_overhead) {
+	Connection *client =
+	    alloc(sizeof(Connection) + connection_alloc_overhead);
 	if (client == NULL) return NULL;
 	client->conn_type = Outbound;
 	client->data.inbound.on_recv = on_recv_fn;

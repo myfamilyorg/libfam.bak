@@ -72,17 +72,19 @@ typedef struct {
 	int wakeup;
 	int mplex;
 	uint64_t *stopped;
+	uint64_t id;
+	uint64_t connection_alloc_overhead;
 } Evh;
 
 int evh_register(Evh *evh, Connection *connection);
-int evh_start(Evh *evh, void *ctx);
+int evh_start(Evh *evh, void *ctx, uint64_t connection_alloc_overhead);
 int evh_stop(Evh *evh);
 
 Connection *evh_acceptor(uint8_t addr[4], uint16_t port, uint16_t backlog,
 			 OnRecvFn on_recv, OnAcceptFn on_accept,
 			 OnCloseFn on_close);
 Connection *evh_client(uint8_t addr[4], uint16_t port, OnRecvFn on_recv,
-		       OnCloseFn on_close);
+		       OnCloseFn on_close, uint64_t connection_alloc_overhead);
 uint16_t evh_acceptor_port(Connection *conn);
 int connection_close(Connection *connection);
 int connection_write(Connection *connection, const void *buf, size_t len);

@@ -26,41 +26,34 @@
 #ifndef _WS_H
 #define _WS_H
 
-#define WS_CONNECTION_SIZE 88
-#define WS_SIZE 16
-
 typedef struct {
 	uint8_t *buffer;
 	size_t len;
 } WsMessage;
 
-typedef struct {
-	uint8_t opaque[WS_CONNECTION_SIZE];
-} WsConnection;
+typedef struct WsConnection WsConnection;
 
 typedef struct {
 	uint16_t port;
 	uint8_t addr[4];
 	uint16_t backlog;
+	uint16_t workers;
 } WsConfig;
 
-typedef struct {
-	uint8_t opaque[WS_SIZE];
-} Ws;
+typedef struct Ws Ws;
 
-typedef void (*OnOpen)(void *ctx, WsConnection *conn);
-typedef void (*OnClose)(void *ctx, WsConnection *conn, int code,
-			const char *reason);
-typedef int (*OnMessage)(void *ctx, WsConnection *conn, WsMessage *msg);
+typedef void (*OnOpen)(WsConnection *conn);
+typedef void (*OnClose)(WsConnection *conn);
+typedef int (*OnMessage)(WsConnection *conn, WsMessage *msg);
+
 int send_ws_message(WsConnection *conn, WsMessage *msg);
-
-int init_ws(Ws *ws, WsConfig *config, void *ctx, OnMessage on_message,
-	    OnOpen on_open, OnClose on_close);
+Ws *init_ws(WsConfig *config, OnMessage on_message, OnOpen on_open,
+	    OnClose on_close);
 int start_ws(Ws *ws);
 int stop_ws(Ws *ws);
 
 uint64_t connection_id(WsConnection *connection);
-int connect_ws(Ws *ws, WsConnection *conn, const char *url, void *ctx);
+WsConnection *connect_ws(Ws *ws, const char *url);
 int close_ws_connection(WsConnection *conn, int code, const char *reason);
 
 #endif /* _WS_H */
