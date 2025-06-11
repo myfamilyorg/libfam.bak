@@ -121,7 +121,9 @@ int on_recv(void *ctx, Connection *conn, size_t rlen) {
 	InboundData *ib = &conn->data.inbound;
 	memcpy(buf, ib->rbuf, ib->rbuf_offset);
 	buf[ib->rbuf_offset] = 0;
-	return connection_write(conn, "0123456789\n", 11);
+	connection_write(conn, "0123456789\n", 11);
+	connection_close(conn);
+	return 0;
 }
 
 int on_close(void *ctx, Connection *conn) { return 0; }
@@ -160,8 +162,9 @@ Test(test_evh1) {
 	release(conn);
 	ASSERT_EQ(ALOAD(value), 1, "value=1");
 	release(value);
+	sleepm(100);
 
-	// ASSERT_BYTES(0);
+	ASSERT_BYTES(0);
 }
 
 Evh evh2;
@@ -175,21 +178,26 @@ int on_recv2(void *ctx, Connection *conn, size_t rlen) {
 	int *v = (int *)(ib->rbuf + ib->rbuf_offset - rlen);
 	int nv = *v + 1;
 	ASTORE(value2, nv);
-	if (nv < 105) connection_write(conn, (uint8_t *)&nv, sizeof(int));
+	if (nv < 105)
+		connection_write(conn, (uint8_t *)&nv, sizeof(int));
+	else
+		connection_close(conn);
 	return 0;
 }
 
 int on_close2(void *ctx, Connection *conn) { return 0; }
 
 Test(test_evh2) {
-	// ASSERT_BYTES(0);
+	ASSERT_BYTES(0);
 
 	int port;
 	value2 = alloc(sizeof(int));
 	*value2 = 0;
 	ASSERT(!evh_start(&evh2, NULL), "evh_start");
+
 	Connection *conn = evh_acceptor((uint8_t[]){127, 0, 0, 1}, 0, 10,
 					on_recv2, on_accept2, on_close2);
+
 	port = evh_acceptor_port(conn);
 	evh_register(&evh2, conn);
 
@@ -207,7 +215,13 @@ Test(test_evh2) {
 	}
 
 	ASSERT_EQ(ALOAD(value2), 105, "105");
+	connection_close(client);
+	sleepm(100);
 	evh_stop(&evh2);
 	release(value2);
-	// ASSERT_BYTES(0);
+	release(conn);
+
+	sleepm(100);
+	printf("final assert\n");
+	ASSERT_BYTES(0);
 }
