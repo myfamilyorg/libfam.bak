@@ -331,7 +331,7 @@ int ws_stop(Ws *ws) {
 uint64_t ws_connection_id(WsConnection *conn) { return conn->id; }
 WsConnection *ws_connect(Ws *ws, const char *url);
 
-int ws_close_connection(WsConnection *conn, int code, const char *reason) {
+int ws_connection_close(WsConnection *conn, int code, const char *reason) {
 	connection_close(&conn->connection);
 	return 0;
 }

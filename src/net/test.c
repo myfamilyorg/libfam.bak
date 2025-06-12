@@ -317,7 +317,7 @@ int ws_on_message(WsConnection *conn, WsMessage *msg) {
 	buf[msg->len] = 0;
 	ASSERT(!strcmp(buf, "test"), "eqtest");
 	__add64(confirm, 1);
-	ws_close_connection(conn, 0, "test");
+	ws_connection_close(conn, 0, "test");
 	return 0;
 }
 
