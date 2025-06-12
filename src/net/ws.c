@@ -29,7 +29,6 @@
 #include <evh.h>
 #include <misc.h>
 #include <sha1.h>
-#include <stdio.h>
 #include <ws.h>
 
 #define MAX_URI_LEN 24
