@@ -23,38 +23,4 @@
  *
  *******************************************************************************/
 
-#ifndef _WS_H
-#define _WS_H
-
-typedef struct {
-	uint8_t *buffer;
-	size_t len;
-} WsMessage;
-
-typedef struct {
-	uint16_t port;
-	uint8_t addr[4];
-	uint16_t backlog;
-	uint16_t workers;
-} WsConfig;
-
-typedef struct WsConnection WsConnection;
-typedef struct Ws Ws;
-
-typedef void (*OnOpen)(WsConnection *conn);
-typedef void (*OnClose)(WsConnection *conn);
-typedef int (*OnMessage)(WsConnection *conn, WsMessage *msg);
-
-int ws_send(WsConnection *conn, WsMessage *msg);
-Ws *ws_init(WsConfig *config, OnMessage on_message, OnOpen on_open,
-	    OnClose on_close);
-int ws_start(Ws *ws);
-int ws_stop(Ws *ws);
-
-uint64_t ws_connection_id(WsConnection *connection);
-WsConnection *ws_connect(Ws *ws, const char *url);
-int ws_connection_close(WsConnection *conn, int code, const char *reason);
-const char *ws_connection_uri(WsConnection *conn);
-uint16_t ws_port(Ws *ws);
-
-#endif /* _WS_H */
+#include <bptree.h>
