@@ -312,6 +312,7 @@ void ws_on_open(WsConnection *conn) {}
 void ws_on_close(WsConnection *conn) {}
 int ws_on_message(WsConnection *conn, WsMessage *msg) {
 	char buf[1024 * 64];
+
 	memcpy(buf, msg->buffer, msg->len);
 	buf[msg->len] = 0;
 	ASSERT(!strcmp(buf, "test"), "eqtest");
@@ -344,10 +345,36 @@ Test(ws1) {
 
 	while (!ALOAD(confirm)) yield();
 	ASSERT(ALOAD(confirm), "confirm");
-	stop_ws(ws);
 
+	stop_ws(ws);
 	close(socket);
 	release(confirm);
+
+	ASSERT_BYTES(0);
+}
+
+void ws_on_open2(WsConnection *conn) {
+	// printf("on open %ld\n", connection_id(conn));
+}
+void ws_on_close2(WsConnection *conn) {}
+int ws_on_message2(WsConnection *conn, WsMessage *msg) {
+	char buf[msg->len + 1];
+	memcpy(buf, msg->buffer, msg->len);
+	buf[msg->len] = 0;
+	// fprintf(stderr, "recv msg len = %ld value = '%s'\n", msg->len, buf);
+	return 0;
+}
+
+Test(ws2) {
+	WsConfig config = {
+	    .port = 9091, .addr = {0, 0, 0, 0}, .workers = 2, .backlog = 10};
+	Ws *ws = init_ws(&config, ws_on_message2, ws_on_open2, ws_on_close2);
+
+	start_ws(ws);
+
+	// sleepm(10000000);
+
+	stop_ws(ws);
 
 	ASSERT_BYTES(0);
 }

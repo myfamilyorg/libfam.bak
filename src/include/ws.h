@@ -55,5 +55,6 @@ int stop_ws(Ws *ws);
 uint64_t connection_id(WsConnection *connection);
 WsConnection *connect_ws(Ws *ws, const char *url);
 int close_ws_connection(WsConnection *conn, int code, const char *reason);
+const char *ws_connection_uri(WsConnection *conn);
 
 #endif /* _WS_H */

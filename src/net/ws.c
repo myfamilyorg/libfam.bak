@@ -54,7 +54,7 @@ struct WsConnection {
 	Connection connection;
 	uint64_t id;
 	bool handshake_complete;
-	char uri[MAX_URI_LEN];
+	char uri[MAX_URI_LEN + 1];
 };
 
 static const char *BAD_REQUEST =
@@ -157,6 +157,7 @@ STATIC int ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 	uint8_t op;
 	uint64_t len;
 	uint64_t data_start;
+	uint8_t masking_key[4] = {0};
 
 	if (rbuf_offset < 2) {
 		err = EAGAIN;
@@ -189,9 +190,23 @@ STATIC int ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 		data_start = mask ? 6 : 2;
 
 	/* Accept continuation, binary, close, and ping frames only */
-	if (op != 0 && op != 2 && op != 8 && op != 9) {
+	if (op != 0 && op != 1 && op != 2 && op != 8 && op != 9) {
 		err = EPROTO;
 		return -1;
+	}
+
+	if (mask) {
+		uint64_t i;
+		uint8_t *payload;
+		masking_key[0] = rbuf[data_start - 4];
+		masking_key[1] = rbuf[data_start - 3];
+		masking_key[2] = rbuf[data_start - 2];
+		masking_key[3] = rbuf[data_start - 1];
+
+		payload = rbuf + data_start;
+		for (i = 0; i < len; i++) {
+			payload[i] ^= masking_key[i % 4];
+		}
 	}
 
 	if (fin && data_start + len <= rbuf_offset) {
@@ -210,6 +225,7 @@ STATIC int ws_on_recv_proc(void *ctx, Connection *conn, size_t rlen) {
 	WsConnection *wsconn = (WsConnection *)conn;
 	size_t rbuf_offset = wsconn->connection.data.inbound.rbuf_offset;
 	uint8_t *rbuf = wsconn->connection.data.inbound.rbuf;
+
 	while (true) {
 		err = 0;
 		if (!wsconn->handshake_complete) {
@@ -241,6 +257,7 @@ STATIC int ws_on_accept_proc(void *ctx, Connection *conn) {
 	WsConnection *wsconn = (WsConnection *)conn;
 	wsconn->id = __add64(&ws->next_id, 1);
 	wsconn->handshake_complete = false;
+	wsconn->uri[0] = 0;
 	ws->on_open(wsconn);
 	return 0;
 }
@@ -316,6 +333,8 @@ int close_ws_connection(WsConnection *conn, int code, const char *reason) {
 	return 0;
 }
 int send_ws_message(WsConnection *conn, WsMessage *msg);
+
+const char *ws_connection_uri(WsConnection *conn) { return conn->uri; }
 
 #pragma GCC diagnostic pop
 
