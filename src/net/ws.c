@@ -332,7 +332,50 @@ int close_ws_connection(WsConnection *conn, int code, const char *reason) {
 	connection_close(&conn->connection);
 	return 0;
 }
-int send_ws_message(WsConnection *conn, WsMessage *msg);
+
+/*
+int send_ws_message(WsConnection *conn, WsMessage *msg) {
+	uint8_t buf[2];
+	buf[0] = 0x82;
+	buf[1] = (uint8_t)msg->len;
+	connection_write(&conn->connection, buf, 2);
+	return connection_write(&conn->connection, msg->buffer, msg->len);
+}
+*/
+
+int send_ws_message(WsConnection *conn, WsMessage *msg) {
+	uint8_t buf[10];
+	size_t header_len;
+
+	buf[0] = 0x82;
+
+	if (msg->len <= 125) {
+		buf[1] = (uint8_t)msg->len;
+		header_len = 2;
+	} else if (msg->len <= 65535) {
+		buf[1] = 126;
+		buf[2] = (msg->len >> 8) & 0xFF;
+		buf[3] = msg->len & 0xFF;
+		header_len = 4;
+	} else {
+		buf[1] = 127;
+		buf[2] = (msg->len >> 56) & 0xFF;
+		buf[3] = (msg->len >> 48) & 0xFF;
+		buf[4] = (msg->len >> 40) & 0xFF;
+		buf[5] = (msg->len >> 32) & 0xFF;
+		buf[6] = (msg->len >> 24) & 0xFF;
+		buf[7] = (msg->len >> 16) & 0xFF;
+		buf[8] = (msg->len >> 8) & 0xFF;
+		buf[9] = msg->len & 0xFF;
+		header_len = 10;
+	}
+
+	if (connection_write(&conn->connection, buf, header_len) < 0) {
+		return -1;
+	}
+
+	return connection_write(&conn->connection, msg->buffer, msg->len);
+}
 
 const char *ws_connection_uri(WsConnection *conn) { return conn->uri; }
 
