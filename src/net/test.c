@@ -317,7 +317,7 @@ int ws_on_message(WsConnection *conn, WsMessage *msg) {
 	buf[msg->len] = 0;
 	ASSERT(!strcmp(buf, "test"), "eqtest");
 	__add64(confirm, 1);
-	close_ws_connection(conn, 0, "test");
+	ws_close_connection(conn, 0, "test");
 	return 0;
 }
 
@@ -328,9 +328,9 @@ Test(ws1) {
 
 	WsConfig config = {
 	    .port = 0, .addr = {127, 0, 0, 1}, .workers = 2, .backlog = 10};
-	Ws *ws = init_ws(&config, ws_on_message, ws_on_open, ws_on_close);
-	start_ws(ws);
-	uint16_t port = ws_acceptor_port(ws);
+	Ws *ws = ws_init(&config, ws_on_message, ws_on_open, ws_on_close);
+	ws_start(ws);
+	uint16_t port = ws_port(ws);
 
 	int socket = socket_connect((uint8_t[]){127, 0, 0, 1}, port);
 	const char *msg =
@@ -347,7 +347,7 @@ Test(ws1) {
 	while (!ALOAD(confirm)) yield();
 	ASSERT_EQ(ALOAD(confirm), 1, "confirm");
 
-	stop_ws(ws);
+	ws_stop(ws);
 	close(socket);
 	release(confirm);
 
@@ -355,7 +355,7 @@ Test(ws1) {
 }
 
 void ws_on_open2(WsConnection *conn) {
-	// printf("on open %ld\n", connection_id(conn));
+	// printf("on open %ld\n", ws_connection_id(conn));
 }
 void ws_on_close2(WsConnection *conn) {}
 int ws_on_message2(WsConnection *conn, WsMessage *msg) {
@@ -363,20 +363,20 @@ int ws_on_message2(WsConnection *conn, WsMessage *msg) {
 	memcpy(buf, msg->buffer, msg->len);
 	buf[msg->len] = 0;
 	// fprintf(stderr, "recv msg len = %ld value = '%s'\n", msg->len, buf);
-	send_ws_message(conn, msg);
+	ws_send(conn, msg);
 	return 0;
 }
 
 Test(ws2) {
 	WsConfig config = {
 	    .port = 9091, .addr = {0, 0, 0, 0}, .workers = 2, .backlog = 10};
-	Ws *ws = init_ws(&config, ws_on_message2, ws_on_open2, ws_on_close2);
+	Ws *ws = ws_init(&config, ws_on_message2, ws_on_open2, ws_on_close2);
 
-	start_ws(ws);
+	ws_start(ws);
 
 	// sleepm(10000000);
 
-	stop_ws(ws);
+	ws_stop(ws);
 
 	ASSERT_BYTES(0);
 }

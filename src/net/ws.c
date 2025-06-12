@@ -270,7 +270,7 @@ STATIC int ws_on_close_proc(void *ctx, Connection *conn) {
 	return 0;
 }
 
-Ws *init_ws(WsConfig *config, OnMessage on_message, OnOpen on_open,
+Ws *ws_init(WsConfig *config, OnMessage on_message, OnOpen on_open,
 	    OnClose on_close) {
 	Ws *ret = alloc(sizeof(Ws));
 	if (ret == NULL) return NULL;
@@ -288,7 +288,7 @@ Ws *init_ws(WsConfig *config, OnMessage on_message, OnOpen on_open,
 	return ret;
 }
 
-int start_ws(Ws *ws) {
+int ws_start(Ws *ws) {
 	uint64_t i;
 	ws->acceptor =
 	    evh_acceptor(ws->config.addr, ws->config.port, ws->config.backlog,
@@ -316,7 +316,7 @@ int start_ws(Ws *ws) {
 	return 0;
 }
 
-int stop_ws(Ws *ws) {
+int ws_stop(Ws *ws) {
 	uint64_t i;
 	for (i = 0; i < ws->workers; i++) {
 		evh_stop(&ws->evh[i]);
@@ -328,15 +328,15 @@ int stop_ws(Ws *ws) {
 	return 0;
 }
 
-uint64_t connection_id(WsConnection *conn) { return conn->id; }
-WsConnection *connect_ws(Ws *ws, const char *url);
+uint64_t ws_connection_id(WsConnection *conn) { return conn->id; }
+WsConnection *ws_connect(Ws *ws, const char *url);
 
-int close_ws_connection(WsConnection *conn, int code, const char *reason) {
+int ws_close_connection(WsConnection *conn, int code, const char *reason) {
 	connection_close(&conn->connection);
 	return 0;
 }
 
-int send_ws_message(WsConnection *conn, WsMessage *msg) {
+int ws_send(WsConnection *conn, WsMessage *msg) {
 	uint8_t buf[10];
 	size_t header_len;
 
@@ -372,7 +372,7 @@ int send_ws_message(WsConnection *conn, WsMessage *msg) {
 
 const char *ws_connection_uri(WsConnection *conn) { return conn->uri; }
 
-uint16_t ws_acceptor_port(Ws *ws) { return evh_acceptor_port(ws->acceptor); }
+uint16_t ws_port(Ws *ws) { return evh_acceptor_port(ws->acceptor); }
 
 #pragma GCC diagnostic pop
 
