@@ -130,6 +130,8 @@ const char *error_string(int err_code) {
 			return "Too many levels of symbolic links";
 		case EOVERFLOW:
 			return "Numerical overflow";
+		case EPROTO:
+			return "Protocol not supported";
 		default:
 			return "Unknown error";
 	}

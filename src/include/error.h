@@ -78,6 +78,7 @@
 
 /* libfam specific codes */
 #define EOVERFLOW 200 /* Overflow would occur */
+#define EPROTO 201    /* Protocol not supported */
 
 extern int err;
 

@@ -93,6 +93,24 @@ char *substr(const char *s, const char *sub) {
 	return NULL;
 }
 
+char *substrn(const char *s, const char *sub, size_t n) {
+	size_t i;
+	if (s == NULL || sub == NULL || n == 0) return NULL;
+	if (*sub == '\0') return (char *)s;
+
+	for (i = 0; i < n && s[i]; i++) {
+		const char *tmps = s + i, *tmpsub = sub;
+		size_t j = i;
+		while (j < n && *tmps == *tmpsub && *tmps) {
+			tmps++;
+			tmpsub++;
+			j++;
+		}
+		if (*tmpsub == '\0') return (char *)(s + i);
+	}
+	return NULL;
+}
+
 void *memset(void *dest, int c, size_t n) {
 	uint8_t *s = (uint8_t *)dest;
 	size_t i;
@@ -544,103 +562,127 @@ uint128_t __udivti3(uint128_t a, uint128_t b) {
 	return quotient;
 }
 
-int b64_encode(const void *buf_in, size_t in_len, char *buf_out) {
-	/* Base64 alphabet */
+int printf(const char *, ...);
+
+/* Base64 encode */
+size_t b64_encode(const unsigned char *in, size_t in_len, char *out,
+		  size_t out_max) {
+	size_t i;
+	size_t j;
 	static const char *b64_table =
-	    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-	const unsigned char *in = (const unsigned char *)buf_in;
-	size_t i, out_len = 0;
+	    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-	/* Ensure output buffer is not null */
-	if (!buf_out) return -1;
-
-	/* Process input in groups of 3 uint8_ts */
-	for (i = 0; i < in_len; i += 3) {
-		/* First 6 bits of first uint8_t */
-		buf_out[out_len++] = b64_table[(in[i] >> 2) & 0x3F];
-
-		/* Last 2 bits of first uint8_t + first 4 bits of second uint8_t
-		 */
-		if (i + 1 < in_len) {
-			buf_out[out_len++] =
-			    b64_table[((in[i] & 0x3) << 4) |
-				      ((in[i + 1] >> 4) & 0xF)];
-		} else {
-			buf_out[out_len++] = b64_table[(in[i] & 0x3) << 4];
-			buf_out[out_len++] = '=';
-			buf_out[out_len++] = '=';
-			break;
-		}
-
-		/* Last 4 bits of second uint8_t + first 2 bits of third uint8_t
-		 */
-		if (i + 2 < in_len) {
-			buf_out[out_len++] =
-			    b64_table[((in[i + 1] & 0xF) << 2) |
-				      ((in[i + 2] >> 6) & 0x3)];
-			buf_out[out_len++] = b64_table[in[i + 2] & 0x3F];
-		} else {
-			buf_out[out_len++] = b64_table[(in[i + 1] & 0xF) << 2];
-			buf_out[out_len++] = '=';
-		}
+	if (!in || !out || out_max < ((in_len + 2) / 3) * 4 + 1) {
+		return 0;
 	}
 
-	buf_out[out_len] = '\0'; /* Null-terminate output */
-	return out_len;
+	j = 0;
+	for (i = 0; i + 2 < in_len; i += 3) {
+		out[j] = b64_table[(in[i] >> 2) & 0x3F];
+		j++;
+		out[j] = b64_table[((in[i] & 0x3) << 4) | (in[i + 1] >> 4)];
+		j++;
+		out[j] = b64_table[((in[i + 1] & 0xF) << 2) | (in[i + 2] >> 6)];
+		j++;
+		out[j] = b64_table[in[i + 2] & 0x3F];
+		j++;
+	}
+
+	if (i < in_len) {
+		out[j] = b64_table[(in[i] >> 2) & 0x3F];
+		j++;
+		if (i + 1 < in_len) {
+			out[j] =
+			    b64_table[((in[i] & 0x3) << 4) | (in[i + 1] >> 4)];
+			j++;
+			out[j] = b64_table[(in[i + 1] & 0xF) << 2];
+			j++;
+		} else {
+			out[j] = b64_table[(in[i] & 0x3) << 4];
+			j++;
+			out[j] = '=';
+			j++;
+		}
+		out[j] = '=';
+		j++;
+	}
+
+	out[j] = '\0';
+	return j;
 }
 
-int b64_decode(const void *buf_in, size_t in_len, char *buf_out) {
-	/* Reverse lookup table for Base64 characters */
-	static const unsigned char b64_lookup[] = {
-	    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-	    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-	    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-	    255, 255, 255, 255, 255, 255, 62,  255, 255, 52,  53,  54,	55,
-	    56,	 57,  58,  59,	60,  61,  255, 255, 255, 64,  255, 255, 255,
-	    0,	 1,   2,   3,	4,   5,	  6,   7,   8,	 9,   10,  11,	12,
-	    13,	 14,  15,  16,	17,  18,  19,  20,  21,	 22,  23,  24,	25,
-	    255, 255, 255, 255, 63,  255, 26,  27,  28,	 29,  30,  31,	32,
-	    33,	 34,  35,  36,	37,  38,  39,  40,  41,	 42,  43,  44,	45,
-	    46,	 47,  48,  49,	50,  51,  255, 255, 255, 255, 255};
-	const unsigned char *in = (const unsigned char *)buf_in;
-	size_t i, out_len = 0;
+/* Base64 decode */
+size_t b64_decode(const char *in, size_t in_len, unsigned char *out,
+		  size_t out_max) {
+	size_t i;
+	size_t j;
+	int b0;
+	int b1;
+	int b2;
+	int b3;
+	static const int decode_table[256] = {
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63,
+	    52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1,
+	    -1, 0,  1,	2,  3,	4,  5,	6,  7,	8,  9,	10, 11, 12, 13, 14,
+	    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1,
+	    -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+	    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1,
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 
-	/* Ensure input length is valid (multiple of 4) and output buffer is not
-	 */
-	/* null */
-	if (in_len % 4 != 0 || !buf_out) return -1;
+	if (!in || !out || in_len % 4 != 0) {
+		return 0;
+	}
 
-	/* Process input in groups of 4 uint8_ts */
-	for (i = 0; i < in_len; i += 4) {
-		unsigned char c1, c2, c3, c4;
-
-		/* Validate input characters */
-		if (in[i] > 127 || in[i + 1] > 127 || in[i + 2] > 127 ||
-		    in[i + 3] > 127)
-			return -1;
-		c1 = b64_lookup[in[i]];
-		c2 = b64_lookup[in[i + 1]];
-		c3 = b64_lookup[in[i + 2]];
-		c4 = b64_lookup[in[i + 3]];
-		if (c1 == 255 || c2 == 255 || (c3 == 255 && in[i + 2] != '=') ||
-		    (c4 == 255 && in[i + 3] != '='))
-			return -1;
-
-		/* First output uint8_t */
-		buf_out[out_len++] = (c1 << 2) | ((c2 >> 4) & 0x3);
-
-		/* Second output uint8_t (if not padding) */
-		if (in[i + 2] != '=') {
-			buf_out[out_len++] =
-			    ((c2 & 0xF) << 4) | ((c3 >> 2) & 0xF);
-		}
-
-		/* Third output uint8_t (if not padding) */
-		if (in[i + 3] != '=') {
-			buf_out[out_len++] = ((c3 & 0x3) << 6) | c4;
+	/* Account for padding in output size */
+	{
+		size_t expected_out = (in_len / 4) * 3;
+		if (in_len >= 4 && in[in_len - 1] == '=') out_max++;
+		if (in_len >= 4 && in[in_len - 2] == '=') out_max++;
+		if (out_max < expected_out) {
+			return 0;
 		}
 	}
 
-	buf_out[out_len] = '\0'; /* Null-terminate output */
-	return out_len;
+	j = 0;
+	for (i = 0; i < in_len; i += 4) {
+		b0 = decode_table[(unsigned char)in[i]];
+		b1 = decode_table[(unsigned char)in[i + 1]];
+		b2 = (i + 2 < in_len && in[i + 2] != '=')
+			 ? decode_table[(unsigned char)in[i + 2]]
+			 : -1;
+		b3 = (i + 3 < in_len && in[i + 3] != '=')
+			 ? decode_table[(unsigned char)in[i + 3]]
+			 : -1;
+
+		if (b0 == -1 || b1 == -1 ||
+		    (i + 2 < in_len && in[i + 2] != '=' && b2 == -1) ||
+		    (i + 3 < in_len && in[i + 3] != '=' && b3 == -1)) {
+			return 0;
+		}
+
+		if (j + 3 > out_max) {
+			return 0;
+		}
+		out[j] = (unsigned char)((b0 << 2) | (b1 >> 4));
+		j++;
+		if (i + 2 < in_len && in[i + 2] != '=') {
+			out[j] = (unsigned char)((b1 << 4) | (b2 >> 2));
+			j++;
+		}
+		if (i + 3 < in_len && in[i + 3] != '=') {
+			out[j] = (unsigned char)((b2 << 6) | b3);
+			j++;
+		}
+	}
+
+	return j;
 }

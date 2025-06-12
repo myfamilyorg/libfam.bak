@@ -28,7 +28,10 @@
 #include <misc.h>
 #include <types.h>
 
-int no_color(void) { return getenv("NO_COLOR") != NULL; }
+int no_color(void) {
+	char *noc = getenv("NO_COLOR");
+	return noc != NULL;
+}
 
 const char *get_dimmed(void) {
 	if (no_color()) {

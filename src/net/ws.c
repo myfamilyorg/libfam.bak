@@ -27,13 +27,17 @@
 #include <atomic.h>
 #include <error.h>
 #include <evh.h>
+#include <misc.h>
+#include <sha1.h>
+#include <stdio.h>
 #include <ws.h>
 
-int printf(const char *, ...);
+#define MAX_URI_LEN 24
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
 
 struct Ws {
 	Evh *evh;
@@ -48,19 +52,194 @@ struct Ws {
 struct WsConnection {
 	Connection connection;
 	uint64_t id;
+	bool handshake_complete;
+	char uri[MAX_URI_LEN];
 };
+
+static const char *BAD_REQUEST =
+    "HTTP/1.1 400 Bad Request\r\n\
+Connection: close\r\n\
+Content-Length: 0\r\n\
+\r\n";
+
+static const char *SWITCHING_PROTOS =
+    "HTTP/1.1 101 Switching Protocols\r\n\
+Upgrade: websocket\r\n\
+Connection: Upgrade\r\n\
+Sec-WebSocket-Accept: ";
+
+STATIC int ws_proc_handshake(WsConnection *wsconn) {
+	char *rbuf = (char *)wsconn->connection.data.inbound.rbuf;
+	size_t rbuf_offset = wsconn->connection.data.inbound.rbuf_offset;
+	char *end;
+	char key[24];
+	SHA1_CTX sha1;
+	char accept[32];
+	uint8_t hash[20];
+	uint8_t decoded_key[16];
+	int lendec;
+	const char *guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+
+	if ((end = substrn(rbuf, "\r\n\r\n", rbuf_offset))) {
+		size_t len = end - rbuf, i;
+		char *sec_websocket_key = NULL;
+		sec_websocket_key = substrn(rbuf, "Sec-WebSocket-Key: ", len);
+		if (sec_websocket_key == NULL) {
+			err = EPROTO;
+			return -1;
+		}
+		sec_websocket_key += 19;
+		if ((size_t)(sec_websocket_key - rbuf) + 24 > len) {
+			err = EOVERFLOW;
+			return -1;
+		}
+		memcpy(key, sec_websocket_key, 24);
+
+		if (substrn(rbuf, "GET ", len) != rbuf) {
+			err = EPROTO;
+			return -1;
+		}
+		for (i = 4; i < len; i++)
+			if (rbuf[i] == ' ' || rbuf[i] == '\r' ||
+			    rbuf[i] == '\n')
+				break;
+		if (i - 4 >= MAX_URI_LEN) {
+			err = EOVERFLOW;
+			return -1;
+		}
+		memcpy(wsconn->uri, rbuf + 4, i - 4);
+		wsconn->uri[i - 4] = 0;
+
+		lendec = b64_decode(key, 24, decoded_key, 16);
+		if (lendec != 16) {
+			err = EINVAL;
+			return -1;
+		}
+
+		sha1_init(&sha1);
+		sha1_update(&sha1, (uint8_t *)key, 24);
+		sha1_update(&sha1, (uint8_t *)guid, strlen(guid));
+		sha1_final(&sha1, hash);
+
+		if (!b64_encode(hash, 20, accept, sizeof(accept))) {
+			err = EINVAL;
+			return -1;
+		}
+
+		connection_write(&wsconn->connection, SWITCHING_PROTOS,
+				 strlen(SWITCHING_PROTOS));
+		connection_write(&wsconn->connection, accept, strlen(accept));
+		connection_write(&wsconn->connection, "\r\n\r\n", 4);
+		connection_clear_rbuf_through(&wsconn->connection, len + 4);
+
+		return 0;
+	} else {
+		err = EAGAIN;
+		return -1;
+	}
+}
+
+STATIC int proc_message_single(Ws *ws, WsConnection *wsconn, uint64_t offset,
+			       uint64_t len) {
+	WsMessage msg;
+	msg.buffer = wsconn->connection.data.inbound.rbuf + offset;
+	msg.len = len;
+	ws->on_message(wsconn, &msg);
+
+	return 0;
+}
+
+STATIC int ws_proc_frames(Ws *ws, WsConnection *wsconn) {
+	size_t rbuf_offset = wsconn->connection.data.inbound.rbuf_offset;
+	uint8_t *rbuf = wsconn->connection.data.inbound.rbuf;
+	bool fin, mask;
+	uint8_t op;
+	uint64_t len;
+	uint64_t data_start;
+
+	if (rbuf_offset < 2) {
+		err = EAGAIN;
+		return -1;
+	}
+
+	fin = (rbuf[0] & 0x80) != 0;
+	op = rbuf[0] & 0xF;
+	mask = (rbuf[1] & 0x80) != 0;
+
+	len = rbuf[1] & 0x7F;
+	if (len == 126) {
+		if (rbuf_offset < 4) {
+			err = EAGAIN;
+			return -1;
+		}
+		len = (rbuf[2] << 8) | rbuf[3];
+		data_start = mask ? 8 : 4;
+	} else if (len == 127) {
+		if (rbuf_offset < 10) {
+			err = EAGAIN;
+			return -1;
+		}
+		len = ((uint64_t)rbuf[2] << 56) | ((uint64_t)rbuf[3] << 48) |
+		      ((uint64_t)rbuf[4] << 40) | ((uint64_t)rbuf[5] << 32) |
+		      ((uint64_t)rbuf[6] << 24) | ((uint64_t)rbuf[7] << 16) |
+		      ((uint64_t)rbuf[8] << 8) | rbuf[9];
+		data_start = mask ? 14 : 10;
+	} else
+		data_start = mask ? 6 : 2;
+
+	/* Accept continuation, binary, close, and ping frames only */
+	if (op != 0 && op != 2 && op != 8 && op != 9) {
+		err = EPROTO;
+		return -1;
+	}
+
+	if (fin && data_start + len <= rbuf_offset) {
+		proc_message_single(ws, wsconn, data_start, len);
+		connection_clear_rbuf_through(&wsconn->connection,
+					      data_start + len);
+		return 0;
+	} else {
+		err = EAGAIN;
+		return -1;
+	}
+}
 
 STATIC int ws_on_recv_proc(void *ctx, Connection *conn, size_t rlen) {
 	Ws *ws = ctx;
 	WsConnection *wsconn = (WsConnection *)conn;
-	/*printf("on recv %ld: len=%lu\n", wsconn->id, rlen);*/
-	return 0;
+	size_t rbuf_offset = wsconn->connection.data.inbound.rbuf_offset;
+	uint8_t *rbuf = wsconn->connection.data.inbound.rbuf;
+	while (true) {
+		err = 0;
+		if (!wsconn->handshake_complete) {
+			int res = ws_proc_handshake(wsconn);
+			if (res == 0) {
+				wsconn->handshake_complete = true;
+				continue;
+			} else if (err != EAGAIN) {
+				connection_write(&wsconn->connection,
+						 BAD_REQUEST,
+						 strlen(BAD_REQUEST));
+				connection_close(&wsconn->connection);
+			}
+			return 0;
+		} else {
+			if (ws_proc_frames(ws, wsconn) == 0) continue;
+			if (err != EAGAIN) {
+				/* TODO: write close message */
+				connection_close(&wsconn->connection);
+			}
+			return 0;
+		}
+		break;
+	}
 }
 
 STATIC int ws_on_accept_proc(void *ctx, Connection *conn) {
 	Ws *ws = ctx;
 	WsConnection *wsconn = (WsConnection *)conn;
 	wsconn->id = __add64(&ws->next_id, 1);
+	wsconn->handshake_complete = false;
 	ws->on_open(wsconn);
 	return 0;
 }
@@ -98,6 +277,7 @@ int start_ws(Ws *ws) {
 	if (acceptor == NULL) return -1;
 
 	for (i = 0; i < ws->workers; i++) {
+		/* TODO: cleanup properly on errors */
 		ws->evh[i].id = i;
 		if (evh_start(&ws->evh[i], ws,
 			      sizeof(WsConnection) - sizeof(Connection)) ==
@@ -106,8 +286,6 @@ int start_ws(Ws *ws) {
 			return -1;
 		}
 
-		/*printf("register acceptor %i with %i\n", acceptor->socket,
-		       ws->evh[i].mplex);*/
 		if (evh_register(&ws->evh[i], acceptor) == -1) {
 			release(acceptor);
 			evh_stop(&ws->evh[i]);
@@ -119,10 +297,8 @@ int start_ws(Ws *ws) {
 }
 
 int stop_ws(Ws *ws) {
-	if (ws == NULL) {
-		err = EINVAL;
-		return -1;
-	}
+	uint64_t i;
+	for (i = 0; i < ws->workers; i++) evh_stop(&ws->evh[i]);
 	return 0;
 }
 

@@ -304,19 +304,43 @@ Test(test_evh_clear) {
 
 int proc_wakeup(int fd);
 
+uint64_t *confirm = NULL;
+
 Test(test_evh_direct) { ASSERT_EQ(proc_wakeup(-1), -1, "proc_wakeup"); }
 
-void ws_on_open(WsConnection *conn) {
-	printf("ws open id = %ld\n", connection_id(conn));
+void ws_on_open(WsConnection *conn) {}
+void ws_on_close(WsConnection *conn) {}
+int ws_on_message(WsConnection *conn, WsMessage *msg) {
+	char buf[1024 * 64];
+	memcpy(buf, msg->buffer, msg->len);
+	buf[msg->len] = 0;
+	ASSERT(!strcmp(buf, "test"), "eqtest");
+	__add64(confirm, 1);
+	return 0;
 }
-void ws_on_close(WsConnection *conn) {
-	printf("ws close id = %ld\n", connection_id(conn));
-}
-int ws_on_message(WsConnection *conn, WsMessage *msg) { return 0; }
 
 Test(ws1) {
+	confirm = alloc(sizeof(uint64_t));
+	*confirm = 0;
+
 	WsConfig config = {
 	    .port = 9090, .addr = {0, 0, 0, 0}, .workers = 2, .backlog = 10};
 	Ws *ws = init_ws(&config, ws_on_message, ws_on_open, ws_on_close);
 	start_ws(ws);
+
+	int socket = socket_connect((uint8_t[]){127, 0, 0, 1}, 9090);
+	const char *msg =
+	    "GET / HTTP/1.1\r\nSec-WebSocket-Key: "
+	    "dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n";
+	char buf[1];
+	write(socket, msg, strlen(msg));
+	buf[0] = 0x82;
+	write(socket, buf, 1);
+	buf[0] = 0x04;
+	write(socket, buf, 1);
+	write(socket, "test", 4);
+
+	while (!ALOAD(confirm)) yield();
+	ASSERT(ALOAD(confirm), "confirm");
+	stop_ws(ws);
 }

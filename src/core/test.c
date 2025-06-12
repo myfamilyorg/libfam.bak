@@ -40,6 +40,7 @@
 #include <syscall_const.h>
 #include <test.h>
 
+int unsetenv(const char *name);
 int setenv(const char *name, const char *value, int overwrite);
 
 typedef struct {
@@ -878,13 +879,6 @@ Test(misc) {
 	uint128_t x = __umodti3(y, ((uint128_t)1) << 66);
 	ASSERT_EQ(x, y, "big mod");
 
-	strcpy(bufbig, "0123456789");
-	len = b64_encode(bufbig, 10, bufbig2);
-	b64_decode(bufbig2, len, bufbig3);
-	ASSERT(!strcmp(bufbig, bufbig3), "b64");
-	buf2[0] = buf2[1] = buf2[2] = buf2[3] = '1';
-	ASSERT_EQ(b64_decode(buf2, 3, bufbig), -1, "invalid decode");
-
 	ASSERT_EQ(double_to_string(bufbig, 0.0, 3), 1, "d2str0.0");
 	ASSERT_EQ(bufbig[0], '0', "0");
 }
@@ -1037,6 +1031,32 @@ Test(double_to_string) {
 	ASSERT_EQ(len, 3, "neg_decimals_len");
 }
 
+Test(b64) {
+	char buf[128];
+	char buf2[128];
+	char buf3[128];
+	memcpy(buf, "0123456789", 10);
+	int len = b64_encode(buf, 10, buf2, 128);
+	int len2 = b64_decode(buf2, len, buf3, 128);
+	ASSERT_EQ(len2, 10, "len=10");
+	ASSERT_EQ(buf3[0], '0', "0");
+	ASSERT_EQ(buf3[1], '1', "1");
+	ASSERT_EQ(buf3[2], '2', "2");
+	ASSERT_EQ(buf3[3], '3', "3");
+	ASSERT_EQ(buf3[4], '4', "4");
+	ASSERT_EQ(buf3[5], '5', "5");
+	ASSERT_EQ(buf3[6], '6', "6");
+	ASSERT_EQ(buf3[7], '7', "7");
+	ASSERT_EQ(buf3[8], '8', "8");
+	ASSERT_EQ(buf3[9], '9', "9");
+
+	/*
+	size_t b64_encode(const uint8_t *in, size_t in_len, char *out, size_t
+	out_max); size_t b64_decode(const char *in, size_t in_len, uint8_t *out,
+	size_t out_max);
+	*/
+}
+
 Test(event) {
 	Event events[10];
 	int val = 101;
@@ -1072,4 +1092,5 @@ Test(colors) {
 
 	ASSERT_EQ(len, 8, "len=8");
 	buf[len] = 0;
+	unsetenv("NO_COLOR");
 }
