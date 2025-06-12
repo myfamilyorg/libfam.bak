@@ -29,6 +29,7 @@
     <script>
         // Initialize WebSocket connection
         const ws = new WebSocket('ws://localhost:9091');
+	ws.binaryType = 'arraybuffer';
 
         // Reference to output div
         const output = document.getElementById('output');
@@ -38,24 +39,9 @@
             output.innerHTML += '<p>Connected to WebSocket server</p>';
         };
 
-	ws.onmessage = async function(event) {
+	ws.onmessage = function(event) {
             let message;
-            if (event.data instanceof Blob) {
-                // Handle Blob data
-		try {
-                   // Try reading as text (e.g., UTF-8)
-                    const text = await event.data.text();
-                    // Read as ArrayBuffer for raw binary
-                    const arrayBuffer = await event.data.arrayBuffer();
-                    const bytes = new Uint8Array(arrayBuffer);
-                    const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-                    // Display text if valid, else hex
-                    message = text.match(/^[\x20-\x7E]*$/) ? text : `Binary (hex: ${hex})`;
-                    output.innerHTML += `<p>Received (blob): ${message} (bytes: ${bytes.join(', ')})</p>`;
-                } catch (error) {
-                    output.innerHTML += `<p>Error parsing Blob: ${error}</p>`;
-                }
-            } else if (event.data instanceof ArrayBuffer) {
+            if (event.data instanceof ArrayBuffer) {
                 // Handle ArrayBuffer (in case binaryType works)
                 const bytes = new Uint8Array(event.data);
                 message = new TextDecoder().decode(bytes);

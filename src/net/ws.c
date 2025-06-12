@@ -214,6 +214,9 @@ STATIC int ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 		connection_clear_rbuf_through(&wsconn->connection,
 					      data_start + len);
 		return 0;
+	} else if (!fin && data_start + len <= rbuf_offset) {
+		/* TODO: implement fragmentation handling */
+		return 0;
 	} else {
 		err = EAGAIN;
 		return -1;
@@ -243,7 +246,6 @@ STATIC int ws_on_recv_proc(void *ctx, Connection *conn, size_t rlen) {
 		} else {
 			if (ws_proc_frames(ws, wsconn) == 0) continue;
 			if (err != EAGAIN) {
-				/* TODO: write close message */
 				connection_close(&wsconn->connection);
 			}
 			return 0;
@@ -328,20 +330,11 @@ int stop_ws(Ws *ws) {
 
 uint64_t connection_id(WsConnection *conn) { return conn->id; }
 WsConnection *connect_ws(Ws *ws, const char *url);
+
 int close_ws_connection(WsConnection *conn, int code, const char *reason) {
 	connection_close(&conn->connection);
 	return 0;
 }
-
-/*
-int send_ws_message(WsConnection *conn, WsMessage *msg) {
-	uint8_t buf[2];
-	buf[0] = 0x82;
-	buf[1] = (uint8_t)msg->len;
-	connection_write(&conn->connection, buf, 2);
-	return connection_write(&conn->connection, msg->buffer, msg->len);
-}
-*/
 
 int send_ws_message(WsConnection *conn, WsMessage *msg) {
 	uint8_t buf[10];
@@ -378,6 +371,8 @@ int send_ws_message(WsConnection *conn, WsMessage *msg) {
 }
 
 const char *ws_connection_uri(WsConnection *conn) { return conn->uri; }
+
+uint16_t ws_acceptor_port(Ws *ws) { return evh_acceptor_port(ws->acceptor); }
 
 #pragma GCC diagnostic pop
 

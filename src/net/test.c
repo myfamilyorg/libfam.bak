@@ -327,11 +327,12 @@ Test(ws1) {
 	*confirm = 0;
 
 	WsConfig config = {
-	    .port = 9090, .addr = {0, 0, 0, 0}, .workers = 2, .backlog = 10};
+	    .port = 0, .addr = {127, 0, 0, 1}, .workers = 2, .backlog = 10};
 	Ws *ws = init_ws(&config, ws_on_message, ws_on_open, ws_on_close);
 	start_ws(ws);
+	uint16_t port = ws_acceptor_port(ws);
 
-	int socket = socket_connect((uint8_t[]){127, 0, 0, 1}, 9090);
+	int socket = socket_connect((uint8_t[]){127, 0, 0, 1}, port);
 	const char *msg =
 	    "GET / HTTP/1.1\r\nSec-WebSocket-Key: "
 	    "dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n";
@@ -344,7 +345,7 @@ Test(ws1) {
 	write(socket, "test", 4);
 
 	while (!ALOAD(confirm)) yield();
-	ASSERT(ALOAD(confirm), "confirm");
+	ASSERT_EQ(ALOAD(confirm), 1, "confirm");
 
 	stop_ws(ws);
 	close(socket);
