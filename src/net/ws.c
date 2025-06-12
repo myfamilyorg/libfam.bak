@@ -47,6 +47,7 @@ struct Ws {
 	OnClose on_close;
 	WsConfig config;
 	uint64_t next_id;
+	Connection *acceptor;
 };
 
 struct WsConnection {
@@ -270,11 +271,11 @@ Ws *init_ws(WsConfig *config, OnMessage on_message, OnOpen on_open,
 
 int start_ws(Ws *ws) {
 	uint64_t i;
-	Connection *acceptor =
+	ws->acceptor =
 	    evh_acceptor(ws->config.addr, ws->config.port, ws->config.backlog,
 			 ws_on_recv_proc, ws_on_accept_proc, ws_on_close_proc);
 
-	if (acceptor == NULL) return -1;
+	if (ws->acceptor == NULL) return -1;
 
 	for (i = 0; i < ws->workers; i++) {
 		/* TODO: cleanup properly on errors */
@@ -282,12 +283,12 @@ int start_ws(Ws *ws) {
 		if (evh_start(&ws->evh[i], ws,
 			      sizeof(WsConnection) - sizeof(Connection)) ==
 		    -1) {
-			release(acceptor);
+			release(ws->acceptor);
 			return -1;
 		}
 
-		if (evh_register(&ws->evh[i], acceptor) == -1) {
-			release(acceptor);
+		if (evh_register(&ws->evh[i], ws->acceptor) == -1) {
+			release(ws->acceptor);
 			evh_stop(&ws->evh[i]);
 			return -1;
 		}
@@ -298,13 +299,22 @@ int start_ws(Ws *ws) {
 
 int stop_ws(Ws *ws) {
 	uint64_t i;
-	for (i = 0; i < ws->workers; i++) evh_stop(&ws->evh[i]);
+	for (i = 0; i < ws->workers; i++) {
+		evh_stop(&ws->evh[i]);
+	}
+	connection_close(ws->acceptor);
+	release(ws->acceptor);
+	release(ws->evh);
+	release(ws);
 	return 0;
 }
 
 uint64_t connection_id(WsConnection *conn) { return conn->id; }
 WsConnection *connect_ws(Ws *ws, const char *url);
-int close_ws_connection(WsConnection *conn, int code, const char *reason);
+int close_ws_connection(WsConnection *conn, int code, const char *reason) {
+	connection_close(&conn->connection);
+	return 0;
+}
 int send_ws_message(WsConnection *conn, WsMessage *msg);
 
 #pragma GCC diagnostic pop

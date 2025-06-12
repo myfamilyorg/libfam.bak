@@ -83,11 +83,15 @@ Connection *evh_client(uint8_t addr[4], uint16_t port, OnRecvFn on_recv_fn,
 }
 
 int connection_close(Connection *connection) {
-	LockGuard lg = wlock(&connection->data.inbound.lock);
-	InboundData *ib = &connection->data.inbound;
-	if (ib->is_closed) return -1;
-	ib->is_closed = true;
-	return shutdown(connection->socket, SHUT_RDWR);
+	if (connection->conn_type == Acceptor) {
+		return close(connection->socket);
+	} else {
+		LockGuard lg = wlock(&connection->data.inbound.lock);
+		InboundData *ib = &connection->data.inbound;
+		if (ib->is_closed) return -1;
+		ib->is_closed = true;
+		return shutdown(connection->socket, SHUT_RDWR);
+	}
 }
 int connection_write(Connection *connection, const void *buf, size_t len) {
 	ssize_t wlen = 0;

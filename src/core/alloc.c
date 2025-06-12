@@ -80,7 +80,18 @@
 		size_t new_last_free = index / 64;                        \
 		uint64_t expected = ALOAD(last_free_ptr);                 \
 		uint64_t *bitmap = (uint64_t *)((unsigned char *)(base)); \
-		__and64(&bitmap[index / 64], ~(1UL << (index % 64)));     \
+		uint64_t *word_ptr = &bitmap[index / 64];                 \
+		uint64_t bit_mask = 1UL << (index % 64);                  \
+		while (1) {                                               \
+			uint64_t old_value = *word_ptr, new_value;        \
+			if ((old_value & bit_mask) == 0) {                \
+				panic("Double free!");                    \
+			}                                                 \
+			new_value = old_value & ~bit_mask;                \
+			if (__cas64(word_ptr, &old_value, new_value)) {   \
+				break;                                    \
+			}                                                 \
+		}                                                         \
 		while (expected > new_last_free &&                        \
 		       !__cas64(last_free_ptr, &expected, new_last_free)) \
 			expected = ALOAD(last_free_ptr);                  \

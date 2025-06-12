@@ -316,10 +316,12 @@ int ws_on_message(WsConnection *conn, WsMessage *msg) {
 	buf[msg->len] = 0;
 	ASSERT(!strcmp(buf, "test"), "eqtest");
 	__add64(confirm, 1);
+	close_ws_connection(conn, 0, "test");
 	return 0;
 }
 
 Test(ws1) {
+	ASSERT_BYTES(0);
 	confirm = alloc(sizeof(uint64_t));
 	*confirm = 0;
 
@@ -343,4 +345,9 @@ Test(ws1) {
 	while (!ALOAD(confirm)) yield();
 	ASSERT(ALOAD(confirm), "confirm");
 	stop_ws(ws);
+
+	close(socket);
+	release(confirm);
+
+	ASSERT_BYTES(0);
 }
