@@ -23,43 +23,6 @@
  *
  *******************************************************************************/
 
-#include <bptree.h>
+#include <test.h>
 
-struct BpTree {
-	void *base;
-	uint64_t capacity;
-	int fd;
-};
-
-struct BpTxn {
-	BpTree *tree;
-	uint64_t txn_id;
-	uint64_t new_root;
-};
-
-typedef struct {
-	uint64_t counter;
-	uint64_t root;
-} MetadataNode;
-
-typedef struct {
-	uint64_t head;
-	uint64_t next_file_page;
-} FreeList;
-
-BpTree *bptree_open(const char *path);
-int bptree_close(BpTree *);
-
-BpTxn *bptxn_start(BpTree *tree);
-int bptxn_commit(BpTxn *txn);
-int bptxn_abort(BpTxn *txn);
-
-int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
-	       uint32_t value_len, const BpTreeSearch search);
-BpTreeEntry *bptree_remove(BpTxn *txn, const void *key, uint16_t key_len,
-			   const void *value, uint64_t value_len,
-			   const BpTreeSearch search);
-
-BpTreeNode *bptxn_get_page(BpTxn *txn, uint64_t page_id);
-BpTreeNode *bptree_root(BpTxn *tree);
-
+Test(crypto1) { ASSERT_EQ(1, 1, "1=1"); }

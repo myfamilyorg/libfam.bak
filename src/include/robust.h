@@ -23,43 +23,23 @@
  *
  *******************************************************************************/
 
-#include <bptree.h>
+#ifndef _ROBUST_H
+#define _ROBUST_H
 
-struct BpTree {
-	void *base;
-	uint64_t capacity;
-	int fd;
-};
+#include <types.h>
 
-struct BpTxn {
-	BpTree *tree;
-	uint64_t txn_id;
-	uint64_t new_root;
-};
+typedef uint128_t RobustLock;
 
 typedef struct {
-	uint64_t counter;
-	uint64_t root;
-} MetadataNode;
+	RobustLock *lock;
+} RobustGuardImpl;
 
-typedef struct {
-	uint64_t head;
-	uint64_t next_file_page;
-} FreeList;
+void robustguard_cleanup(LockGuardImpl *lg);
 
-BpTree *bptree_open(const char *path);
-int bptree_close(BpTree *);
+#define RobustGuard \
+	RobustGuardImpl __attribute__((unused, cleanup(robustguard_cleanup)))
 
-BpTxn *bptxn_start(BpTree *tree);
-int bptxn_commit(BpTxn *txn);
-int bptxn_abort(BpTxn *txn);
+int robust_init(RobustLock *lock);
+RobustGuard robust_lock(RobustLock *lock);
 
-int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
-	       uint32_t value_len, const BpTreeSearch search);
-BpTreeEntry *bptree_remove(BpTxn *txn, const void *key, uint16_t key_len,
-			   const void *value, uint64_t value_len,
-			   const BpTreeSearch search);
-
-BpTreeNode *bptxn_get_page(BpTxn *txn, uint64_t page_id);
-BpTreeNode *bptree_root(BpTxn *tree);
-
+#endif /* _ROBUST_H */

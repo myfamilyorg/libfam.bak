@@ -32,13 +32,15 @@ SRCDIR  = src
 CORE_SRCDIR = $(SRCDIR)/core
 STORE_SRCDIR = $(SRCDIR)/store
 NET_SRCDIR = $(SRCDIR)/net
+CRYPTO_SRCDIR = $(SRCDIR)/crypto
 ASM_SRCDIR = $(SRCDIR)/asm
 
 # Source files, excluding test.c
 CORE_SOURCES = $(filter-out $(CORE_SRCDIR)/test.c, $(wildcard $(CORE_SRCDIR)/*.c))
 STORE_SOURCES = $(filter-out $(STORE_SRCDIR)/test.c, $(wildcard $(STORE_SRCDIR)/*.c))
 NET_SOURCES = $(filter-out $(NET_SRCDIR)/test.c, $(wildcard $(NET_SRCDIR)/*.c))
-SOURCES = $(CORE_SOURCES) $(STORE_SOURCES) $(NET_SOURCES)
+CRYPTO_SOURCES = $(filter-out $(CRYPTO_SRCDIR)/test.c, $(wildcard $(CRYPTO_SRCDIR)/*.c))
+SOURCES = $(CORE_SOURCES) $(STORE_SOURCES) $(NET_SOURCES) $(CRYPTO_SOURCES)
 OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
 TEST_OBJECTS = $(patsubst $(SRCDIR)/%.c,$(TEST_OBJDIR)/%.o,$(SOURCES))
 
@@ -51,7 +53,8 @@ TEST_ASM_OBJECTS = $(patsubst $(SRCDIR)/%.S,$(TEST_OBJDIR)/%.o,$(ASM_SOURCES))
 CORE_TEST_SRC = $(CORE_SRCDIR)/test.c
 STORE_TEST_SRC = $(STORE_SRCDIR)/test.c
 NET_TEST_SRC = $(NET_SRCDIR)/test.c
-TEST_SRC = $(CORE_TEST_SRC) $(STORE_TEST_SRC) $(NET_TEST_SRC)
+CRYPTO_TEST_SRC = $(CRYPTO_SRCDIR)/test.c
+TEST_SRC = $(CORE_TEST_SRC) $(STORE_TEST_SRC) $(NET_TEST_SRC) $(CRYPTO_TEST_SRC)
 TEST_OBJ = $(patsubst $(SRCDIR)/%.c,$(TOBJDIR)/%.o,$(TEST_SRC))
 TEST_BIN = $(BINDIR)/runtests
 TEST_LIB = $(LIBDIR)/libfam_test.so

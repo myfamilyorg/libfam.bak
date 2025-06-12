@@ -34,7 +34,6 @@
 #include <limits.h>
 #include <lock.h>
 #include <misc.h>
-#include <stdio.h>
 #include <sys.h>
 #include <syscall.h>
 #include <syscall_const.h>

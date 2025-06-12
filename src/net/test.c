@@ -29,7 +29,6 @@
 #include <event.h>
 #include <evh.h>
 #include <socket.h>
-#include <stdio.h>
 #include <syscall_const.h>
 #include <test.h>
 #include <ws.h>
