@@ -34,11 +34,6 @@
 
 #define MAX_URI_LEN 24
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
-
 struct Ws {
 	Evh *evh;
 	uint64_t workers;
@@ -223,11 +218,10 @@ STATIC int ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 	}
 }
 
-STATIC int ws_on_recv_proc(void *ctx, Connection *conn, size_t rlen) {
+STATIC int ws_on_recv_proc(void *ctx, Connection *conn,
+			   size_t rlen __attribute__((unused))) {
 	Ws *ws = ctx;
 	WsConnection *wsconn = (WsConnection *)conn;
-	size_t rbuf_offset = wsconn->connection.data.inbound.rbuf_offset;
-	uint8_t *rbuf = wsconn->connection.data.inbound.rbuf;
 
 	while (true) {
 		err = 0;
@@ -331,7 +325,8 @@ int ws_stop(Ws *ws) {
 uint64_t ws_connection_id(WsConnection *conn) { return conn->id; }
 WsConnection *ws_connect(Ws *ws, const char *url);
 
-int ws_connection_close(WsConnection *conn, int code, const char *reason) {
+int ws_connection_close(WsConnection *conn, int code __attribute__((unused)),
+			const char *reason __attribute__((unused))) {
 	connection_close(&conn->connection);
 	return 0;
 }
@@ -373,6 +368,4 @@ int ws_send(WsConnection *conn, WsMessage *msg) {
 const char *ws_connection_uri(WsConnection *conn) { return conn->uri; }
 
 uint16_t ws_port(Ws *ws) { return evh_acceptor_port(ws->acceptor); }
-
-#pragma GCC diagnostic pop
 

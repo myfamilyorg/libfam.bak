@@ -85,6 +85,11 @@ typedef struct {
 	} data;
 } BpTreeNode;
 
+/* User defined search */
+typedef void (*BpTreeSearch)(BpTxn *txn, const void *key, uint16_t key_len,
+			     const BpTreeNode *page,
+			     BpTreeSearchResult *retval);
+
 /* Opening/Closing */
 BpTree *bptree_open(const char *path);
 int bptree_close(BpTree *);
@@ -93,11 +98,6 @@ int bptree_close(BpTree *);
 BpTxn *bptxn_start(BpTree *tree);
 int bptxn_commit(BpTxn *txn);
 int bptxn_abort(BpTxn *txn);
-
-/* User defined search */
-typedef void (*BpTreeSearch)(BpTxn *txn, const void *key, uint16_t key_len,
-			     const BpTreeNode *page,
-			     BpTreeSearchResult *retval);
 
 /* Modification functions */
 int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
