@@ -1036,9 +1036,9 @@ Test(double_to_string) {
 }
 
 Test(b64) {
-	char buf[128];
-	char buf2[128];
-	char buf3[128];
+	uint8_t buf[128];
+	uint8_t buf2[128];
+	uint8_t buf3[128];
 	memcpy(buf, "0123456789", 10);
 	int len = b64_encode(buf, 10, buf2, 128);
 	int len2 = b64_decode(buf2, len, buf3, 128);
@@ -1053,12 +1053,6 @@ Test(b64) {
 	ASSERT_EQ(buf3[7], '7', "7");
 	ASSERT_EQ(buf3[8], '8', "8");
 	ASSERT_EQ(buf3[9], '9', "9");
-
-	/*
-	size_t b64_encode(const uint8_t *in, size_t in_len, char *out, size_t
-	out_max); size_t b64_decode(const char *in, size_t in_len, uint8_t *out,
-	size_t out_max);
-	*/
 }
 
 Test(event) {

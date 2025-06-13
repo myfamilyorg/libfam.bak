@@ -42,8 +42,10 @@ void byteszero(void *dst, size_t n);
 size_t uint128_t_to_string(char *buf, uint128_t v);
 size_t int128_t_to_string(char *buf, int128_t v);
 size_t double_to_string(char *buf, double v, int max_decimals);
-size_t b64_encode(const uint8_t *in, size_t in_len, char *out, size_t out_max);
-size_t b64_decode(const char *in, size_t in_len, uint8_t *out, size_t out_max);
+size_t b64_encode(const uint8_t *in, size_t in_len, uint8_t *out,
+		  size_t out_max);
+size_t b64_decode(const uint8_t *in, size_t in_len, uint8_t *out,
+		  size_t out_max);
 uint128_t string_to_uint128(const char *buf, size_t len);
 int128_t string_to_int128(const char *buf, size_t len);
 void panic(const char *msg);

@@ -565,7 +565,7 @@ uint128_t __udivti3(uint128_t a, uint128_t b) {
 int printf(const char *, ...);
 
 /* Base64 encode */
-size_t b64_encode(const unsigned char *in, size_t in_len, char *out,
+size_t b64_encode(const uint8_t *in, size_t in_len, uint8_t *out,
 		  size_t out_max) {
 	size_t i;
 	size_t j;
@@ -612,7 +612,7 @@ size_t b64_encode(const unsigned char *in, size_t in_len, char *out,
 }
 
 /* Base64 decode */
-size_t b64_decode(const char *in, size_t in_len, unsigned char *out,
+size_t b64_decode(const uint8_t *in, size_t in_len, uint8_t *out,
 		  size_t out_max) {
 	size_t i;
 	size_t j;

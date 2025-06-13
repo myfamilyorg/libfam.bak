@@ -105,7 +105,7 @@ STATIC int ws_proc_handshake(WsConnection *wsconn) {
 		memcpy(wsconn->uri, rbuf + 4, i - 4);
 		wsconn->uri[i - 4] = 0;
 
-		lendec = b64_decode(key, 24, decoded_key, 16);
+		lendec = b64_decode((uint8_t *)key, 24, decoded_key, 16);
 		if (lendec != 16) {
 			err = EINVAL;
 			return -1;
@@ -116,7 +116,7 @@ STATIC int ws_proc_handshake(WsConnection *wsconn) {
 		sha1_update(&sha1, (uint8_t *)guid, strlen(guid));
 		sha1_final(&sha1, hash);
 
-		if (!b64_encode(hash, 20, accept, sizeof(accept))) {
+		if (!b64_encode(hash, 20, (uint8_t *)accept, sizeof(accept))) {
 			err = EINVAL;
 			return -1;
 		}
