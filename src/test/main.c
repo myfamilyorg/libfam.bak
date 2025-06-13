@@ -77,8 +77,8 @@ __asm__(
     "    pop %rsi\n"
     "    pop %rdi\n"
     "    call main\n"
-    "    mov $60, %rax\n"
     "    mov %rax, %rdi\n"
+    "    mov $60, %rax\n"
     "    syscall\n");
 #endif /* __amd64__ */
 #endif /* COVERAGE */
