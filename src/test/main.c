@@ -115,21 +115,21 @@ int main(int argc, char **argv, char **envp) {
 
 	tp = getenv("TEST_PATTERN");
 	if (!tp || !strcmp(tp, "*")) {
-		myprintf("Running %d tests...\n", cur_tests);
+		printf("Running %d tests...\n", cur_tests);
 	} else {
-		myprintf("Running test %s...\n", tp);
+		printf("Running test %s...\n", tp);
 	}
 
 	for (exe_test = 0; exe_test < cur_tests; exe_test++) {
 		if (!tp || !strcmp(tp, "*") ||
 		    !strcmp(tests[exe_test].name, tp)) {
-			myprintf("running test %d [%s]\n", test_count,
+			printf("running test %d [%s]\n", test_count,
 				 tests[exe_test].name);
 			tests[exe_test].test_fn();
 			test_count++;
 		}
 	}
-	myprintf("%sSuccess%s! %d %stests passed!%s\n", GREEN, RESET,
+	printf("%sSuccess%s! %d %stests passed!%s\n", GREEN, RESET,
 		 test_count, CYAN, CYAN);
 
 	return 0;

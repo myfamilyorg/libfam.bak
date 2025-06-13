@@ -214,7 +214,7 @@ int snprintf(char* str, size_t size, const char* format, ...) {
 #include <alloc.h>
 
 /* printf implementation */
-int myprintf(const char* format, ...) {
+int printf(const char* format, ...) {
 	__builtin_va_list ap;
 	int len;
 	char* buf;
