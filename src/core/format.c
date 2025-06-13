@@ -23,7 +23,6 @@
  *
  *******************************************************************************/
 
-#include <alloc.h>
 #include <format.h>
 #include <misc.h>
 #include <syscall.h>
@@ -79,11 +78,9 @@ static size_t int_to_str(intmax_t num, char* buf, int base, int upper) {
 
 	return i + uint_to_str((uintmax_t)temp, buf + i, base, upper);
 }
-
 int printf(const char*, ...);
-
-int vsnprintf(char* str, size_t size, const char* format,
-	      __builtin_va_list ap) {
+static int vsnprintf(char* str, size_t size, const char* format,
+		     __builtin_va_list ap) {
 	const char* fmt;
 	size_t pos;
 	size_t len;
@@ -106,19 +103,20 @@ int vsnprintf(char* str, size_t size, const char* format,
 			}
 			continue;
 		}
-		fmt++;
+		fmt++; /* Skip '%' */
 		if (!*fmt) {
 			len++;
 			if (str && pos < size) {
 				str[pos++] = '%';
 			}
-			break;
+			break; /* Handle trailing % */
 		}
 
 		switch (*fmt) {
 			case 'd':
-			case 'i':
-				val = __builtin_va_arg(ap, int);
+			case 'i': /* Treat %i the same as %d */
+				val = __builtin_va_arg(
+				    ap, int); /* Use int for %d and %i */
 				j = int_to_str(val, buf, 10, 0);
 				len += j;
 				for (i = 0; i < j && str && pos < size; i++) {
@@ -215,22 +213,19 @@ int snprintf(char* str, size_t size, const char* format, ...) {
 /* printf implementation */
 int myprintf(const char* format, ...) {
 	__builtin_va_list ap;
+	char buf[1024]; /* Adjust size as needed */
+	size_t size;
 	int len;
-	char* buf;
 
+	size = sizeof(buf);
 	__builtin_va_start(ap, format);
 
-	len = vsnprintf(NULL, 0, format, ap);
-	if (len > 0) {
-		buf = alloc(len + 1);
+	/* Call vsnprintf with the va_list */
+	len = vsnprintf(buf, size, format, ap);
 
-		if (buf == NULL)
-			len = -1;
-		else {
-			len = vsnprintf(buf, len + 1, format, ap);
-			if (len > 0) write(1, buf, len);
-			release(buf);
-		}
+	/* Output to stdout using write */
+	if (len > 0) {
+		write(1, buf, len);
 	}
 
 	__builtin_va_end(ap);
