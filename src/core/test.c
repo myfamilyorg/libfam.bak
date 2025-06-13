@@ -41,11 +41,6 @@
 #include <syscall_const.h>
 #include <test.h>
 
-/*
-int unsetenv(const char *name);
-int setenv(const char *name, const char *value, int overwrite);
-*/
-
 typedef struct {
 	Lock lock1;
 	Lock lock2;
@@ -1214,7 +1209,6 @@ Test(robust1) {
 	munmap(state, sizeof(RobustState));
 }
 
-/*
 Test(snprintf) {
 	char buf[1024];
 	int x = 1;
@@ -1234,4 +1228,4 @@ Test(snprintf) {
 		  "len3");
 	ASSERT(!strcmp(buf, "a 10"), "a 10");
 }
-*/
+
