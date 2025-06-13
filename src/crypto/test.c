@@ -35,6 +35,5 @@ Test(aes1) {
 	AesContext ctx;
 	aes_init(&ctx, key1, iv1);
 	aes_ctr_xcrypt_buffer(&ctx, buf, sizeof(buf));
-	printf("buf[0]=%i\n", buf[0]);
 	ASSERT_EQ(buf[0], 220, "aes220");
 }
