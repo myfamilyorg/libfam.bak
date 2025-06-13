@@ -23,6 +23,7 @@
  *
  *******************************************************************************/
 
+#include <alloc.h>
 #include <format.h>
 #include <misc.h>
 #include <syscall.h>
@@ -211,10 +212,8 @@ int snprintf(char* str, size_t size, const char* format, ...) {
 	return len;
 }
 
-#include <alloc.h>
-
 /* printf implementation */
-int printf(const char* format, ...) {
+int myprintf(const char* format, ...) {
 	__builtin_va_list ap;
 	int len;
 	char* buf;
