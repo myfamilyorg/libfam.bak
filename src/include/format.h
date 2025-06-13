@@ -29,6 +29,6 @@
 #include <types.h>
 
 int snprintf(char *buf, size_t size, const char *fmt, ...);
-int myprintf(const char *fmt, ...);
+int printf(const char *fmt, ...);
 
 #endif /* _FORMAT_H */

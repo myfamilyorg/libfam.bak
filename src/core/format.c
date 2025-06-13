@@ -212,7 +212,7 @@ int snprintf(char* str, size_t size, const char* format, ...) {
 }
 
 /* printf implementation */
-int myprintf(const char* format, ...) {
+int printf(const char* format, ...) {
 	__builtin_va_list ap, ap_copy;
 	int len;
 	char* buf;
