@@ -26,7 +26,7 @@
 #include <error.h>
 #include <init.h>
 #include <sys.h>
-#include <syscall.h>
+#include <sys.h>
 #include <syscall_const.h>
 
 int file(const char *path) {

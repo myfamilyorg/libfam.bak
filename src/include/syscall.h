@@ -29,6 +29,7 @@
 #include <types.h>
 
 int pipe(int fds[2]);
+int pipe2(int fds[2], int flags);
 pid_t getpid(void);
 int kill(pid_t pid, int signal);
 int unlinkat(int dfd, const char *path, int flags);

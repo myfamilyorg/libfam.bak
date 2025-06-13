@@ -1,35 +1,8 @@
-/********************************************************************************
- * MIT License
- *
- * Copyright (c) 2025 Christopher Gilliard
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
- *******************************************************************************/
 
-#include <colors.h>
-#include <env.h>
-#include <format.h>
 #include <misc.h>
 #include <test.h>
 
-char **environ = NULL;
+char **environ = 0;
 
 int cur_tests = 0;
 int exe_test = 0;
@@ -106,31 +79,4 @@ __asm__(
 #endif /* __amd64__ */
 #endif /* COVERAGE */
 
-int main(int argc, char **argv, char **envp) {
-	int test_count = 0;
-	char *tp;
-
-	environ = envp;
-	init_environ();
-
-	tp = getenv("TEST_PATTERN");
-	if (!tp || !strcmp(tp, "*")) {
-		printf("Running %d tests...\n", cur_tests);
-	} else {
-		printf("Running test %s...\n", tp);
-	}
-
-	for (exe_test = 0; exe_test < cur_tests; exe_test++) {
-		if (!tp || !strcmp(tp, "*") ||
-		    !strcmp(tests[exe_test].name, tp)) {
-			printf("running test %d [%s]\n", test_count,
-				 tests[exe_test].name);
-			tests[exe_test].test_fn();
-			test_count++;
-		}
-	}
-	printf("%sSuccess%s! %d %stests passed!%s\n", GREEN, RESET,
-		 test_count, CYAN, CYAN);
-
-	return 0;
-}
+int main(int argc, char **argv, char **envp) { return 0; }

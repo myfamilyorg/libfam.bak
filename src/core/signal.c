@@ -27,7 +27,6 @@
 #include <limits.h>
 #include <misc.h>
 #include <sys.h>
-#include <syscall.h>
 #include <syscall_const.h>
 
 static void sig_ign(int __attribute((unused)) sig) {}
@@ -38,8 +37,9 @@ typedef struct {
 } TaskEntry;
 
 #define MAX_TASKS 32
-STATIC TaskEntry pending_tasks[MAX_TASKS];
-STATIC int cur_tasks = 0;
+static TaskEntry pending_tasks[MAX_TASKS];
+static int cur_tasks = 0;
+
 STATIC int set_next_timer(uint64_t now) {
 	int i;
 	uint64_t next_task_time = SIZE_MAX;

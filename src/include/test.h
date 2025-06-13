@@ -28,7 +28,6 @@
 
 #include <colors.h>
 #include <misc.h>
-#include <stdio.h>
 #include <sys.h>
 
 #define MAX_TESTS 1024

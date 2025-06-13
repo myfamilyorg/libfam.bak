@@ -11,7 +11,14 @@ CFLAGS  = -fPIC \
           -fno-builtin \
           -D_FORTIFY_SOURCE=0 \
           -Wno-attributes
-TFLAGS  = $(CSTYLE) -D_FORTIFY_SOURCE=0 -fno-builtin -fno-stack-protector -O1 -Isrc/include -Wno-attributes -DTEST=1
+TFLAGS  = $(CSTYLE) \
+	  -D_FORTIFY_SOURCE=0 \
+	  -fno-builtin \
+	  -fno-stack-protector \
+	  -O1 \
+	  -Isrc/include \
+	  -Wno-attributes \
+	  -DTEST=1
 TCFLAGS = -O1 -D_FORTIFY_SOURCE=0  -Isrc/include -Wno-attributes -DTEST=1
 UNAME_S := $(shell uname -s)
 LDFLAGS = -shared -nostdlib -ffreestanding

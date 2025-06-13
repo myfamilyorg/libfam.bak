@@ -26,27 +26,8 @@
 #ifndef _SYS_H
 #define _SYS_H
 
+#include <syscall.h>
 #include <types.h>
-
-/* direct system calls */
-int pipe2(int fds[2], int flags);
-ssize_t write(int fd, const void *buf, size_t length);
-ssize_t read(int fd, void *buf, size_t length);
-void exit(int);
-int munmap(void *addr, size_t len);
-int close(int fd);
-int fcntl(int fd, int op, ...);
-
-/* socket system calls */
-int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
-int setsockopt(int sockfd, int level, int optname, const void *optval,
-	       unsigned int optlen);
-int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
-int listen(int sockfd, int backlog);
-int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
-int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
-int shutdown(int sockfd, int how);
-int socket(int domain, int type, int protocol);
 
 /* system calls applied */
 int unlink(const char *path);

@@ -25,7 +25,7 @@
 
 #include <error.h>
 #include <init.h>
-#include <syscall.h>
+#include <sys.h>
 #include <syscall_const.h>
 #include <types.h>
 
