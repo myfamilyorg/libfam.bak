@@ -361,7 +361,6 @@ int ws_on_message2(WsConnection *conn, WsMessage *msg) {
 	char buf[msg->len + 1];
 	memcpy(buf, msg->buffer, msg->len);
 	buf[msg->len] = 0;
-	// fprintf(stderr, "recv msg len = %ld value = '%s'\n", msg->len, buf);
 	ws_send(conn, msg);
 	return 0;
 }

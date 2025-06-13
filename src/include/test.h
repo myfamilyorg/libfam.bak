@@ -35,6 +35,7 @@
 #define MAX_TEST_NAME 128
 
 void add_test_fn(void (*test_fn)(void), const char *name);
+static const char *__assertion_msg = "assertion failed in test";
 
 extern int exe_test;
 typedef struct {
@@ -50,18 +51,26 @@ extern TestEntry tests[];
 	}                                                                  \
 	void __test_##name(void)
 
-#define ASSERT_EQ(x, y, msg)                                            \
-	if ((x) != (y)) {                                               \
-		fprintf(stderr, "%sassertion failed in test%s: [%s]. ", \
-			BRIGHT_RED, RESET, tests[exe_test].name);       \
-		panic(msg);                                             \
+#define ASSERT_EQ(x, y, msg)                                                  \
+	if ((x) != (y)) {                                                     \
+		write(2, BRIGHT_RED, strlen(BRIGHT_RED));                     \
+		write(2, __assertion_msg, strlen(__assertion_msg));           \
+		write(2, RESET, strlen(RESET));                               \
+		write(2, ": [", 3);                                           \
+		write(2, tests[exe_test].name, strlen(tests[exe_test].name)); \
+		write(2, "]. ", 3);                                           \
+		panic(msg);                                                   \
 	}
 
-#define ASSERT(x, msg)                                                  \
-	if (!(x)) {                                                     \
-		fprintf(stderr, "%sassertion failed in test%s: [%s]. ", \
-			BRIGHT_RED, RESET, tests[exe_test].name);       \
-		panic(msg);                                             \
+#define ASSERT(x, msg)                                                        \
+	if (!(x)) {                                                           \
+		write(2, BRIGHT_RED, strlen(BRIGHT_RED));                     \
+		write(2, __assertion_msg, strlen(__assertion_msg));           \
+		write(2, RESET, strlen(RESET));                               \
+		write(2, ": [", 3);                                           \
+		write(2, tests[exe_test].name, strlen(tests[exe_test].name)); \
+		write(2, "]. ", 3);                                           \
+		panic(msg);                                                   \
 	}
 
 #if MEMSAN == 1
