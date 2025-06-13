@@ -110,6 +110,7 @@ static int vsnprintf(char* str, size_t size, const char* format,
 
 		switch (*fmt) {
 			case 'd':
+			case 'i':
 				val = __builtin_va_arg(
 				    ap, int); /* Use int for %d */
 				len = int_to_str(val, buf, 10, 0);
