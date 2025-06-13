@@ -1077,6 +1077,110 @@ Test(event) {
 }
 
 Test(colors) {
+	const char *test_file = "/tmp/colortest";
+
+	unlink(test_file);
+	int fd = file(test_file);
+	write(fd, RED, strlen(RED));
+	ASSERT_EQ(fsize(fd), 5, "red size");
+	close(fd);
+	unlink(test_file);
+
+	fd = file(test_file);
+	write(fd, YELLOW, strlen(YELLOW));
+	ASSERT_EQ(fsize(fd), 5, "yellow size");
+	close(fd);
+	unlink(test_file);
+
+	fd = file(test_file);
+	write(fd, BLUE, strlen(BLUE));
+	ASSERT_EQ(fsize(fd), 5, "blue size");
+	close(fd);
+	unlink(test_file);
+
+	fd = file(test_file);
+	write(fd, MAGENTA, strlen(MAGENTA));
+	ASSERT_EQ(fsize(fd), 5, "magennta size");
+	close(fd);
+	unlink(test_file);
+
+	fd = file(test_file);
+	write(fd, GREEN, strlen(GREEN));
+	ASSERT_EQ(fsize(fd), 5, "green size");
+	close(fd);
+	unlink(test_file);
+
+	fd = file(test_file);
+	write(fd, DIMMED, strlen(DIMMED));
+	ASSERT_EQ(fsize(fd), 4, "dimmed size");
+	close(fd);
+	unlink(test_file);
+
+	fd = file(test_file);
+	write(fd, CYAN, strlen(CYAN));
+	ASSERT_EQ(fsize(fd), 5, "cyan size");
+	close(fd);
+	unlink(test_file);
+
+	fd = file(test_file);
+	write(fd, BRIGHT_RED, strlen(BRIGHT_RED));
+	ASSERT_EQ(fsize(fd), 5, "bright_red size");
+	close(fd);
+	unlink(test_file);
+
+	setenv("NO_COLOR", "1", true);
+
+	fd = file(test_file);
+	write(fd, RED, strlen(RED));
+	ASSERT_EQ(fsize(fd), 0, "red size");
+	close(fd);
+	unlink(test_file);
+
+	fd = file(test_file);
+	write(fd, YELLOW, strlen(YELLOW));
+	ASSERT_EQ(fsize(fd), 0, "yellow size");
+	close(fd);
+	unlink(test_file);
+
+	fd = file(test_file);
+	write(fd, BLUE, strlen(BLUE));
+	ASSERT_EQ(fsize(fd), 0, "blue size");
+	close(fd);
+	unlink(test_file);
+
+	fd = file(test_file);
+	write(fd, MAGENTA, strlen(MAGENTA));
+	ASSERT_EQ(fsize(fd), 0, "magennta size");
+	close(fd);
+	unlink(test_file);
+
+	fd = file(test_file);
+	write(fd, GREEN, strlen(GREEN));
+	ASSERT_EQ(fsize(fd), 0, "green size");
+	close(fd);
+	unlink(test_file);
+
+	fd = file(test_file);
+	write(fd, DIMMED, strlen(DIMMED));
+	ASSERT_EQ(fsize(fd), 0, "dimmed size");
+	close(fd);
+	unlink(test_file);
+
+	fd = file(test_file);
+	write(fd, CYAN, strlen(CYAN));
+	ASSERT_EQ(fsize(fd), 0, "cyan size");
+	close(fd);
+	unlink(test_file);
+
+	fd = file(test_file);
+	write(fd, BRIGHT_RED, strlen(BRIGHT_RED));
+	ASSERT_EQ(fsize(fd), 0, "bright_red size");
+	close(fd);
+	unlink(test_file);
+
+	unsetenv("NO_COLOR");
+
+	/*
 	char buf[1024];
 	int len =
 	    snprintf(buf, 1024, "%s1%s%s2%s%s3%s%s4%s%s5%s%s6%s%s7%s%s8%s", RED,
@@ -1093,6 +1197,7 @@ Test(colors) {
 	ASSERT_EQ(len, 8, "len=8");
 	buf[len] = 0;
 	unsetenv("NO_COLOR");
+	*/
 }
 
 typedef struct {

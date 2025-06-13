@@ -11,7 +11,7 @@ int exe_test = 0;
 
 TestEntry tests[MAX_TESTS];
 
-/*int printf(const char *x __attribute__((unused)), ...) { return 0; }*/
+int printf(const char *x __attribute__((unused)), ...) { return 0; }
 
 void add_test_fn(void (*test_fn)(void), const char *name) {
 	if (strlen(name) > MAX_TEST_NAME) panic("test name too long!");
@@ -22,6 +22,66 @@ void add_test_fn(void (*test_fn)(void), const char *name) {
 	cur_tests++;
 }
 
+extern void (*__init_array_start[])(void);
+extern void (*__init_array_end[])(void);
+
+void call_constructors(void) {
+	for (void (**func)(void) = __init_array_start; func < __init_array_end;
+	     func++) {
+		(*func)();
+	}
+}
+
+int main(int argc, char *argv[], char *envp[]);
+
+#ifdef __aarch64__
+__asm__(
+    ".section .text\n"
+    ".global _start\n"
+    "_start:\n"
+    "    ldr x0, [sp]          // Load argc from stack\n"
+    "    add x1, sp, #8        // argv is at sp + 8\n"
+    "    add x3, x0, #1        // x3 = argc + 1 (for argv null terminator)\n"
+    "    lsl x3, x3, #3        // x3 = (argc + 1) * 8 (byte offset)\n"
+    "    add x2, x1, x3        // envp = argv + (argc + 1) * 8\n"
+    "    sub sp, sp, x3        // Align stack to 16 bytes\n"
+    "    stp x0, x1, [sp, #-16]! // Save argc, argv\n"
+    "    str x2, [sp, #-16]!     // Save envp\n"
+    "    bl call_constructors    // Call constructors\n"
+    "    ldr x2, [sp], #16       // Restore envp\n"
+    "    ldp x0, x1, [sp], #16   // Restore argc, argv\n"
+    "    bl main                 // Call main\n"
+    "    mov x8, #93             // Syscall number for exit (Linux ARM64)\n"
+    "    svc #0                  // Invoke exit syscall\n");
+#endif /* __aarch64__ */
+
+#ifdef __amd64__
+__asm__(
+    ".section .text\n"
+    ".global _start\n"
+    "_start:\n"
+    "    movq (%rsp), %rdi         // Load argc from stack\n"
+    "    lea 8(%rsp), %rsi         // argv is at rsp + 8\n"
+    "    mov %rdi, %rcx            // rcx = argc\n"
+    "    add $1, %rcx              // rcx = argc + 1 (for argv null "
+    "terminator)\n"
+    "    shl $3, %rcx              // rcx = (argc + 1) * 8 (byte offset)\n"
+    "    lea (%rsi, %rcx), %rdx    // envp = argv + (argc + 1) * 8\n"
+    "    mov %rsp, %rcx            // Copy rsp to rcx\n"
+    "    and $-16, %rsp            // Align stack to 16 bytes\n"
+    "    push %rdi                 // Save argc\n"
+    "    push %rsi                 // Save argv\n"
+    "    push %rdx                 // Save envp\n"
+    "    call call_constructors    // Call constructors\n"
+    "    pop %rdx                  // Restore envp\n"
+    "    pop %rsi                  // Restore argv\n"
+    "    pop %rdi                  // Restore argc\n"
+    "    call main                 // Call main\n"
+    "    mov $60, %rax             // Syscall number for exit (Linux x86-64)\n"
+    "    mov %rax, %rdi            // Exit status (main's return value)\n"
+    "    syscall                   // Invoke syscall\n");
+#endif /* __amd64__ */
+
 int main(int argc, char **argv, char **envp) {
 	int test_count = 0;
 	char *tp;
@@ -30,20 +90,26 @@ int main(int argc, char **argv, char **envp) {
 	init_environ();
 
 	tp = getenv("TEST_PATTERN");
-	if (!tp || !strcmp(tp, "*"))
+	if (!tp || !strcmp(tp, "*")) {
 		printf("Running %i tests...\n", cur_tests);
-	else
+	} else {
 		printf("Running test %s...\n", tp);
+	}
 
 	for (exe_test = 0; exe_test < cur_tests; exe_test++) {
 		if (!tp || !strcmp(tp, "*") ||
 		    !strcmp(tests[exe_test].name, tp)) {
 			printf("running test %i [%s]\n", test_count,
 			       tests[exe_test].name);
+			write(2, "run: ", 5);
+			write(2, tests[exe_test].name,
+			      strlen(tests[exe_test].name));
+			write(2, "\n", 1);
 			tests[exe_test].test_fn();
 			test_count++;
 		}
 	}
+	write(2, "Success!\n", strlen("Success!\n"));
 	printf("%sSuccess%s! %i %stests passed!%s\n", GREEN, RESET, test_count,
 	       CYAN, CYAN);
 	return 0;
