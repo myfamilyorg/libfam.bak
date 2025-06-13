@@ -114,8 +114,5 @@ int main(int argc, char **argv, char **envp) {
 	printf("%sSuccess%s! %i %stests passed!%s\n", GREEN, RESET, test_count,
 	       CYAN, CYAN);
 
-#ifndef COVERAGE
-	exit(0);
-#endif
 	return 0;
 }
