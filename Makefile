@@ -1,60 +1,76 @@
 # Compiler and tools
 CC = gcc
+GCOV = gcov
 UNAME_S := $(shell uname -s)
 
 # Directories
-SRCDIR     = src
-INCLDIR    = src/include
-LIBDIR     = lib
-BINDIR     = bin
-OBJDIR     = .obj
+SRCDIR	 = src
+INCLDIR	= src/include
+LIBDIR	 = lib
+BINDIR	 = bin
+OBJDIR	 = .obj
 TEST_OBJDIR = .testobj
-TOBJDIR    = .tobj
-ASM_DIR    = $(SRCDIR)/asm
+TOBJDIR	= .tobj
+COV_OBJDIR = .covobj
+COV_TOBJDIR = .covtobj
+ASM_DIR	= $(SRCDIR)/asm
 SRC_DIRS   = core store net crypto  # Add new source directories here
 
 # Source and object files
 C_SOURCES   = $(foreach dir,$(SRC_DIRS),$(filter-out $(SRCDIR)/$(dir)/test.c,$(wildcard $(SRCDIR)/$(dir)/*.c)))
 ASM_SOURCES = $(wildcard $(ASM_DIR)/*.S)
-OBJECTS     = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(C_SOURCES)) $(patsubst $(SRCDIR)/%.S,$(OBJDIR)/%.o,$(ASM_SOURCES))
+OBJECTS	 = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(C_SOURCES)) $(patsubst $(SRCDIR)/%.S,$(OBJDIR)/%.o,$(ASM_SOURCES))
 TEST_OBJECTS = $(patsubst $(SRCDIR)/%.c,$(TEST_OBJDIR)/%.o,$(C_SOURCES)) $(patsubst $(SRCDIR)/%.S,$(TEST_OBJDIR)/%.o,$(ASM_SOURCES))
+COV_OBJECTS = $(patsubst $(SRCDIR)/%.c,$(COV_OBJDIR)/%.o,$(C_SOURCES))
+COV_TEST_OBJECTS = $(patsubst $(SRCDIR)/%.c,$(COV_TOBJDIR)/%.o,$(TEST_SRC))
 
 # Test sources and objects
-TEST_SRC    = $(foreach dir,$(SRC_DIRS),$(SRCDIR)/$(dir)/test.c)
-TEST_OBJ    = $(patsubst $(SRCDIR)/%.c,$(TOBJDIR)/%.o,$(TEST_SRC))
-TEST_LIB    = $(LIBDIR)/libfam_test.so
-TEST_BIN    = $(BINDIR)/runtests
+TEST_SRC	= $(foreach dir,$(SRC_DIRS),$(SRCDIR)/$(dir)/test.c)
+TEST_OBJ	= $(patsubst $(SRCDIR)/%.c,$(TOBJDIR)/%.o,$(TEST_SRC))
+COV_TEST_OBJ = $(patsubst $(SRCDIR)/%.c,$(COV_TOBJDIR)/%.o,$(TEST_SRC))
+TEST_LIB	= $(LIBDIR)/libfam_test.so
+COV_TEST_LIB = $(LIBDIR)/libfam_test_cov.a
+TEST_BIN	= $(BINDIR)/runtests
+COV_TEST_BIN = $(BINDIR)/runtests_cov
+COV_TEST_MAIN_OBJ = $(COV_TOBJDIR)/test/main.o
 
 # Common configuration
 PAGE_SIZE   = 16384
-MEMSAN     ?= 0
-FILTER     ?= "*"
+MEMSAN	 ?= 0
+FILTER	 ?= "*"
 
 # Common flags
 COMMON_FLAGS = -pedantic \
-               -Wall \
-               -Wextra \
-               -std=c89 \
-               -Werror \
-               -I$(INCLDIR) \
-               -D_FORTIFY_SOURCE=0 \
-               -fno-builtin \
-               -fno-stack-protector \
-               -Wno-attributes \
-               -DPAGE_SIZE=$(PAGE_SIZE) \
-               -DMEMSAN=$(MEMSAN)
+			   -Wall \
+			   -Wextra \
+			   -std=c89 \
+			   -Werror \
+			   -I$(INCLDIR) \
+			   -D_FORTIFY_SOURCE=0 \
+			   -fno-builtin \
+			   -fno-stack-protector \
+			   -Wno-attributes \
+			   -DPAGE_SIZE=$(PAGE_SIZE) \
+			   -DMEMSAN=$(MEMSAN)
+
+# Coverage flags
+COV_FLAGS = -fprofile-arcs -ftest-coverage -O0 -fprofile-dir=$(COV_OBJDIR)
 
 # Specific flags
-LIB_CFLAGS        = $(COMMON_FLAGS) -fPIC -O3 -DSTATIC=static
-TEST_CFLAGS       = $(COMMON_FLAGS) -fPIC -O1 -DSTATIC= -DTEST=1
+LIB_CFLAGS		= $(COMMON_FLAGS) -fPIC -O3 -DSTATIC=static
+TEST_CFLAGS	   = $(COMMON_FLAGS) -fPIC -O1 -DSTATIC= -DTEST=1
 TEST_BINARY_CFLAGS = $(COMMON_FLAGS) -ffreestanding -nostdlib -O1 -DSTATIC= -DTEST=1
-LDFLAGS           = -shared -nostdlib -ffreestanding
+COV_LIB_CFLAGS	= $(COMMON_FLAGS) $(COV_FLAGS) -DSTATIC=static
+COV_TEST_CFLAGS   = $(COMMON_FLAGS) $(COV_FLAGS) -DSTATIC= -DTEST=1
+COV_TEST_BINARY_CFLAGS = $(COMMON_FLAGS) $(COV_FLAGS) -DSTATIC= -DTEST=1 -DCOVERAGE
+LDFLAGS		   = -shared -nostdlib -ffreestanding
+COV_LDFLAGS	   = -static-libgcc
 
 # Default target
 all: $(LIBDIR)/libfam.so
 
 # Create directories
-$(OBJDIR) $(TEST_OBJDIR) $(TOBJDIR) $(LIBDIR) $(BINDIR):
+$(OBJDIR) $(TEST_OBJDIR) $(TOBJDIR) $(COV_OBJDIR) $(COV_TOBJDIR) $(LIBDIR) $(BINDIR):
 	@mkdir -p $@
 
 # Rules for main library objects
@@ -80,6 +96,25 @@ $(TOBJDIR)/%.o: $(SRCDIR)/%.c | $(TOBJDIR)
 	@mkdir -p $(@D)
 	$(CC) $(TEST_BINARY_CFLAGS) -c $< -o $@
 
+# Rules for coverage library objects
+$(COV_OBJDIR)/%.o: $(SRCDIR)/%.c | $(COV_OBJDIR)
+	@mkdir -p $(@D)
+	$(CC) $(COV_LIB_CFLAGS) -c $< -o $@
+
+$(COV_OBJDIR)/%.o: $(SRCDIR)/%.S | $(COV_OBJDIR)
+	@mkdir -p $(@D)
+	$(CC) -c $< -o $@
+
+# Rules for coverage test objects
+$(COV_TOBJDIR)/%.o: $(SRCDIR)/%.c | $(COV_TOBJDIR)
+	@mkdir -p $(@D)
+	$(CC) $(COV_TEST_CFLAGS) -c $< -o $@
+
+# Rule for coverage test main object
+$(COV_TEST_MAIN_OBJ): $(SRCDIR)/test/main.c | $(COV_TOBJDIR)
+	@mkdir -p $(@D)
+	$(CC) $(COV_TEST_BINARY_CFLAGS) -c $< -o $@
+
 # Build main library
 $(LIBDIR)/libfam.so: $(OBJECTS) | $(LIBDIR)
 	$(CC) $(LDFLAGS) -o $@ $(OBJECTS)
@@ -92,13 +127,65 @@ $(TEST_LIB): $(TEST_OBJECTS) | $(LIBDIR)
 $(TEST_BIN): $(TEST_OBJ) $(TEST_LIB) | $(BINDIR)
 	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) $(SRCDIR)/test/main.c $(TEST_BINARY_CFLAGS) -lfam_test -o $@
 
+# Build coverage test library (static)
+$(COV_TEST_LIB): $(COV_OBJECTS) | $(LIBDIR)
+	ar rcs $@ $(COV_OBJECTS)
+
+# Build coverage test binary
+$(COV_TEST_BIN): $(COV_TEST_OBJ) $(COV_TEST_MAIN_OBJ) $(COV_TEST_LIB) | $(BINDIR)
+	$(CC) -I$(INCLDIR) $(COV_TEST_BINARY_CFLAGS) $(COV_TEST_OBJ) $(COV_TEST_MAIN_OBJ) $(COV_TEST_LIB) -lgcov $(COV_LDFLAGS) -o $@
+
 # Run tests
 test: $(TEST_BIN)
 	export TEST_PATTERN=$(FILTER); LD_LIBRARY_PATH=$(LIBDIR) $(TEST_BIN)
 
+# Run coverage analysis
+cov: $(COV_TEST_BIN)
+	@rm -f $(COV_OBJDIR)/*.gcda $(COV_TOBJDIR)/*.gcda *.gcov
+	@echo "Running runtests_cov to generate .gcda files..."
+	@unset GCOV_PREFIX; unset GCOV_PREFIX_STRIP; \
+	 cd $(COV_OBJDIR) && $(abspath $(COV_TEST_BIN)) || echo "Failed to run runtests_cov"
+	@echo "Generated .gcda files:"
+	@find $(COV_OBJDIR) $(COV_TOBJDIR) -name "*.gcda" || echo "No .gcda files found"
+	@echo "Searching for stray .gcda files:"
+	@find . -name "*.gcda" || echo "No stray .gcda files found"
+	@echo "Renaming mangled .gcda files..."
+	@for mangled in $$(find . -name '*#*.gcda'); do \
+		cleaned=$$(echo $$mangled | sed 's/.*#home#chris#projects#libfam#//; s/#/\//g'); \
+		if [ -f $$mangled ]; then \
+			mkdir -p $$(dirname $$cleaned); \
+			mv $$mangled $$cleaned; \
+			echo "Renamed $$mangled to $$cleaned"; \
+		fi; \
+	done
+	@echo "Running gcov for coverage analysis..."
+	@echo "C_SOURCES: $(C_SOURCES)"
+	@for dir in $(SRC_DIRS); do \
+		SRC_OBJS="$$(echo $(patsubst src/$$dir/%.c,.covobj/$$dir/%.o,$(filter src/$$dir/%.c,$(C_SOURCES))))"; \
+		if [ -n "$$SRC_OBJS" ]; then \
+			echo "Processing $$dir sources: $$SRC_OBJS"; \
+			$(GCOV) -r -o $(COV_OBJDIR)/$$dir $$SRC_OBJS; \
+		else \
+			echo "No source objects in $$dir"; \
+		fi; \
+		if [ -f .covtobj/$$dir/test.o ]; then \
+			echo "Processing $$dir test: .covtobj/$$dir/test.o"; \
+			$(GCOV) -r -o $(COV_TOBJDIR)/$$dir .covtobj/$$dir/test.o; \
+		else \
+			echo "No test object in $$dir"; \
+		fi; \
+	done
+	@if [ -f $(COV_TEST_MAIN_OBJ) ]; then \
+		echo "Processing test/main: $(COV_TEST_MAIN_OBJ)"; \
+		$(GCOV) -r -o $(COV_TOBJDIR)/test $(COV_TEST_MAIN_OBJ); \
+	else \
+		echo "No test/main object"; \
+	fi
+	@echo "Coverage reports generated (*.gcov files). Use 'gcovr' for a summary."
+
 # Clean up
 clean:
-	rm -fr $(OBJDIR) $(TEST_OBJDIR) $(TOBJDIR) $(LIBDIR)/*.so $(BINDIR)/*
+	rm -fr $(OBJDIR) $(TEST_OBJDIR) $(TOBJDIR) $(COV_OBJDIR) $(COV_TOBJDIR) $(LIBDIR)/*.so $(LIBDIR)/*.a $(BINDIR)/* *.gcno *.gcda *.gcov
 
 # Phony targets
-.PHONY: all test clean
+.PHONY: all test cov clean

@@ -58,6 +58,7 @@ void call_constructors(void) {
 	}
 }
 
+#ifndef COVERAGE
 int main(int argc, char *argv[], char *envp[]);
 
 #ifdef __aarch64__
@@ -94,13 +95,18 @@ __asm__(
     "    mov $60, %rax\n"
     "    syscall\n");
 #endif /* __amd64__ */
+#else
+void __gcov_dump(void);
+#endif /* COVERAGE */
 
 int main(int argc __attribute__((unused)), char **argv __attribute__((unused)),
 	 char **envp) {
 	int test_count = 0;
 	char *tp;
 
+#ifndef COVERAGE
 	call_constructors();
+#endif
 
 	environ = envp;
 	init_environ();
@@ -126,11 +132,15 @@ int main(int argc __attribute__((unused)), char **argv __attribute__((unused)),
 		}
 	}
 
+#ifdef COVERAGE
+	__gcov_dump();
+#endif
+
 	printf(
 	    "------------------------------------------------------------------"
 	    "--------------\n");
 	printf("%sSuccess%s! %d %stests passed!%s\n", GREEN, RESET, test_count,
-	       CYAN, CYAN);
+	       CYAN, RESET);
 
 	return 0;
 }
