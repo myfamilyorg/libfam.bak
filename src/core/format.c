@@ -23,6 +23,7 @@
  *
  *******************************************************************************/
 
+#include <alloc.h>
 #include <format.h>
 #include <misc.h>
 #include <syscall.h>
@@ -212,22 +213,27 @@ int snprintf(char* str, size_t size, const char* format, ...) {
 
 /* printf implementation */
 int myprintf(const char* format, ...) {
-	__builtin_va_list ap;
-	char buf[1024]; /* Adjust size as needed */
-	size_t size;
+	__builtin_va_list ap, ap_copy;
 	int len;
+	char* buf;
 
-	size = sizeof(buf);
 	__builtin_va_start(ap, format);
+	__builtin_va_copy(ap_copy, ap);
 
-	/* Call vsnprintf with the va_list */
-	len = vsnprintf(buf, size, format, ap);
-
-	/* Output to stdout using write */
+	len = vsnprintf(NULL, 0, format, ap);
 	if (len > 0) {
-		write(1, buf, len);
+		buf = alloc(len + 1);
+
+		if (buf == NULL)
+			len = -1;
+		else {
+			len = vsnprintf(buf, len + 1, format, ap_copy);
+			if (len > 0) write(1, buf, len);
+			release(buf);
+		}
 	}
 
+	__builtin_va_end(ap_copy);
 	__builtin_va_end(ap);
 	return len;
 }
