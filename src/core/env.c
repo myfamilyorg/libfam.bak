@@ -41,7 +41,7 @@ static int env_count(void) {
 	return count;
 }
 
-static __attribute__((constructor)) void init_environ(void) {
+void init_environ(void) {
 	int count = env_count();
 	int i;
 

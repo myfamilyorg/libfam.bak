@@ -4,10 +4,14 @@
 #include <stdio.h>
 #include <test.h>
 
+char **environ = NULL;
+
 int cur_tests = 0;
 int exe_test = 0;
 
 TestEntry tests[MAX_TESTS];
+
+/*int printf(const char *x __attribute__((unused)), ...) { return 0; }*/
 
 void add_test_fn(void (*test_fn)(void), const char *name) {
 	if (strlen(name) > MAX_TEST_NAME) panic("test name too long!");
@@ -18,9 +22,12 @@ void add_test_fn(void (*test_fn)(void), const char *name) {
 	cur_tests++;
 }
 
-int main() {
+int main(int argc, char **argv, char **envp) {
 	int test_count = 0;
 	char *tp;
+
+	environ = envp;
+	init_environ();
 
 	tp = getenv("TEST_PATTERN");
 	if (!tp || !strcmp(tp, "*"))

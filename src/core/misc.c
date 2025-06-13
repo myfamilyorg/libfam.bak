@@ -570,8 +570,6 @@ uint128_t __udivti3(uint128_t a, uint128_t b) {
 	return quotient;
 }
 
-int printf(const char *, ...);
-
 /* Base64 encode */
 size_t b64_encode(const uint8_t *in, size_t in_len, uint8_t *out,
 		  size_t out_max) {

@@ -353,9 +353,7 @@ Test(ws1) {
 	ASSERT_BYTES(0);
 }
 
-void ws_on_open2(WsConnection *conn) {
-	// printf("on open %ld\n", ws_connection_id(conn));
-}
+void ws_on_open2(WsConnection *conn) {}
 void ws_on_close2(WsConnection *conn) {}
 int ws_on_message2(WsConnection *conn, WsMessage *msg) {
 	char buf[msg->len + 1];

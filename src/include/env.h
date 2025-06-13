@@ -29,5 +29,6 @@
 char *getenv(const char *name);
 int unsetenv(const char *name);
 int setenv(const char *name, const char *value, int overwrite);
+void init_environ(void);
 
 #endif /* _ENV_H__ */
