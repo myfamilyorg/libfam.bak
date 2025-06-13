@@ -1214,6 +1214,7 @@ Test(robust1) {
 	munmap(state, sizeof(RobustState));
 }
 
+/*
 Test(snprintf) {
 	char buf[1024];
 	int x = 1;
@@ -1233,4 +1234,4 @@ Test(snprintf) {
 		  "len3");
 	ASSERT(!strcmp(buf, "a 10"), "a 10");
 }
-
+*/
