@@ -10,7 +10,7 @@ CFLAGS  = -fPIC \
           -fno-stack-protector \
           -fno-builtin \
           -Wno-attributes
-TFLAGS  = $(CSTYLE) -fno-builtin -O1 -Isrc/include -Wno-attributes -DTEST=1
+TFLAGS  = $(CSTYLE) -fno-builtin -fno-stack-protector -O1 -Isrc/include -Wno-attributes -DTEST=1
 TCFLAGS = -O1 -Isrc/include -Wno-attributes -DTEST=1
 UNAME_S := $(shell uname -s)
 LDFLAGS = -shared -nostdlib -ffreestanding
@@ -85,7 +85,7 @@ $(TEST_OBJDIR)/%.o: $(SRCDIR)/%.S | $(TEST_OBJDIR)
 # Rule for test objects (C files for runtests)
 $(TOBJDIR)/%.o: $(SRCDIR)/%.c | $(TOBJDIR)
 	@mkdir -p $(@D)
-	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(TCFLAGS) -DSTATIC= -c $< -o $@
+	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(TCFLAGS) -DSTATIC= -fno-stack-protector -c $< -o $@
 
 # Build shared library (for 'all')
 $(LIBDIR)/libfam.so: $(OBJECTS) $(ASM_OBJECTS) | $(LIBDIR)
@@ -97,7 +97,7 @@ $(TEST_LIB): $(TEST_OBJECTS) $(TEST_ASM_OBJECTS) | $(LIBDIR)
 
 # Build test binary
 $(TEST_BIN): $(TEST_OBJ) $(TEST_LIB) | $(BINDIR)
-	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) ./src/test/main.c -ffreestanding -nostdlib -lfam_test -o $@
+	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) ./src/test/main.c -fno-stack-protector -ffreestanding -nostdlib -lfam_test -o $@
 
 # Create directories if they don't exist
 $(OBJDIR) $(TOBJDIR) $(TEST_OBJDIR) $(LIBDIR) $(BINDIR):

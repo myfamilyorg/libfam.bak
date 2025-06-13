@@ -60,26 +60,25 @@ __asm__(
     ".section .text\n"
     ".global _start\n"
     "_start:\n"
-    "    movq (%rsp), %rdi         // Load argc from stack\n"
-    "    lea 8(%rsp), %rsi         // argv is at rsp + 8\n"
-    "    mov %rdi, %rcx            // rcx = argc\n"
-    "    add $1, %rcx              // rcx = argc + 1 (for argv null "
-    "terminator)\n"
-    "    shl $3, %rcx              // rcx = (argc + 1) * 8 (byte offset)\n"
-    "    lea (%rsi, %rcx), %rdx    // envp = argv + (argc + 1) * 8\n"
-    "    mov %rsp, %rcx            // Copy rsp to rcx\n"
-    "    and $-16, %rsp            // Align stack to 16 bytes\n"
-    "    push %rdi                 // Save argc\n"
-    "    push %rsi                 // Save argv\n"
-    "    push %rdx                 // Save envp\n"
-    "    call call_constructors    // Call constructors\n"
-    "    pop %rdx                  // Restore envp\n"
-    "    pop %rsi                  // Restore argv\n"
-    "    pop %rdi                  // Restore argc\n"
-    "    call main                 // Call main\n"
-    "    mov $60, %rax             // Syscall number for exit (Linux x86-64)\n"
-    "    mov %rax, %rdi            // Exit status (main's return value)\n"
-    "    syscall                   // Invoke syscall\n");
+    "    movq (%rsp), %rdi\n"
+    "    lea 8(%rsp), %rsi\n"
+    "    mov %rdi, %rcx\n"
+    "    add $1, %rcx\n"
+    "    shl $3, %rcx\n"
+    "    lea (%rsi, %rcx), %rdx\n"
+    "    mov %rsp, %rcx\n"
+    "    and $-16, %rsp\n"
+    "    push %rdi\n"
+    "    push %rsi\n"
+    "    push %rdx\n"
+    "    call call_constructors\n"
+    "    pop %rdx\n"
+    "    pop %rsi\n"
+    "    pop %rdi\n"
+    "    call main\n"
+    "    mov $60, %rax\n"
+    "    mov %rax, %rdi\n"
+    "    syscall\n");
 #endif /* __amd64__ */
 
 int main(int argc, char **argv, char **envp) {
@@ -112,5 +111,6 @@ int main(int argc, char **argv, char **envp) {
 	write(2, "Success!\n", strlen("Success!\n"));
 	printf("%sSuccess%s! %i %stests passed!%s\n", GREEN, RESET, test_count,
 	       CYAN, CYAN);
+	exit(0);
 	return 0;
 }
