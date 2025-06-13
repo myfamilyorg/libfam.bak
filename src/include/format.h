@@ -23,3 +23,12 @@
  *
  *******************************************************************************/
 
+#ifndef _FORMAT_H
+#define _FORMAT_H
+
+#include <types.h>
+
+int snprintf(char *buf, size_t size, const char *fmt, ...);
+int myprintf(const char *fmt, ...);
+
+#endif /* _FORMAT_H */

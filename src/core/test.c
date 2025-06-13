@@ -30,6 +30,7 @@
 #include <env.h>
 #include <error.h>
 #include <event.h>
+#include <format.h>
 #include <init.h>
 #include <limits.h>
 #include <lock.h>
@@ -1211,5 +1212,21 @@ Test(robust1) {
 	}
 	while (!ALOAD(&state->value1)) yield();
 	munmap(state, sizeof(RobustState));
+}
+
+Test(printf) {
+	char buf[1024];
+	int x = 1;
+	/*
+	int len = snprintf(buf, sizeof(buf), "test1 '%d' %s", x, "ok");
+	write(1, buf, len);
+	write(1, "\n", 1);
+	printf("buf=%s\n", buf);
+	myprintf("test1 '%d' %s\n", x, "ok");
+	myprintf("%sSuccess%s! %d %stests passed!%s\n", GREEN, RESET, 3, CYAN,
+		 CYAN);
+	myprintf("%s", RESET);
+	printf("done myprint\n");
+	*/
 }
 
