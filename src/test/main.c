@@ -133,7 +133,7 @@ int main(int argc __attribute__((unused)), char **argv __attribute__((unused)),
 	}
 
 #ifdef COVERAGE
-	__gcov_dump();
+	/*__gcov_dump();*/
 #endif
 
 	printf(

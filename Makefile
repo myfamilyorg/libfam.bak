@@ -143,45 +143,6 @@ test: $(TEST_BIN)
 cov: $(COV_TEST_BIN)
 	@rm -f $(COV_OBJDIR)/*.gcda $(COV_TOBJDIR)/*.gcda *.gcov
 	@echo "Running runtests_cov to generate .gcda files..."
-	@unset GCOV_PREFIX; unset GCOV_PREFIX_STRIP; \
-	 cd $(COV_OBJDIR) && $(abspath $(COV_TEST_BIN)) || echo "Failed to run runtests_cov"
-	@echo "Generated .gcda files:"
-	@find $(COV_OBJDIR) $(COV_TOBJDIR) -name "*.gcda" || echo "No .gcda files found"
-	@echo "Searching for stray .gcda files:"
-	@find . -name "*.gcda" || echo "No stray .gcda files found"
-	@echo "Renaming mangled .gcda files..."
-	@for mangled in $$(find . -name '*#*.gcda'); do \
-		cleaned=$$(echo $$mangled | sed 's/.*#home#chris#projects#libfam#//; s/#/\//g'); \
-		if [ -f $$mangled ]; then \
-			mkdir -p $$(dirname $$cleaned); \
-			mv $$mangled $$cleaned; \
-			echo "Renamed $$mangled to $$cleaned"; \
-		fi; \
-	done
-	@echo "Running gcov for coverage analysis..."
-	@echo "C_SOURCES: $(C_SOURCES)"
-	@for dir in $(SRC_DIRS); do \
-		SRC_OBJS="$$(echo $(patsubst src/$$dir/%.c,.covobj/$$dir/%.o,$(filter src/$$dir/%.c,$(C_SOURCES))))"; \
-		if [ -n "$$SRC_OBJS" ]; then \
-			echo "Processing $$dir sources: $$SRC_OBJS"; \
-			$(GCOV) -r -o $(COV_OBJDIR)/$$dir $$SRC_OBJS; \
-		else \
-			echo "No source objects in $$dir"; \
-		fi; \
-		if [ -f .covtobj/$$dir/test.o ]; then \
-			echo "Processing $$dir test: .covtobj/$$dir/test.o"; \
-			$(GCOV) -r -o $(COV_TOBJDIR)/$$dir .covtobj/$$dir/test.o; \
-		else \
-			echo "No test object in $$dir"; \
-		fi; \
-	done
-	@if [ -f $(COV_TEST_MAIN_OBJ) ]; then \
-		echo "Processing test/main: $(COV_TEST_MAIN_OBJ)"; \
-		$(GCOV) -r -o $(COV_TOBJDIR)/test $(COV_TEST_MAIN_OBJ); \
-	else \
-		echo "No test/main object"; \
-	fi
-	@echo "Coverage reports generated (*.gcov files). Use 'gcovr' for a summary."
 
 # Clean up
 clean:

@@ -4,5 +4,4 @@
 .testobj/*
 lib/*
 bin/*
-.covobj/*
-.covtobj/*
+.cov/*
