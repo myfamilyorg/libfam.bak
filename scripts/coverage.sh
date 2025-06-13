@@ -37,9 +37,9 @@ LDFLAGS="--coverage"
 LIBCGCOV=""
 
 # Source files
-TEST_SRC="src/core/test.c src/store/test.c src/net/test.c"
+TEST_SRC="src/core/test.c src/store/test.c src/net/test.c src/crypto/test.c"
 # Include non-test .c files from core, store, and net
-CORE_SRC=$(ls src/core/*.c src/store/*.c src/net/*.c 2>/dev/null | grep -v test.c)
+CORE_SRC=$(ls src/core/*.c src/store/*.c src/net/*.c src/crypto/*.c 2>/dev/null | grep -v test.c)
 
 # Object files
 TEST_OBJS=$(echo ${TEST_SRC} | sed "s|${SRCDIR}/|${TOBJDIR}/|g" | sed "s|\.c|\.cov.o|g")
@@ -52,8 +52,8 @@ COV_BIN="${BINDIR}/runtests_cov"
 rm -rf ${TOBJDIR} ${TEST_OBJDIR} ${BINDIR}/runtests_cov ${COVDIR}/* *.gcov
 
 # Create directories
-mkdir -p ${TOBJDIR}/core ${TOBJDIR}/store ${TOBJDIR}/net
-mkdir -p ${TEST_OBJDIR}/core ${TEST_OBJDIR}/store ${TEST_OBJDIR}/net
+mkdir -p ${TOBJDIR}/core ${TOBJDIR}/store ${TOBJDIR}/net ${TOBJDIR}/crypto
+mkdir -p ${TEST_OBJDIR}/core ${TEST_OBJDIR}/store ${TEST_OBJDIR}/net ${TEST_OBJDIR}/crypto
 mkdir -p ${BINDIR}
 
 # Compile test source files

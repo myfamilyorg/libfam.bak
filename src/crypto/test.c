@@ -23,6 +23,17 @@
  *
  *******************************************************************************/
 
+#include <aes.h>
+#include <format.h>
 #include <test.h>
 
-Test(crypto1) { ASSERT_EQ(1, 1, "1=1"); }
+Test(aes1) {
+	const uint8_t key1[32] = {0};
+	const uint8_t iv1[16] = {0};
+	char buf[64] = {0};
+
+	AesContext ctx;
+	aes_init(&ctx, key1, iv1);
+	aes_ctr_xcrypt_buffer(&ctx, buf, sizeof(buf));
+	ASSERT_EQ(buf[0], 220, "aes213");
+}
