@@ -27,5 +27,7 @@
 #define _ENV_H__
 
 char *getenv(const char *name);
+int unsetenv(const char *name);
+int setenv(const char *name, const char *value, int overwrite);
 
 #endif /* _ENV_H__ */

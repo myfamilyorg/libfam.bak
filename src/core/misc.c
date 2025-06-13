@@ -111,6 +111,14 @@ char *substrn(const char *s, const char *sub, size_t n) {
 	return NULL;
 }
 
+char *strchr(const char *s, int c) {
+	while (*s) {
+		if (*s == c) return (char *)s;
+		s++;
+	}
+	return (*s == c) ? (char *)s : 0;
+}
+
 void *memset(void *dest, int c, size_t n) {
 	uint8_t *s = (uint8_t *)dest;
 	size_t i;

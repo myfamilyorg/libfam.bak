@@ -40,8 +40,10 @@
 #include <syscall_const.h>
 #include <test.h>
 
+/*
 int unsetenv(const char *name);
 int setenv(const char *name, const char *value, int overwrite);
+*/
 
 typedef struct {
 	Lock lock1;

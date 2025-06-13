@@ -39,6 +39,7 @@ void *resize(void *ptr, size_t size);
 
 #if MEMSAN == 1
 uint64_t get_allocated_bytes(void);
+void reset_allocated_bytes(void);
 #endif /* MEMSAN */
 
 #endif /* _ALLOC_H__ */

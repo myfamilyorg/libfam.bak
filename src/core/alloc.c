@@ -131,6 +131,7 @@ static void __attribute__((constructor)) setup_allocated_bytes(void) {
 	*allocated_bytes = 0;
 }
 uint64_t get_allocated_bytes(void) { return ALOAD(allocated_bytes); }
+void reset_allocated_bytes(void) { ASTORE(allocated_bytes, 0); }
 #endif /* MEMSAN */
 
 STATIC size_t get_memory_bytes(void) {

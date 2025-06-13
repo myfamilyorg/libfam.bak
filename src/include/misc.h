@@ -35,6 +35,7 @@ int strcmp(const char *s1, const char *s2);
 int strcmpn(const char *s1, const char *s2, size_t n);
 char *substr(const char *s, const char *sub);
 char *substrn(const char *s, const char *sub, size_t n);
+char *strchr(const char *s, int c);
 void *memset(void *ptr, int x, size_t n);
 void *memcpy(void *dst, const void *src, size_t n);
 void *memorymove(void *dst, const void *src, size_t n);

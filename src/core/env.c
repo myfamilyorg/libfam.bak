@@ -23,9 +23,53 @@
  *
  *******************************************************************************/
 
+#include <alloc.h>
 #include <env.h>
+#include <misc.h>
+
+#ifndef MEMSAN
+#define MEMSAN 0
+#endif /* MEMSAN */
 
 extern char **environ;
+
+static int env_count(void) {
+	int count = 0;
+	if (environ) {
+		while (environ[count]) count++;
+	}
+	return count;
+}
+
+static __attribute__((constructor)) void init_environ(void) {
+	int count = env_count();
+	int i;
+
+	/* Allocate new environ array */
+	char **newenv = alloc(sizeof(char *) * (count + 1));
+	if (!newenv) return; /* Handle allocation failure gracefully */
+
+	/* Copy each string */
+	for (i = 0; i < count; i++) {
+		int len = strlen(environ[i]) + 1; /* Include null terminator */
+		newenv[i] = alloc(len);
+		if (!newenv[i]) {
+			/* Cleanup on failure */
+			while (i > 0) release(newenv[--i]);
+			release(newenv);
+			return;
+		}
+		memcpy(newenv[i], environ[i], len);
+	}
+	newenv[count] = NULL;
+
+	/* Replace global environ */
+	environ = newenv;
+
+#if MEMSAN == 1
+	reset_allocated_bytes();
+#endif
+}
 
 char *getenv(const char *name) {
 	char **env;
@@ -38,6 +82,74 @@ char *getenv(const char *name) {
 			i++;
 		if (name[i] == 0 && str[i] == '=') {
 			return str + i + 1;
+		}
+	}
+	return 0;
+}
+
+int setenv(const char *name, const char *value, int overwrite) {
+	char *existing, *new_entry, **new_environ;
+	int name_len, value_len, entry_len, i, count;
+
+	if (!name || !*name || strchr(name, '=')) return -1;
+
+	existing = getenv(name);
+	if (existing && !overwrite) return 0;
+
+	name_len = strlen(name);
+	value_len = strlen(value);
+	entry_len = name_len + value_len + 2;
+	new_entry = alloc(entry_len);
+
+	if (!new_entry) return -1;
+
+	memcpy(new_entry, name, name_len);
+	new_entry[name_len] = '=';
+	memcpy(new_entry + name_len + 1, value, value_len);
+	new_entry[entry_len - 1] = '\0';
+
+	if (existing) {
+		for (i = 0; environ[i]; i++) {
+			if (environ[i] == existing - (name_len + 1)) {
+				release(environ[i]);
+				environ[i] = new_entry;
+				return 0;
+			}
+		}
+	} else {
+		count = env_count();
+		new_environ = alloc((count + 2) * sizeof(char *));
+		if (!new_environ) {
+			release(new_entry);
+			return -1;
+		}
+
+		if (environ) {
+			memcpy(new_environ, environ, count * sizeof(char *));
+			release(environ);
+		}
+		new_environ[count] = new_entry;
+		new_environ[count + 1] = 0;
+		environ = new_environ;
+	}
+	return 0;
+}
+
+int unsetenv(const char *name) {
+	char *existing;
+	int count, i;
+	if (!name || !*name || strchr(name, '=')) return -1;
+
+	existing = getenv(name);
+	if (!existing) return 0;
+
+	count = env_count();
+	for (i = 0; environ[i]; i++) {
+		if (environ[i] == existing - (strlen(name) + 1)) {
+			release(environ[i]);
+			memorymove(&environ[i], &environ[i + 1],
+				   (count - i) * sizeof(char *));
+			return 0;
 		}
 	}
 	return 0;
