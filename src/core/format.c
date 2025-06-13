@@ -83,26 +83,30 @@ static int vsnprintf(char* str, size_t size, const char* format,
 		     __builtin_va_list ap) {
 	const char* fmt;
 	size_t pos;
+	size_t len;
 	char buf[32];
 	size_t i;
-	size_t len;
+	size_t j;
 	int val;
 	unsigned int uval;
 	const char* s;
 	char c;
 
 	pos = 0;
+	len = 0;
 
 	for (fmt = format; *fmt; fmt++) {
 		if (*fmt != '%') {
-			if (pos < size) {
+			len++;
+			if (str && pos < size) {
 				str[pos++] = *fmt;
 			}
 			continue;
 		}
 		fmt++; /* Skip '%' */
 		if (!*fmt) {
-			if (pos < size) {
+			len++;
+			if (str && pos < size) {
 				str[pos++] = '%';
 			}
 			break; /* Handle trailing % */
@@ -110,35 +114,39 @@ static int vsnprintf(char* str, size_t size, const char* format,
 
 		switch (*fmt) {
 			case 'd':
-			case 'i':
+			case 'i': /* Treat %i the same as %d */
 				val = __builtin_va_arg(
-				    ap, int); /* Use int for %d */
-				len = int_to_str(val, buf, 10, 0);
-				for (i = 0; i < len && pos < size; i++) {
+				    ap, int); /* Use int for %d and %i */
+				j = int_to_str(val, buf, 10, 0);
+				len += j;
+				for (i = 0; i < j && str && pos < size; i++) {
 					str[pos++] = buf[i];
 				}
 				break;
 
 			case 'u':
 				uval = __builtin_va_arg(ap, unsigned int);
-				len = uint_to_str(uval, buf, 10, 0);
-				for (i = 0; i < len && pos < size; i++) {
+				j = uint_to_str(uval, buf, 10, 0);
+				len += j;
+				for (i = 0; i < j && str && pos < size; i++) {
 					str[pos++] = buf[i];
 				}
 				break;
 
 			case 'x':
 				uval = __builtin_va_arg(ap, unsigned int);
-				len = uint_to_str(uval, buf, 16, 0);
-				for (i = 0; i < len && pos < size; i++) {
+				j = uint_to_str(uval, buf, 16, 0);
+				len += j;
+				for (i = 0; i < j && str && pos < size; i++) {
 					str[pos++] = buf[i];
 				}
 				break;
 
 			case 'X':
 				uval = __builtin_va_arg(ap, unsigned int);
-				len = uint_to_str(uval, buf, 16, 1);
-				for (i = 0; i < len && pos < size; i++) {
+				j = uint_to_str(uval, buf, 16, 1);
+				len += j;
+				for (i = 0; i < j && str && pos < size; i++) {
 					str[pos++] = buf[i];
 				}
 				break;
@@ -148,33 +156,39 @@ static int vsnprintf(char* str, size_t size, const char* format,
 				if (!s) {
 					s = "(null)";
 				}
-				for (i = 0; s[i] && pos < size; i++) {
-					str[pos++] = s[i];
+				for (i = 0; s[i]; i++) {
+					len++;
+					if (str && pos < size) {
+						str[pos++] = s[i];
+					}
 				}
 				break;
 
 			case 'c':
 				c = (char)__builtin_va_arg(ap, int);
-				if (pos < size) {
+				len++;
+				if (str && pos < size) {
 					str[pos++] = c;
 				}
 				break;
 
 			case '%':
-				if (pos < size) {
+				len++;
+				if (str && pos < size) {
 					str[pos++] = '%';
 				}
 				break;
 
 			default:
-				if (pos < size) {
+				len++;
+				if (str && pos < size) {
 					str[pos++] = *fmt;
 				}
 				break;
 		}
 	}
 
-	if (size > 0) {
+	if (size > 0 && str) {
 		if (pos + 1 < size) {
 			str[pos++] = '\0';
 		} else {
@@ -182,7 +196,7 @@ static int vsnprintf(char* str, size_t size, const char* format,
 		}
 	}
 
-	return (int)pos;
+	return (int)len;
 }
 
 /* snprintf implementation that takes variable arguments */

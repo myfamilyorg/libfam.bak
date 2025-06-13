@@ -1217,6 +1217,7 @@ Test(robust1) {
 Test(printf) {
 	char buf[1024];
 	int x = 1;
+	// myprintf("len=%i\n", snprintf(NULL, 0, "test%i"));
 	/*
 	int len = snprintf(buf, sizeof(buf), "test1 '%d' %s", x, "ok");
 	write(1, buf, len);
