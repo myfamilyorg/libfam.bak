@@ -78,9 +78,11 @@ static size_t int_to_str(intmax_t num, char* buf, int base, int upper) {
 
 	return i + uint_to_str((uintmax_t)temp, buf + i, base, upper);
 }
+
 int printf(const char*, ...);
-static int vsnprintf(char* str, size_t size, const char* format,
-		     __builtin_va_list ap) {
+
+int vsnprintf(char* str, size_t size, const char* format,
+	      __builtin_va_list ap) {
 	const char* fmt;
 	size_t pos;
 	size_t len;
@@ -103,20 +105,19 @@ static int vsnprintf(char* str, size_t size, const char* format,
 			}
 			continue;
 		}
-		fmt++; /* Skip '%' */
+		fmt++;
 		if (!*fmt) {
 			len++;
 			if (str && pos < size) {
 				str[pos++] = '%';
 			}
-			break; /* Handle trailing % */
+			break;
 		}
 
 		switch (*fmt) {
 			case 'd':
-			case 'i': /* Treat %i the same as %d */
-				val = __builtin_va_arg(
-				    ap, int); /* Use int for %d and %i */
+			case 'i':
+				val = __builtin_va_arg(ap, int);
 				j = int_to_str(val, buf, 10, 0);
 				len += j;
 				for (i = 0; i < j && str && pos < size; i++) {
@@ -210,22 +211,27 @@ int snprintf(char* str, size_t size, const char* format, ...) {
 	return len;
 }
 
+#include <alloc.h>
+
 /* printf implementation */
 int myprintf(const char* format, ...) {
 	__builtin_va_list ap;
-	char buf[1024]; /* Adjust size as needed */
-	size_t size;
 	int len;
+	char* buf;
 
-	size = sizeof(buf);
 	__builtin_va_start(ap, format);
 
-	/* Call vsnprintf with the va_list */
-	len = vsnprintf(buf, size, format, ap);
-
-	/* Output to stdout using write */
+	len = vsnprintf(NULL, 0, format, ap);
 	if (len > 0) {
-		write(1, buf, len);
+		buf = alloc(len + 1);
+
+		if (buf == NULL)
+			len = -1;
+		else {
+			len = vsnprintf(buf, len + 1, format, ap);
+			if (len > 0) write(1, buf, len);
+			release(buf);
+		}
 	}
 
 	__builtin_va_end(ap);

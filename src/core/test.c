@@ -1219,5 +1219,18 @@ Test(snprintf) {
 	int x = 1;
 	int len = snprintf(NULL, 0, "test%i", 1);
 	ASSERT_EQ(len, 5, "len=5");
+	ASSERT_EQ(snprintf(buf, sizeof(buf), "%i%s%s 3%d", 1, "xyz", "ghi", 4),
+		  10, "len=10");
+	ASSERT(!strcmp(buf, "1xyzghi 34"), "1xyzghi 34");
+
+	ASSERT_EQ(snprintf(buf, sizeof(buf), "xxx%iyyy", -12),
+		  strlen("xxx-12yyy"), "len");
+	ASSERT(!strcmp(buf, "xxx-12yyy"), "xxx-12yyy");
+	ASSERT_EQ(snprintf(buf, sizeof(buf), "abc%cdef", 'v'),
+		  strlen("abcvdef"), "len2");
+	ASSERT(!strcmp(buf, "abcvdef"), "abcvdef");
+	ASSERT_EQ(snprintf(buf, sizeof(buf), "%x %d", 10, 10), strlen("a 10"),
+		  "len3");
+	ASSERT(!strcmp(buf, "a 10"), "a 10");
 }
 
