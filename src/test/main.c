@@ -58,7 +58,6 @@ void call_constructors(void) {
 	}
 }
 
-#ifndef COVERAGE
 int main(int argc, char *argv[], char *envp[]);
 
 #ifdef __aarch64__
@@ -95,16 +94,13 @@ __asm__(
     "    mov $60, %rax\n"
     "    syscall\n");
 #endif /* __amd64__ */
-#endif /* COVERAGE */
 
 int main(int argc __attribute__((unused)), char **argv __attribute__((unused)),
 	 char **envp) {
 	int test_count = 0;
 	char *tp;
 
-#ifndef COVERAGE
 	call_constructors();
-#endif /* COVERAGE */
 
 	environ = envp;
 	init_environ();
