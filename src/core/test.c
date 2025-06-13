@@ -1214,20 +1214,10 @@ Test(robust1) {
 	munmap(state, sizeof(RobustState));
 }
 
-Test(printf) {
+Test(snprintf) {
 	char buf[1024];
 	int x = 1;
-	// myprintf("len=%i\n", snprintf(NULL, 0, "test%i"));
-	/*
-	int len = snprintf(buf, sizeof(buf), "test1 '%d' %s", x, "ok");
-	write(1, buf, len);
-	write(1, "\n", 1);
-	printf("buf=%s\n", buf);
-	myprintf("test1 '%d' %s\n", x, "ok");
-	myprintf("%sSuccess%s! %d %stests passed!%s\n", GREEN, RESET, 3, CYAN,
-		 CYAN);
-	myprintf("%s", RESET);
-	printf("done myprint\n");
-	*/
+	int len = snprintf(NULL, 0, "test%i");
+	ASSERT_EQ(len, 5, "len=5");
 }
 

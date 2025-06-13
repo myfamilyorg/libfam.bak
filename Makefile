@@ -97,7 +97,7 @@ $(TEST_LIB): $(TEST_OBJECTS) $(TEST_ASM_OBJECTS) | $(LIBDIR)
 
 # Build test binary
 $(TEST_BIN): $(TEST_OBJ) $(TEST_LIB) | $(BINDIR)
-	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) ./src/test/main.c -ffreestanding -nostdlib -fno-stack-protector -lfam_test -o $@
+	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) ./src/test/main.c -fno-stack-protector -lfam_test -o $@
 
 # Create directories if they don't exist
 $(OBJDIR) $(TOBJDIR) $(TEST_OBJDIR) $(LIBDIR) $(BINDIR):

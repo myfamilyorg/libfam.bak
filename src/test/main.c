@@ -55,7 +55,7 @@ void call_constructors(void) {
 	}
 }
 
-#ifndef COVERAGE
+#ifndef __aarch64__
 int main(int argc, char *argv[], char *envp[]);
 
 #ifdef __aarch64__
@@ -105,7 +105,7 @@ __asm__(
     "    syscall\n");
 #endif /* __amd64__ */
 #endif /* COVERAGE */
-
+int printf(const char *, ...);
 int main(int argc, char **argv, char **envp) {
 	int test_count = 0;
 	char *tp;
@@ -123,8 +123,8 @@ int main(int argc, char **argv, char **envp) {
 	for (exe_test = 0; exe_test < cur_tests; exe_test++) {
 		if (!tp || !strcmp(tp, "*") ||
 		    !strcmp(tests[exe_test].name, tp)) {
-			myprintf("running test %d [%s]\n", test_count,
-				 tests[exe_test].name);
+			printf("running test %d [%s]\n", test_count,
+			       tests[exe_test].name);
 			tests[exe_test].test_fn();
 			test_count++;
 		}

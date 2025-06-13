@@ -78,7 +78,7 @@ static size_t int_to_str(intmax_t num, char* buf, int base, int upper) {
 
 	return i + uint_to_str((uintmax_t)temp, buf + i, base, upper);
 }
-
+int printf(const char*, ...);
 static int vsnprintf(char* str, size_t size, const char* format,
 		     __builtin_va_list ap) {
 	const char* fmt;
