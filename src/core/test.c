@@ -1179,25 +1179,6 @@ Test(colors) {
 	unlink(test_file);
 
 	unsetenv("NO_COLOR");
-
-	/*
-	char buf[1024];
-	int len =
-	    snprintf(buf, 1024, "%s1%s%s2%s%s3%s%s4%s%s5%s%s6%s%s7%s%s8%s", RED,
-		     RESET, GREEN, RESET, CYAN, RESET, YELLOW, RESET, MAGENTA,
-		     RESET, DIMMED, RESET, BLUE, RESET, BRIGHT_RED, RESET);
-	buf[len] = 0;
-	ASSERT_EQ(len, 79, "len=79");
-	setenv("NO_COLOR", "1", true);
-	len =
-	    snprintf(buf, 1024, "%s1%s%s2%s%s3%s%s4%s%s5%s%s6%s%s7%s%s8%s", RED,
-		     RESET, GREEN, RESET, CYAN, RESET, YELLOW, RESET, MAGENTA,
-		     RESET, DIMMED, RESET, BLUE, RESET, BRIGHT_RED, RESET);
-
-	ASSERT_EQ(len, 8, "len=8");
-	buf[len] = 0;
-	unsetenv("NO_COLOR");
-	*/
 }
 
 typedef struct {
