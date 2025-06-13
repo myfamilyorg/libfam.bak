@@ -10,7 +10,7 @@ OBJDIR	 = .obj
 TEST_OBJDIR = .testobj
 TOBJDIR	= .tobj
 ASM_DIR	= $(SRCDIR)/asm
-SRC_DIRS   = core store net crypto  # Add new source directories here
+SRC_DIRS   = core store net crypto
 
 # Source and object files
 C_SOURCES   = $(foreach dir,$(SRC_DIRS),$(filter-out $(SRCDIR)/$(dir)/test.c,$(wildcard $(SRCDIR)/$(dir)/*.c)))

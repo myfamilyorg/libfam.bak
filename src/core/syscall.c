@@ -502,8 +502,15 @@ int sched_yield(void) {
 	SET_ERR
 }
 
+#ifdef COVERAGE
+void __gcov_dump(void);
+#endif /* COVERAGE */
+
 void exit(int status) {
 	execute_exits();
+#ifdef COVERAGE
+	__gcov_dump();
+#endif
 	syscall_exit(status);
 	while (true);
 }
