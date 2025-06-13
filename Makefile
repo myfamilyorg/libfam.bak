@@ -1,115 +1,96 @@
-CC      = gcc
-CSTYLE  = -pedantic \
-          -Wall \
-          -Wextra \
-	  -std=c89 \
-	  -Werror
-CFLAGS  = -fPIC \
-	  $(CSTYLE) \
-          -O3 \
-          -fno-stack-protector \
-          -fno-builtin \
-          -D_FORTIFY_SOURCE=0 \
-          -Wno-attributes
-TFLAGS  = $(CSTYLE) \
-	  -D_FORTIFY_SOURCE=0 \
-	  -fno-builtin \
-	  -fno-stack-protector \
-	  -O1 \
-	  -Isrc/include \
-	  -Wno-attributes \
-	  -DTEST=1
-TCFLAGS = -O1 -D_FORTIFY_SOURCE=0  -Isrc/include -Wno-attributes -DTEST=1
+# Compiler and tools
+CC = gcc
 UNAME_S := $(shell uname -s)
-LDFLAGS = -shared -nostdlib -ffreestanding
-FILTER  = "*"
-PAGE_SIZE = 16384
-MEMSAN ?= 0
-CFLAGS += -DMEMSAN=$(MEMSAN)
-TFLAGS += -DMEMSAN=$(MEMSAN)
-TCFLAGS += -DMEMSAN=$(MEMSAN)
 
 # Directories
-OBJDIR  = .obj
-TOBJDIR = .tobj
+SRCDIR     = src
+INCLDIR    = src/include
+LIBDIR     = lib
+BINDIR     = bin
+OBJDIR     = .obj
 TEST_OBJDIR = .testobj
-LIBDIR  = lib
-BINDIR  = bin
-INCLDIR = src/include
-SRCDIR  = src
-CORE_SRCDIR = $(SRCDIR)/core
-STORE_SRCDIR = $(SRCDIR)/store
-NET_SRCDIR = $(SRCDIR)/net
-CRYPTO_SRCDIR = $(SRCDIR)/crypto
-ASM_SRCDIR = $(SRCDIR)/asm
+TOBJDIR    = .tobj
+ASM_DIR    = $(SRCDIR)/asm
+SRC_DIRS   = core store net crypto  # Add new source directories here
 
-# Source files, excluding test.c
-CORE_SOURCES = $(filter-out $(CORE_SRCDIR)/test.c, $(wildcard $(CORE_SRCDIR)/*.c))
-STORE_SOURCES = $(filter-out $(STORE_SRCDIR)/test.c, $(wildcard $(STORE_SRCDIR)/*.c))
-NET_SOURCES = $(filter-out $(NET_SRCDIR)/test.c, $(wildcard $(NET_SRCDIR)/*.c))
-CRYPTO_SOURCES = $(filter-out $(CRYPTO_SRCDIR)/test.c, $(wildcard $(CRYPTO_SRCDIR)/*.c))
-SOURCES = $(CORE_SOURCES) $(STORE_SOURCES) $(NET_SOURCES) $(CRYPTO_SOURCES)
-OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
-TEST_OBJECTS = $(patsubst $(SRCDIR)/%.c,$(TEST_OBJDIR)/%.o,$(SOURCES))
+# Source and object files
+C_SOURCES   = $(foreach dir,$(SRC_DIRS),$(filter-out $(SRCDIR)/$(dir)/test.c,$(wildcard $(SRCDIR)/$(dir)/*.c)))
+ASM_SOURCES = $(wildcard $(ASM_DIR)/*.S)
+OBJECTS     = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(C_SOURCES)) $(patsubst $(SRCDIR)/%.S,$(OBJDIR)/%.o,$(ASM_SOURCES))
+TEST_OBJECTS = $(patsubst $(SRCDIR)/%.c,$(TEST_OBJDIR)/%.o,$(C_SOURCES)) $(patsubst $(SRCDIR)/%.S,$(TEST_OBJDIR)/%.o,$(ASM_SOURCES))
 
-# Assembly source files
-ASM_SOURCES = $(wildcard $(ASM_SRCDIR)/*.S)
-ASM_OBJECTS = $(patsubst $(SRCDIR)/%.S,$(OBJDIR)/%.o,$(ASM_SOURCES))
-TEST_ASM_OBJECTS = $(patsubst $(SRCDIR)/%.S,$(TEST_OBJDIR)/%.o,$(ASM_SOURCES))
+# Test sources and objects
+TEST_SRC    = $(foreach dir,$(SRC_DIRS),$(SRCDIR)/$(dir)/test.c)
+TEST_OBJ    = $(patsubst $(SRCDIR)/%.c,$(TOBJDIR)/%.o,$(TEST_SRC))
+TEST_LIB    = $(LIBDIR)/libfam_test.so
+TEST_BIN    = $(BINDIR)/runtests
 
-# Test source files
-CORE_TEST_SRC = $(CORE_SRCDIR)/test.c
-STORE_TEST_SRC = $(STORE_SRCDIR)/test.c
-NET_TEST_SRC = $(NET_SRCDIR)/test.c
-CRYPTO_TEST_SRC = $(CRYPTO_SRCDIR)/test.c
-TEST_SRC = $(CORE_TEST_SRC) $(STORE_TEST_SRC) $(NET_TEST_SRC) $(CRYPTO_TEST_SRC)
-TEST_OBJ = $(patsubst $(SRCDIR)/%.c,$(TOBJDIR)/%.o,$(TEST_SRC))
-TEST_BIN = $(BINDIR)/runtests
-TEST_LIB = $(LIBDIR)/libfam_test.so
+# Common configuration
+PAGE_SIZE   = 16384
+MEMSAN     ?= 0
+FILTER     ?= "*"
+
+# Common flags
+COMMON_FLAGS = -pedantic \
+               -Wall \
+               -Wextra \
+               -std=c89 \
+               -Werror \
+               -I$(INCLDIR) \
+               -D_FORTIFY_SOURCE=0 \
+               -fno-builtin \
+               -fno-stack-protector \
+               -Wno-attributes \
+               -DPAGE_SIZE=$(PAGE_SIZE) \
+               -DMEMSAN=$(MEMSAN)
+
+# Specific flags
+LIB_CFLAGS        = $(COMMON_FLAGS) -fPIC -O3 -DSTATIC=static
+TEST_CFLAGS       = $(COMMON_FLAGS) -fPIC -O1 -DSTATIC= -DTEST=1
+TEST_BINARY_CFLAGS = $(COMMON_FLAGS) -ffreestanding -nostdlib -O1 -DSTATIC= -DTEST=1
+LDFLAGS           = -shared -nostdlib -ffreestanding
 
 # Default target
 all: $(LIBDIR)/libfam.so
 
-# Rule for library objects (C files for 'all')
+# Create directories
+$(OBJDIR) $(TEST_OBJDIR) $(TOBJDIR) $(LIBDIR) $(BINDIR):
+	@mkdir -p $@
+
+# Rules for main library objects
 $(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
 	@mkdir -p $(@D)
-	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(CFLAGS) -DSTATIC=static -c $< -o $@
+	$(CC) $(LIB_CFLAGS) -c $< -o $@
 
-# Rule for assembly objects (for 'all')
 $(OBJDIR)/%.o: $(SRCDIR)/%.S | $(OBJDIR)
 	@mkdir -p $(@D)
 	$(CC) -c $< -o $@
 
-# Rule for test library objects (C files for 'test')
+# Rules for test library objects
 $(TEST_OBJDIR)/%.o: $(SRCDIR)/%.c | $(TEST_OBJDIR)
 	@mkdir -p $(@D)
-	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(TFLAGS) -DSTATIC= -fPIC -c $< -o $@
+	$(CC) $(TEST_CFLAGS) -c $< -o $@
 
-# Rule for test assembly objects (for 'test')
 $(TEST_OBJDIR)/%.o: $(SRCDIR)/%.S | $(TEST_OBJDIR)
 	@mkdir -p $(@D)
 	$(CC) -c $< -o $@
 
-# Rule for test objects (C files for runtests)
+# Rules for test binary objects
 $(TOBJDIR)/%.o: $(SRCDIR)/%.c | $(TOBJDIR)
 	@mkdir -p $(@D)
-	$(CC) -DPAGE_SIZE=$(PAGE_SIZE) -I$(INCLDIR) $(TCFLAGS) -DSTATIC= -fno-stack-protector -c $< -o $@
+	$(CC) $(TEST_BINARY_CFLAGS) -c $< -o $@
 
-# Build shared library (for 'all')
-$(LIBDIR)/libfam.so: $(OBJECTS) $(ASM_OBJECTS) | $(LIBDIR)
-	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(ASM_OBJECTS)
+# Build main library
+$(LIBDIR)/libfam.so: $(OBJECTS) | $(LIBDIR)
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS)
 
-# Build test shared library (for 'test')
-$(TEST_LIB): $(TEST_OBJECTS) $(TEST_ASM_OBJECTS) | $(LIBDIR)
-	$(CC) $(LDFLAGS) -o $@ $(TEST_OBJECTS) $(TEST_ASM_OBJECTS)
+# Build test library
+$(TEST_LIB): $(TEST_OBJECTS) | $(LIBDIR)
+	$(CC) $(LDFLAGS) -o $@ $(TEST_OBJECTS)
 
 # Build test binary
 $(TEST_BIN): $(TEST_OBJ) $(TEST_LIB) | $(BINDIR)
-	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) ./src/test/main.c -ffreestanding -nostdlib -fno-stack-protector -lfam_test -o $@
-
-# Create directories if they don't exist
-$(OBJDIR) $(TOBJDIR) $(TEST_OBJDIR) $(LIBDIR) $(BINDIR):
-	@mkdir -p $@
+	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) $(SRCDIR)/test/main.c $(TEST_BINARY_CFLAGS) -lfam_test -o $@
 
 # Run tests
 test: $(TEST_BIN)
@@ -117,7 +98,7 @@ test: $(TEST_BIN)
 
 # Clean up
 clean:
-	rm -fr $(OBJDIR) $(TOBJDIR) $(TEST_OBJDIR) $(LIBDIR)/*.so $(BINDIR)/*
+	rm -fr $(OBJDIR) $(TEST_OBJDIR) $(TOBJDIR) $(LIBDIR)/*.so $(BINDIR)/*
 
 # Phony targets
 .PHONY: all test clean

@@ -34,7 +34,8 @@
 #define MAX_TEST_NAME 128
 
 void add_test_fn(void (*test_fn)(void), const char *name);
-static const char *__assertion_msg = "assertion failed in test";
+static __attribute__((unused)) const char *__assertion_msg =
+    "assertion failed in test";
 
 extern int exe_test;
 typedef struct {
