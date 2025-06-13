@@ -48,4 +48,7 @@ int socket_listen(int *fd, const uint8_t addr[4], uint16_t port,
 		  uint16_t backlog);
 int socket_accept(int fd);
 
+unsigned short htons(unsigned short host);
+unsigned short ntohs(unsigned short net);
+
 #endif /* _SOCKET_H */

@@ -23,23 +23,27 @@
  *
  *******************************************************************************/
 
-#ifndef _ROBUST_H
-#define _ROBUST_H
-
+#include <atomic.h>
+#include <error.h>
+#include <robust.h>
+#include <sys.h>
+#include <syscall.h>
 #include <types.h>
 
-typedef uint32_t RobustLock;
+RobustGuard robust_lock(RobustLock *lock) {
+	RobustGuardImpl ret;
+	uint32_t expected = 0;
+	pid_t pid = getpid();
 
-typedef struct {
-	RobustLock *lock;
-} RobustGuardImpl;
+	while (!__cas32(lock, &expected, pid)) {
+		if (kill(expected, 0) == -1 && err == ESRCH)
+			if (__cas32(lock, &expected, pid)) break;
+		expected = 0;
+		yield();
+	}
 
-void robustguard_cleanup(RobustGuardImpl *lg);
+	ret.lock = lock;
+	return ret;
+}
 
-#define RobustGuard \
-	RobustGuardImpl __attribute__((unused, cleanup(robustguard_cleanup)))
-
-int robust_init(RobustLock *lock, uint64_t *shared_memory_location);
-RobustGuard robust_lock(RobustLock *lock);
-
-#endif /* _ROBUST_H */
+void robustguard_cleanup(RobustGuardImpl *lg) { ASTORE(lg->lock, 0); }

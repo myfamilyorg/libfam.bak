@@ -34,6 +34,7 @@
 #include <limits.h>
 #include <lock.h>
 #include <misc.h>
+#include <robust.h>
 #include <sys.h>
 #include <syscall.h>
 #include <syscall_const.h>
@@ -536,6 +537,7 @@ Test(channel3) {
 		}
 		channel_destroy(&ch1);
 		ASSERT_BYTES(0);
+		waitid(0, pid, NULL, 4);
 	}
 }
 
@@ -572,6 +574,7 @@ Test(channel_notify) {
 }
 
 Test(channel_cycle) {
+	int pid;
 	Channel ch1 = channel2(sizeof(TestMessage), 8);
 	TestMessage msg;
 	for (int i = 0; i < 8; i++) send(&ch1, &(TestMessage){.x = 1, .y = 2});
@@ -579,7 +582,7 @@ Test(channel_cycle) {
 	recv(&ch1, &msg);
 	send(&ch1, &(TestMessage){.x = 1, .y = 2});
 
-	if (two()) {
+	if ((pid = two())) {
 		msg.x = 0;
 		recv(&ch1, &msg);
 		ASSERT_EQ(msg.x, 1, "1");
@@ -588,6 +591,7 @@ Test(channel_cycle) {
 		send(&ch1, &msg);
 		exit(0);
 	}
+	waitid(0, pid, NULL, 4);
 }
 
 Test(channel_err) {
@@ -721,6 +725,7 @@ Test(pipe) {
 		write(fds[1], "test", 4);
 		exit(0);
 	}
+	waitid(0, fv, NULL, 4);
 }
 
 Test(files1) {
@@ -1093,3 +1098,36 @@ Test(colors) {
 	buf[len] = 0;
 	unsetenv("NO_COLOR");
 }
+
+typedef struct {
+	RobustLock lock1;
+	RobustLock lock2;
+	int value1;
+	int value2;
+} RobustState;
+
+Test(robust1) {
+	RobustState *state = (RobustState *)smap(sizeof(RobustState));
+	state->lock1 = LOCK_INIT;
+	state->value1 = 0;
+	int cpid;
+
+	if ((cpid = two())) {
+		waitid(0, cpid, NULL, 4);
+	} else {
+		if (two()) {
+			RobustGuard rg = robust_lock(&state->lock1);
+			exit(0);
+		} else {
+			{
+				sleepm(100);
+				RobustGuard rg = robust_lock(&state->lock1);
+				state->value1 = 1;
+			}
+			exit(0);
+		}
+	}
+	while (!ALOAD(&state->value1)) yield();
+	munmap(state, sizeof(RobustState));
+}
+

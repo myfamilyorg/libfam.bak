@@ -418,6 +418,8 @@ DEFINE_SYSCALL6(98, long, futex, uint32_t *, uaddr, int, futex_op, uint32_t,
 DEFINE_SYSCALL4(134, int, rt_sigaction, int, signum,
 		const struct rt_sigaction *, act, struct rt_sigaction *, oldact,
 		size_t, sigsetsize)
+DEFINE_SYSCALL0(172, pid_t, getpid)
+DEFINE_SYSCALL2(129, int, kill, pid_t, pid, int, signal)
 #elif defined(__amd64__)
 /* System call definitions */
 DEFINE_SYSCALL2(293, int, pipe2, int *, fds, int, flags)
@@ -469,6 +471,8 @@ DEFINE_SYSCALL6(202, long, futex, uint32_t *, uaddr, int, futex_op, uint32_t,
 		uint32_t, val3)
 DEFINE_SYSCALL4(13, int, rt_sigaction, int, signum, const struct rt_sigaction *,
 		act, struct rt_sigaction *, oldact, size_t, sigsetsize)
+DEFINE_SYSCALL0(39, pid_t, getpid)
+DEFINE_SYSCALL2(62, int, kill, pid_t, pid, int, signal)
 #endif /* Arch */
 
 int clone3(struct clone_args *args, size_t size) {
@@ -693,3 +697,11 @@ int waitid(idtype_t id_type, id_t id, siginfo_t *sigs, int options) {
 	SET_ERR
 }
 
+pid_t getpid(void) {
+	pid_t ret = syscall_getpid();
+	SET_ERR
+}
+int kill(pid_t pid, int signal) {
+	int ret = syscall_kill(pid, signal);
+	SET_ERR
+}

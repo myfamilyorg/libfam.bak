@@ -69,6 +69,13 @@ struct sockaddr {
 	char sa_data[14];
 };
 
+typedef unsigned short sa_family_t;
+
+struct sockaddr_un {
+	sa_family_t sun_family;
+	char sun_path[108];
+};
+
 struct timespec {
 	long tv_sec;
 	long tv_nsec;

@@ -28,11 +28,11 @@
 #include <syscall.h>
 #include <syscall_const.h>
 
-STATIC unsigned short htons(unsigned short host) {
+unsigned short htons(unsigned short host) {
 	return ((host & 0xFF) << 8) | ((host >> 8) & 0xFF);
 }
 
-STATIC unsigned short ntohs(unsigned short net) {
+unsigned short ntohs(unsigned short net) {
 	return ((net & 0xFF) << 8) | ((net >> 8) & 0xFF);
 }
 
