@@ -73,13 +73,13 @@ for src in ${CORE_SRC}; do
 done
 
 # Link test binary
-COMMAND="${CC} ${LDFLAGS} ${TEST_OBJS} ${LIB_OBJS} -I${INCLDIR} src/test/main.c ${LIBGCOV} -lc -lgcc -o ${COV_BIN}"
+COMMAND="${CC} ${LDFLAGS} ${TEST_OBJS} ${LIB_OBJS} -I${INCLDIR} src/test/main.c ${LIBGCOV} -lc -lgcc -o ${COV_BIN} -DCOVERAGE"
 echo ${COMMAND}
 ${COMMAND}
 
 # Run tests
 export TEST_PATTERN="*"; # ensure test pattern is set for tests
-export SHARED_MEMORY_BYTES="67108865"; # use invalid size to trigger default
+export SHARED_MEMORY_BYTES="67108864"; # use invalid size to trigger default
 ./${COV_BIN} || { echo "Tests failed; check errors above"; exit 1; }
 
 # Copy object files for coverage

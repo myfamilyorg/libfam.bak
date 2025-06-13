@@ -32,6 +32,7 @@ void call_constructors(void) {
 	}
 }
 
+#ifndef COVERAGE
 int main(int argc, char *argv[], char *envp[]);
 
 #ifdef __aarch64__
@@ -80,6 +81,7 @@ __asm__(
     "    mov %rax, %rdi\n"
     "    syscall\n");
 #endif /* __amd64__ */
+#endif /* COVERAGE */
 
 int main(int argc, char **argv, char **envp) {
 	int test_count = 0;
@@ -111,6 +113,6 @@ int main(int argc, char **argv, char **envp) {
 	write(2, "Success!\n", strlen("Success!\n"));
 	printf("%sSuccess%s! %i %stests passed!%s\n", GREEN, RESET, test_count,
 	       CYAN, CYAN);
-	exit(0);
+
 	return 0;
 }
