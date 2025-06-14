@@ -146,13 +146,17 @@
 #define EPOLL_CTL_DEL 2 /* Add a file descriptor to the epoll instance */
 #define EPOLL_CTL_MOD 3 /* Modify an existing file descriptor's settings */
 
-/* Waitid */
-#define WNOHANG 1
-#define P_PID 0
-
 /* shutdown */
 #define SHUT_RD 0
 #define SHUT_WR 1
 #define SHUT_RDWR 2
+
+/* waitid's */
+#define P_PID 0
+#define WEXITED 1
+#define WSTOPPED 2
+#define WNOWAIT 4
+#define WNOHANG 8
+#define WCONTINUED 16
 
 #endif /* _SYSCALL_CONST_H */
