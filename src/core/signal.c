@@ -38,7 +38,7 @@ typedef struct {
 
 #define MAX_TASKS 32
 static TaskEntry pending_tasks[MAX_TASKS];
-static int cur_tasks = 0;
+STATIC int cur_tasks = 0;
 
 STATIC int set_next_timer(uint64_t now) {
 	int i;

@@ -27,6 +27,7 @@
 #include <atomic.h>
 #include <env.h>
 #include <error.h>
+#include <init.h>
 #include <limits.h>
 #include <misc.h>
 #include <syscall_const.h>
@@ -351,6 +352,8 @@ Test(misc) {
 
 	ASSERT_EQ(double_to_string(bufbig, 0.0, 3), 1, "d2str0.0");
 	ASSERT_EQ(bufbig[0], '0', "0");
+
+	ASSERT(!strcmp(substrn("abcdefghi", "def", 9), "defghi"), "substrn");
 }
 
 Test(udivti3) {
@@ -882,9 +885,48 @@ Test(snprintf) {
 	ASSERT_EQ(buf[0], 'A', "abuf");
 
 	len = snprintf(buf, sizeof(buf), "%s", NULL);
-	ASSERT_EQ(len, strlen("(null)"), "null");
+	ASSERT_EQ(len, (int)strlen("(null)"), "null");
 
 	len = snprintf(buf, sizeof(buf), "%v");
 	ASSERT_EQ(len, 1, "len=2");
 	ASSERT_EQ(buf[0], 'v', "buf[0]=v");
+}
+
+Test(b64) {
+	uint8_t buf[128];
+	uint8_t buf2[128];
+	uint8_t buf3[128];
+	int len, len2;
+	memcpy(buf, "0123456789", 10);
+	len = b64_encode(buf, 10, buf2, 128);
+	len2 = b64_decode(buf2, len, buf3, 128);
+	ASSERT_EQ(len2, 10, "len=10");
+	ASSERT_EQ(buf3[0], '0', "0");
+	ASSERT_EQ(buf3[1], '1', "1");
+	ASSERT_EQ(buf3[2], '2', "2");
+	ASSERT_EQ(buf3[3], '3', "3");
+	ASSERT_EQ(buf3[4], '4', "4");
+	ASSERT_EQ(buf3[5], '5', "5");
+	ASSERT_EQ(buf3[6], '6', "6");
+	ASSERT_EQ(buf3[7], '7', "7");
+	ASSERT_EQ(buf3[8], '8', "8");
+	ASSERT_EQ(buf3[9], '9', "9");
+}
+
+extern int cur_tasks;
+int ecount = 0;
+void my_exit(void) { ecount++; }
+
+Test(begin) {
+	int i;
+	cur_tasks = 1;
+	begin();
+	ASSERT_EQ(cur_tasks, 0, "cur_tasks");
+	for (i = 0; i < 64; i++)
+		ASSERT(!register_exit(my_exit), "register_exit");
+	for (i = 0; i < 3; i++)
+		ASSERT(register_exit(my_exit), "register_exit_overflow");
+
+	execute_exits();
+	ASSERT_EQ(ecount, 64, "64 exits");
 }

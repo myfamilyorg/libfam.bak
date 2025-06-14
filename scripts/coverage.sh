@@ -32,7 +32,7 @@ COVDIR=".cov"
 # Compiler and flags
 CC="gcc"
 CFLAGS="-DPAGE_SIZE=16384 -I${INCLDIR} -O0 -Wno-attributes -DMEMSAN=0 -DSTATIC= -g"
-COVFLAGS="--coverage -O1 -DTEST=1"
+COVFLAGS="--coverage -O1 -DTEST=1 -DCOVERAGE"
 LDFLAGS="--coverage"
 LIBCGCOV=""
 
