@@ -23,10 +23,10 @@
  *
  *******************************************************************************/
 
-#include <error.h>
-#include <misc.h>
-#include <sys.h>
-#include <sys.h>
+#include <error.H>
+#include <misc.H>
+#include <sys.H>
+#include <sys.H>
 
 int err = 0;
 int *__error(void) { return &err; }

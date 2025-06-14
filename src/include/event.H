@@ -23,23 +23,28 @@
  *
  *******************************************************************************/
 
-#ifndef _CHANNEL_H__
-#define _CHANNEL_H__
+#ifndef _EVENT_H
+#define _EVENT_H
 
-#include <types.h>
+#include <types.H>
 
-typedef struct ChannelInner ChannelInner;
+#define MULTIPLEX_FLAG_NONE 0
+#define MULTIPLEX_FLAG_READ 0x1
+#define MULTIPLEX_FLAG_ACCEPT (0x1 << 1)
+#define MULTIPLEX_FLAG_WRITE (0x1 << 2)
 
 typedef struct {
-	ChannelInner *inner;
-} Channel;
+	uint8_t opaque[12];
+#ifdef __aarch64__
+	uint8_t opaque2[4]; /* to account for non packing */
+#endif
+} Event;
 
-void channel_destroy(Channel *channel);
-Channel channel(size_t element_size);
-Channel channel2(size_t element_size, size_t capacity);
-bool channel_ok(Channel *channel);
-void recv(Channel *channel, void *dst);
-int recv_now(Channel *channel, void *dst);
-int send(Channel *channel, const void *src);
+int multiplex(void);
+int mregister(int multiplex, int fd, int flags, void *attach);
+int mwait(int multiplex, Event events[], int max_events, int64_t timeout);
+int event_is_read(Event event);
+int event_is_write(Event event);
+void *event_attachment(Event event);
 
-#endif /* _CHANNEL_H__ */
+#endif /* _EVENT_H */

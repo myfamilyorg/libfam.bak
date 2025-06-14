@@ -23,11 +23,11 @@
  *
  *******************************************************************************/
 
-#include <init.h>
-#include <sys.h>
-#include <syscall.h>
-#include <syscall_const.h>
-#include <types.h>
+#include <init.H>
+#include <sys.H>
+#include <syscall.H>
+#include <syscall_const.H>
+#include <types.H>
 
 pid_t two(void) { return two2(true); }
 

@@ -23,9 +23,9 @@
  *
  *******************************************************************************/
 
-#include <alloc.h>
-#include <env.h>
-#include <misc.h>
+#include <alloc.H>
+#include <env.H>
+#include <misc.H>
 
 #ifndef MEMSAN
 #define MEMSAN 0

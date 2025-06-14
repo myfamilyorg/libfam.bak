@@ -23,7 +23,7 @@
  *
  *******************************************************************************/
 
-#include <types.h>
+#include <types.H>
 
 #ifdef __aarch64__
 int __cas32(volatile uint32_t *a, uint32_t *expected, uint32_t desired) {

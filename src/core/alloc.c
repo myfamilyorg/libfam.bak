@@ -23,11 +23,11 @@
  *
  *******************************************************************************/
 
-#include <alloc.h>
-#include <atomic.h>
-#include <env.h>
-#include <error.h>
-#include <misc.h>
+#include <alloc.H>
+#include <atomic.H>
+#include <env.H>
+#include <error.H>
+#include <misc.H>
 
 #define SHM_SIZE_DEFAULT (CHUNK_SIZE * 64)
 

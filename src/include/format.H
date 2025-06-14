@@ -23,30 +23,12 @@
  *
  *******************************************************************************/
 
-#ifndef _SYS_H
-#define _SYS_H
+#ifndef _FORMAT_H
+#define _FORMAT_H
 
-#include <syscall.h>
-#include <types.h>
+#include <types.H>
 
-/* system calls applied */
-int unlink(const char *path);
-int open(const char *pathname, int flags, mode_t mode);
-int pipe(int fds[2]);
-int getentropy(void *buffer, size_t length);
-int yield(void);
-int timeout(void (*task)(void), uint64_t milliseconds);
-void *map(size_t length);
-void *fmap(int fd, off_t size, off_t offset);
-void *smap(size_t length);
-int exists(const char *path);
-int file(const char *path);
-off_t fsize(int fd);
-int fresize(int fd, off_t length);
-int flush(int fd);
-int64_t micros(void);
-int sleepm(uint64_t millis);
-pid_t two(void);
-pid_t two2(bool share_fds);
+int snprintf(char *buf, size_t size, const char *fmt, ...);
+int printf(const char *fmt, ...);
 
-#endif /* _SYS_H */
+#endif /* _FORMAT_H */

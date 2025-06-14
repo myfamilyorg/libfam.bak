@@ -23,8 +23,8 @@
  *
  *******************************************************************************/
 
-#include <aes.h>
-#include <misc.h>
+#include <aes.H>
+#include <misc.H>
 
 /* The number of columns comprising a state in AES. This is a constant in AES.
  */

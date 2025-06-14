@@ -23,26 +23,23 @@
  *
  *******************************************************************************/
 
-#ifndef _LOCK_H
-#define _LOCK_H
+#ifndef _ALLOC_H__
+#define _ALLOC_H__
 
-#include <types.h>
+#ifndef MEMSAN
+#define MEMSAN 0 /* Disabled by default */
+#endif
 
-typedef uint32_t Lock;
+#include <sys.H>
+#include <types.H>
 
-#define LOCK_INIT 0
+void *alloc(size_t size);
+void release(void *ptr);
+void *resize(void *ptr, size_t size);
 
-typedef struct {
-	Lock *lock;
-	bool is_write;
-} LockGuardImpl;
+#if MEMSAN == 1
+uint64_t get_allocated_bytes(void);
+void reset_allocated_bytes(void);
+#endif /* MEMSAN */
 
-void lockguard_cleanup(LockGuardImpl *lg);
-
-#define LockGuard \
-	LockGuardImpl __attribute__((unused, cleanup(lockguard_cleanup)))
-
-LockGuard rlock(Lock *lock);
-LockGuard wlock(Lock *lock);
-
-#endif /* _LOCK_H */
+#endif /* _ALLOC_H__ */

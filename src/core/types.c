@@ -23,9 +23,9 @@
  *
  *******************************************************************************/
 
-#include <misc.h>
-#include <syscall.h>
-#include <types.h>
+#include <misc.H>
+#include <syscall.H>
+#include <types.H>
 
 #define CheckEndian()                                                          \
 	uint16_t test = 0x1234;                                                \

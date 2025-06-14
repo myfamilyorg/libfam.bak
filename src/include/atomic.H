@@ -26,7 +26,7 @@
 #ifndef _ATOMIC_H
 #define _ATOMIC_H
 
-#include <types.h>
+#include <types.H>
 
 #ifdef __aarch64__
 uint32_t __cas32(uint32_t *ptr, uint32_t *expected, uint32_t desired);

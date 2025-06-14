@@ -23,23 +23,23 @@
  *
  *******************************************************************************/
 
-#ifndef _ALLOC_H__
-#define _ALLOC_H__
+#ifndef _CHANNEL_H__
+#define _CHANNEL_H__
 
-#ifndef MEMSAN
-#define MEMSAN 0 /* Disabled by default */
-#endif
+#include <types.H>
 
-#include <sys.h>
-#include <types.h>
+typedef struct ChannelInner ChannelInner;
 
-void *alloc(size_t size);
-void release(void *ptr);
-void *resize(void *ptr, size_t size);
+typedef struct {
+	ChannelInner *inner;
+} Channel;
 
-#if MEMSAN == 1
-uint64_t get_allocated_bytes(void);
-void reset_allocated_bytes(void);
-#endif /* MEMSAN */
+void channel_destroy(Channel *channel);
+Channel channel(size_t element_size);
+Channel channel2(size_t element_size, size_t capacity);
+bool channel_ok(Channel *channel);
+void recv(Channel *channel, void *dst);
+int recv_now(Channel *channel, void *dst);
+int send(Channel *channel, const void *src);
 
-#endif /* _ALLOC_H__ */
+#endif /* _CHANNEL_H__ */

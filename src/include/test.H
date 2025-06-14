@@ -26,10 +26,10 @@
 #ifndef _TEST_H
 #define _TEST_H
 
-#include <colors.h>
-#include <format.h>
-#include <misc.h>
-#include <sys.h>
+#include <colors.H>
+#include <format.H>
+#include <misc.H>
+#include <sys.H>
 
 #define MAX_TESTS 1024
 #define MAX_TEST_NAME 128

@@ -23,9 +23,9 @@
  *
  *******************************************************************************/
 
-#include <error.h>
-#include <init.h>
-#include <types.h>
+#include <error.H>
+#include <init.H>
+#include <types.H>
 
 #define MAX_EXIT 64
 

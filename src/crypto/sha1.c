@@ -23,8 +23,8 @@
  *
  *******************************************************************************/
 
-#include <misc.h>
-#include <types.h>
+#include <misc.H>
+#include <types.H>
 
 typedef struct {
 	uint32_t state[5];

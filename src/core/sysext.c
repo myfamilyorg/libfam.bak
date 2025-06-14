@@ -23,11 +23,11 @@
  *
  *******************************************************************************/
 
-#include <error.h>
-#include <init.h>
-#include <sys.h>
-#include <sys.h>
-#include <syscall_const.h>
+#include <error.H>
+#include <init.H>
+#include <sys.H>
+#include <sys.H>
+#include <syscall_const.H>
 
 int file(const char *path) {
 	int ret = open(path, O_CREAT | O_RDWR, 0600);

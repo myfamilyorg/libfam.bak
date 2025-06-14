@@ -23,10 +23,10 @@
  *
  *******************************************************************************/
 
-#include <colors.h>
-#include <env.h>
-#include <misc.h>
-#include <types.h>
+#include <colors.H>
+#include <env.H>
+#include <misc.H>
+#include <types.H>
 
 int no_color(void) {
 	char *noc = getenv("NO_COLOR");

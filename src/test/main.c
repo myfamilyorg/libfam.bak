@@ -23,10 +23,10 @@
  *
  *******************************************************************************/
 
-#include <env.h>
-#include <format.h>
-#include <misc.h>
-#include <test.h>
+#include <env.H>
+#include <format.H>
+#include <misc.H>
+#include <test.H>
 
 char **environ = 0;
 int cur_tests = 0;

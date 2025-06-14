@@ -23,11 +23,11 @@
  *
  *******************************************************************************/
 
-#include <error.h>
-#include <limits.h>
-#include <misc.h>
-#include <sys.h>
-#include <syscall_const.h>
+#include <error.H>
+#include <limits.H>
+#include <misc.H>
+#include <sys.H>
+#include <syscall_const.H>
 
 static void sig_ign(int __attribute((unused)) sig) {}
 

@@ -23,15 +23,15 @@
  *
  *******************************************************************************/
 
-#include <alloc.h>
-#include <atomic.h>
-#include <env.h>
-#include <error.h>
-#include <init.h>
-#include <limits.h>
-#include <misc.h>
-#include <syscall_const.h>
-#include <test.h>
+#include <alloc.H>
+#include <atomic.H>
+#include <env.H>
+#include <error.H>
+#include <init.H>
+#include <limits.H>
+#include <misc.H>
+#include <syscall_const.H>
+#include <test.H>
 
 typedef struct {
 	int value1;

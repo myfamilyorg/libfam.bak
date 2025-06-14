@@ -26,7 +26,7 @@
 #ifndef _SYSCALL_H
 #define _SYSCALL_H
 
-#include <types.h>
+#include <types.H>
 
 int pipe(int fds[2]);
 int pipe2(int fds[2], int flags);

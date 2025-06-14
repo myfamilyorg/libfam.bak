@@ -23,11 +23,11 @@
  *
  *******************************************************************************/
 
-#include <error.h>
-#include <init.h>
-#include <sys.h>
-#include <syscall_const.h>
-#include <types.h>
+#include <error.H>
+#include <init.H>
+#include <sys.H>
+#include <syscall_const.H>
+#include <types.H>
 
 #define SET_ERR             \
 	if (ret < 0) {      \

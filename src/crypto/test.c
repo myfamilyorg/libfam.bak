@@ -1,5 +1,5 @@
-#include <aes.h>
-#include <test.h>
+#include <aes.H>
+#include <test.H>
 
 Test(crypto1) { ASSERT(1, "1"); }
 

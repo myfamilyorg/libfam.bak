@@ -23,10 +23,10 @@
  *
  *******************************************************************************/
 
-#include <alloc.h>
-#include <format.h>
-#include <misc.h>
-#include <syscall.h>
+#include <alloc.H>
+#include <format.H>
+#include <misc.H>
+#include <syscall.H>
 
 typedef long ptrdiff_t;
 typedef long intmax_t;

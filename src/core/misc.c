@@ -23,11 +23,11 @@
  *
  *******************************************************************************/
 
-#include <error.h>
-#include <limits.h>
-#include <misc.h>
-#include <sys.h>
-#include <types.h>
+#include <error.H>
+#include <limits.H>
+#include <misc.H>
+#include <sys.H>
+#include <types.H>
 
 void panic(const char *msg) {
 	write(2, msg, strlen(msg));

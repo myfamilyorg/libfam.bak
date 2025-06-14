@@ -1,6 +1,6 @@
-#include <error.h>
-#include <event.h>
-#include <test.h>
+#include <error.H>
+#include <event.H>
+#include <test.H>
 
 Test(event) {
 	Event events[10];

@@ -23,12 +23,23 @@
  *
  *******************************************************************************/
 
-#ifndef _FORMAT_H
-#define _FORMAT_H
+#ifndef _ROBUST_H
+#define _ROBUST_H
 
-#include <types.h>
+#include <types.H>
 
-int snprintf(char *buf, size_t size, const char *fmt, ...);
-int printf(const char *fmt, ...);
+typedef uint32_t RobustLock;
 
-#endif /* _FORMAT_H */
+typedef struct {
+	RobustLock *lock;
+} RobustGuardImpl;
+
+void robustguard_cleanup(RobustGuardImpl *lg);
+
+#define RobustGuard \
+	RobustGuardImpl __attribute__((unused, cleanup(robustguard_cleanup)))
+
+int robust_init(RobustLock *lock, uint64_t *shared_memory_location);
+RobustGuard robust_lock(RobustLock *lock);
+
+#endif /* _ROBUST_H */

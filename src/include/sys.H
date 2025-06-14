@@ -23,28 +23,30 @@
  *
  *******************************************************************************/
 
-#ifndef _EVENT_H
-#define _EVENT_H
+#ifndef _SYS_H
+#define _SYS_H
 
-#include <types.h>
+#include <syscall.H>
+#include <types.H>
 
-#define MULTIPLEX_FLAG_NONE 0
-#define MULTIPLEX_FLAG_READ 0x1
-#define MULTIPLEX_FLAG_ACCEPT (0x1 << 1)
-#define MULTIPLEX_FLAG_WRITE (0x1 << 2)
+/* system calls applied */
+int unlink(const char *path);
+int open(const char *pathname, int flags, mode_t mode);
+int pipe(int fds[2]);
+int getentropy(void *buffer, size_t length);
+int yield(void);
+int timeout(void (*task)(void), uint64_t milliseconds);
+void *map(size_t length);
+void *fmap(int fd, off_t size, off_t offset);
+void *smap(size_t length);
+int exists(const char *path);
+int file(const char *path);
+off_t fsize(int fd);
+int fresize(int fd, off_t length);
+int flush(int fd);
+int64_t micros(void);
+int sleepm(uint64_t millis);
+pid_t two(void);
+pid_t two2(bool share_fds);
 
-typedef struct {
-	uint8_t opaque[12];
-#ifdef __aarch64__
-	uint8_t opaque2[4]; /* to account for non packing */
-#endif
-} Event;
-
-int multiplex(void);
-int mregister(int multiplex, int fd, int flags, void *attach);
-int mwait(int multiplex, Event events[], int max_events, int64_t timeout);
-int event_is_read(Event event);
-int event_is_write(Event event);
-void *event_attachment(Event event);
-
-#endif /* _EVENT_H */
+#endif /* _SYS_H */

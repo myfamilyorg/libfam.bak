@@ -23,11 +23,11 @@
  *
  *******************************************************************************/
 
-#include <error.h>
-#include <event.h>
-#include <syscall.h>
-#include <syscall_const.h>
-#include <types.h>
+#include <error.H>
+#include <event.H>
+#include <syscall.H>
+#include <syscall_const.H>
+#include <types.H>
 
 #define STATIC_ASSERT(condition, message) \
 	typedef char static_assert_##message[(condition) ? 1 : -1]

@@ -23,23 +23,33 @@
  *
  *******************************************************************************/
 
-#ifndef _AES_H
-#define _AES_H
+#ifndef _MISC_H
+#define _MISC_H
 
-#define AES_BLOCKLEN 16
-#define AES_KEYLEN 32
-#define AES_KEYEXPSIZE 240
+#include <types.H>
 
-#include <types.h>
+size_t strlen(const char *S);
+char *strcpy(char *dest, const char *src);
+char *strcat(char *dest, const char *src);
+int strcmp(const char *s1, const char *s2);
+int strcmpn(const char *s1, const char *s2, size_t n);
+char *substr(const char *s, const char *sub);
+char *substrn(const char *s, const char *sub, size_t n);
+char *strchr(const char *s, int c);
+void *memset(void *ptr, int x, size_t n);
+void *memcpy(void *dst, const void *src, size_t n);
+int memcmp(const void *s1, const void *s2, size_t n);
+void *memorymove(void *dst, const void *src, size_t n);
+void byteszero(void *dst, size_t n);
+size_t uint128_t_to_string(char *buf, uint128_t v);
+size_t int128_t_to_string(char *buf, int128_t v);
+size_t double_to_string(char *buf, double v, int max_decimals);
+size_t b64_encode(const uint8_t *in, size_t in_len, uint8_t *out,
+		  size_t out_max);
+size_t b64_decode(const uint8_t *in, size_t in_len, uint8_t *out,
+		  size_t out_max);
+uint128_t string_to_uint128(const char *buf, size_t len);
+int128_t string_to_int128(const char *buf, size_t len);
+void panic(const char *msg);
 
-typedef struct {
-	uint8_t RoundKey[AES_KEYEXPSIZE];
-	uint8_t Iv[AES_BLOCKLEN];
-} AesContext;
-
-void aes_init(AesContext *ctx, const uint8_t *key, const uint8_t *iv);
-void aes_set_iv(AesContext *ctx, const uint8_t *iv);
-
-void aes_ctr_xcrypt_buffer(AesContext *ctx, uint8_t *buf, size_t length);
-
-#endif /* _AES_H */
+#endif /* _MISC_H */

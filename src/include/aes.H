@@ -23,23 +23,23 @@
  *
  *******************************************************************************/
 
-#ifndef _ROBUST_H
-#define _ROBUST_H
+#ifndef _AES_H
+#define _AES_H
 
-#include <types.h>
+#define AES_BLOCKLEN 16
+#define AES_KEYLEN 32
+#define AES_KEYEXPSIZE 240
 
-typedef uint32_t RobustLock;
+#include <types.H>
 
 typedef struct {
-	RobustLock *lock;
-} RobustGuardImpl;
+	uint8_t RoundKey[AES_KEYEXPSIZE];
+	uint8_t Iv[AES_BLOCKLEN];
+} AesContext;
 
-void robustguard_cleanup(RobustGuardImpl *lg);
+void aes_init(AesContext *ctx, const uint8_t *key, const uint8_t *iv);
+void aes_set_iv(AesContext *ctx, const uint8_t *iv);
 
-#define RobustGuard \
-	RobustGuardImpl __attribute__((unused, cleanup(robustguard_cleanup)))
+void aes_ctr_xcrypt_buffer(AesContext *ctx, uint8_t *buf, size_t length);
 
-int robust_init(RobustLock *lock, uint64_t *shared_memory_location);
-RobustGuard robust_lock(RobustLock *lock);
-
-#endif /* _ROBUST_H */
+#endif /* _AES_H */
