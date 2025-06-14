@@ -369,7 +369,7 @@ WsConfig WS_EXT = {3737, {0, 0, 0, 0}, 10, 2};
 Test(ws1) {
 	uint16_t port;
 	Ws *ws;
-	char buf[1];
+	uint8_t buf[1];
 	int socket;
 	const char *msg =
 	    "GET / HTTP/1.1\r\nSec-WebSocket-Key: "
