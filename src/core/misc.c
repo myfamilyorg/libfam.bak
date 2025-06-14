@@ -133,6 +133,24 @@ void *memset(void *dest, int c, size_t n) {
 	return dest;
 }
 
+int memcmp(const void *s1, const void *s2, size_t n) {
+	/* Cast pointers to unsigned char for byte-by-byte comparison */
+	const unsigned char *p1 = (const unsigned char *)s1;
+	const unsigned char *p2 = (const unsigned char *)s2;
+	size_t i;
+
+	/* Compare each byte */
+	for (i = 0; i < n; i++) {
+		if (p1[i] != p2[i]) {
+			/* Return difference as unsigned char values */
+			return (int)(p1[i] - p2[i]);
+		}
+	}
+
+	/* No differences found */
+	return 0;
+}
+
 void *memcpy(void *dest, const void *src, size_t n) {
 	uint8_t *d = (uint8_t *)dest;
 	const uint8_t *s = (uint8_t *)src;

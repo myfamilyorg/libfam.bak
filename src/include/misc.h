@@ -38,6 +38,7 @@ char *substrn(const char *s, const char *sub, size_t n);
 char *strchr(const char *s, int c);
 void *memset(void *ptr, int x, size_t n);
 void *memcpy(void *dst, const void *src, size_t n);
+int memcmp(const void *s1, const void *s2, size_t n);
 void *memorymove(void *dst, const void *src, size_t n);
 void byteszero(void *dst, size_t n);
 size_t uint128_t_to_string(char *buf, uint128_t v);

@@ -913,6 +913,73 @@ Test(b64) {
 	ASSERT_EQ(buf3[9], '9', "9");
 }
 
+/* Helper function to compare encoded output with expected string */
+static void assert_b64_eq(const uint8_t *out, const char *expected,
+			  const char *msg) {
+	ASSERT(!strcmp((const char *)out, expected), msg);
+}
+
+Test(b642) {
+	uint8_t buf[128];
+	uint8_t buf2[128];
+	uint8_t buf3[128];
+	size_t len, len2;
+
+	/* Test 1: Normal case (10 bytes, exercises main loop) */
+	memcpy(buf, "0123456789", 10);
+	len = b64_encode(buf, 10, buf2, 128);
+	ASSERT_EQ(len, 16, "normal_len"); /* (10+2)/3 * 4 = 16 */
+	assert_b64_eq(buf2, "MDEyMzQ1Njc4OQ==", "normal_encode");
+	len2 = b64_decode(buf2, len, buf3, 128);
+	ASSERT_EQ(len2, 10, "normal_decode_len");
+	ASSERT(!memcmp(buf3, "0123456789", 10), "normal_decode");
+
+	/* Test 2: Two-byte input (covers lines 601–605) */
+	memcpy(buf, "ab", 2);
+	len = b64_encode(buf, 2, buf2, 128);
+	ASSERT_EQ(len, 4, "two_byte_len"); /* (2+2)/3 * 4 = 4 */
+	assert_b64_eq(buf2, "YWI=", "two_byte_encode");
+	len2 = b64_decode(buf2, len, buf3, 128);
+	ASSERT_EQ(len2, 2, "two_byte_decode_len");
+	ASSERT(!memcmp(buf3, "ab", 2), "two_byte_decode");
+
+	/* Test 3: Single-byte input (covers lines 607–610) */
+	memcpy(buf, "x", 1);
+	len = b64_encode(buf, 1, buf2, 128);
+	ASSERT_EQ(len, 4, "single_byte_len"); /* (1+2)/3 * 4 = 4 */
+	assert_b64_eq(buf2, "eA==", "single_byte_encode");
+	len2 = b64_decode(buf2, len, buf3, 128);
+	ASSERT_EQ(len2, 1, "single_byte_decode_len");
+	ASSERT(!memcmp(buf3, "x", 1), "single_byte_decode");
+
+	/* Test 4: Empty input */
+	len = b64_encode(buf, 0, buf2, 128);
+	ASSERT_EQ(len, 0, "empty_len");
+	ASSERT_EQ(buf2[0], 0, "empty_no_write"); /* Ensure output unchanged */
+
+	/* Test 5: Null input */
+	len = b64_encode(NULL, 5, buf2, 128);
+	ASSERT_EQ(len, 0, "null_in_len");
+	len = b64_encode(buf, 5, NULL, 128);
+	ASSERT_EQ(len, 0, "null_out_len");
+
+	/* Test 6: Insufficient output buffer */
+	memcpy(buf, "abc", 3);
+	len = b64_encode(buf, 3, buf2,
+			 4); /* Needs 4 bytes + 1 for null, 4 is too small */
+	ASSERT_EQ(len, 0, "insufficient_out_len");
+	ASSERT_EQ(buf2[0], 0, "insufficient_no_write");
+
+	/* Test 7: Five-byte input (main loop + two-byte remainder) */
+	memcpy(buf, "abcde", 5);
+	len = b64_encode(buf, 5, buf2, 128);
+	ASSERT_EQ(len, 8, "five_byte_len"); /* (5+2)/3 * 4 = 8 */
+	assert_b64_eq(buf2, "YWJjZGU=", "five_byte_encode");
+	len2 = b64_decode(buf2, len, buf3, 128);
+	ASSERT_EQ(len2, 5, "five_byte_decode_len");
+	ASSERT(!memcmp(buf3, "abcde", 5), "five_byte_decode");
+}
+
 extern int cur_tasks;
 int ecount = 0;
 void my_exit(void) { ecount++; }
@@ -929,4 +996,122 @@ Test(begin) {
 
 	execute_exits();
 	ASSERT_EQ(ecount, 64, "64 exits");
+}
+
+Test(pipe) {
+	int fds[2], fv;
+	err = 0;
+	ASSERT(!pipe(fds), "pipe");
+	ASSERT(!err, "not err");
+	if ((fv = two())) {
+		char buf[10];
+		int v = read(fds[0], buf, 10);
+		ASSERT_EQ(v, 4, "v==4");
+		ASSERT_EQ(buf[0], 't', "t");
+		ASSERT_EQ(buf[1], 'e', "e");
+		ASSERT_EQ(buf[2], 's', "s");
+		ASSERT_EQ(buf[3], 't', "t");
+
+	} else {
+		write(fds[1], "test", 4);
+		exit(0);
+	}
+	waitid(P_PID, fv, NULL, WEXITED);
+}
+
+Test(files1) {
+	const char *fname = "/tmp/ftest.tmp";
+	int dup, fd;
+	unlink(fname);
+	err = 0;
+	fd = file(fname);
+	ASSERT(fd > 0, "fd > 0");
+
+	ASSERT(exists(fname), "exists");
+
+	err = 0;
+	ASSERT(!fsize(fd), "fsize");
+	write(fd, "abc", 3);
+	flush(fd);
+	ASSERT_EQ(fsize(fd), 3, "fsize==3");
+
+	fresize(fd, 2);
+	ASSERT_EQ(fsize(fd), 2, "fisze==2");
+	dup = fcntl(fd, F_DUPFD);
+	ASSERT(dup != fd, "dup");
+
+	ASSERT(!unlink(fname), "unlink");
+	ASSERT(!exists(fname), "exists");
+	close(fd);
+	close(dup);
+}
+
+Test(entropy) {
+	uint8_t buf[1024];
+	uint128_t v1 = 0, v2 = 0;
+	ASSERT(!getentropy(buf, 64), "getentropy");
+	ASSERT(getentropy(buf, 1024), "overflow");
+	ASSERT(getentropy(NULL, 100), "null");
+	ASSERT_EQ(v1, v2, "eq");
+	getentropy(&v1, sizeof(uint128_t));
+	getentropy(&v2, sizeof(uint128_t));
+	ASSERT(v1 != v2, "v1 != v2");
+	ASSERT(v1 != 0, "v1 != 0");
+	ASSERT(v2 != 0, "v2 != 0");
+}
+
+Test(map_err) {
+	char buf[100];
+	void *v;
+	err = 0;
+	v = mmap(buf, 100, PROT_READ | PROT_WRITE, MAP_SHARED, -1, 0);
+	ASSERT((long)v == -1, "mmap err");
+	ASSERT_EQ(err, EBADF, "ebadf");
+	v = map(PAGE_SIZE);
+	ASSERT(v, "v != null");
+	ASSERT(!munmap(v, PAGE_SIZE), "munmap");
+	err = 0;
+	ASSERT(!map(SIZE_MAX), "size_max");
+	ASSERT_EQ(err, ENOMEM, "enomem");
+	ASSERT(fmap(1, SIZE_MAX, SIZE_MAX) == NULL, "fmap err");
+	yield();
+	ASSERT(smap(SIZE_MAX) == NULL, "smap err");
+	ASSERT(settimeofday(NULL, NULL), "settimeofday err");
+}
+
+Test(memcmp) {
+	char buf1[11] = "abcde12345";
+	char buf2[11] = "abcde12345"; /* Identical to buf1 */
+	char buf3[11] = "abcde12346"; /* Differs at last byte ('6' vs '5') */
+	char buf4[11] = "abcde12344"; /* Differs at last byte ('4' vs '5') */
+	char buf5[11] = "abcda12345"; /* Differs at 5th byte ('a' vs 'e') */
+
+	/* Test 1: Equal buffers (full length) */
+	ASSERT_EQ(memcmp(buf1, buf2, 10), 0, "equal_full_length");
+
+	/* Test 2: Buffers differ, s1 < s2 (hits line 146, negative return) */
+	ASSERT(memcmp(buf1, buf3, 10) < 0,
+	       "less_than"); /* '5' < '6' at position 9 */
+
+	/* Test 3: Buffers differ, s1 > s2 (hits line 146, positive return) */
+	ASSERT(memcmp(buf1, buf4, 10) > 0,
+	       "greater_than"); /* '5' > '4' at position 9 */
+
+	/* Test 4: Partial equality (equal up to 9 bytes, then differ) */
+	ASSERT_EQ(memcmp(buf1, buf3, 9), 0,
+		  "partial_equal"); /* Equal up to '3' */
+
+	/* Test 5: Zero length comparison */
+	ASSERT_EQ(memcmp(buf1, buf3, 0), 0,
+		  "zero_length"); /* No bytes compared */
+
+	/* Test 6: Single byte, s1 < s2 */
+	ASSERT(memcmp("a", "b", 1) < 0, "single_byte_less"); /* 'a' < 'b' */
+
+	/* Test 7: Single byte, s1 > s2 */
+	ASSERT(memcmp("b", "a", 1) > 0, "single_byte_greater"); /* 'b' > 'a' */
+
+	/* Test 8: Early difference (hits line 146, positive return) */
+	ASSERT(memcmp(buf1, buf5, 10) > 0,
+	       "early_difference"); /* 'e' > 'a' at position 4 */
 }
