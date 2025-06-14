@@ -33,6 +33,8 @@
 #include <syscall.H>
 #include <syscall_const.H>
 
+bool debug_force_write_buffer = 0;
+
 Connection *evh_acceptor(uint8_t addr[4], uint16_t port, uint16_t backlog,
 			 OnRecvFn on_recv_fn, OnAcceptFn on_accept_fn,
 			 OnCloseFn on_close_fn) {
@@ -93,6 +95,7 @@ int connection_close(Connection *connection) {
 		return shutdown(connection->socket, SHUT_RDWR);
 	}
 }
+
 int connection_write(Connection *connection, const void *buf, size_t len) {
 	ssize_t wlen = 0;
 	InboundData *ib = &connection->data.inbound;
@@ -102,7 +105,11 @@ int connection_write(Connection *connection, const void *buf, size_t len) {
 		size_t offset = 0;
 	write_block:
 		err = 0;
-		wlen = write(connection->socket, (uint8_t *)buf + offset, len);
+		if (debug_force_write_buffer)
+			wlen = 0;
+		else
+			wlen = write(connection->socket,
+				     (uint8_t *)buf + offset, len);
 		if (err == EINTR) {
 			if (wlen > 0) offset += wlen;
 			goto write_block;

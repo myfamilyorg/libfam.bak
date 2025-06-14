@@ -82,7 +82,7 @@ typedef struct {
 
 Test(multi_socket) {
 	char buf[10];
-	int server, inbound, client, mplex, port;
+	int server, inbound, client, mplex, port, cpid;
 	Event events[10];
 
 	mplex = multiplex();
@@ -90,7 +90,7 @@ Test(multi_socket) {
 	client = socket_connect(LOCALHOST, port);
 	mregister(mplex, server, MULTIPLEX_FLAG_ACCEPT, &server);
 
-	if (two()) {
+	if ((cpid = two())) {
 		bool exit = false;
 		while (!exit) {
 			int v, i;
@@ -129,6 +129,8 @@ Test(multi_socket) {
 		while (write(client, "h", 1) != 1);
 		exit(0);
 	}
+
+	waitid(P_PID, cpid, NULL, WNOWAIT);
 }
 
 Test(socket_fails) {
@@ -201,7 +203,6 @@ Test(test_evh1) {
 	ASSERT_BYTES(0);
 }
 
-Evh evh2;
 int *value2;
 
 int on_accept2(void *ctx __attribute__((unused)),
@@ -231,6 +232,7 @@ int on_close2(void *ctx __attribute__((unused)),
 }
 
 Test(test_evh2) {
+	Evh evh2;
 	int port, initial = 101;
 	Connection *conn, *client;
 	ASSERT_BYTES(0);
@@ -419,3 +421,54 @@ Test(ws2) {
 	ASSERT_BYTES(0);
 }
 
+int on_accept3(void *ctx __attribute__((unused)),
+	       Connection *conn __attribute__((unused))) {
+	return 0;
+}
+
+int on_recv3(void *ctx __attribute__((unused)),
+	     Connection *conn __attribute__((unused)),
+	     size_t rlen __attribute__((unused))) {
+	return 0;
+}
+
+int on_close3(void *ctx __attribute__((unused)),
+	      Connection *conn __attribute__((unused))) {
+	return 0;
+}
+
+Test(connection_write) {
+	Evh evh3;
+	int port, initial = 101;
+	Connection *conn, *client;
+	ASSERT_BYTES(0);
+
+	value2 = alloc(sizeof(int));
+	*value2 = 0;
+	ASSERT(!evh_start(&evh3, NULL, 0), "evh_start");
+
+	conn = evh_acceptor(LOCALHOST, 0, 10, on_recv2, on_accept2, on_close2);
+	port = evh_acceptor_port(conn);
+	evh_register(&evh3, conn);
+
+	client = evh_client(LOCALHOST, port, on_recv2, on_close2, 0);
+	ASSERT(!evh_acceptor_port(client), "evh_acceptor_port on client err");
+	ASSERT(client->socket > 0, "connect");
+	evh_register(&evh3, client);
+
+	ASSERT_EQ(*value2, 0, "0");
+	debug_force_write_buffer = true;
+	connection_write(client, (uint8_t *)&initial, sizeof(int));
+	while (true) {
+		yield();
+		if (ALOAD(value2) == 105) break;
+	}
+
+	ASSERT_EQ(ALOAD(value2), 105, "105");
+	connection_close(client);
+	evh_stop(&evh3);
+	release(conn);
+	release(value2);
+
+	ASSERT_BYTES(0);
+}

@@ -91,4 +91,8 @@ int connection_write(Connection *connection, const void *buf, size_t len);
 void connection_clear_rbuf_through(Connection *conn, size_t off);
 void connection_clear_rbuf(Connection *conn);
 
+#if TEST == 1
+extern bool debug_force_write_buffer;
+#endif /* TEST */
+
 #endif /* _EVH_H */

@@ -214,7 +214,7 @@ end_while:
 	/* dump coverage info before allowing parent to proceed */
 	__gcov_dump();
 #endif
-	ASTORE(evh->stopped, 1);
+	ASTORE(evh->stopped, getpid());
 }
 
 STATIC int init_event_loop(Evh *evh, void *ctx) {
@@ -283,6 +283,7 @@ int evh_start(Evh *evh, void *ctx, uint64_t connection_alloc_overhead) {
 int evh_stop(Evh *evh) {
 	if (close(evh->wakeup) == -1) return -1;
 	while (!ALOAD(evh->stopped)) yield();
+	waitid(P_PID, *evh->stopped, NULL, WNOWAIT);
 	release(evh->stopped);
 	return 0;
 }

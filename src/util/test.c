@@ -152,9 +152,9 @@ Test(robust1) {
 	int cpid, i;
 	state->lock1 = LOCK_INIT;
 	state->value1 = 0;
+
 	/* reap any zombie processes */
 	for (i = 0; i < 10; i++) waitid(P_PID, 0, NULL, WNOWAIT);
-
 	if ((cpid = two())) {
 		waitid(P_PID, cpid, NULL, WNOWAIT);
 	} else {
