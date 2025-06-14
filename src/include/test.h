@@ -74,12 +74,19 @@ extern TestEntry tests[];
 	}
 
 #if MEMSAN == 1
-#define ASSERT_BYTES(v)                                \
-	do {                                           \
-		uint64_t _b__ = get_allocated_bytes(); \
-		ASSERT_EQ(_b__, v, "ASSERT_BYTES");    \
-	} while (0);
-#define ASSERT_NOT_BYTES_0() ASSERT(get_allocated_bytes(), "ASSERT_NOT_BYTES")
+#define ASSERT_BYTES(v)                                                 \
+	do {                                                            \
+		size_t _b__ = get_allocated_bytes();                    \
+		if (_b__ != (v))                                        \
+			printf("expected b=%ld. found b=%ld", v, _b__); \
+		ASSERT_EQ(_b__, (v), "ASSERT_BYTES");                   \
+	} while (false);
+#define ASSERT_NOT_BYTES_0()                                             \
+	do {                                                             \
+		size_t _b__ = get_allocated_bytes();                     \
+		if (!_b__) printf("expected b!=0, found b=%ld\n", _b__); \
+		ASSERT(_b__, "ASSERT_NOT_BYTES_0");                      \
+	} while (false);
 #else
 #define ASSERT_BYTES(v)
 #define ASSERT_NOT_BYTES_0()

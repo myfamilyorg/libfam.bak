@@ -91,9 +91,7 @@
 #define ENOANO 55   /* No anode */
 #define EBADRQC 56  /* Invalid request code */
 #define EBADSLT 57  /* Invalid slot */
-
 #define EDEADLOCK EDEADLK
-
 #define EBFONT 59	   /* Bad font file format */
 #define ENOSTR 60	   /* Device not a stream */
 #define ENODATA 61	   /* No data available */
@@ -158,14 +156,13 @@
 #define EISNAM 120	   /* Is a named type file */
 #define EREMOTEIO 121	   /* Remote I/O error */
 #define EDQUOT 122	   /* Quota exceeded */
-
-#define ENOMEDIUM 123	 /* No medium found */
-#define EMEDIUMTYPE 124	 /* Wrong medium type */
-#define ECANCELED 125	 /* Operation Canceled */
-#define ENOKEY 126	 /* Required key not available */
-#define EKEYEXPIRED 127	 /* Key has expired */
-#define EKEYREVOKED 128	 /* Key has been revoked */
-#define EKEYREJECTED 129 /* Key was rejected by service */
+#define ENOMEDIUM 123	   /* No medium found */
+#define EMEDIUMTYPE 124	   /* Wrong medium type */
+#define ECANCELED 125	   /* Operation Canceled */
+#define ENOKEY 126	   /* Required key not available */
+#define EKEYEXPIRED 127	   /* Key has expired */
+#define EKEYREVOKED 128	   /* Key has been revoked */
+#define EKEYREJECTED 129   /* Key was rejected by service */
 
 extern int err;
 

@@ -31,7 +31,6 @@
 char **environ = 0;
 int cur_tests = 0;
 int exe_test = 0;
-bool constructors_called = false;
 
 TestEntry tests[MAX_TESTS];
 
@@ -49,12 +48,8 @@ extern void (*__init_array_end[])(void);
 
 void call_constructors(void) {
 	void (**func)(void);
-	if (!constructors_called) {
-		for (func = __init_array_start; func < __init_array_end;
-		     func++) {
-			(*func)();
-		}
-		constructors_called = true;
+	for (func = __init_array_start; func < __init_array_end; func++) {
+		(*func)();
 	}
 }
 
@@ -95,8 +90,6 @@ __asm__(
     "    mov $60, %rax\n"
     "    syscall\n");
 #endif /* __amd64__ */
-#else
-void __gcov_dump(void);
 #endif /* COVERAGE */
 
 int main(int argc __attribute__((unused)), char **argv __attribute__((unused)),
@@ -131,10 +124,6 @@ int main(int argc __attribute__((unused)), char **argv __attribute__((unused)),
 			test_count++;
 		}
 	}
-
-#ifdef COVERAGE
-	/*__gcov_dump();*/
-#endif
 
 	printf(
 	    "------------------------------------------------------------------"

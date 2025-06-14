@@ -97,7 +97,15 @@ test: $(TEST_BIN)
 
 # Clean up
 clean:
-	rm -fr $(OBJDIR) $(TEST_OBJDIR) $(TOBJDIR) $(COV_OBJDIR) $(COV_TOBJDIR) $(LIBDIR)/*.so $(LIBDIR)/*.a $(BINDIR)/* *.gcno *.gcda *.gcov
+	rm -fr $(OBJDIR) \
+	$(TEST_OBJDIR) \
+	$(TOBJDIR) \
+	$(COV_OBJDIR) \
+	$(COV_TOBJDIR) \
+	$(LIBDIR)/*.so \
+	$(LIBDIR)/*.a \
+	$(BINDIR)/* \
+	*.gcno *.gcda *.gcov
 
 # Phony targets
 .PHONY: all test clean
