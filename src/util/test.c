@@ -307,3 +307,28 @@ Test(robust1) {
 	munmap(state, sizeof(RobustState));
 }
 
+Test(robust2) {
+	RobustState *state = (RobustState *)smap(sizeof(RobustState));
+	int cpid, i;
+	state->lock1 = LOCK_INIT;
+	state->value1 = 0;
+	/* reap any zombie processes */
+	for (i = 0; i < 10; i++) waitid(P_PID, 0, NULL, WNOWAIT);
+
+	if ((cpid = two())) {
+		sleepm(10);
+		{
+			RobustGuard rg = robust_lock(&state->lock1);
+			ASSERT_EQ(state->value1, 1, "value=1");
+		}
+		waitid(P_PID, cpid, NULL, WNOWAIT);
+	} else {
+		{
+			RobustGuard rg = robust_lock(&state->lock1);
+			sleepm(100);
+			state->value1 = 1;
+		}
+		exit(0);
+	}
+	munmap(state, sizeof(RobustState));
+}
