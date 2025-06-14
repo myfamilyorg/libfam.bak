@@ -237,3 +237,33 @@ int printf(const char* format, ...) {
 	__builtin_va_end(ap);
 	return len;
 }
+
+void panic(const char* format, ...) {
+	__builtin_va_list ap, ap_copy;
+	int len;
+	char* buf;
+
+	__builtin_va_start(ap, format);
+	__builtin_va_copy(ap_copy, ap);
+
+	len = vsnprintf(NULL, 0, format, ap);
+	if (len > 0) {
+		buf = alloc(len + 1);
+
+		if (buf == NULL)
+			len = -1;
+		else {
+			len = vsnprintf(buf, len + 1, format, ap_copy);
+			if (len > 0) {
+				write(2, "panic: ", 7);
+				write(2, buf, len);
+				write(2, "\n", 1);
+			}
+			release(buf);
+		}
+	}
+
+	__builtin_va_end(ap_copy);
+	__builtin_va_end(ap);
+	exit(-1);
+}

@@ -50,8 +50,6 @@ RobustGuard robust_lock(RobustLock *lock) {
 
 void robustguard_cleanup(RobustGuardImpl *lg) {
 	pid_t pid = getpid();
-	if (!__cas32(lg->lock, (uint32_t *)&pid, 0)) {
-		printf("lock state was %i. Our pid is %i\n", pid, getpid());
-		panic("unxpected lock state!");
-	}
+	if (!__cas32(lg->lock, (uint32_t *)&pid, 0))
+		panic("unexpected lock state: %i. pid: %i\n", pid, getpid());
 }

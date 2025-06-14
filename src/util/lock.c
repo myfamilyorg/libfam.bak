@@ -46,7 +46,8 @@ void lockguard_cleanup(LockGuardImpl *lg) {
 }
 
 LockGuardImpl rlock(Lock *lock) {
-	LockGuardImpl ret = {0};
+	LockGuardImpl ret = {NULL, false};
+	ret.lock = lock;
 	while (true) {
 		uint32_t cur = ALOAD(lock);
 		if ((cur & (WREQUEST | WFLAG)) == 0) {
@@ -54,13 +55,12 @@ LockGuardImpl rlock(Lock *lock) {
 		} else
 			futex(lock, FUTEX_WAIT, cur, NULL, NULL, 0);
 	}
-	ret.lock = lock;
-	ret.is_write = false;
 	return ret;
 }
 
 LockGuardImpl wlock(Lock *lock) {
-	LockGuardImpl ret = {0};
+	LockGuardImpl ret = {NULL, true};
+	ret.lock = lock;
 	while (true) {
 		uint32_t cur = ALOAD(lock);
 		if ((cur & ~WREQUEST) == 0) {
@@ -73,7 +73,5 @@ LockGuardImpl wlock(Lock *lock) {
 			futex(lock, FUTEX_WAIT, cur | WREQUEST, NULL, NULL, 0);
 		}
 	}
-	ret.lock = lock;
-	ret.is_write = true;
 	return ret;
 }

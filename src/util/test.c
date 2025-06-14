@@ -23,6 +23,7 @@
  *
  *******************************************************************************/
 
+#include <alloc.H>
 #include <atomic.H>
 #include <channel.H>
 #include <error.H>
@@ -418,7 +419,7 @@ Test(channel3) {
 		}
 		channel_destroy(&ch1);
 		ASSERT_BYTES(0);
-		waitid(0, pid, NULL, 4);
+		waitid(P_PID, pid, NULL, WEXITED);
 	}
 }
 
@@ -485,6 +486,8 @@ Test(channel_err) {
 	TestMessage msg;
 	int i;
 	Channel ch1, ch2, ch3;
+
+	ASSERT_BYTES(0);
 	err = 0;
 	ch1 = channel(0);
 	ASSERT_EQ(err, EINVAL, "einval");
@@ -507,5 +510,7 @@ Test(channel_err) {
 	channel_destroy(&ch1);
 	channel_destroy(&ch2);
 	channel_destroy(&ch3);
+
+	ASSERT_BYTES(0);
 }
 

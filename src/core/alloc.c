@@ -27,6 +27,7 @@
 #include <atomic.H>
 #include <env.H>
 #include <error.H>
+#include <format.H>
 #include <misc.H>
 
 #define SHM_SIZE_DEFAULT (CHUNK_SIZE * 64)

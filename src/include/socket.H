@@ -23,32 +23,18 @@
  *
  *******************************************************************************/
 
-#ifndef _MISC_H
-#define _MISC_H
+#ifndef _SOCKET_H
+#define _SOCKET_H
 
 #include <types.H>
 
-size_t strlen(const char *S);
-char *strcpy(char *dest, const char *src);
-char *strcat(char *dest, const char *src);
-int strcmp(const char *s1, const char *s2);
-int strcmpn(const char *s1, const char *s2, size_t n);
-char *substr(const char *s, const char *sub);
-char *substrn(const char *s, const char *sub, size_t n);
-char *strchr(const char *s, int c);
-void *memset(void *ptr, int x, size_t n);
-void *memcpy(void *dst, const void *src, size_t n);
-int memcmp(const void *s1, const void *s2, size_t n);
-void *memorymove(void *dst, const void *src, size_t n);
-void byteszero(void *dst, size_t n);
-size_t uint128_t_to_string(char *buf, uint128_t v);
-size_t int128_t_to_string(char *buf, int128_t v);
-size_t double_to_string(char *buf, double v, int max_decimals);
-size_t b64_encode(const uint8_t *in, size_t in_len, uint8_t *out,
-		  size_t out_max);
-size_t b64_decode(const uint8_t *in, size_t in_len, uint8_t *out,
-		  size_t out_max);
-uint128_t string_to_uint128(const char *buf, size_t len);
-int128_t string_to_int128(const char *buf, size_t len);
+int set_nonblocking(int socket);
+int socket_connect(const uint8_t addr[4], uint16_t port);
+int socket_listen(int *fd, const uint8_t addr[4], uint16_t port,
+		  uint16_t backlog);
+int socket_accept(int fd);
 
-#endif /* _MISC_H */
+unsigned short htons(unsigned short host);
+unsigned short ntohs(unsigned short net);
+
+#endif /* _SOCKET_H */

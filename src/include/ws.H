@@ -23,32 +23,38 @@
  *
  *******************************************************************************/
 
-#ifndef _MISC_H
-#define _MISC_H
+#ifndef _WS_H
+#define _WS_H
 
-#include <types.H>
+typedef struct {
+	uint8_t *buffer;
+	size_t len;
+} WsMessage;
 
-size_t strlen(const char *S);
-char *strcpy(char *dest, const char *src);
-char *strcat(char *dest, const char *src);
-int strcmp(const char *s1, const char *s2);
-int strcmpn(const char *s1, const char *s2, size_t n);
-char *substr(const char *s, const char *sub);
-char *substrn(const char *s, const char *sub, size_t n);
-char *strchr(const char *s, int c);
-void *memset(void *ptr, int x, size_t n);
-void *memcpy(void *dst, const void *src, size_t n);
-int memcmp(const void *s1, const void *s2, size_t n);
-void *memorymove(void *dst, const void *src, size_t n);
-void byteszero(void *dst, size_t n);
-size_t uint128_t_to_string(char *buf, uint128_t v);
-size_t int128_t_to_string(char *buf, int128_t v);
-size_t double_to_string(char *buf, double v, int max_decimals);
-size_t b64_encode(const uint8_t *in, size_t in_len, uint8_t *out,
-		  size_t out_max);
-size_t b64_decode(const uint8_t *in, size_t in_len, uint8_t *out,
-		  size_t out_max);
-uint128_t string_to_uint128(const char *buf, size_t len);
-int128_t string_to_int128(const char *buf, size_t len);
+typedef struct {
+	uint16_t port;
+	uint8_t addr[4];
+	uint16_t backlog;
+	uint16_t workers;
+} WsConfig;
 
-#endif /* _MISC_H */
+typedef struct WsConnection WsConnection;
+typedef struct Ws Ws;
+
+typedef void (*OnOpen)(WsConnection *conn);
+typedef void (*OnClose)(WsConnection *conn);
+typedef int (*OnMessage)(WsConnection *conn, WsMessage *msg);
+
+int ws_send(WsConnection *conn, WsMessage *msg);
+Ws *ws_init(WsConfig *config, OnMessage on_message, OnOpen on_open,
+	    OnClose on_close);
+int ws_start(Ws *ws);
+int ws_stop(Ws *ws);
+
+uint64_t ws_connection_id(WsConnection *connection);
+WsConnection *ws_connect(Ws *ws, const char *url);
+int ws_connection_close(WsConnection *conn, int code, const char *reason);
+const char *ws_connection_uri(WsConnection *conn);
+uint16_t ws_port(Ws *ws);
+
+#endif /* _WS_H */

@@ -76,6 +76,15 @@ struct sockaddr_un {
 	char sun_path[108];
 };
 
+typedef unsigned int socklen_t;
+
+struct sockaddr_in {
+        unsigned short sin_family;
+        unsigned short sin_port;
+        unsigned int sin_addr;
+        unsigned char sin_zero[8];
+};
+
 struct timespec {
 	long tv_sec;
 	long tv_nsec;

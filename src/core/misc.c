@@ -29,12 +29,6 @@
 #include <sys.H>
 #include <types.H>
 
-void panic(const char *msg) {
-	write(2, msg, strlen(msg));
-	write(2, "\n", 1);
-	exit(-1);
-}
-
 size_t strlen(const char *X) {
 	const char *Y;
 	if (X == NULL) return 0;
