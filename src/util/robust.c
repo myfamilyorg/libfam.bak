@@ -25,6 +25,8 @@
 
 #include <atomic.H>
 #include <error.H>
+#include <format.H>
+#include <misc.H>
 #include <robust.H>
 #include <sys.H>
 #include <syscall.H>
@@ -46,4 +48,10 @@ RobustGuard robust_lock(RobustLock *lock) {
 	return ret;
 }
 
-void robustguard_cleanup(RobustGuardImpl *lg) { ASTORE(lg->lock, 0); }
+void robustguard_cleanup(RobustGuardImpl *lg) {
+	pid_t pid = getpid();
+	if (!__cas32(lg->lock, (uint32_t *)&pid, 0)) {
+		printf("lock state was %i. Our pid is %i\n", pid, getpid());
+		panic("unxpected lock state!");
+	}
+}

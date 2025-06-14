@@ -56,10 +56,11 @@ Test(env) {
 
 Test(two1) {
 	void *base = smap(sizeof(SharedStateData));
+	int cpid;
 	SharedStateData *state = (SharedStateData *)base;
 	state->value1 = 0;
 	state->value2 = 0;
-	if (two()) {
+	if ((cpid = two())) {
 		while (!ALOAD(&state->value1));
 		state->value2++;
 	} else {
@@ -67,14 +68,16 @@ Test(two1) {
 		exit(0);
 	}
 	ASSERT(state->value2, "store");
+	waitid(P_PID, cpid, NULL, WNOWAIT);
 	munmap(base, sizeof(SharedStateData));
 }
 
 Test(futex1) {
 	void *base = smap(sizeof(SharedStateData));
+	int cpid;
 	SharedStateData *state = (SharedStateData *)base;
 	state->uvalue1 = (uint32_t)0;
-	if (two()) {
+	if ((cpid = two())) {
 		while (state->uvalue1 == 0) {
 			futex(&state->uvalue1, FUTEX_WAIT, 0, NULL, NULL, 0);
 		}
@@ -85,6 +88,7 @@ Test(futex1) {
 		futex(&state->uvalue1, FUTEX_WAKE, 1, NULL, NULL, 0);
 		exit(0);
 	}
+	waitid(P_PID, cpid, NULL, WNOWAIT);
 	ASSERT(state->value2, "value2");
 	munmap(base, sizeof(SharedStateData));
 }
@@ -153,7 +157,7 @@ Test(timeout3) {
 		exit(0);
 	}
 
-	waitid(P_PID, pid, NULL, WEXITED);
+	waitid(P_PID, pid, NULL, WNOWAIT);
 
 	munmap(state, sizeof(SharedStateData));
 }
@@ -1016,7 +1020,7 @@ Test(pipe) {
 		write(fds[1], "test", 4);
 		exit(0);
 	}
-	waitid(P_PID, fv, NULL, WEXITED);
+	waitid(P_PID, fv, NULL, WNOWAIT);
 }
 
 Test(files1) {
