@@ -24,6 +24,8 @@
  *******************************************************************************/
 
 #include <atomic.H>
+#include <channel.H>
+#include <error.H>
 #include <lock.H>
 #include <robust.H>
 #include <syscall_const.H>
@@ -332,3 +334,178 @@ Test(robust2) {
 	}
 	munmap(state, sizeof(RobustState));
 }
+
+typedef struct {
+	int x;
+	int y;
+} TestMessage;
+
+Test(channel1) {
+	Channel ch1 = channel(sizeof(TestMessage));
+	TestMessage msg = {0}, msg2 = {0};
+	msg.x = 1;
+	msg.y = 2;
+	send(&ch1, &msg);
+	ASSERT(!recv_now(&ch1, &msg2), "recv1");
+	ASSERT_EQ(msg2.x, 1, "x=1");
+	ASSERT_EQ(msg2.y, 2, "y=2");
+
+	msg.x = 3;
+	msg.y = 4;
+	send(&ch1, &msg);
+	msg.x = 5;
+	msg.y = 6;
+	send(&ch1, &msg);
+	ASSERT(!recv_now(&ch1, &msg2), "recv2");
+	ASSERT_EQ(msg2.x, 3, "x=3");
+	ASSERT_EQ(msg2.y, 4, "y=4");
+	ASSERT(!recv_now(&ch1, &msg2), "recv3");
+	ASSERT_EQ(msg2.x, 5, "x=5");
+	ASSERT_EQ(msg2.y, 6, "y=6");
+	ASSERT(recv_now(&ch1, &msg2), "recv none");
+	channel_destroy(&ch1);
+}
+
+Test(channel2) {
+	Channel ch1 = channel(sizeof(TestMessage));
+	if (two()) {
+		TestMessage msg = {0};
+		recv(&ch1, &msg);
+		ASSERT_EQ(msg.x, 1, "x=1");
+		ASSERT_EQ(msg.y, 2, "y=2");
+	} else {
+		TestMessage msg = {0};
+		msg.x = 1;
+		msg.y = 2;
+		send(&ch1, &msg);
+		exit(0);
+	}
+}
+
+Test(channel3) {
+	int size = 1000, i;
+	for (i = 0; i < size; i++) {
+		int pid;
+		Channel ch1 = channel(sizeof(TestMessage));
+		err = 0;
+		pid = two();
+		ASSERT(pid != -1, "two != -1");
+		if (pid) {
+			TestMessage msg = {0};
+			recv(&ch1, &msg);
+			ASSERT_EQ(msg.x, 1, "msg.x 1");
+			ASSERT_EQ(msg.y, 2, "msg.y 2");
+			recv(&ch1, &msg);
+			ASSERT_EQ(msg.x, 3, "msg.x 3");
+			ASSERT_EQ(msg.y, 4, "msg.y 4");
+			recv(&ch1, &msg);
+			ASSERT_EQ(msg.x, 5, "msg.x 5");
+			ASSERT_EQ(msg.y, 6, "msg.y 6");
+			ASSERT_EQ(recv_now(&ch1, &msg), -1, "recv_now");
+			ASSERT(!waitid(0, pid, NULL, 4), "waitpid");
+		} else {
+			TestMessage msg = {0};
+			msg.x = 1;
+			msg.y = 2;
+			ASSERT(!send(&ch1, &msg), "send1");
+			msg.x = 3;
+			msg.y = 4;
+			ASSERT(!send(&ch1, &msg), "send2");
+			msg.x = 5;
+			msg.y = 6;
+			ASSERT(!send(&ch1, &msg), "send3");
+			exit(0);
+		}
+		channel_destroy(&ch1);
+		ASSERT_BYTES(0);
+		waitid(0, pid, NULL, 4);
+	}
+}
+
+Test(channel_notify) {
+	siginfo_t info = {0};
+	Channel ch1 = channel(sizeof(TestMessage));
+	Channel ch2 = channel(sizeof(TestMessage));
+
+	int pid = two();
+	ASSERT(pid >= 0, "pid>=0");
+	if (pid) {
+		TestMessage msg = {0}, msg2 = {0};
+		msg.x = 100;
+		sleepm(10);
+		send(&ch2, &msg);
+
+		recv(&ch1, &msg2);
+		ASSERT_EQ(msg2.x, 1, "msg.x");
+		ASSERT_EQ(msg2.y, 2, "msg.y");
+		ASSERT_EQ(recv_now(&ch1, &msg), -1, "recv_now");
+
+	} else {
+		TestMessage msg = {0};
+		recv(&ch2, &msg);
+
+		ASSERT_EQ(msg.x, 100, "x=100");
+		msg.x = 1;
+		msg.y = 2;
+		send(&ch1, &msg);
+		exit(0);
+	}
+	waitid(P_PID, pid, &info, WEXITED);
+
+	channel_destroy(&ch1);
+	channel_destroy(&ch2);
+}
+
+Test(channel_cycle) {
+	int pid, i;
+	Channel ch1 = channel2(sizeof(TestMessage), 8);
+	TestMessage msg;
+	msg.x = 1;
+	msg.y = 2;
+	for (i = 0; i < 8; i++) send(&ch1, &msg);
+	recv(&ch1, &msg);
+	recv(&ch1, &msg);
+	msg.x = 1;
+	msg.y = 2;
+	send(&ch1, &msg);
+
+	if ((pid = two())) {
+		msg.x = 0;
+		recv(&ch1, &msg);
+		ASSERT_EQ(msg.x, 1, "1");
+	} else {
+		sleepm(10);
+		send(&ch1, &msg);
+		exit(0);
+	}
+	waitid(P_PID, pid, NULL, WEXITED);
+}
+
+Test(channel_err) {
+	TestMessage msg;
+	int i;
+	Channel ch1, ch2, ch3;
+	err = 0;
+	ch1 = channel(0);
+	ASSERT_EQ(err, EINVAL, "einval");
+	ASSERT(!channel_ok(&ch1), "ok");
+	err = 0;
+	ch2 = channel2(8, 0);
+	ASSERT_EQ(err, EINVAL, "einval2");
+	ASSERT(!channel_ok(&ch1), "ok2");
+
+	ch3 = channel2(sizeof(TestMessage), 8);
+	for (i = 0; i < 8; i++) {
+		msg.x = 1;
+		msg.y = 2;
+		ASSERT(!send(&ch3, &msg), "sendmsg");
+	}
+	msg.x = 1;
+	msg.y = 2;
+	ASSERT(send(&ch3, &msg), "senderr");
+
+	channel_destroy(&ch1);
+	channel_destroy(&ch2);
+	channel_destroy(&ch3);
+}
+

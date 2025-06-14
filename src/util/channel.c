@@ -52,7 +52,9 @@ STATIC int notify(Channel *channel, uint64_t num_messages) {
 	uint32_t exp = 1;
 	if (__cas32(&channel->inner->wait, &exp, 0))
 		return futex(&channel->inner->wait, FUTEX_WAKE, num_messages,
-			     NULL, NULL, 0);
+			     NULL, NULL, 0) >= 0
+			   ? 0
+			   : -1;
 	return 0;
 }
 
