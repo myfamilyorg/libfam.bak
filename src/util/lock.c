@@ -36,7 +36,7 @@
 
 void lockguard_cleanup(LockGuardImpl *lg) {
 	if (lg->is_write) {
-		ASTORE(lg->lock, 0);
+		__and32(lg->lock, WREQUEST);
 		futex(lg->lock, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
 	} else {
 		uint32_t v = __sub32(lg->lock, 1);

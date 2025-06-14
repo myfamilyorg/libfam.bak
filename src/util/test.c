@@ -35,20 +35,16 @@
 typedef struct {
 	Lock lock1;
 	Lock lock2;
-	Lock lock3;
-	Lock lock4;
-	Lock lock5;
 	int value1;
-	int value2;
-	int value3;
-	int value4;
-	int value5;
-	uint32_t uvalue1;
-	uint32_t uvalue2;
 } SharedStateData;
 
-Test(lock0) {
+Test(lock) {
 	Lock l1 = LOCK_INIT;
+	int pid;
+	SharedStateData *state = alloc(sizeof(SharedStateData));
+	state->lock1 = LOCK_INIT;
+	state->value1 = 0;
+
 	ASSERT_EQ(l1, 0, "init");
 	{
 		LockGuard lg1 = rlock(&l1);
@@ -60,217 +56,88 @@ Test(lock0) {
 		uint32_t vabc = 0x1 << 31;
 		ASSERT_EQ(l1, vabc, "vabc");
 	}
-	ASSERT_EQ(l1, 0, "final");
-}
+	ASSERT_EQ(l1, 0, "back to 0 2");
 
-Test(lock1) {
-	void *base = smap(sizeof(SharedStateData));
-	SharedStateData *state = (SharedStateData *)base;
-	state->lock1 = LOCK_INIT;
-	state->lock2 = LOCK_INIT;
-	state->value1 = 0;
-	state->value2 = 0;
-	state->value3 = 0;
-
-	if (two()) {
-		while (true) {
-			LockGuard lg1;
-			yield();
-			lg1 = rlock(&state->lock1);
-			if (state->value1) break;
+	/* Read contention */
+	if ((pid = two())) {
+		while (ALOAD(&state->value1) == 0) {
 		}
-		ASSERT_EQ(state->value3++, 1, "val3");
 		{
-			LockGuard lg2 = rlock(&state->lock2);
-			ASSERT_EQ(state->value2, 1, "val2");
-			ASSERT_EQ(state->value3++, 3, "val3 final");
+			LockGuard lg2 = rlock(&state->lock1);
+			ASSERT_EQ(state->value1, 2, "value1=2");
 		}
 	} else {
 		{
-			LockGuard lg2 = wlock(&state->lock2);
-			ASSERT_EQ(state->value3++, 0, "val3 0");
-			{
-				LockGuard lg1 = wlock(&state->lock1);
-				state->value1 = 1;
-			}
+			LockGuard lg2 = wlock(&state->lock1);
+			state->value1 = 1;
 			sleepm(10);
-			state->value2 = 1;
-			ASSERT_EQ(state->value3++, 2, "val3 2");
+			state->value1 = 2;
 		}
+
 		exit(0);
 	}
-	munmap(base, sizeof(SharedStateData));
-}
 
-Test(lock2) {
-	void *base = smap(sizeof(SharedStateData));
-	int cpid;
-	SharedStateData *state = (SharedStateData *)base;
+	waitid(P_PID, pid, NULL, WEXITED);
+
 	state->lock1 = LOCK_INIT;
-	state->lock2 = LOCK_INIT;
 	state->value1 = 0;
-	state->value2 = 0;
-	state->value3 = 0;
 
-	if ((cpid = two())) {
-		while (true) {
-			LockGuard lg1;
-			yield();
-			lg1 = rlock(&state->lock1);
-			if (state->value1) break;
+	/* Write contention */
+	if ((pid = two())) {
+		while (ALOAD(&state->value1) == 0) {
 		}
-		ASSERT_EQ(state->value3++, 1, "val3 1");
 		{
-			LockGuard lg2 = wlock(&state->lock2);
-			ASSERT_EQ(state->value2, 1, "val2 1");
-			ASSERT_EQ(state->value3++, 3, "val3 3");
+			LockGuard lg2 = wlock(&state->lock1);
+			ASSERT_EQ(state->value1, 2, "value1=2");
 		}
 	} else {
 		{
-			LockGuard lg2 = wlock(&state->lock2);
-			ASSERT_EQ(state->value3++, 0, "val3 0");
-			{
-				LockGuard lg1 = wlock(&state->lock1);
-				state->value1 = 1;
-			}
+			LockGuard lg2 = wlock(&state->lock1);
+			state->value1 = 1;
 			sleepm(10);
-			state->value2 = 1;
-			ASSERT_EQ(state->value3++, 2, "val3 2");
+			state->value1 = 2;
 		}
+
 		exit(0);
 	}
-	munmap(state, sizeof(SharedStateData));
-}
 
-Test(lock3) {
-	void *base = smap(sizeof(SharedStateData));
-	int cpid;
-	SharedStateData *state = (SharedStateData *)base;
+	waitid(P_PID, pid, NULL, WEXITED);
+
 	state->lock1 = LOCK_INIT;
 	state->lock2 = LOCK_INIT;
 	state->value1 = 0;
-	state->value2 = 0;
-	state->value3 = 0;
 
-	if ((cpid = two())) {
-		while (true) {
-			sleepm(1);
-			{
-				LockGuard lg1 = rlock(&state->lock1);
-				if (state->value1 == 2) break;
-			}
-		}
+	/* Write starvation prevention */
+	if ((pid = two())) {
+		/* wait until lock obtained*/
+		while (ALOAD(&state->lock1) == 0) yield();
 		{
-			LockGuard lg2 = wlock(&state->lock2);
-			ASSERT_EQ(state->value2, 2, "val2 2");
-		}
-	} else {
-		if (two()) {
-			LockGuard lg2 = wlock(&state->lock2);
-			state->value2++;
+			LockGuard lg;
 			sleepm(10);
-			state->value1++;
-		} else {
-			LockGuard lg2 = wlock(&state->lock2);
-			state->value2++;
-			sleepm(10);
-			state->value1++;
+			lg = wlock(&state->lock1);
+			/* write must happen first */
+			ASSERT_EQ(state->value1, 0, "value1=0");
 		}
-		exit(0);
-	}
-	waitid(P_PID, cpid, NULL, WNOWAIT);
-	munmap(state, sizeof(SharedStateData));
-}
-
-Test(lock4) {
-	void *base = smap(sizeof(SharedStateData));
-	int cpid;
-	SharedStateData *state = (SharedStateData *)base;
-	state->lock1 = LOCK_INIT;
-	state->lock2 = LOCK_INIT;
-	state->value1 = 0;
-	state->value2 = 0;
-	state->value3 = 0;
-
-	if ((cpid = two())) {
-		while (true) {
-			LockGuard lg1 = rlock(&state->lock1);
-			if (state->value1 == 2) break;
-		}
-
-		{
-			LockGuard lg2 = wlock(&state->lock2);
-			ASSERT_EQ(state->value2++, 0, "val2 0");
-
-			ASSERT_EQ(state->value3, 0, "val3 0");
-		}
-		while (!ALOAD(&state->value3)) yield();
-
+		waitid(P_PID, pid, NULL, WEXITED);
 	} else {
-		if ((cpid = two())) {
+		if ((pid = two())) {
 			{
-				LockGuard lg2 = rlock(&state->lock2);
-				state->value1++;
-				sleepm(100);
+				LockGuard lg = wlock(&state->lock1);
+				sleepm(30);
 			}
-			{
-				LockGuard lg2 = rlock(&state->lock2);
-				ASSERT_EQ(state->value2++, 1, "val2 1");
-				state->value3++;
-			}
-			waitid(P_PID, cpid, NULL, WNOWAIT);
+			waitid(P_PID, pid, NULL, WEXITED);
 			exit(0);
 		} else {
+			while (ALOAD(&state->lock1) == 0) yield();
 			{
-				LockGuard lg2 = rlock(&state->lock2);
-				state->value1++;
-				sleepm(200);
+				LockGuard lg = rlock(&state->lock1);
+				state->value1 = 1;
 			}
 			exit(0);
 		}
 	}
 
-	waitid(P_PID, cpid, NULL, WNOWAIT);
-	munmap(state, sizeof(SharedStateData));
-}
-
-Test(lock5) {
-	void *base = smap(sizeof(SharedStateData));
-	int size;
-	int cpid;
-	SharedStateData *state = (SharedStateData *)base;
-	state->lock1 = LOCK_INIT;
-	state->value1 = 0;
-	state->value2 = 0;
-	size = 100;
-
-	if ((cpid = two())) {
-		while (true) {
-			LockGuard lg = wlock(&state->lock1);
-			if (state->value1 % 2 == 0) state->value1++;
-			if (state->value1 >= size) break;
-		}
-		ASTORE(&state->value2, 1);
-		while (true) {
-			LockGuard lg = wlock(&state->lock1);
-			if (state->value2 == 0) break;
-		}
-		ASSERT_EQ(ALOAD(&state->value2), 0, "val2 0");
-	} else {
-		while (true) {
-			LockGuard lg = wlock(&state->lock1);
-			if (state->value1 % 2 == 1) state->value1++;
-			if (state->value1 >= size) break;
-		}
-		while (true) {
-			LockGuard lg = wlock(&state->lock1);
-			if (state->value2 == 1) break;
-		}
-		ASTORE(&state->value2, 0);
-		exit(0);
-	}
-	waitid(P_PID, cpid, NULL, WNOWAIT);
-	munmap(state, sizeof(SharedStateData));
+	release(state);
 }
 
 typedef struct {
