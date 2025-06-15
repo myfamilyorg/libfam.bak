@@ -59,12 +59,12 @@ typedef __uint128_t uint128_t;
 typedef union epoll_data {
 	void *ptr;
 	int fd;
-	unsigned int u32;
+	uint32_t u32;
 	uint64_t u64;
 } epoll_data_t;
 
 struct epoll_event {
-	unsigned int events;
+	uint32_t events;
 	epoll_data_t data;
 }
 #ifdef __amd64__
@@ -104,12 +104,12 @@ struct sockaddr_un {
 	char sun_path[108];
 };
 
-typedef unsigned int socklen_t;
+typedef uint32_t socklen_t;
 
 struct sockaddr_in {
         unsigned short sin_family;
         unsigned short sin_port;
-        unsigned int sin_addr;
+        uint32_t sin_addr;
         unsigned char sin_zero[8];
 };
 

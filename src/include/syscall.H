@@ -43,16 +43,16 @@ int fcntl(int fd, int op, ...);
 int clone3(struct clone_args *args, uint64_t size);
 int fdatasync(int fd);
 int ftruncate(int fd, int64_t length);
-int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
+int connect(int sockfd, const struct sockaddr *addr, uint32_t addrlen);
 int setsockopt(int sockfd, int level, int optname, const void *optval,
-	       unsigned int optlen);
-int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
+	       uint32_t optlen);
+int bind(int sockfd, const struct sockaddr *addr, uint32_t addrlen);
 int listen(int sockfd, int backlog);
-int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
-int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen);
+int getsockname(int sockfd, struct sockaddr *addr, uint32_t *addrlen);
+int accept(int sockfd, struct sockaddr *addr, uint32_t *addrlen);
 int shutdown(int sockfd, int how);
 int socket(int domain, int type, int protocol);
-int getrandom(void *buf, uint64_t len, unsigned int flags);
+int getrandom(void *buf, uint64_t len, uint32_t flags);
 void *mmap(void *addr, uint64_t length, int prot, int flags, int fd,
 	   int64_t offset);
 int nanosleep(const struct timespec *req, struct timespec *rem);

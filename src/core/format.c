@@ -85,7 +85,7 @@ static int vsnprintf(char* str, uint64_t size, const char* format,
 	uint64_t i;
 	uint64_t j;
 	int val;
-	unsigned int uval;
+	uint32_t uval;
 	double dval;
 	const char* s;
 	char c;

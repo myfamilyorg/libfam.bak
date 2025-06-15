@@ -376,20 +376,20 @@ DEFINE_SYSCALL2(215, int, munmap, void *, addr, uint64_t, len)
 DEFINE_SYSCALL1(57, int, close, int, fd)
 DEFINE_SYSCALL3(25, int, fcntl, int, fd, int, cmd, long, arg)
 DEFINE_SYSCALL3(203, int, connect, int, sockfd, const struct sockaddr *, addr,
-		unsigned int, addrlen)
+		uint32_t, addrlen)
 DEFINE_SYSCALL5(208, int, setsockopt, int, sockfd, int, level, int, optname,
-		const void *, optval, unsigned int, optlen)
+		const void *, optval, uint32_t, optlen)
 DEFINE_SYSCALL3(200, int, bind, int, sockfd, const struct sockaddr *, addr,
-		unsigned int, addrlen)
+		uint32_t, addrlen)
 DEFINE_SYSCALL2(201, int, listen, int, sockfd, int, backlog)
 DEFINE_SYSCALL3(204, int, getsockname, int, sockfd, struct sockaddr *, addr,
-		unsigned int *, addrlen)
+		uint32_t *, addrlen)
 DEFINE_SYSCALL3(202, int, accept, int, sockfd, struct sockaddr *, addr,
-		unsigned int *, addrlen)
+		uint32_t *, addrlen)
 DEFINE_SYSCALL2(210, int, shutdown, int, sockfd, int, how)
 DEFINE_SYSCALL3(198, int, socket, int, domain, int, type, int, protocol)
 DEFINE_SYSCALL3(278, int, getrandom, void *, buffer, uint64_t, length,
-		unsigned int, flags)
+		uint32_t, flags)
 DEFINE_SYSCALL6(222, void *, mmap, void *, addr, uint64_t, length, int, prot, int,
 		flags, int, fd, long, offset)
 DEFINE_SYSCALL2(101, int, nanosleep, const struct timespec *, req,
@@ -430,20 +430,20 @@ DEFINE_SYSCALL2(11, int, munmap, void *, addr, uint64_t, len)
 DEFINE_SYSCALL1(3, int, close, int, fd)
 DEFINE_SYSCALL3(72, int, fcntl, int, fd, int, cmd, long, arg)
 DEFINE_SYSCALL3(42, int, connect, int, sockfd, const struct sockaddr *, addr,
-		unsigned int, addrlen)
+		uint32_t, addrlen)
 DEFINE_SYSCALL5(54, int, setsockopt, int, sockfd, int, level, int, optname,
-		const void *, optval, unsigned int, optlen)
+		const void *, optval, uint32_t, optlen)
 DEFINE_SYSCALL3(49, int, bind, int, sockfd, const struct sockaddr *, addr,
-		unsigned int, addrlen)
+		uint32_t, addrlen)
 DEFINE_SYSCALL2(50, int, listen, int, sockfd, int, backlog)
 DEFINE_SYSCALL3(51, int, getsockname, int, sockfd, struct sockaddr *, addr,
-		unsigned int *, addrlen)
+		uint32_t *, addrlen)
 DEFINE_SYSCALL3(43, int, accept, int, sockfd, struct sockaddr *, addr,
-		unsigned int *, addrlen)
+		uint32_t *, addrlen)
 DEFINE_SYSCALL2(48, int, shutdown, int, sockfd, int, how)
 DEFINE_SYSCALL3(41, int, socket, int, domain, int, type, int, protocol)
 DEFINE_SYSCALL3(318, int, getrandom, void *, buffer, uint64_t, length,
-		unsigned int, flags)
+		uint32_t, flags)
 DEFINE_SYSCALL6(9, void *, mmap, void *, addr, uint64_t, length, int, prot, int,
 		flags, int, fd, long, offset)
 DEFINE_SYSCALL2(35, int, nanosleep, const struct timespec *, req,
@@ -567,18 +567,18 @@ int ftruncate(int fd, int64_t length) {
 	SET_ERR
 }
 
-int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen) {
+int connect(int sockfd, const struct sockaddr *addr, uint32_t addrlen) {
 	int ret = syscall_connect(sockfd, addr, addrlen);
 	SET_ERR
 }
 
 int setsockopt(int sockfd, int level, int optname, const void *optval,
-	       unsigned int optlen) {
+	       uint32_t optlen) {
 	int ret = syscall_setsockopt(sockfd, level, optname, optval, optlen);
 	SET_ERR
 }
 
-int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen) {
+int bind(int sockfd, const struct sockaddr *addr, uint32_t addrlen) {
 	int ret = syscall_bind(sockfd, addr, addrlen);
 	SET_ERR
 }
@@ -586,11 +586,11 @@ int listen(int sockfd, int backlog) {
 	int ret = syscall_listen(sockfd, backlog);
 	SET_ERR
 }
-int getsockname(int sockfd, struct sockaddr *addr, unsigned int *addrlen) {
+int getsockname(int sockfd, struct sockaddr *addr, uint32_t *addrlen) {
 	int ret = syscall_getsockname(sockfd, addr, addrlen);
 	SET_ERR
 }
-int accept(int sockfd, struct sockaddr *addr, unsigned int *addrlen) {
+int accept(int sockfd, struct sockaddr *addr, uint32_t *addrlen) {
 	int ret = syscall_accept(sockfd, addr, addrlen);
 	SET_ERR
 }
@@ -609,7 +609,7 @@ long futex(uint32_t *uaddr, int futex_op, uint32_t val,
 	long ret = syscall_futex(uaddr, futex_op, val, timeout, uaddr2, val3);
 	SET_ERR
 }
-int getrandom(void *buf, uint64_t len, unsigned int flags) {
+int getrandom(void *buf, uint64_t len, uint32_t flags) {
 	uint64_t total;
 	if (len > 256) {
 		err = EIO;
