@@ -130,7 +130,7 @@ Test(multi_socket) {
 		exit(0);
 	}
 
-	waitid(P_PID, cpid, NULL, WNOWAIT);
+	waitid(P_PID, cpid, NULL, WEXITED);
 }
 
 Test(socket_fails) {

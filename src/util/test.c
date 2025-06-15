@@ -42,9 +42,12 @@ Test(lock) {
 	Lock l1 = LOCK_INIT;
 	int pid;
 	SharedStateData *state = alloc(sizeof(SharedStateData));
+	ASSERT(state != NULL, "Failed to allocate state");
+
 	state->lock1 = LOCK_INIT;
 	state->value1 = 0;
 
+	/* Test basic lock/unlock */
 	ASSERT_EQ(l1, 0, "init");
 	{
 		LockGuard lg1 = rlock(&l1);
@@ -59,36 +62,27 @@ Test(lock) {
 	ASSERT_EQ(l1, 0, "back to 0 2");
 
 	/* Read contention */
-	if ((pid = two())) {
-		while (ALOAD(&state->value1) == 0) {
-		}
-		{
-			LockGuard lg2 = rlock(&state->lock1);
-			ASSERT_EQ(state->value1, 2, "value1=2");
-		}
-	} else {
-		{
-			LockGuard lg2 = wlock(&state->lock1);
-			state->value1 = 1;
-			sleepm(10);
-			state->value1 = 2;
-		}
-
-		exit(0);
-	}
-
-	waitid(P_PID, pid, NULL, WEXITED);
-
 	state->lock1 = LOCK_INIT;
 	state->value1 = 0;
-
-	/* Write contention */
-	if ((pid = two())) {
-		while (ALOAD(&state->value1) == 0) {
+	if ((pid = two()) < 0) {
+		ASSERT(0, "two() failed in read contention");
+	}
+	if (pid) {
+		int timeout_ms = 1000;
+		while (ALOAD(&state->value1) == 0 && timeout_ms > 0) {
+			sleepm(1);
+			timeout_ms -= 1;
 		}
+		ASSERT(timeout_ms > 0,
+		       "Timed out waiting for value1 in read contention");
 		{
-			LockGuard lg2 = wlock(&state->lock1);
-			ASSERT_EQ(state->value1, 2, "value1=2");
+			LockGuard lg2 = rlock(&state->lock1);
+			ASSERT_EQ(state->value1, 2,
+				  "value1=2 in read contention");
+		}
+		if (waitid(P_PID, pid, NULL, WEXITED) < 0) {
+			perror("waitid");
+			ASSERT(0, "waitid failed in read contention");
 		}
 	} else {
 		{
@@ -97,38 +91,90 @@ Test(lock) {
 			sleepm(10);
 			state->value1 = 2;
 		}
-
 		exit(0);
 	}
 
-	waitid(P_PID, pid, NULL, WEXITED);
+	/* Write contention */
+	state->lock1 = LOCK_INIT;
+	state->value1 = 0;
+	if ((pid = two()) < 0) {
+		ASSERT(0, "two() failed in write contention");
+	}
+	if (pid) {
+		int timeout_ms = 1000;
+		while (ALOAD(&state->value1) == 0 && timeout_ms > 0) {
+			sleepm(1);
+			timeout_ms -= 1;
+		}
+		ASSERT(timeout_ms > 0,
+		       "Timed out waiting for value1 in write contention");
+		{
+			LockGuard lg2 = wlock(&state->lock1);
+			ASSERT_EQ(state->value1, 2,
+				  "value1=2 in write contention");
+		}
+		if (waitid(P_PID, pid, NULL, WEXITED) < 0) {
+			ASSERT(0, "waitid failed in write contention");
+		}
+	} else {
+		{
+			LockGuard lg2 = wlock(&state->lock1);
+			state->value1 = 1;
+			sleepm(10);
+			state->value1 = 2;
+		}
+		exit(0);
+	}
 
+	/* Write starvation prevention */
 	state->lock1 = LOCK_INIT;
 	state->lock2 = LOCK_INIT;
 	state->value1 = 0;
-
-	/* Write starvation prevention */
-	if ((pid = two())) {
-		/* wait until lock obtained*/
-		while (ALOAD(&state->lock1) == 0) yield();
-		{
-			LockGuard lg;
-			sleepm(10);
-			lg = wlock(&state->lock1);
-			/* write must happen first */
-			ASSERT_EQ(state->value1, 0, "value1=0");
+	if ((pid = two()) < 0) {
+		ASSERT(0, "two() failed in write starvation");
+	}
+	if (pid) {
+		int timeout_ms = 1000;
+		while (ALOAD(&state->lock1) == 0 && timeout_ms > 0) {
+			yield();
+			timeout_ms -= 1;
 		}
-		waitid(P_PID, pid, NULL, WEXITED);
+		ASSERT(timeout_ms > 0,
+		       "Timed out waiting for lock1 in write starvation");
+		{
+			sleepm(10);
+			{
+				LockGuard lg = wlock(&state->lock1);
+				ASSERT_EQ(state->value1, 0,
+					  "value1=0 in write starvation");
+			}
+		}
+		if (waitid(P_PID, pid, NULL, WEXITED) < 0) {
+			ASSERT(0, "waitid failed in write starvation parent");
+		}
 	} else {
-		if ((pid = two())) {
+		if ((pid = two()) < 0) {
+			ASSERT(0, "two() failed in write starvation child");
+		}
+		if (pid) {
 			{
 				LockGuard lg = wlock(&state->lock1);
 				sleepm(30);
 			}
-			waitid(P_PID, pid, NULL, WEXITED);
+			if (waitid(P_PID, pid, NULL, WEXITED) < 0) {
+				ASSERT(
+				    0,
+				    "waitid failed in write starvation writer");
+			}
 			exit(0);
 		} else {
-			while (ALOAD(&state->lock1) == 0) yield();
+			int timeout_ms = 1000;
+			while (ALOAD(&state->lock1) == 0 && timeout_ms > 0) {
+				yield();
+				timeout_ms -= 1;
+			}
+			ASSERT(timeout_ms > 0,
+			       "Timed out waiting for lock1 in reader");
 			{
 				LockGuard lg = rlock(&state->lock1);
 				state->value1 = 1;
@@ -154,9 +200,9 @@ Test(robust1) {
 	state->value1 = 0;
 
 	/* reap any zombie processes */
-	for (i = 0; i < 10; i++) waitid(P_PID, 0, NULL, WNOWAIT);
+	for (i = 0; i < 10; i++) waitid(P_PID, 0, NULL, WEXITED);
 	if ((cpid = two())) {
-		waitid(P_PID, cpid, NULL, WNOWAIT);
+		waitid(P_PID, cpid, NULL, WEXITED);
 	} else {
 		if ((cpid = two())) {
 			RobustGuard rg = robust_lock(&state->lock1);
@@ -183,7 +229,7 @@ Test(robust2) {
 	state->lock1 = LOCK_INIT;
 	state->value1 = 0;
 	/* reap any zombie processes */
-	for (i = 0; i < 10; i++) waitid(P_PID, 0, NULL, WNOWAIT);
+	for (i = 0; i < 10; i++) waitid(P_PID, 0, NULL, WEXITED);
 
 	if ((cpid = two())) {
 		sleepm(10);
@@ -191,7 +237,7 @@ Test(robust2) {
 			RobustGuard rg = robust_lock(&state->lock1);
 			ASSERT_EQ(state->value1, 1, "value=1");
 		}
-		waitid(P_PID, cpid, NULL, WNOWAIT);
+		waitid(P_PID, cpid, NULL, WEXITED);
 	} else {
 		{
 			RobustGuard rg = robust_lock(&state->lock1);
