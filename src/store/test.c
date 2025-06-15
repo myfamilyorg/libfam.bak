@@ -25,6 +25,7 @@
 
 #include <alloc.H>
 #include <bptree.H>
+#include <error.H>
 #include <rng.H>
 #include <test.H>
 
@@ -33,6 +34,20 @@ void test_bptree_search(BpTxn *txn, const void *key, uint16_t key_len,
 	int i;
 	/* Simplify for now, just use root node only */
 	retval->found = false;
+
+	/*
+	printf("node->id=%i is_internal=%i,num=%i\n", bptree_node_id(txn, node),
+	       node->is_internal, node->num_entries);
+	       */
+
+	while (node->is_internal) {
+		uint16_t offset = node->data.internal.entry_offsets[1];
+		const char *cmp_key __attribute__((unused)) =
+		    (const char *)((uint8_t *)node->data.internal.key_entries +
+				   offset + sizeof(BpTreeInternalEntry));
+		/*printf("key_cmp=%s,offset=%u\n", cmp_key, offset);*/
+		break;
+	}
 
 	for (i = 0; i < node->num_entries; i++) {
 		int v;
@@ -130,4 +145,74 @@ Test(store1) {
 		release(txn);
 		unlink(path);
 	}
+}
+
+#define BPTREE_SPLIT_ITT 512
+
+Test(bptree_split) {
+	const char *path = "/tmp/store1.dat";
+	int fd, i;
+	BpTree *tree;
+	BpTxn *txn;
+	Rng rng;
+	uint8_t keys[BPTREE_SPLIT_ITT][20];
+	uint8_t values[BPTREE_SPLIT_ITT][20];
+	uint8_t rand_key_lens[BPTREE_SPLIT_ITT];
+	uint8_t rand_value_lens[BPTREE_SPLIT_ITT];
+
+	uint8_t key[32] = {4};
+	uint8_t iv[16] = {1};
+
+	rng_test_seed(&rng, key, iv);
+	unlink(path);
+	fd = file(path);
+
+	fresize(fd, PAGE_SIZE * 1600);
+	close(fd);
+	tree = bptree_open(path);
+	ASSERT(tree, "tree");
+	txn = bptxn_start(tree);
+
+	for (i = 1; i < BPTREE_SPLIT_ITT; i++) {
+		uint8_t keybuf[20] = {0};
+		uint8_t valuebuf[20] = {0};
+		size_t klen = 0, vlen = 0;
+
+		rng_gen(&rng, keybuf, 20);
+		rng_gen(&rng, valuebuf, 20);
+		klen = b64_encode(keybuf, 12, keys[i], 20);
+		vlen = b64_encode(valuebuf, 12, values[i], 20);
+		keys[i][klen] = 0;
+		values[i][vlen] = 0;
+		rng_gen(&rng, &klen, sizeof(size_t));
+		rng_gen(&rng, &vlen, sizeof(size_t));
+		rand_key_lens[i] = (klen % 10) + 3;
+		rand_value_lens[i] = (vlen % 10) + 3;
+	}
+
+	for (i = 1; i < BPTREE_SPLIT_ITT; i++) {
+		char key_buf[20], value_buf[20];
+		int v;
+
+		memcpy(key_buf, keys[i], 20);
+		memcpy(value_buf, values[i], 20);
+		key_buf[rand_key_lens[i]] = 0;
+		value_buf[rand_value_lens[i]] = 0;
+
+		v = bptree_put(txn, keys[i], rand_key_lens[i], values[i],
+			       rand_value_lens[i], test_bptree_search);
+		ASSERT(!v, "insert");
+	}
+
+	for (i = 1; i < BPTREE_SPLIT_ITT; i++) {
+		int v;
+		v = bptree_put(txn, keys[i], rand_key_lens[i], values[i],
+			       rand_value_lens[i], test_bptree_search);
+		ASSERT(v, "insertcheck");
+	}
+
+	bptree_close(tree);
+	release(tree);
+	release(txn);
+	unlink(path);
 }

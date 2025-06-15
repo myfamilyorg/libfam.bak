@@ -58,6 +58,12 @@ typedef struct {
 	uint8_t flags;
 } BpTreeEntry;
 
+/* BpTree Internal entry */
+typedef struct {
+	uint16_t key_len;
+	uint64_t node_id;
+} BpTreeInternalEntry;
+
 /* Data specific to an internal node */
 typedef struct {
 	uint16_t entry_offsets[MAX_INTERNAL_ENTRIES];
