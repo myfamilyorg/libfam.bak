@@ -53,8 +53,8 @@ STATIC int set_next_timer(uint64_t now) {
 		struct itimerval new_value = {0};
 		uint64_t delay_ms =
 		    (next_task_time > now) ? (next_task_time - now) : 1;
-		new_value.it_value.tv_sec = (long)(delay_ms / 1000);
-		new_value.it_value.tv_usec = (long)((delay_ms % 1000) * 1000);
+		new_value.it_value.tv_sec = (int64_t)(delay_ms / 1000);
+		new_value.it_value.tv_usec = (int64_t)((delay_ms % 1000) * 1000);
 		if (setitimer(ITIMER_REAL, &new_value, NULL) < 0) return -1;
 	}
 

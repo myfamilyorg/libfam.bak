@@ -33,7 +33,7 @@ int32_t two(void) { return two2(true); }
 
 int32_t two2(bool share_fds) {
 	struct clone_args args = {0};
-	long ret;
+	int64_t ret;
 	args.flags = share_fds ? CLONE_FILES : 0;
 	args.pidfd = 0;
 	args.child_tid = 0;

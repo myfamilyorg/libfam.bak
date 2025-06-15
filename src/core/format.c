@@ -28,10 +28,6 @@
 #include <misc.H>
 #include <syscall.H>
 
-typedef long ptrdiff_t;
-typedef long intmax_t;
-typedef uint64_t uintmax_t;
-
 static void reverse(char* str, uint64_t len) {
 	uint64_t i;
 	uint64_t j;
@@ -44,10 +40,10 @@ static void reverse(char* str, uint64_t len) {
 	}
 }
 
-static uint64_t uint_to_str(uintmax_t num, char* buf, int base, int upper) {
+static uint64_t uint_to_str(uint64_t num, char* buf, int base, int upper) {
 	const char* digits;
 	uint64_t i;
-	uintmax_t temp;
+	uint64_t temp;
 
 	digits = upper ? "0123456789ABCDEF" : "0123456789abcdef";
 	i = 0;
@@ -62,9 +58,9 @@ static uint64_t uint_to_str(uintmax_t num, char* buf, int base, int upper) {
 	return i;
 }
 
-static uint64_t int_to_str(intmax_t num, char* buf, int base, int upper) {
+static uint64_t int_to_str(int64_t num, char* buf, int base, int upper) {
 	uint64_t i;
-	intmax_t temp;
+	int64_t temp;
 
 	i = 0;
 	temp = num;
@@ -74,7 +70,7 @@ static uint64_t int_to_str(intmax_t num, char* buf, int base, int upper) {
 		temp = -temp;
 	}
 
-	return i + uint_to_str((uintmax_t)temp, buf + i, base, upper);
+	return i + uint_to_str((uint64_t)temp, buf + i, base, upper);
 }
 static int vsnprintf(char* str, uint64_t size, const char* format,
 		     __builtin_va_list ap) {

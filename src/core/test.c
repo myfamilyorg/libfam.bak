@@ -1070,7 +1070,7 @@ Test(map_err) {
 	void *v;
 	err = 0;
 	v = mmap(buf, 100, PROT_READ | PROT_WRITE, MAP_SHARED, -1, 0);
-	ASSERT((long)v == -1, "mmap err");
+	ASSERT((int64_t)v == -1, "mmap err");
 	ASSERT_EQ(err, EBADF, "ebadf");
 	v = map(PAGE_SIZE);
 	ASSERT(v, "v != null");

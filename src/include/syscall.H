@@ -69,7 +69,7 @@ int setitimer(int32_t which, const struct itimerval *new_value,
 int rt_sigaction(int signum, const struct rt_sigaction *act,
 		 struct rt_sigaction *oldact, uint64_t sigsetsize);
 void restorer(void);
-long futex(uint32_t *uaddr, int futex_op, uint32_t val,
+int64_t futex(uint32_t *uaddr, int futex_op, uint32_t val,
 	   const struct timespec *timeout, uint32_t *uaddr2, uint32_t val3);
 int waitid(int32_t int32_type, int32_t id, siginfo_t *sigs, int options);
 
