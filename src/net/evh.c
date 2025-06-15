@@ -283,7 +283,7 @@ int evh_start(Evh *evh, void *ctx, uint64_t connection_alloc_overhead) {
 int evh_stop(Evh *evh) {
 	if (close(evh->wakeup) == -1) return -1;
 	while (!ALOAD(evh->stopped)) yield();
-	waitid(P_PID, *evh->stopped, NULL, WNOWAIT);
+	waitid(P_PID, *evh->stopped, NULL, WEXITED);
 	release(evh->stopped);
 	return 0;
 }

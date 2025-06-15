@@ -153,17 +153,13 @@
 
 /* waitid's */
 #define P_PID 0
-#define WEXITED 1
-#define WSTOPPED 2
-#define WNOWAIT 4
-#define WNOHANG 8
-#define WCONTINUED 16
+#define WEXITED 4
+#define WNOWAIT 0x01000000
 
 /* socket */
 #define AF_INET 2
 #define SOCK_STREAM 1
 #define SOL_SOCKET 1
 #define SO_REUSEADDR 2
-
 
 #endif /* _SYSCALL_CONST_H */

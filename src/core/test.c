@@ -68,7 +68,7 @@ Test(two1) {
 		exit(0);
 	}
 	ASSERT(state->value2, "store");
-	waitid(P_PID, cpid, NULL, WNOWAIT);
+	waitid(P_PID, cpid, NULL, WEXITED);
 	munmap(base, sizeof(SharedStateData));
 }
 
@@ -88,7 +88,7 @@ Test(futex1) {
 		futex(&state->uvalue1, FUTEX_WAKE, 1, NULL, NULL, 0);
 		exit(0);
 	}
-	waitid(P_PID, cpid, NULL, WNOWAIT);
+	waitid(P_PID, cpid, NULL, WEXITED);
 	ASSERT(state->value2, "value2");
 	munmap(base, sizeof(SharedStateData));
 }
@@ -157,7 +157,7 @@ Test(timeout3) {
 		exit(0);
 	}
 
-	waitid(P_PID, pid, NULL, WNOWAIT);
+	waitid(P_PID, pid, NULL, WEXITED);
 
 	munmap(state, sizeof(SharedStateData));
 }
@@ -1021,7 +1021,7 @@ Test(pipe) {
 		write(fds[1], "test", 4);
 		exit(0);
 	}
-	waitid(P_PID, fv, NULL, WNOWAIT);
+	waitid(P_PID, fv, NULL, WEXITED);
 }
 
 Test(files1) {
