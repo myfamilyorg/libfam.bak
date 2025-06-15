@@ -42,10 +42,31 @@ void test_bptree_search(BpTxn *txn, const void *key, uint16_t key_len,
 
 	while (node->is_internal) {
 		uint16_t offset = node->data.internal.entry_offsets[1];
+		BpTreeInternalEntry *entry =
+		    (BpTreeInternalEntry *)((uint8_t *)node->data.internal
+						.key_entries +
+					    offset);
 		const char *cmp_key __attribute__((unused)) =
 		    (const char *)((uint8_t *)node->data.internal.key_entries +
 				   offset + sizeof(BpTreeInternalEntry));
+		uint16_t len =
+		    key_len > entry->key_len ? entry->key_len : key_len;
+
+		int v = strcmpn(key, cmp_key, len);
+		/*printf("v=%i\n", v);*/
 		/*printf("key_cmp=%s,offset=%u\n", cmp_key, offset);*/
+		if (v >= 0) {
+			printf("ausing node id = %i,offset=%i\n",
+			       entry->node_id, offset);
+			node = bptxn_get_node(txn, entry->node_id);
+		} else {
+			entry =
+			    (BpTreeInternalEntry *)((uint8_t *)node->data
+							.internal.key_entries);
+			printf("busing node id = %i\n", entry->node_id);
+
+			node = bptxn_get_node(txn, entry->node_id);
+		}
 		break;
 	}
 

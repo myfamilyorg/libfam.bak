@@ -171,7 +171,7 @@ STATIC BpTreeNode *new_node(BpTxn *txn, BpTreeNode *node, uint16_t midpoint) {
 			      sizeof(BpTreeInternalEntry) * 2;
 	nparent->data.internal.entry_offsets[0] = 0;
 	nparent->data.internal.entry_offsets[1] =
-	    sizeof(uint16_t) + zeroent->key_len + sizeof(BpTreeInternalEntry);
+	    zeroent->key_len + sizeof(BpTreeInternalEntry);
 	printf("setting offset=%u\n", nparent->data.internal.entry_offsets[1]);
 
 	txn->root = bptree_node_id(txn, nparent);
@@ -179,7 +179,8 @@ STATIC BpTreeNode *new_node(BpTxn *txn, BpTreeNode *node, uint16_t midpoint) {
 	node->parent_id = txn->root;
 
 	ent.key_len = zeroent->key_len;
-	ent.node_id = node->node_id;
+	ent.node_id = bptree_node_id(txn, node);
+	printf("ent->node_id=%i\n", ent.node_id);
 
 	memcpy((uint8_t *)nparent->data.internal.key_entries, &ent,
 	       sizeof(BpTreeInternalEntry));
@@ -188,7 +189,10 @@ STATIC BpTreeNode *new_node(BpTxn *txn, BpTreeNode *node, uint16_t midpoint) {
 	       (uint8_t *)zeroent + sizeof(BpTreeEntry), zeroent->key_len);
 
 	ent.key_len = mident->key_len;
-	ent.node_id = new->node_id;
+	ent.node_id = bptree_node_id(txn, new);
+	printf("new ent->node_id=%i,offsetent=%i\n", ent.node_id,
+	       sizeof(BpTreeInternalEntry) + zeroent->key_len);
+
 	memcpy((uint8_t *)nparent->data.internal.key_entries +
 		   sizeof(BpTreeInternalEntry) + zeroent->key_len,
 	       &ent, sizeof(BpTreeInternalEntry));
