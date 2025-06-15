@@ -129,8 +129,8 @@ int main(int argc __attribute__((unused)), char **argv __attribute__((unused)),
 			       RESET);
 			start = micros();
 			tests[exe_test].test_fn();
-			printf(" %s[%i %ss]%s \n", GREEN, micros() - start, "µ",
-			       RESET);
+			printf(" %s[%i %ss]%s \n", GREEN,
+			       (int32_t)(micros() - start), "µ", RESET);
 			test_count++;
 		}
 	}

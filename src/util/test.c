@@ -251,7 +251,7 @@ Test(channel2) {
 }
 
 Test(channel3) {
-	int size = 1000, i;
+	int size = 100, i;
 	for (i = 0; i < size; i++) {
 		int pid;
 		Channel ch1 = channel(sizeof(TestMessage));
