@@ -135,33 +135,109 @@ STATIC BpTreeNode *allocate_node(BpTxn *txn) {
 	return NODE(txn, current);
 }
 
+STATIC void insert_entry(BpTreeNode *node, uint16_t key_index,
+			 uint16_t space_needed, const void *key,
+			 uint16_t key_len, const void *value,
+			 uint32_t value_len) {
+	if (node->num_entries > key_index)
+		shift_by_offset(node, key_index, space_needed);
+	else {
+		node->data.leaf.entry_offsets[node->num_entries] =
+		    node->used_bytes;
+	}
+
+	place_entry(node, key_index, key, key_len, value, value_len);
+	node->used_bytes += space_needed;
+	node->num_entries++;
+}
+
+STATIC BpTreeNode *new_node(BpTxn *txn, BpTreeNode *node, uint16_t midpoint) {
+	BpTreeNode *new = allocate_node(txn);
+	BpTreeNode *nparent = allocate_node(txn);
+	BpTreeInternalEntry ent;
+	uint16_t mid_offset = node->data.leaf.entry_offsets[midpoint];
+	BpTreeEntry *mident =
+	    (BpTreeEntry *)(((uint8_t *)node->data.leaf.entries) + mid_offset);
+	BpTreeEntry *zeroent =
+	    (BpTreeEntry *)((uint8_t *)node->data.leaf.entries);
+	if (!nparent || !new) return NULL; /* TODO: release other */
+
+	printf("new node!\n");
+
+	nparent->is_internal = true;
+	nparent->parent_id = 0; /* Set to root for now */
+	nparent->num_entries = 2;
+	nparent->used_bytes = mident->key_len + zeroent->key_len +
+			      sizeof(BpTreeInternalEntry) * 2;
+	nparent->data.internal.entry_offsets[0] = 0;
+	nparent->data.internal.entry_offsets[1] =
+	    zeroent->key_len + sizeof(BpTreeInternalEntry);
+	printf("setting offset=%u\n", nparent->data.internal.entry_offsets[1]);
+
+	txn->root = bptree_node_id(txn, nparent);
+	new->parent_id = txn->root;
+	node->parent_id = txn->root;
+
+	ent.key_len = zeroent->key_len;
+	ent.node_id = bptree_node_id(txn, node);
+	printf("ent->node_id=%i\n", ent.node_id);
+
+	memcpy((uint8_t *)nparent->data.internal.key_entries, &ent,
+	       sizeof(BpTreeInternalEntry));
+	memcpy((uint8_t *)nparent->data.internal.key_entries +
+		   sizeof(BpTreeInternalEntry),
+	       (uint8_t *)zeroent + sizeof(BpTreeEntry), zeroent->key_len);
+
+	ent.key_len = mident->key_len;
+	ent.node_id = bptree_node_id(txn, new);
+	printf("new ent->node_id=%i,offsetent=%i\n", ent.node_id,
+	       sizeof(BpTreeInternalEntry) + zeroent->key_len);
+
+	memcpy((uint8_t *)nparent->data.internal.key_entries +
+		   sizeof(BpTreeInternalEntry) + zeroent->key_len,
+	       &ent, sizeof(BpTreeInternalEntry));
+	memcpy((uint8_t *)nparent->data.internal.key_entries +
+		   sizeof(BpTreeInternalEntry) * 2 + zeroent->key_len,
+	       (uint8_t *)mident + sizeof(BpTreeEntry), mident->key_len);
+
+	return new;
+}
+
+/*
+ * typedef struct {
+	uint16_t key_len;
+	uint64_t node_id;
+} BpTreeInternalEntry;
+
+*/
+
 STATIC int split_node(BpTxn *txn, BpTreeNode *node, const void *key,
 		      uint16_t key_len, const void *value, uint16_t value_len,
 		      uint16_t key_index, uint64_t space_needed) {
 	int i;
 	uint16_t midpoint;
 	uint16_t pos;
-	BpTreeNode *new, *nparent;
-
-	if (!node || !key || !value || key_len == 0 || value_len == 0) {
-		err = EINVAL;
-		return -1;
-	}
-
-	if (key_index || space_needed) {
-	}
+	BpTreeNode *new;
 
 	midpoint = node->num_entries / 2;
-	new = allocate_node(txn);
+	new = new_node(txn, node, midpoint);
 	if (!new) return -1;
-	nparent = allocate_node(txn);
-	if (!nparent) return -1;
 
 	pos = node->data.leaf.entry_offsets[midpoint];
 	memcpy(new->data.leaf.entries, node->data.leaf.entries + pos,
 	       node->used_bytes - pos);
-	for (i = 0; i < node->num_entries - midpoint; i++) {
-	}
+	memcpy(node->data.leaf.entry_offsets,
+	       new->data.leaf.entry_offsets + midpoint,
+	       node->num_entries - midpoint);
+	for (i = 0; i < node->num_entries - midpoint; i++)
+		new->data.leaf.entry_offsets[i] -= pos;
+
+	if (key_index <= midpoint)
+		insert_entry(node, key_index, space_needed, key, key_len, value,
+			     value_len);
+	else
+		insert_entry(new, key_index - midpoint, space_needed, key,
+			     key_len, value, value_len);
 
 	return 0;
 }
@@ -261,25 +337,18 @@ int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
 	space_needed = key_len + value_len + sizeof(BpTreeEntry);
 	if (space_needed + node->used_bytes > LEAF_ARRAY_SIZE ||
 	    (uint64_t)(node->num_entries + 1) >= MAX_LEAF_ENTRIES) {
-		return split_node(txn, node, key, key_len, value, value_len,
-				  res.key_index, space_needed);
+		if (split_node(txn, node, key, key_len, value, value_len,
+			       res.key_index, space_needed) == -1)
+			return -1;
+
 	} else {
 		copy = allocate_node(txn);
 		if (!copy) return -1;
 		memcpy(copy, node, NODE_SIZE);
 		txn->root = bptree_node_id(txn, copy);
 
-		if (copy->num_entries > res.key_index)
-			shift_by_offset(copy, res.key_index, space_needed);
-		else {
-			copy->data.leaf.entry_offsets[copy->num_entries] =
-			    copy->used_bytes;
-		}
-
-		place_entry(copy, res.key_index, key, key_len, value,
-			    value_len);
-		copy->used_bytes += space_needed;
-		copy->num_entries++;
+		insert_entry(copy, res.key_index, space_needed, key, key_len,
+			     value, value_len);
 	}
 
 	return 0;

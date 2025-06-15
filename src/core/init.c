@@ -39,10 +39,10 @@ void begin(void) {
 }
 
 static void (*exit_fns[MAX_EXIT])(void);
-static size_t exit_count = 0;
+static uint64_t exit_count = 0;
 
 int register_exit(void (*fn)(void)) {
-	size_t index = exit_count++;
+	uint64_t index = exit_count++;
 	if (index >= MAX_EXIT) {
 		exit_count--;
 		err = ENOSPC;

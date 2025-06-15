@@ -51,7 +51,7 @@ STATIC_ASSERT(sizeof(uint64_t) == 8, u64_sizes_match);
 STATIC_ASSERT(sizeof(int64_t) == 8, i64_sizes_match);
 STATIC_ASSERT(sizeof(uint128_t) == 16, u128_sizes_match);
 STATIC_ASSERT(sizeof(int128_t) == 16, i128_sizes_match);
-STATIC_ASSERT(sizeof(ssize_t) == 8, ssize_sizes_match);
-STATIC_ASSERT(sizeof(size_t) == 8, size_sizes_match);
+STATIC_ASSERT(sizeof(int64_t) == 8, ssize_sizes_match);
+STATIC_ASSERT(sizeof(uint64_t) == 8, size_sizes_match);
 
 static __attribute__((constructor)) void check_sizes(void) { CheckEndian(); }

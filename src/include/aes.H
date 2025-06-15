@@ -40,6 +40,6 @@ typedef struct {
 void aes_init(AesContext *ctx, const uint8_t *key, const uint8_t *iv);
 void aes_set_iv(AesContext *ctx, const uint8_t *iv);
 
-void aes_ctr_xcrypt_buffer(AesContext *ctx, uint8_t *buf, size_t length);
+void aes_ctr_xcrypt_buffer(AesContext *ctx, uint8_t *buf, uint64_t length);
 
 #endif /* _AES_H */

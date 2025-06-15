@@ -151,7 +151,7 @@ int on_accept(void *ctx __attribute__((unused)),
 }
 
 int on_recv(void *ctx __attribute__((unused)), Connection *conn,
-	    size_t rlen __attribute__((unused))) {
+	    uint64_t rlen __attribute__((unused))) {
 	char buf[1024 * 64];
 	InboundData *ib = &conn->data.inbound;
 	memcpy(buf, ib->rbuf, ib->rbuf_offset);
@@ -211,7 +211,7 @@ int on_accept2(void *ctx __attribute__((unused)),
 }
 
 int on_recv2(void *ctx __attribute__((unused)), Connection *conn,
-	     size_t rlen __attribute__((unused))) {
+	     uint64_t rlen __attribute__((unused))) {
 	InboundData *ib = &conn->data.inbound;
 	int *v = (int *)(ib->rbuf + ib->rbuf_offset - rlen);
 	int nv = *v + 1;
@@ -428,7 +428,7 @@ int on_accept3(void *ctx __attribute__((unused)),
 
 int on_recv3(void *ctx __attribute__((unused)),
 	     Connection *conn __attribute__((unused)),
-	     size_t rlen __attribute__((unused))) {
+	     uint64_t rlen __attribute__((unused))) {
 	return 0;
 }
 

@@ -30,12 +30,11 @@
 
 typedef long ptrdiff_t;
 typedef long intmax_t;
-typedef unsigned long uintmax_t;
+typedef uint64_t uintmax_t;
 
-/* Helper function to reverse a string in place */
-static void reverse(char* str, size_t len) {
-	size_t i;
-	size_t j;
+static void reverse(char* str, uint64_t len) {
+	uint64_t i;
+	uint64_t j;
 	char tmp;
 
 	for (i = 0, j = len - 1; i < j; i++, j--) {
@@ -45,10 +44,9 @@ static void reverse(char* str, size_t len) {
 	}
 }
 
-/* Helper function to convert an unsigned integer to a string */
-static size_t uint_to_str(uintmax_t num, char* buf, int base, int upper) {
+static uint64_t uint_to_str(uintmax_t num, char* buf, int base, int upper) {
 	const char* digits;
-	size_t i;
+	uint64_t i;
 	uintmax_t temp;
 
 	digits = upper ? "0123456789ABCDEF" : "0123456789abcdef";
@@ -64,9 +62,8 @@ static size_t uint_to_str(uintmax_t num, char* buf, int base, int upper) {
 	return i;
 }
 
-/* Helper function to convert a signed integer to a string */
-static size_t int_to_str(intmax_t num, char* buf, int base, int upper) {
-	size_t i;
+static uint64_t int_to_str(intmax_t num, char* buf, int base, int upper) {
+	uint64_t i;
 	intmax_t temp;
 
 	i = 0;
@@ -79,14 +76,14 @@ static size_t int_to_str(intmax_t num, char* buf, int base, int upper) {
 
 	return i + uint_to_str((uintmax_t)temp, buf + i, base, upper);
 }
-static int vsnprintf(char* str, size_t size, const char* format,
+static int vsnprintf(char* str, uint64_t size, const char* format,
 		     __builtin_va_list ap) {
 	const char* fmt;
-	size_t pos;
-	size_t len;
+	uint64_t pos;
+	uint64_t len;
 	char buf[1024];
-	size_t i;
-	size_t j;
+	uint64_t i;
+	uint64_t j;
 	int val;
 	unsigned int uval;
 	double dval;
@@ -115,7 +112,7 @@ static int vsnprintf(char* str, size_t size, const char* format,
 
 		switch (*fmt) {
 			case 'd':
-			case 'i': /* Treat %i the same as %d */
+			case 'i':
 				val = __builtin_va_arg(ap, int64_t);
 				j = int_to_str(val, buf, 10, 0);
 				len += j;
@@ -207,7 +204,7 @@ static int vsnprintf(char* str, size_t size, const char* format,
 }
 
 /* snprintf implementation that takes variable arguments */
-int snprintf(char* str, size_t size, const char* format, ...) {
+int snprintf(char* str, uint64_t size, const char* format, ...) {
 	__builtin_va_list ap;
 	int len;
 

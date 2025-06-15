@@ -35,7 +35,7 @@
 RobustGuard robust_lock(RobustLock *lock) {
 	RobustGuardImpl ret;
 	uint32_t expected = 0;
-	pid_t pid = getpid();
+	int32_t pid = getpid();
 
 	while (!__cas32(lock, &expected, pid)) {
 		if (kill(expected, 0) == -1 && err == ESRCH)
@@ -49,7 +49,7 @@ RobustGuard robust_lock(RobustLock *lock) {
 }
 
 void robustguard_cleanup(RobustGuardImpl *lg) {
-	pid_t pid = getpid();
+	int32_t pid = getpid();
 	if (!__cas32(lg->lock, (uint32_t *)&pid, 0))
 		panic("unexpected lock state: %i. pid: %i\n", pid, getpid());
 }
