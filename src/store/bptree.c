@@ -92,9 +92,10 @@ STATIC void shift_by_offset(BpTreeNode *node, uint16_t key_index,
 	int i;
 	uint16_t pos = node->data.leaf.entry_offsets[key_index];
 	uint16_t bytes_to_move = node->used_bytes - pos;
+	void *dst = node->data.leaf.entries + pos + shift;
+	void *src = node->data.leaf.entries + pos;
 
-	memorymove(node->data.leaf.entries + pos + shift,
-		   node->data.leaf.entries + pos, bytes_to_move);
+	memorymove(dst, src, bytes_to_move);
 	for (i = node->num_entries; i > key_index; i--) {
 		node->data.leaf.entry_offsets[i] =
 		    node->data.leaf.entry_offsets[i - 1] + shift;
@@ -227,7 +228,8 @@ int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
 	if (res.found) return -1; /* Duplicate */
 
 	space_needed = key_len + value_len + sizeof(BpTreeEntry);
-	if (space_needed + node->used_bytes > LEAF_ARRAY_SIZE) {
+	if (space_needed + node->used_bytes > LEAF_ARRAY_SIZE ||
+	    (uint64_t)(node->num_entries + 1) >= MAX_LEAF_ENTRIES) {
 		/* TODO */
 	} else {
 		copy = allocate_node(txn);

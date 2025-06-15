@@ -35,10 +35,10 @@
 #define NODE_SIZE ((uint64_t)PAGE_SIZE)
 #endif /* NODE_SIZE */
 
-#define MAX_LEAF_ENTRIES (NODE_SIZE / 32)
+#define MAX_LEAF_ENTRIES ((uint64_t)(NODE_SIZE / 32))
 #define MAX_INTERNAL_ENTRIES (NODE_SIZE / 16)
 #define INTERNAL_ARRAY_SIZE ((28 * NODE_SIZE - 1024) / 32)
-#define LEAF_ARRAY_SIZE ((30 * NODE_SIZE - 1280) / 32)
+#define LEAF_ARRAY_SIZE ((uint64_t)((30 * NODE_SIZE - 1280) / 32))
 
 /* Main opaque pointers for tree and txn */
 typedef struct BpTree BpTree;
