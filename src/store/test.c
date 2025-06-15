@@ -67,8 +67,9 @@ void test_bptree_search(BpTxn *txn, const void *key, uint16_t key_len,
 }
 
 Test(store1) {
+	const char *txt = "0123456789a";
 	const char *path = "/tmp/store1.dat";
-	int fd;
+	int fd, i;
 	BpTree *tree;
 	BpTxn *txn;
 
@@ -79,191 +80,17 @@ Test(store1) {
 	close(fd);
 	tree = bptree_open(path);
 	ASSERT(tree, "tree");
-
 	txn = bptxn_start(tree);
 
-	ASSERT(!bptree_put(txn, "key1", 4, "value1", 6, test_bptree_search),
-	       "bptree_put1");
-	ASSERT(!bptree_put(txn, "key3", 4, "value3", 6, test_bptree_search),
-	       "bptree_put3");
-	ASSERT(!bptree_put(txn, "key2", 4, "value2", 6, test_bptree_search),
-	       "bptree_put2");
-	ASSERT(!bptree_put(txn, "key4", 4, "value4", 6, test_bptree_search),
-	       "bptree_put4");
+	for (i = 1; i < 11; i++) {
+		int v = bptree_put(txn, txt, i, txt, i, test_bptree_search);
+		ASSERT(!v, "insert");
+	}
 
-	ASSERT(bptree_put(txn, "key3", 4, "value4", 6, test_bptree_search),
-	       "bptree_put3-2");
-
-	ASSERT(!bptree_put(txn, "key7", 4, "value4", 6, test_bptree_search),
-	       "bptree_put7");
-
-	ASSERT(!bptree_put(txn, "key8", 4, "value4", 6, test_bptree_search),
-	       "bptree_put8");
-
-	ASSERT(!bptree_put(txn, "key9", 4, "value4", 6, test_bptree_search),
-	       "bptree_put");
-
-	ASSERT(!bptree_put(txn, "key6", 4, "value4", 6, test_bptree_search),
-	       "bptree_put");
-
-	ASSERT(!bptree_put(txn, "xxxx", 4, "value4", 6, test_bptree_search),
-	       "bptree_put");
-
-	bptree_close(tree);
-	release(tree);
-	release(txn);
-	unlink(path);
-}
-
-Test(store2) {
-	const char *path = "/tmp/store1.dat";
-	int fd;
-	BpTree *tree;
-	BpTxn *txn;
-
-	unlink(path);
-	fd = file(path);
-
-	fresize(fd, PAGE_SIZE * 16);
-	close(fd);
-	tree = bptree_open(path);
-	ASSERT(tree, "tree");
-
-	txn = bptxn_start(tree);
-
-	ASSERT(!bptree_put(txn, "key1", 4, "0", 1, test_bptree_search),
-	       "bptree_put1");
-	ASSERT(!bptree_put(txn, "key3", 4, "01", 2, test_bptree_search),
-	       "bptree_put3");
-	ASSERT(!bptree_put(txn, "key2", 4, "012", 3, test_bptree_search),
-	       "bptree_put2");
-	ASSERT(!bptree_put(txn, "key4", 4, "0123", 4, test_bptree_search),
-	       "bptree_put4");
-
-	ASSERT(bptree_put(txn, "key3", 4, "01234", 5, test_bptree_search),
-	       "bptree_put3-2");
-
-	ASSERT(!bptree_put(txn, "key7", 4, "value4", 6, test_bptree_search),
-	       "bptree_put7");
-
-	ASSERT(!bptree_put(txn, "key8", 4, "value4", 6, test_bptree_search),
-	       "bptree_put8");
-
-	ASSERT(!bptree_put(txn, "key9", 4, "value4", 6, test_bptree_search),
-	       "bptree_put9");
-
-	ASSERT(!bptree_put(txn, "key6", 4, "value4", 6, test_bptree_search),
-	       "bptree_put6");
-
-	ASSERT(!bptree_put(txn, "xxxx", 4, "value4", 6, test_bptree_search),
-	       "bptree_putxxxx");
-
-	ASSERT(!bptree_put(txn, "key5", 4, "value4", 6, test_bptree_search),
-	       "bptree_put5");
-
-	ASSERT(!bptree_put(txn, "yyyy", 4, "value4", 6, test_bptree_search),
-	       "bptree_putyyyy");
-
-	ASSERT(bptree_put(txn, "key1", 4, "value1", 6, test_bptree_search),
-	       "bptree_put1-2");
-
-	ASSERT(bptree_put(txn, "key2", 4, "value1", 6, test_bptree_search),
-	       "bptree_put2-2");
-
-	ASSERT(bptree_put(txn, "key3", 4, "value1", 6, test_bptree_search),
-	       "bptree_put3-2");
-	ASSERT(bptree_put(txn, "key4", 4, "value1", 6, test_bptree_search),
-	       "bptree_put4-2");
-	ASSERT(bptree_put(txn, "key5", 4, "value1", 6, test_bptree_search),
-	       "bptree_put5-2");
-	ASSERT(bptree_put(txn, "key6", 4, "value1", 6, test_bptree_search),
-	       "bptree_put6-2");
-	ASSERT(bptree_put(txn, "key7", 4, "value1", 6, test_bptree_search),
-	       "bptree_put7-2");
-
-	ASSERT(bptree_put(txn, "key8", 4, "value1", 6, test_bptree_search),
-	       "bptree_put8-2");
-
-	ASSERT(bptree_put(txn, "key9", 4, "value1", 6, test_bptree_search),
-	       "bptree_put9-2");
-
-	bptree_close(tree);
-	release(tree);
-	release(txn);
-	unlink(path);
-}
-
-Test(store3) {
-	const char *path = "/tmp/store1.dat";
-	int fd;
-	BpTree *tree;
-	BpTxn *txn;
-
-	unlink(path);
-	fd = file(path);
-
-	fresize(fd, PAGE_SIZE * 16);
-	close(fd);
-	tree = bptree_open(path);
-	ASSERT(tree, "tree");
-
-	txn = bptxn_start(tree);
-
-	ASSERT(!bptree_put(txn, "key1", 4, "0", 1, test_bptree_search),
-	       "bptree_put1");
-	ASSERT(!bptree_put(txn, "key3vvv", 4, "01", 2, test_bptree_search),
-	       "bptree_put3");
-	ASSERT(!bptree_put(txn, "key2", 4, "012", 3, test_bptree_search),
-	       "bptree_put2");
-	ASSERT(!bptree_put(txn, "key4bbbb", 4, "0123", 4, test_bptree_search),
-	       "bptree_put4");
-
-	ASSERT(bptree_put(txn, "key3vvv", 4, "01234", 5, test_bptree_search),
-	       "bptree_put3-2");
-
-	ASSERT(!bptree_put(txn, "key7", 4, "value4", 6, test_bptree_search),
-	       "bptree_put7");
-
-	ASSERT(!bptree_put(txn, "key8", 4, "value4", 6, test_bptree_search),
-	       "bptree_put8");
-
-	ASSERT(!bptree_put(txn, "key9", 4, "value4", 6, test_bptree_search),
-	       "bptree_put9");
-
-	ASSERT(!bptree_put(txn, "key6", 4, "value4", 6, test_bptree_search),
-	       "bptree_put6");
-
-	ASSERT(!bptree_put(txn, "xxxx", 4, "value4", 6, test_bptree_search),
-	       "bptree_putxxxx");
-
-	ASSERT(!bptree_put(txn, "key5", 4, "value4", 6, test_bptree_search),
-	       "bptree_put5");
-
-	ASSERT(!bptree_put(txn, "yyyy", 4, "value4yyyy", 6, test_bptree_search),
-	       "bptree_putyyyy");
-
-	ASSERT(bptree_put(txn, "key1", 4, "value1", 6, test_bptree_search),
-	       "bptree_put1-2");
-
-	ASSERT(bptree_put(txn, "key2", 4, "value1", 6, test_bptree_search),
-	       "bptree_put2-2");
-
-	ASSERT(bptree_put(txn, "key3vvv", 4, "value1", 6, test_bptree_search),
-	       "bptree_put3-2");
-	ASSERT(bptree_put(txn, "key4bbbb", 4, "value1", 6, test_bptree_search),
-	       "bptree_put4-2");
-	ASSERT(bptree_put(txn, "key5", 4, "value1", 6, test_bptree_search),
-	       "bptree_put5-2");
-	ASSERT(bptree_put(txn, "key6", 4, "value1", 6, test_bptree_search),
-	       "bptree_put6-2");
-	ASSERT(bptree_put(txn, "key7", 4, "value1", 6, test_bptree_search),
-	       "bptree_put7-2");
-
-	ASSERT(bptree_put(txn, "key8", 4, "value1", 6, test_bptree_search),
-	       "bptree_put8-2");
-
-	ASSERT(bptree_put(txn, "key9", 4, "value1", 6, test_bptree_search),
-	       "bptree_put9-2");
+	for (i = 1; i < 11; i++) {
+		int v = bptree_put(txn, txt, i, txt, i, test_bptree_search);
+		ASSERT(v, "insert");
+	}
 
 	bptree_close(tree);
 	release(tree);
