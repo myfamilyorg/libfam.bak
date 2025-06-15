@@ -25,6 +25,7 @@
 
 #include <alloc.H>
 #include <bptree.H>
+#include <rng.H>
 #include <test.H>
 
 void test_bptree_search(BpTxn *txn, const void *key, uint16_t key_len,
@@ -50,9 +51,6 @@ void test_bptree_search(BpTxn *txn, const void *key, uint16_t key_len,
 
 		v = strcmpn(key, cmp_key, len);
 
-		/*
-		printf("v=%i '%s' '%s' %i\n", v, key, cmp_key, offset);*/
-
 		if (v == 0 && key_len == entry->key_len) {
 			retval->found = true;
 			break;
@@ -67,12 +65,17 @@ void test_bptree_search(BpTxn *txn, const void *key, uint16_t key_len,
 }
 
 Test(store1) {
-	const char *txt = "0123456789a";
 	const char *path = "/tmp/store1.dat";
 	int fd, i;
 	BpTree *tree;
 	BpTxn *txn;
+	Rng rng;
+	uint8_t keys[11][20];
+	uint8_t values[11][20];
+	uint8_t key[32] = {2};
+	uint8_t iv[16] = {2};
 
+	rng_test_seed(&rng, key, iv);
 	unlink(path);
 	fd = file(path);
 
@@ -83,13 +86,30 @@ Test(store1) {
 	txn = bptxn_start(tree);
 
 	for (i = 1; i < 11; i++) {
-		int v = bptree_put(txn, txt, i, txt, i, test_bptree_search);
+		uint8_t keybuf[20] = {0};
+		uint8_t valuebuf[20] = {0};
+		size_t klen = 0, vlen = 0;
+		rng_gen(&rng, keybuf, 20);
+		rng_gen(&rng, valuebuf, 20);
+		klen = b64_encode(keybuf, 12, keys[i], 20);
+		vlen = b64_encode(valuebuf, 12, values[i], 20);
+		keys[i][klen] = 0;
+		values[i][vlen] = 0;
+	}
+
+	for (i = 1; i < 11; i++) {
+		uint8_t buf[20];
+		int v;
+		rng_gen(&rng, buf, 20);
+		v = bptree_put(txn, keys[i], i, values[i], i,
+			       test_bptree_search);
 		ASSERT(!v, "insert");
 	}
 
 	for (i = 1; i < 11; i++) {
-		int v = bptree_put(txn, txt, i, txt, i, test_bptree_search);
-		ASSERT(v, "insert");
+		int v = bptree_put(txn, keys[i], i, values[i], i,
+				   test_bptree_search);
+		ASSERT(v, "insertcheck");
 	}
 
 	bptree_close(tree);

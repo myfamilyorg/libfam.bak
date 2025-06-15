@@ -91,50 +91,13 @@ STATIC void shift_by_offset(BpTreeNode *node, uint16_t key_index,
 			    uint16_t shift) {
 	int i;
 	uint16_t pos = node->data.leaf.entry_offsets[key_index];
-	uint16_t cur_len = 0;
-	if (key_index < node->num_entries - 1)
-		cur_len = node->data.leaf.entry_offsets[key_index + 1] - pos;
-
-	/*
-	printf(
-	    "cur_len=%i, memmove pos = %i,shift=%i, node->used_bytes - "
-	    "pos=%i\n",
-	    cur_len, pos, shift, node->used_bytes - pos);
-	    */
+	uint16_t bytes_to_move = node->used_bytes - pos;
 
 	memorymove(node->data.leaf.entries + pos + shift,
-		   node->data.leaf.entries + pos, node->used_bytes - pos);
-	for (i = key_index + 1; i < node->num_entries + 1; i++) {
-		if (i == node->num_entries) {
-			uint16_t nval;
-			BpTreeEntry *ent =
-			    (BpTreeEntry *)((uint8_t *)node->data.leaf.entries +
-					    node->data.leaf
-						.entry_offsets[i - 1]);
-			uint16_t prev_key_len = ent->key_len;
-			uint32_t prev_value_len = ent->value_len;
-			if (i - 1 == key_index) {
-				prev_key_len = 0;
-				prev_value_len = shift - sizeof(BpTreeEntry);
-			}
-			nval = node->data.leaf.entry_offsets[i - 1] +
-			       prev_key_len + prev_value_len +
-			       sizeof(BpTreeEntry);
-			/*
-			printf("off[%i] = %i, shift=%i,cur_len=%i\n", i, nval,
-			       shift, cur_len);
-			       */
-
-			node->data.leaf.entry_offsets[i] = nval;
-		} else {
-			/*
-			printf(
-			    "off[%i] = %i\n", i,
-			    node->data.leaf.entry_offsets[i] + shift - cur_len);
-		      */
-			node->data.leaf.entry_offsets[i] =
-			    node->data.leaf.entry_offsets[i] + shift - cur_len;
-		}
+		   node->data.leaf.entries + pos, bytes_to_move);
+	for (i = node->num_entries; i > key_index; i--) {
+		node->data.leaf.entry_offsets[i] =
+		    node->data.leaf.entry_offsets[i - 1] + shift;
 	}
 }
 
@@ -143,7 +106,6 @@ STATIC void place_entry(BpTreeNode *node, uint16_t key_index, const void *key,
 			uint32_t value_len) {
 	uint16_t pos = node->data.leaf.entry_offsets[key_index];
 	BpTreeEntry entry = {0};
-	/*printf("place entry at pos = %i\n", pos);*/
 	entry.value_len = value_len;
 	entry.key_len = key_len;
 	memcpy((uint8_t *)node->data.leaf.entries + pos, &entry,
@@ -254,7 +216,11 @@ int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
 	BpTreeNode *node, *copy;
 	uint64_t space_needed;
 
-	/*printf("put %s\n", key);*/
+	if (key_len == 0 || value_len == 0 || key == NULL || value == NULL ||
+	    txn == NULL) {
+		err = EINVAL;
+		return -1;
+	}
 
 	node = NODE(txn, txn->root);
 	search(txn, key, key_len, node, &res);
