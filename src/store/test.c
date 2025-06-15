@@ -72,9 +72,12 @@ Test(store1) {
 	Rng rng;
 	uint8_t keys[11][20];
 	uint8_t values[11][20];
+	uint8_t rand_key_lens[11];
+	uint8_t rand_value_lens[11];
 	uint8_t key[32] = {2};
 	uint8_t iv[16] = {2};
 
+	/*rng_init(&rng);*/
 	rng_test_seed(&rng, key, iv);
 	unlink(path);
 	fd = file(path);
@@ -95,20 +98,28 @@ Test(store1) {
 		vlen = b64_encode(valuebuf, 12, values[i], 20);
 		keys[i][klen] = 0;
 		values[i][vlen] = 0;
+		rng_gen(&rng, &klen, sizeof(size_t));
+		rng_gen(&rng, &vlen, sizeof(size_t));
+		rand_key_lens[i] = (klen % 10) + 1;
+		rand_value_lens[i] = (vlen % 10) + 1;
+		/*
+		printf("key[%i]=%s,value[%i]=%s,klen=%i,vlen=%i\n", i, keys[i],
+		       i, values[i], rand_key_lens[i], rand_value_lens[i]);
+		       */
 	}
 
 	for (i = 1; i < 11; i++) {
 		uint8_t buf[20];
 		int v;
 		rng_gen(&rng, buf, 20);
-		v = bptree_put(txn, keys[i], i, values[i], i,
-			       test_bptree_search);
+		v = bptree_put(txn, keys[i], rand_key_lens[i], values[i],
+			       rand_value_lens[i], test_bptree_search);
 		ASSERT(!v, "insert");
 	}
 
 	for (i = 1; i < 11; i++) {
-		int v = bptree_put(txn, keys[i], i, values[i], i,
-				   test_bptree_search);
+		int v = bptree_put(txn, keys[i], rand_key_lens[i], values[i],
+				   rand_value_lens[i], test_bptree_search);
 		ASSERT(v, "insertcheck");
 	}
 
