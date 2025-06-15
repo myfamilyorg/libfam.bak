@@ -48,7 +48,7 @@ int64_t micros(void) {
 	return (int64_t)tv.tv_sec * 1000000 + tv.tv_usec;
 }
 
-int open(const char *path, int flags, mode_t mode) {
+int open(const char *path, int flags, uint32_t mode) {
 	return openat(-100, path, flags, mode);
 }
 
@@ -63,17 +63,17 @@ int sleepm(uint64_t millis) {
 	return ret;
 }
 
-off_t fsize(int fd) {
-	off_t ret = lseek(fd, 0, SEEK_END);
+int64_t fsize(int fd) {
+	int64_t ret = lseek(fd, 0, SEEK_END);
 	return ret;
 }
 
-int fresize(int fd, off_t length) {
+int fresize(int fd, int64_t length) {
 	int ret = ftruncate(fd, length);
 	return ret;
 }
 
-void *map(size_t length) {
+void *map(uint64_t length) {
 	void *v = mmap(NULL, length, PROT_READ | PROT_WRITE,
 		       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (v == MAP_FAILED) {
@@ -81,7 +81,7 @@ void *map(size_t length) {
 	}
 	return v;
 }
-void *fmap(int fd, off_t size, off_t offset) {
+void *fmap(int fd, int64_t size, int64_t offset) {
 	void *v =
 	    mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, offset);
 	if (v == MAP_FAILED) {
@@ -90,7 +90,7 @@ void *fmap(int fd, off_t size, off_t offset) {
 	return v;
 }
 
-void *smap(size_t length) {
+void *smap(uint64_t length) {
 	void *v = mmap(NULL, length, PROT_READ | PROT_WRITE,
 		       MAP_ANONYMOUS | MAP_SHARED, -1, 0);
 	if (v == MAP_FAILED) {
@@ -112,6 +112,6 @@ int yield(void) {
 
 int pipe(int fds[2]) { return pipe2(fds, 0); }
 
-int getentropy(void *buffer, size_t length) {
+int getentropy(void *buffer, uint64_t length) {
 	return getrandom(buffer, length, GRND_RANDOM);
 }

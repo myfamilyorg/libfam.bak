@@ -41,7 +41,7 @@ int rng_init(Rng *rng) {
 
 int rng_reseed(Rng *rng) { return rng_init(rng); }
 
-void rng_gen(Rng *rng, void *v, size_t size) {
+void rng_gen(Rng *rng, void *v, uint64_t size) {
 	aes_ctr_xcrypt_buffer(&rng->ctx, (uint8_t *)v, size);
 }
 

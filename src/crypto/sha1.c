@@ -90,8 +90,8 @@ static void sha1_transform(SHA1_CTX *ctx, const uint8_t *data) {
 	ctx->state[4] += e;
 }
 
-void sha1_update(SHA1_CTX *ctx, const uint8_t *data, size_t len) {
-	size_t i = ctx->count % 64;
+void sha1_update(SHA1_CTX *ctx, const uint8_t *data, uint64_t len) {
+	uint64_t i = ctx->count % 64;
 	ctx->count += len;
 
 	if (i + len < 64) {
@@ -100,7 +100,7 @@ void sha1_update(SHA1_CTX *ctx, const uint8_t *data, size_t len) {
 	}
 
 	if (i) {
-		size_t n = 64 - i;
+		uint64_t n = 64 - i;
 		memcpy(ctx->buffer + i, data, n);
 		sha1_transform(ctx, ctx->buffer);
 		data += n;
@@ -120,7 +120,7 @@ void sha1_update(SHA1_CTX *ctx, const uint8_t *data, size_t len) {
 
 void sha1_final(SHA1_CTX *ctx, uint8_t *digest) {
 	uint64_t bits;
-	size_t i = ctx->count % 64;
+	uint64_t i = ctx->count % 64;
 	ctx->buffer[i++] = 0x80;
 
 	if (i > 56) {

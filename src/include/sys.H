@@ -31,22 +31,22 @@
 
 /* system calls applied */
 int unlink(const char *path);
-int open(const char *pathname, int flags, mode_t mode);
+int open(const char *pathname, int flags, uint32_t mode);
 int pipe(int fds[2]);
-int getentropy(void *buffer, size_t length);
+int getentropy(void *buffer, uint64_t length);
 int yield(void);
 int timeout(void (*task)(void), uint64_t milliseconds);
-void *map(size_t length);
-void *fmap(int fd, off_t size, off_t offset);
-void *smap(size_t length);
+void *map(uint64_t length);
+void *fmap(int fd, int64_t size, int64_t offset);
+void *smap(uint64_t length);
 int exists(const char *path);
 int file(const char *path);
-off_t fsize(int fd);
-int fresize(int fd, off_t length);
+int64_t fsize(int fd);
+int fresize(int fd, int64_t length);
 int flush(int fd);
 int64_t micros(void);
 int sleepm(uint64_t millis);
-pid_t two(void);
-pid_t two2(bool share_fds);
+int32_t two(void);
+int32_t two2(bool share_fds);
 
 #endif /* _SYS_H */

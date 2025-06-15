@@ -29,9 +29,9 @@
 #include <syscall_const.H>
 #include <types.H>
 
-pid_t two(void) { return two2(true); }
+int32_t two(void) { return two2(true); }
 
-pid_t two2(bool share_fds) {
+int32_t two2(bool share_fds) {
 	struct clone_args args = {0};
 	long ret;
 	args.flags = share_fds ? CLONE_FILES : 0;
@@ -45,5 +45,5 @@ pid_t two2(bool share_fds) {
 
 	ret = clone3(&args, sizeof(args));
 	if (ret == 0) begin();
-	return (pid_t)ret;
+	return (int32_t)ret;
 }

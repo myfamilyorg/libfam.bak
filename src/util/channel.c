@@ -34,8 +34,8 @@
 #define DEFAULT_CAPACITY 1024
 
 struct ChannelInner {
-	size_t element_size;
-	size_t capacity;
+	uint64_t element_size;
+	uint64_t capacity;
 	uint64_t head;
 	uint64_t tail;
 	uint32_t wait;
@@ -60,17 +60,17 @@ STATIC int notify(Channel *channel, uint64_t num_messages) {
 
 void channel_destroy(Channel *channel) {
 	if (channel && channel->inner) {
-		size_t size =
+		uint64_t size =
 		    sizeof(ChannelInner) +
 		    channel->inner->element_size * channel->inner->capacity;
 		munmap(channel->inner, size);
 		channel->inner = NULL;
 	}
 }
-Channel channel(size_t element_size) {
+Channel channel(uint64_t element_size) {
 	return channel2(element_size, DEFAULT_CAPACITY);
 }
-Channel channel2(size_t element_size, size_t capacity) {
+Channel channel2(uint64_t element_size, uint64_t capacity) {
 	Channel ret = {0};
 	if (capacity == 0 || element_size == 0) {
 		err = EINVAL;

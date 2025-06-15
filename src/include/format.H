@@ -28,7 +28,7 @@
 
 #include <types.H>
 
-int snprintf(char *buf, size_t size, const char *fmt, ...);
+int snprintf(char *buf, uint64_t size, const char *fmt, ...);
 int printf(const char *fmt, ...);
 void panic(const char *fmt, ...);
 

@@ -348,7 +348,7 @@ static void syscall_restorer(void) {
 	    : "%rax", "%rcx", "%r11", "memory");
 }
 
-static int syscall_waitid(int idtype, pid_t id, siginfo_t *infop, int options) {
+static int syscall_waitid(int idtype, int32_t id, siginfo_t *infop, int options) {
 	long result;
 	__asm__ volatile(
 	    "movq $247, %%rax\n"
@@ -370,9 +370,9 @@ static int syscall_waitid(int idtype, pid_t id, siginfo_t *infop, int options) {
 #ifdef __aarch64__
 DEFINE_SYSCALL2(59, int, pipe2, int *, fds, int, flags)
 DEFINE_SYSCALL3(35, int, unlinkat, int, dfd, const char *, path, int, flag)
-DEFINE_SYSCALL3(64, ssize_t, write, int, fd, const void *, buf, size_t, count)
-DEFINE_SYSCALL3(63, ssize_t, read, int, fd, void *, buf, size_t, count)
-DEFINE_SYSCALL2(215, int, munmap, void *, addr, size_t, len)
+DEFINE_SYSCALL3(64, int64_t, write, int, fd, const void *, buf, uint64_t, count)
+DEFINE_SYSCALL3(63, int64_t, read, int, fd, void *, buf, uint64_t, count)
+DEFINE_SYSCALL2(215, int, munmap, void *, addr, uint64_t, len)
 DEFINE_SYSCALL1(57, int, close, int, fd)
 DEFINE_SYSCALL3(25, int, fcntl, int, fd, int, cmd, long, arg)
 DEFINE_SYSCALL3(203, int, connect, int, sockfd, const struct sockaddr *, addr,
@@ -388,9 +388,9 @@ DEFINE_SYSCALL3(202, int, accept, int, sockfd, struct sockaddr *, addr,
 		unsigned int *, addrlen)
 DEFINE_SYSCALL2(210, int, shutdown, int, sockfd, int, how)
 DEFINE_SYSCALL3(198, int, socket, int, domain, int, type, int, protocol)
-DEFINE_SYSCALL3(278, int, getrandom, void *, buffer, size_t, length,
+DEFINE_SYSCALL3(278, int, getrandom, void *, buffer, uint64_t, length,
 		unsigned int, flags)
-DEFINE_SYSCALL6(222, void *, mmap, void *, addr, size_t, length, int, prot, int,
+DEFINE_SYSCALL6(222, void *, mmap, void *, addr, uint64_t, length, int, prot, int,
 		flags, int, fd, long, offset)
 DEFINE_SYSCALL2(101, int, nanosleep, const struct timespec *, req,
 		struct timespec *, rem)
@@ -404,29 +404,29 @@ DEFINE_SYSCALL6(22, int, epoll_pwait, int, epfd, struct epoll_event *, events,
 DEFINE_SYSCALL4(21, int, epoll_ctl, int, epfd, int, op, int, fd,
 		struct epoll_event *, event)
 DEFINE_SYSCALL4(56, int, openat, int, dfd, const char *, pathname, int, flags,
-		mode_t, mode)
-DEFINE_SYSCALL3(62, off_t, lseek, int, fd, off_t, offset, int, whence)
+		uint32_t, mode)
+DEFINE_SYSCALL3(62, int64_t, lseek, int, fd, int64_t, offset, int, whence)
 DEFINE_SYSCALL1(83, int, fdatasync, int, fd)
-DEFINE_SYSCALL2(46, int, ftruncate, int, fd, off_t, length)
-DEFINE_SYSCALL3(103, int, setitimer, __itimer_which_t, which,
+DEFINE_SYSCALL2(46, int, ftruncate, int, fd, int64_t, length)
+DEFINE_SYSCALL3(103, int, setitimer, int32_t, which,
 		const struct itimerval *, new_value, struct itimerval *,
 		old_value)
-DEFINE_SYSCALL2(435, int, clone3, struct clone_args *, args, size_t, size)
+DEFINE_SYSCALL2(435, int, clone3, struct clone_args *, args, uint64_t, size)
 DEFINE_SYSCALL6(98, long, futex, uint32_t *, uaddr, int, futex_op, uint32_t,
 		val, const struct timespec *, timeout, uint32_t *, uaddr2,
 		uint32_t, val3)
 DEFINE_SYSCALL4(134, int, rt_sigaction, int, signum,
 		const struct rt_sigaction *, act, struct rt_sigaction *, oldact,
-		size_t, sigsetsize)
-DEFINE_SYSCALL0(172, pid_t, getpid)
-DEFINE_SYSCALL2(129, int, kill, pid_t, pid, int, signal)
+		uint64_t, sigsetsize)
+DEFINE_SYSCALL0(172, int32_t, getpid)
+DEFINE_SYSCALL2(129, int, kill, int32_t, pid, int, signal)
 #elif defined(__amd64__)
 /* System call definitions */
 DEFINE_SYSCALL2(293, int, pipe2, int *, fds, int, flags)
 DEFINE_SYSCALL3(263, int, unlinkat, int, dfd, const char *, path, int, flags)
-DEFINE_SYSCALL3(1, ssize_t, write, int, fd, const void *, buf, size_t, count)
-DEFINE_SYSCALL3(0, ssize_t, read, int, fd, void *, buf, size_t, count)
-DEFINE_SYSCALL2(11, int, munmap, void *, addr, size_t, len)
+DEFINE_SYSCALL3(1, int64_t, write, int, fd, const void *, buf, uint64_t, count)
+DEFINE_SYSCALL3(0, int64_t, read, int, fd, void *, buf, uint64_t, count)
+DEFINE_SYSCALL2(11, int, munmap, void *, addr, uint64_t, len)
 DEFINE_SYSCALL1(3, int, close, int, fd)
 DEFINE_SYSCALL3(72, int, fcntl, int, fd, int, cmd, long, arg)
 DEFINE_SYSCALL3(42, int, connect, int, sockfd, const struct sockaddr *, addr,
@@ -442,9 +442,9 @@ DEFINE_SYSCALL3(43, int, accept, int, sockfd, struct sockaddr *, addr,
 		unsigned int *, addrlen)
 DEFINE_SYSCALL2(48, int, shutdown, int, sockfd, int, how)
 DEFINE_SYSCALL3(41, int, socket, int, domain, int, type, int, protocol)
-DEFINE_SYSCALL3(318, int, getrandom, void *, buffer, size_t, length,
+DEFINE_SYSCALL3(318, int, getrandom, void *, buffer, uint64_t, length,
 		unsigned int, flags)
-DEFINE_SYSCALL6(9, void *, mmap, void *, addr, size_t, length, int, prot, int,
+DEFINE_SYSCALL6(9, void *, mmap, void *, addr, uint64_t, length, int, prot, int,
 		flags, int, fd, long, offset)
 DEFINE_SYSCALL2(35, int, nanosleep, const struct timespec *, req,
 		struct timespec *, rem)
@@ -458,24 +458,24 @@ DEFINE_SYSCALL6(281, int, epoll_pwait, int, epfd, struct epoll_event *, events,
 DEFINE_SYSCALL4(233, int, epoll_ctl, int, epfd, int, op, int, fd,
 		struct epoll_event *, event)
 DEFINE_SYSCALL4(257, int, openat, int, dfd, const char *, pathname, int, flags,
-		mode_t, mode)
-DEFINE_SYSCALL3(8, off_t, lseek, int, fd, off_t, offset, int, whence)
+		uint32_t, mode)
+DEFINE_SYSCALL3(8, int64_t, lseek, int, fd, int64_t, offset, int, whence)
 DEFINE_SYSCALL1(75, int, fdatasync, int, fd)
-DEFINE_SYSCALL2(77, int, ftruncate, int, fd, off_t, length)
-DEFINE_SYSCALL3(38, int, setitimer, __itimer_which_t, which,
+DEFINE_SYSCALL2(77, int, ftruncate, int, fd, int64_t, length)
+DEFINE_SYSCALL3(38, int, setitimer, int32_t, which,
 		const struct itimerval *, new_value, struct itimerval *,
 		old_value)
-DEFINE_SYSCALL2(435, int, clone3, struct clone_args *, args, size_t, size)
+DEFINE_SYSCALL2(435, int, clone3, struct clone_args *, args, uint64_t, size)
 DEFINE_SYSCALL6(202, long, futex, uint32_t *, uaddr, int, futex_op, uint32_t,
 		val, const struct timespec *, timeout, uint32_t *, uaddr2,
 		uint32_t, val3)
 DEFINE_SYSCALL4(13, int, rt_sigaction, int, signum, const struct rt_sigaction *,
-		act, struct rt_sigaction *, oldact, size_t, sigsetsize)
-DEFINE_SYSCALL0(39, pid_t, getpid)
-DEFINE_SYSCALL2(62, int, kill, pid_t, pid, int, signal)
+		act, struct rt_sigaction *, oldact, uint64_t, sigsetsize)
+DEFINE_SYSCALL0(39, int32_t, getpid)
+DEFINE_SYSCALL2(62, int, kill, int32_t, pid, int, signal)
 #endif /* Arch */
 
-int clone3(struct clone_args *args, size_t size) {
+int clone3(struct clone_args *args, uint64_t size) {
 	int ret = syscall_clone3(args, size);
 	SET_ERR
 }
@@ -488,12 +488,12 @@ int unlinkat(int dfd, const char *path, int flags) {
 	int ret = syscall_unlinkat(dfd, path, flags);
 	SET_ERR
 }
-ssize_t write(int fd, const void *buf, size_t count) {
-	ssize_t ret = syscall_write(fd, buf, count);
+int64_t write(int fd, const void *buf, uint64_t count) {
+	int64_t ret = syscall_write(fd, buf, count);
 	SET_ERR
 }
-ssize_t read(int fd, void *buf, size_t count) {
-	ssize_t ret = syscall_read(fd, buf, count);
+int64_t read(int fd, void *buf, uint64_t count) {
+	int64_t ret = syscall_read(fd, buf, count);
 	SET_ERR
 }
 
@@ -514,7 +514,7 @@ void exit(int status) {
 	syscall_exit(status);
 	while (true);
 }
-int munmap(void *addr, size_t len) {
+int munmap(void *addr, uint64_t len) {
 	int ret = syscall_munmap(addr, len);
 	SET_ERR
 }
@@ -562,7 +562,7 @@ int fdatasync(int fd) {
 	SET_ERR
 }
 
-int ftruncate(int fd, off_t length) {
+int ftruncate(int fd, int64_t length) {
 	int ret = syscall_ftruncate(fd, length);
 	SET_ERR
 }
@@ -609,8 +609,8 @@ long futex(uint32_t *uaddr, int futex_op, uint32_t val,
 	long ret = syscall_futex(uaddr, futex_op, val, timeout, uaddr2, val3);
 	SET_ERR
 }
-int getrandom(void *buf, size_t len, unsigned int flags) {
-	size_t total;
+int getrandom(void *buf, uint64_t len, unsigned int flags) {
+	uint64_t total;
 	if (len > 256) {
 		err = EIO;
 		return -1;
@@ -622,7 +622,7 @@ int getrandom(void *buf, size_t len, unsigned int flags) {
 
 	total = 0;
 	while (total < len) {
-		ssize_t ret = syscall_getrandom(buf, len, flags);
+		int64_t ret = syscall_getrandom(buf, len, flags);
 
 		if (ret < 0) {
 			err = -ret;
@@ -633,8 +633,8 @@ int getrandom(void *buf, size_t len, unsigned int flags) {
 	return 0;
 }
 
-void *mmap(void *addr, size_t length, int prot, int flags, int fd,
-	   off_t offset) {
+void *mmap(void *addr, uint64_t length, int prot, int flags, int fd,
+	   int64_t offset) {
 	void *ret;
 	ret = syscall_mmap(addr, length, prot, flags, fd, offset);
 
@@ -664,7 +664,7 @@ int epoll_create1(int flags) {
 }
 
 int epoll_pwait(int epfd, struct epoll_event *events, int maxevents,
-		int timeout, const sigset_t *sigmask, size_t size) {
+		int timeout, const sigset_t *sigmask, uint64_t size) {
 	int ret = syscall_epoll_pwait(epfd, events, maxevents, timeout, sigmask,
 				      size);
 	SET_ERR
@@ -675,40 +675,40 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
 	SET_ERR
 }
 
-int openat(int dfd, const char *pathname, int flags, mode_t mode) {
+int openat(int dfd, const char *pathname, int flags, uint32_t mode) {
 	int ret = syscall_openat(dfd, pathname, flags, mode);
 	SET_ERR
 }
 
-off_t lseek(int fd, off_t offset, int whence) {
-	off_t ret = syscall_lseek(fd, offset, whence);
+int64_t lseek(int fd, int64_t offset, int whence) {
+	int64_t ret = syscall_lseek(fd, offset, whence);
 	SET_ERR
 }
 
-int setitimer(__itimer_which_t which, const struct itimerval *new_value,
+int setitimer(int32_t which, const struct itimerval *new_value,
 	      struct itimerval *old_value) {
 	int ret = syscall_setitimer(which, new_value, old_value);
 	SET_ERR
 }
 
 int rt_sigaction(int signum, const struct rt_sigaction *act,
-		 struct rt_sigaction *oldact, size_t sigsetsize) {
+		 struct rt_sigaction *oldact, uint64_t sigsetsize) {
 	int ret = syscall_rt_sigaction(signum, act, oldact, sigsetsize);
 	SET_ERR
 }
 
 void restorer(void) { syscall_restorer(); }
 
-int waitid(idtype_t id_type, id_t id, siginfo_t *sigs, int options) {
-	pid_t ret = syscall_waitid(id_type, id, sigs, options);
+int waitid(int32_t int32_type, int32_t id, siginfo_t *sigs, int options) {
+	int32_t ret = syscall_waitid(int32_type, id, sigs, options);
 	SET_ERR
 }
 
-pid_t getpid(void) {
-	pid_t ret = syscall_getpid();
+int32_t getpid(void) {
+	int32_t ret = syscall_getpid();
 	SET_ERR
 }
-int kill(pid_t pid, int signal) {
+int kill(int32_t pid, int signal) {
 	int ret = syscall_kill(pid, signal);
 	SET_ERR
 }

@@ -32,7 +32,7 @@
 
 typedef struct Connection Connection;
 
-typedef int (*OnRecvFn)(void *ctx, Connection *conn, size_t rlen);
+typedef int (*OnRecvFn)(void *ctx, Connection *conn, uint64_t rlen);
 typedef int (*OnAcceptFn)(void *ctx, Connection *conn);
 typedef int (*OnCloseFn)(void *ctx, Connection *conn);
 
@@ -52,11 +52,11 @@ typedef struct {
 	Lock lock;
 	bool is_closed;
 	uint8_t *rbuf;
-	size_t rbuf_capacity;
-	size_t rbuf_offset;
+	uint64_t rbuf_capacity;
+	uint64_t rbuf_offset;
 	uint8_t *wbuf;
-	size_t wbuf_capacity;
-	size_t wbuf_offset;
+	uint64_t wbuf_capacity;
+	uint64_t wbuf_offset;
 } InboundData;
 
 struct Connection {
@@ -87,8 +87,8 @@ Connection *evh_client(uint8_t addr[4], uint16_t port, OnRecvFn on_recv,
 		       OnCloseFn on_close, uint64_t connection_alloc_overhead);
 uint16_t evh_acceptor_port(Connection *conn);
 int connection_close(Connection *connection);
-int connection_write(Connection *connection, const void *buf, size_t len);
-void connection_clear_rbuf_through(Connection *conn, size_t off);
+int connection_write(Connection *connection, const void *buf, uint64_t len);
+void connection_clear_rbuf_through(Connection *conn, uint64_t off);
 void connection_clear_rbuf(Connection *conn);
 
 #if TEST == 1

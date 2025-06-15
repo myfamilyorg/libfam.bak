@@ -127,7 +127,7 @@ STATIC int proc_close(Connection *conn, void *ctx) {
 STATIC int proc_read(Connection *conn, void *ctx) {
 	while (true) {
 		InboundData *ib;
-		ssize_t rlen;
+		int64_t rlen;
 
 		if (check_capacity(conn) == -1) {
 			proc_close(conn, ctx);
@@ -152,8 +152,8 @@ STATIC int proc_read(Connection *conn, void *ctx) {
 STATIC int proc_write(Evh *evh, Connection *conn,
 		      void *ctx __attribute__((unused))) {
 	InboundData *ib = &conn->data.inbound;
-	ssize_t wlen;
-	size_t cur = 0;
+	int64_t wlen;
+	uint64_t cur = 0;
 	int sock = conn->socket;
 	LockGuard lg = wlock(&ib->lock);
 
@@ -219,7 +219,7 @@ end_while:
 
 STATIC int init_event_loop(Evh *evh, void *ctx) {
 	int fds[2];
-	pid_t pid;
+	int32_t pid;
 	if (pipe(fds) == -1) {
 		return -1;
 	}

@@ -96,13 +96,13 @@ int connection_close(Connection *connection) {
 	}
 }
 
-int connection_write(Connection *connection, const void *buf, size_t len) {
-	ssize_t wlen = 0;
+int connection_write(Connection *connection, const void *buf, uint64_t len) {
+	int64_t wlen = 0;
 	InboundData *ib = &connection->data.inbound;
 	LockGuard lg = wlock(&ib->lock);
 	if (ib->is_closed) return -1;
 	if (!ib->wbuf_offset) {
-		size_t offset = 0;
+		uint64_t offset = 0;
 	write_block:
 		err = 0;
 		if (debug_force_write_buffer)
@@ -121,7 +121,7 @@ int connection_write(Connection *connection, const void *buf, size_t len) {
 			return -1;
 		}
 
-		if ((size_t)wlen == len) return 0;
+		if ((uint64_t)wlen == len) return 0;
 		if (mregister(ib->mplex, connection->socket,
 			      MULTIPLEX_FLAG_READ | MULTIPLEX_FLAG_WRITE,
 			      connection) == -1) {
@@ -147,7 +147,7 @@ int connection_write(Connection *connection, const void *buf, size_t len) {
 	return 0;
 }
 
-void connection_clear_rbuf_through(Connection *conn, size_t off) {
+void connection_clear_rbuf_through(Connection *conn, uint64_t off) {
 	InboundData *ib = &conn->data.inbound;
 	if (off > ib->rbuf_offset) return;
 	memorymove(ib->rbuf, ib->rbuf + off, ib->rbuf_offset - off);

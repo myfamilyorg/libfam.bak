@@ -104,7 +104,7 @@ Test(store1) {
 		for (i = 1; i < 11; i++) {
 			uint8_t keybuf[20] = {0};
 			uint8_t valuebuf[20] = {0};
-			size_t klen = 0, vlen = 0;
+			uint64_t klen = 0, vlen = 0;
 
 			rng_gen(&rng, keybuf, 20);
 			rng_gen(&rng, valuebuf, 20);
@@ -112,8 +112,8 @@ Test(store1) {
 			vlen = b64_encode(valuebuf, 12, values[i], 20);
 			keys[i][klen] = 0;
 			values[i][vlen] = 0;
-			rng_gen(&rng, &klen, sizeof(size_t));
-			rng_gen(&rng, &vlen, sizeof(size_t));
+			rng_gen(&rng, &klen, sizeof(uint64_t));
+			rng_gen(&rng, &vlen, sizeof(uint64_t));
 			rand_key_lens[i] = (klen % 10) + 3;
 			rand_value_lens[i] = (vlen % 10) + 3;
 		}
@@ -176,7 +176,7 @@ Test(bptree_split) {
 	for (i = 1; i < BPTREE_SPLIT_ITT; i++) {
 		uint8_t keybuf[20] = {0};
 		uint8_t valuebuf[20] = {0};
-		size_t klen = 0, vlen = 0;
+		uint64_t klen = 0, vlen = 0;
 
 		rng_gen(&rng, keybuf, 20);
 		rng_gen(&rng, valuebuf, 20);
@@ -184,8 +184,8 @@ Test(bptree_split) {
 		vlen = b64_encode(valuebuf, 12, values[i], 20);
 		keys[i][klen] = 0;
 		values[i][vlen] = 0;
-		rng_gen(&rng, &klen, sizeof(size_t));
-		rng_gen(&rng, &vlen, sizeof(size_t));
+		rng_gen(&rng, &klen, sizeof(uint64_t));
+		rng_gen(&rng, &vlen, sizeof(uint64_t));
 		rand_key_lens[i] = (klen % 10) + 3;
 		rand_value_lens[i] = (vlen % 10) + 3;
 	}

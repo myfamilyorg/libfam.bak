@@ -28,7 +28,7 @@
 
 typedef struct {
 	uint8_t *buffer;
-	size_t len;
+	uint64_t len;
 } WsMessage;
 
 typedef struct {

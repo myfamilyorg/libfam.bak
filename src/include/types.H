@@ -26,13 +26,41 @@
 #ifndef _TYPES_H__
 #define _TYPES_H__
 
+#ifndef NULL
+#define NULL ((void *)0)
+#endif /* NULL */
+
+typedef signed char int8_t;
+typedef short int int16_t;
+typedef int int32_t;
+typedef long int64_t;
+typedef __int128_t int128_t;
+
+typedef unsigned char uint8_t;
+typedef unsigned short int uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned long uint64_t;
+typedef __uint128_t uint128_t;
+
+#ifndef bool
+#define bool uint8_t
+#endif
+
+#ifndef false
+#define false (bool)0
+#endif
+
+#ifndef true
+#define true (bool)1
+#endif
+
 #define _NSIG 64
 
 typedef union epoll_data {
 	void *ptr;
 	int fd;
 	unsigned int u32;
-	unsigned long u64;
+	uint64_t u64;
 } epoll_data_t;
 
 struct epoll_event {
@@ -45,23 +73,23 @@ __attribute__((packed))
 ;
 
 struct clone_args {
-	unsigned long flags;
-	unsigned long pidfd;
-	unsigned long child_tid;
-	unsigned long parent_tid;
-	unsigned long exit_signal;
-	unsigned long stack;
-	unsigned long stack_size;
-	unsigned long tls;
-	unsigned long set_tid;
-	unsigned long set_tid_size;
+	uint64_t flags;
+	uint64_t pidfd;
+	uint64_t child_tid;
+	uint64_t parent_tid;
+	uint64_t exit_signal;
+	uint64_t stack;
+	uint64_t stack_size;
+	uint64_t tls;
+	uint64_t set_tid;
+	uint64_t set_tid_size;
 };
 
 struct rt_sigaction {
 	void (*k_sa_handler)(int);
-	unsigned long k_sa_flags;
+	uint64_t k_sa_flags;
 	void (*k_sa_restorer)(void);
-	unsigned long k_sa_mask;
+	uint64_t k_sa_mask;
 };
 
 struct sockaddr {
@@ -113,46 +141,7 @@ typedef struct {
 } siginfo_t;
 
 typedef struct {
-	unsigned long bits[_NSIG / (8 * sizeof(unsigned long))];
+	uint64_t bits[_NSIG / (8 * sizeof(uint64_t))];
 } sigset_t;
-
-typedef int __itimer_which_t;
-
-#ifndef NULL
-#define NULL ((void *)0)
-#endif /* NULL */
-
-typedef signed char int8_t;
-typedef short int int16_t;
-typedef int int32_t;
-typedef long int64_t;
-typedef __int128_t int128_t;
-
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long uint64_t;
-typedef __uint128_t uint128_t;
-
-typedef long off_t;
-typedef unsigned int mode_t;
-
-typedef int idtype_t;
-typedef int id_t;
-typedef int32_t pid_t;
-typedef unsigned long size_t;
-typedef long ssize_t;
-
-#ifndef bool
-#define bool uint8_t
-#endif
-
-#ifndef false
-#define false (bool)0
-#endif
-
-#ifndef true
-#define true (bool)1
-#endif
 
 #endif /* _TYPES_H__ */

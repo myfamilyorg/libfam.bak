@@ -429,7 +429,7 @@ Test(umodti3) {
 
 Test(double_to_string) {
 	char buf[64]; /* Ensure sufficient size */
-	size_t len;
+	uint64_t len;
 
 	/* NaN (lines 310–316) */
 	len = double_to_string(buf, 0.0 / 0.0, 6);
@@ -928,7 +928,7 @@ Test(b642) {
 	uint8_t buf[128];
 	uint8_t buf2[128];
 	uint8_t buf3[128];
-	size_t len, len2;
+	uint64_t len, len2;
 
 	/* Test 1: Normal case (10 bytes, exercises main loop) */
 	memcpy(buf, "0123456789", 10);
