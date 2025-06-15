@@ -84,11 +84,12 @@ static int vsnprintf(char* str, size_t size, const char* format,
 	const char* fmt;
 	size_t pos;
 	size_t len;
-	char buf[32];
+	char buf[1024];
 	size_t i;
 	size_t j;
 	int val;
 	unsigned int uval;
+	double dval;
 	const char* s;
 	char c;
 
@@ -115,9 +116,16 @@ static int vsnprintf(char* str, size_t size, const char* format,
 		switch (*fmt) {
 			case 'd':
 			case 'i': /* Treat %i the same as %d */
-				val = __builtin_va_arg(
-				    ap, int); /* Use int for %d and %i */
+				val = __builtin_va_arg(ap, int64_t);
 				j = int_to_str(val, buf, 10, 0);
+				len += j;
+				for (i = 0; i < j && str && pos < size; i++) {
+					str[pos++] = buf[i];
+				}
+				break;
+			case 'f':
+				dval = __builtin_va_arg(ap, double);
+				j = double_to_string(buf, dval, 5);
 				len += j;
 				for (i = 0; i < j && str && pos < size; i++) {
 					str[pos++] = buf[i];

@@ -26,6 +26,7 @@
 #include <env.H>
 #include <format.H>
 #include <misc.H>
+#include <sys.H>
 #include <test.H>
 
 char **environ = 0;
@@ -96,6 +97,8 @@ int main(int argc __attribute__((unused)), char **argv __attribute__((unused)),
 	 char **envp) {
 	int test_count = 0;
 	char *tp;
+	uint64_t total;
+	double ms;
 
 #ifndef COVERAGE
 	call_constructors();
@@ -115,21 +118,30 @@ int main(int argc __attribute__((unused)), char **argv __attribute__((unused)),
 	    "------------------------------------------------------------------"
 	    "--------------\n");
 
+	total = micros();
+
 	for (exe_test = 0; exe_test < cur_tests; exe_test++) {
 		if (!tp || !strcmp(tp, "*") ||
 		    !strcmp(tests[exe_test].name, tp)) {
-			printf("running test %d [%s]\n", 1 + test_count,
-			       tests[exe_test].name);
+			uint64_t start;
+			printf("%sRunning test%s %d [%s%s%s]", YELLOW, RESET,
+			       1 + test_count, DIMMED, tests[exe_test].name,
+			       RESET);
+			start = micros();
 			tests[exe_test].test_fn();
+			printf(" %s[%i %ss]%s \n", GREEN, micros() - start, "µ",
+			       RESET);
 			test_count++;
 		}
 	}
 
+	ms = (double)(micros() - total) / (double)1000;
+
 	printf(
 	    "------------------------------------------------------------------"
 	    "--------------\n");
-	printf("%sSuccess%s! %d %stests passed!%s\n", GREEN, RESET, test_count,
-	       CYAN, RESET);
+	printf("%sSuccess%s! %d %stests passed!%s %s[%f ms]%s\n", GREEN, RESET,
+	       test_count, CYAN, RESET, GREEN, ms, RESET);
 
 	return 0;
 }

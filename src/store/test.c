@@ -90,6 +90,7 @@ Test(store1) {
 			uint8_t keybuf[20] = {0};
 			uint8_t valuebuf[20] = {0};
 			size_t klen = 0, vlen = 0;
+
 			rng_gen(&rng, keybuf, 20);
 			rng_gen(&rng, valuebuf, 20);
 			klen = b64_encode(keybuf, 12, keys[i], 20);

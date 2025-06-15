@@ -512,6 +512,7 @@ Test(colors) {
 	const char *test_file = "/tmp/colortest";
 	int fd;
 
+	if (getenv("NO_COLOR")) return; /* Can't test without colors */
 	unlink(test_file);
 	fd = file(test_file);
 	write(fd, RED, strlen(RED));

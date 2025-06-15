@@ -135,6 +135,37 @@ STATIC BpTreeNode *allocate_node(BpTxn *txn) {
 	return NODE(txn, current);
 }
 
+STATIC int split_node(BpTxn *txn, BpTreeNode *node, const void *key,
+		      uint16_t key_len, const void *value, uint16_t value_len,
+		      uint16_t key_index, uint64_t space_needed) {
+	int i;
+	uint16_t midpoint;
+	uint16_t pos;
+	BpTreeNode *new, *nparent;
+
+	if (!node || !key || !value || key_len == 0 || value_len == 0) {
+		err = EINVAL;
+		return -1;
+	}
+
+	if (key_index || space_needed) {
+	}
+
+	midpoint = node->num_entries / 2;
+	new = allocate_node(txn);
+	if (!new) return -1;
+	nparent = allocate_node(txn);
+	if (!nparent) return -1;
+
+	pos = node->data.leaf.entry_offsets[midpoint];
+	memcpy(new->data.leaf.entries, node->data.leaf.entries + pos,
+	       node->used_bytes - pos);
+	for (i = 0; i < node->num_entries - midpoint; i++) {
+	}
+
+	return 0;
+}
+
 BpTree *bptree_open(const char *path) {
 	BpTree *ret;
 	int fd = file(path);
@@ -230,7 +261,8 @@ int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
 	space_needed = key_len + value_len + sizeof(BpTreeEntry);
 	if (space_needed + node->used_bytes > LEAF_ARRAY_SIZE ||
 	    (uint64_t)(node->num_entries + 1) >= MAX_LEAF_ENTRIES) {
-		/* TODO */
+		return split_node(txn, node, key, key_len, value, value_len,
+				  res.key_index, space_needed);
 	} else {
 		copy = allocate_node(txn);
 		if (!copy) return -1;
