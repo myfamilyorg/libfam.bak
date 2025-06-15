@@ -471,4 +471,5 @@ Test(connection_write) {
 	release(value2);
 
 	ASSERT_BYTES(0);
+	debug_force_write_buffer = false;
 }

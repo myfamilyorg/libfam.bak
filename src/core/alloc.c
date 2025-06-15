@@ -181,6 +181,7 @@ STATIC uint64_t allocate_chunk(void) {
 	uint64_t res;
 	NEXT_FREE_BIT((void *)((size_t)memory_base + sizeof(AllocHeader)),
 		      bitmap_bits, res, &alloc_header->data.last_free);
+	if (res == (uint64_t)-1) err = ENOMEM;
 	return res;
 }
 

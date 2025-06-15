@@ -23,6 +23,93 @@
  *
  *******************************************************************************/
 
+#include <alloc.H>
+#include <bptree.H>
 #include <test.H>
 
-Test(store1) { ASSERT(1, "1"); }
+void test_bptree_search(BpTxn *txn, const void *key, uint16_t key_len,
+			const BpTreeNode *node, BpTreeSearchResult *retval) {
+	int i;
+	/* Simplify for now, just use root node only */
+	retval->found = false;
+	/*
+	printf("start loop node=%i entries=%x\n", bptree_node_id(txn, node),
+	       node->data.leaf.entries);
+	       */
+	for (i = 0; i < node->num_entries; i++) {
+		int v;
+		uint16_t offset = node->data.leaf.entry_offsets[i];
+		BpTreeEntry *entry =
+		    (BpTreeEntry *)((uint8_t *)node->data.leaf.entries +
+				    offset);
+		const char *cmp_key =
+		    (const char *)((uint8_t *)entry + sizeof(BpTreeEntry));
+		uint16_t len =
+		    key_len > entry->key_len ? entry->key_len : key_len;
+
+		v = strcmpn(key, cmp_key, len);
+		/*
+		printf("v=%i '%s' '%s' %i\n", v, key, cmp_key, offset);
+		*/
+		if (v == 0 && key_len == entry->key_len) {
+			retval->found = true;
+			break;
+		}
+		if (v < 0) {
+			break;
+		}
+	}
+
+	retval->node_id = bptree_node_id(txn, node);
+	retval->key_index = i;
+}
+
+Test(store1) {
+	const char *path = "/tmp/store1.dat";
+	int fd;
+	BpTree *tree;
+	BpTxn *txn;
+
+	unlink(path);
+	fd = file(path);
+
+	fresize(fd, PAGE_SIZE * 16);
+	close(fd);
+	tree = bptree_open(path);
+	ASSERT(tree, "tree");
+
+	txn = bptxn_start(tree);
+
+	ASSERT(!bptree_put(txn, "key1", 4, "value1", 6, test_bptree_search),
+	       "bptree_put");
+	ASSERT(!bptree_put(txn, "key3", 4, "value3", 6, test_bptree_search),
+	       "bptree_put");
+	ASSERT(!bptree_put(txn, "key2", 4, "value2", 6, test_bptree_search),
+	       "bptree_put");
+	ASSERT(!bptree_put(txn, "key4", 4, "value4", 6, test_bptree_search),
+	       "bptree_put");
+
+	ASSERT(bptree_put(txn, "key3", 4, "value4", 6, test_bptree_search),
+	       "bptree_put");
+
+	ASSERT(!bptree_put(txn, "key7", 4, "value4", 6, test_bptree_search),
+	       "bptree_put");
+
+	ASSERT(!bptree_put(txn, "key8", 4, "value4", 6, test_bptree_search),
+	       "bptree_put");
+
+	ASSERT(!bptree_put(txn, "key9", 4, "value4", 6, test_bptree_search),
+	       "bptree_put");
+
+	ASSERT(!bptree_put(txn, "key6", 4, "value4", 6, test_bptree_search),
+	       "bptree_put");
+
+	ASSERT(!bptree_put(txn, "xxxx", 4, "value4", 6, test_bptree_search),
+	       "bptree_put");
+
+	bptree_close(tree);
+	release(tree);
+	release(txn);
+	unlink(path);
+}
+

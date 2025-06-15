@@ -79,7 +79,6 @@ static size_t int_to_str(intmax_t num, char* buf, int base, int upper) {
 
 	return i + uint_to_str((uintmax_t)temp, buf + i, base, upper);
 }
-int printf(const char*, ...);
 static int vsnprintf(char* str, size_t size, const char* format,
 		     __builtin_va_list ap) {
 	const char* fmt;
@@ -124,9 +123,8 @@ static int vsnprintf(char* str, size_t size, const char* format,
 					str[pos++] = buf[i];
 				}
 				break;
-
 			case 'u':
-				uval = __builtin_va_arg(ap, unsigned int);
+				uval = __builtin_va_arg(ap, uint64_t);
 				j = uint_to_str(uval, buf, 10, 0);
 				len += j;
 				for (i = 0; i < j && str && pos < size; i++) {
@@ -135,7 +133,7 @@ static int vsnprintf(char* str, size_t size, const char* format,
 				break;
 
 			case 'x':
-				uval = __builtin_va_arg(ap, unsigned int);
+				uval = __builtin_va_arg(ap, uint64_t);
 				j = uint_to_str(uval, buf, 16, 0);
 				len += j;
 				for (i = 0; i < j && str && pos < size; i++) {
@@ -144,7 +142,7 @@ static int vsnprintf(char* str, size_t size, const char* format,
 				break;
 
 			case 'X':
-				uval = __builtin_va_arg(ap, unsigned int);
+				uval = __builtin_va_arg(ap, uint64_t);
 				j = uint_to_str(uval, buf, 16, 1);
 				len += j;
 				for (i = 0; i < j && str && pos < size; i++) {

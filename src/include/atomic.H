@@ -28,6 +28,11 @@
 
 #include <types.H>
 
+#define __cas128(a, expected, desired)                            \
+        __atomic_compare_exchange_n(a, expected, desired, false, \
+                                    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+
+
 #ifdef __aarch64__
 uint32_t __cas32(uint32_t *ptr, uint32_t *expected, uint32_t desired);
 uint32_t __and32(uint32_t *ptr, uint32_t value);
