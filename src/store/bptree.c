@@ -233,9 +233,9 @@ STATIC i32 split_node(BpTxn *txn, BpTreeNode *node, const void *key,
 
 	memcpy(sibling->data.leaf.entries, node->data.leaf.entries + pos,
 	       node->used_bytes - pos);
-	memcpy(node->data.leaf.entry_offsets,
-	       sibling->data.leaf.entry_offsets + midpoint,
-	       node->num_entries - midpoint);
+	memcpy(sibling->data.leaf.entry_offsets,
+	       node->data.leaf.entry_offsets + midpoint,
+	       (node->num_entries - midpoint) * sizeof(u16));
 	for (i = 0; i < node->num_entries - midpoint; i++)
 		sibling->data.leaf.entry_offsets[i] -= pos;
 	sibling->num_entries = node->num_entries - midpoint;
@@ -404,9 +404,19 @@ i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 		return -1;
 	}
 
+	{
+		u8 tmp[1024] = {0};
+		memcpy(tmp, key, key_len);
+		tmp[key_len] = 0;
+		printf("put key='%s'\n", tmp);
+	}
+
 	node = bptxn_get_node(txn, txn->root);
+	printf("pre search\n");
 	search(txn, key, key_len, node, &res);
+	printf("post search\n");
 	if (res.found) return -1;
+	printf("z\n");
 
 	space_needed = key_len + value_len + sizeof(BpTreeEntry);
 	if (space_needed + node->used_bytes > LEAF_ARRAY_SIZE ||

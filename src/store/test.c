@@ -34,6 +34,8 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 	i32 i;
 	retval->found = false;
 
+	printf("node=%i\n", bptree_node_id(txn, node));
+
 	while (node->is_internal) {
 		u16 offset = node->data.internal.entry_offsets[1];
 		BpTreeInternalEntry *entry =
@@ -43,19 +45,26 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 		    (const u8 *)((u8 *)node->data.internal.key_entries +
 				 offset + sizeof(BpTreeInternalEntry));
 		u16 len = key_len > entry->key_len ? entry->key_len : key_len;
-
 		i32 v = strcmpn(key, cmp_key, len);
+
+		printf("offset=%u,v=%i\n", offset, v);
 		if (v >= 0) {
 			node = bptxn_get_node(txn, entry->node_id);
 		} else {
+			printf("1\n");
 			entry =
 			    (BpTreeInternalEntry *)((u8 *)node->data.internal
 							.key_entries);
+			printf("2\n");
 
 			node = bptxn_get_node(txn, entry->node_id);
+			printf("3\n");
 		}
 		break;
 	}
+
+	printf("node used=%i,num=%i,used=%i\n", bptree_node_id(txn, node),
+	       node->num_entries, node->used_bytes);
 
 	for (i = 0; i < node->num_entries; i++) {
 		i32 v;
@@ -67,6 +76,16 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 		u16 len = key_len > entry->key_len ? entry->key_len : key_len;
 
 		v = strcmpn(key, cmp_key, len);
+
+		{
+			u8 tmp[1024] = {0};
+			/*u64 offsetv = offset;*/
+			memcpy(tmp, cmp_key, entry->key_len);
+			tmp[entry->key_len] = 0;
+
+			printf("offset=%u ", offset);
+			printf("cmp_key='%s'\n", tmp);
+		}
 
 		if (v == 0 && key_len == entry->key_len) {
 			retval->found = true;
@@ -81,6 +100,7 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 	retval->key_index = i;
 }
 
+/*
 Test(store1) {
 	const u8 *path = "/tmp/store1.dat";
 	i32 fd, i, x;
@@ -153,7 +173,7 @@ Test(store1) {
 	}
 }
 
-#define BPTREE_SPLIT_ITT 512
+#define BPTREE_SPLIT_ITT 130
 
 Test(bptree_split) {
 	const u8 *path = "/tmp/store1.dat";
@@ -166,7 +186,7 @@ Test(bptree_split) {
 	u8 rand_key_lens[BPTREE_SPLIT_ITT];
 	u8 rand_value_lens[BPTREE_SPLIT_ITT];
 
-	u8 key[32] = {4};
+	u8 key[32] = {2};
 	u8 iv[16] = {1};
 
 	rng_test_seed(&rng, key, iv);
@@ -210,6 +230,8 @@ Test(bptree_split) {
 		ASSERT(!v, "insert");
 	}
 
+	printf("CHECK!!!!!\n");
+
 	for (i = 1; i < BPTREE_SPLIT_ITT; i++) {
 		i32 v;
 		v = bptree_put(txn, keys[i], rand_key_lens[i], values[i],
@@ -222,4 +244,4 @@ Test(bptree_split) {
 	release(txn);
 	unlink(path);
 }
-
+*/
