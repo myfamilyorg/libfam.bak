@@ -167,7 +167,7 @@
 extern int err;
 
 const char *error_string(int err_code);
-void perror(const char *);
+void perror(const u8 *);
 
 #if TEST == 1
 extern bool _debug_no_write;

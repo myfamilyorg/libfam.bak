@@ -40,6 +40,8 @@ COMMON_FLAGS = -pedantic \
 			   -fno-builtin \
 			   -fno-stack-protector \
 			   -Wno-attributes \
+			   -Wno-error=pointer-sign \
+			   -Wno-pointer-sign \
 			   -DPAGE_SIZE=$(PAGE_SIZE) \
 			   -DMEMSAN=$(MEMSAN)
 

@@ -26,13 +26,12 @@
 #include <error.H>
 #include <misc.H>
 #include <sys.H>
-#include <sys.H>
 
 int err = 0;
 int *__error(void) { return &err; }
 bool _debug_no_write = false;
 
-void perror(const char *s) {
+void perror(const u8 *s) {
 	int len = 0, v = 2;
 	const char *err_msg;
 	if (s == NULL) return;
