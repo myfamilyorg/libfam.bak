@@ -63,12 +63,12 @@ i32 sleepm(u64 millis) {
 	return ret;
 }
 
-i64 fsize(int fd) {
+i64 fsize(i32 fd) {
 	i64 ret = lseek(fd, 0, SEEK_END);
 	return ret;
 }
 
-i32 fresize(int fd, i64 length) {
+i32 fresize(i32 fd, i64 length) {
 	i32 ret = ftruncate(fd, length);
 	return ret;
 }
@@ -81,7 +81,7 @@ void *map(u64 length) {
 	}
 	return v;
 }
-void *fmap(int fd, i64 size, i64 offset) {
+void *fmap(i32 fd, i64 size, i64 offset) {
 	void *v =
 	    mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, offset);
 	if (v == MAP_FAILED) {
@@ -99,7 +99,7 @@ void *smap(u64 length) {
 	return v;
 }
 
-i32 flush(int fd) {
+i32 flush(i32 fd) {
 	i32 ret = fdatasync(fd);
 	return ret;
 }
@@ -110,7 +110,7 @@ i32 yield(void) {
 	return ret;
 }
 
-i32 pipe(int fds[2]) { return pipe2(fds, 0); }
+i32 pipe(i32 fds[2]) { return pipe2(fds, 0); }
 
 i32 getentropy(void *buffer, u64 length) {
 	return getrandom(buffer, length, GRND_RANDOM);

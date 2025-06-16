@@ -55,7 +55,7 @@ void call_constructors(void) {
 }
 
 #ifndef COVERAGE
-i32 main(int argc, u8 *argv[], u8 *envp[]);
+i32 main(i32 argc, u8 *argv[], u8 *envp[]);
 
 #ifdef __aarch64__
 __asm__(
@@ -93,7 +93,7 @@ __asm__(
 #endif /* __amd64__ */
 #endif /* COVERAGE */
 
-i32 main(int argc __attribute__((unused)), u8 **argv __attribute__((unused)),
+i32 main(i32 argc __attribute__((unused)), u8 **argv __attribute__((unused)),
 	 u8 **envp) {
 	i32 test_count = 0;
 	u8 *tp;

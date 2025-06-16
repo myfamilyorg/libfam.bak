@@ -48,7 +48,7 @@ struct ChannelInner {
 
 #define NEXT_POS(channel, pos) ((pos + 1) % channel->inner->capacity)
 
-STATIC int notify(Channel *channel, u64 num_messages) {
+STATIC i32 notify(Channel *channel, u64 num_messages) {
 	u32 exp = 1;
 	if (__cas32(&channel->inner->wait, &exp, 0))
 		return futex(&channel->inner->wait, FUTEX_WAKE, num_messages,

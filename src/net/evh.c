@@ -43,7 +43,7 @@ void __gcov_dump(void);
 /* marker for wakeup */
 Connection wakeup_attachment = {0};
 
-STATIC int proc_wakeup(int wakeup) {
+STATIC i32 proc_wakeup(i32 wakeup) {
 	u8 buf[1];
 	i32 v;
 	v = read(wakeup, buf, 1);
@@ -51,7 +51,7 @@ STATIC int proc_wakeup(int wakeup) {
 	return 0;
 }
 
-STATIC int proc_acceptor(Evh *evh, Connection *acceptor, void *ctx) {
+STATIC i32 proc_acceptor(Evh *evh, Connection *acceptor, void *ctx) {
 	while (true) {
 		Connection *nconn;
 		i32 fd = socket_accept(acceptor->socket);
@@ -90,7 +90,7 @@ STATIC int proc_acceptor(Evh *evh, Connection *acceptor, void *ctx) {
 	return 0;
 }
 
-STATIC int check_capacity(Connection *conn) {
+STATIC i32 check_capacity(Connection *conn) {
 	InboundData *ib = &conn->data.inbound;
 	if (ib->rbuf_offset + MIN_EXCESS > ib->rbuf_capacity) {
 		void *tmp = resize(ib->rbuf, ib->rbuf_offset + MIN_RESIZE);
@@ -102,7 +102,7 @@ STATIC int check_capacity(Connection *conn) {
 	return 0;
 }
 
-STATIC int proc_close(Connection *conn, void *ctx) {
+STATIC i32 proc_close(Connection *conn, void *ctx) {
 	i32 res;
 	InboundData *ib = &conn->data.inbound;
 	LockGuard lg;
@@ -124,7 +124,7 @@ STATIC int proc_close(Connection *conn, void *ctx) {
 	return res;
 }
 
-STATIC int proc_read(Connection *conn, void *ctx) {
+STATIC i32 proc_read(Connection *conn, void *ctx) {
 	while (true) {
 		InboundData *ib;
 		i64 rlen;
@@ -149,7 +149,7 @@ STATIC int proc_read(Connection *conn, void *ctx) {
 	return 0;
 }
 
-STATIC int proc_write(Evh *evh, Connection *conn,
+STATIC i32 proc_write(Evh *evh, Connection *conn,
 		      void *ctx __attribute__((unused))) {
 	InboundData *ib = &conn->data.inbound;
 	i64 wlen;
@@ -217,7 +217,7 @@ end_while:
 	ASTORE(evh->stopped, getpid());
 }
 
-STATIC int init_event_loop(Evh *evh, void *ctx) {
+STATIC i32 init_event_loop(Evh *evh, void *ctx) {
 	i32 fds[2];
 	i32 pid;
 	if (pipe(fds) == -1) {

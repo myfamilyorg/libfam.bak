@@ -44,7 +44,7 @@ void perror(const u8 *s) {
 	if (!_debug_no_write && v == len) v = write(2, "\n", 1);
 }
 
-const u8 *error_string(int err_code) {
+const u8 *error_string(i32 err_code) {
 	switch (err_code) {
 		case SUCCESS:
 			return "Success";

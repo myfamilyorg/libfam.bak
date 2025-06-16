@@ -63,7 +63,7 @@ Upgrade: websocket\r\n\
 Connection: Upgrade\r\n\
 Sec-WebSocket-Accept: ";
 
-STATIC int ws_proc_handshake(WsConnection *wsconn) {
+STATIC i32 ws_proc_handshake(WsConnection *wsconn) {
 	u8 *rbuf = (u8 *)wsconn->connection.data.inbound.rbuf;
 	u64 rbuf_offset = wsconn->connection.data.inbound.rbuf_offset;
 	u8 *end;
@@ -134,7 +134,7 @@ STATIC int ws_proc_handshake(WsConnection *wsconn) {
 	}
 }
 
-STATIC int proc_message_single(Ws *ws, WsConnection *wsconn, u64 offset,
+STATIC i32 proc_message_single(Ws *ws, WsConnection *wsconn, u64 offset,
 			       u64 len) {
 	WsMessage msg;
 	msg.buffer = wsconn->connection.data.inbound.rbuf + offset;
@@ -144,7 +144,7 @@ STATIC int proc_message_single(Ws *ws, WsConnection *wsconn, u64 offset,
 	return 0;
 }
 
-STATIC int ws_proc_frames(Ws *ws, WsConnection *wsconn) {
+STATIC i32 ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 	u64 rbuf_offset = wsconn->connection.data.inbound.rbuf_offset;
 	u8 *rbuf = wsconn->connection.data.inbound.rbuf;
 	bool fin, mask;
@@ -217,7 +217,7 @@ STATIC int ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 	}
 }
 
-STATIC int ws_on_recv_proc(void *ctx, Connection *conn,
+STATIC i32 ws_on_recv_proc(void *ctx, Connection *conn,
 			   u64 rlen __attribute__((unused))) {
 	Ws *ws = ctx;
 	WsConnection *wsconn = (WsConnection *)conn;
@@ -247,7 +247,7 @@ STATIC int ws_on_recv_proc(void *ctx, Connection *conn,
 	}
 }
 
-STATIC int ws_on_accept_proc(void *ctx, Connection *conn) {
+STATIC i32 ws_on_accept_proc(void *ctx, Connection *conn) {
 	Ws *ws = ctx;
 	WsConnection *wsconn = (WsConnection *)conn;
 	wsconn->id = __add64(&ws->next_id, 1);
@@ -256,7 +256,7 @@ STATIC int ws_on_accept_proc(void *ctx, Connection *conn) {
 	ws->on_open(wsconn);
 	return 0;
 }
-STATIC int ws_on_close_proc(void *ctx, Connection *conn) {
+STATIC i32 ws_on_close_proc(void *ctx, Connection *conn) {
 	Ws *ws = ctx;
 	WsConnection *wsconn = (WsConnection *)conn;
 	ws->on_close(wsconn);

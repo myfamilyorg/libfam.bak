@@ -166,7 +166,7 @@
 
 extern int err;
 
-const u8 *error_string(int err_code);
+const u8 *error_string(i32 err_code);
 void perror(const u8 *);
 
 #if TEST == 1

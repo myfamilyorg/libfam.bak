@@ -213,7 +213,7 @@ i32 on_accept2(void *ctx __attribute__((unused)),
 i32 on_recv2(void *ctx __attribute__((unused)), Connection *conn,
 	     u64 rlen __attribute__((unused))) {
 	InboundData *ib = &conn->data.inbound;
-	i32 *v = (int *)(ib->rbuf + ib->rbuf_offset - rlen);
+	i32 *v = (i32 *)(ib->rbuf + ib->rbuf_offset - rlen);
 	i32 nv = *v + 1;
 
 	ASSERT_EQ(rlen, sizeof(int), "sizeof(int)");
@@ -344,7 +344,7 @@ Test(test_evh_clear) {
 	ASSERT_BYTES(0);
 }
 
-i32 proc_wakeup(int fd);
+i32 proc_wakeup(i32 fd);
 
 u64 *confirm = NULL;
 

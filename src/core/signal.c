@@ -29,7 +29,7 @@
 #include <sys.H>
 #include <syscall_const.H>
 
-static void sig_ign(int __attribute((unused)) sig) {}
+static void sig_ign(i32 __attribute((unused)) sig) {}
 
 typedef struct {
 	void (*task)(void);
@@ -38,9 +38,9 @@ typedef struct {
 
 #define MAX_TASKS 32
 static TaskEntry pending_tasks[MAX_TASKS];
-STATIC int cur_tasks = 0;
+STATIC i32 cur_tasks = 0;
 
-STATIC int set_next_timer(u64 now) {
+STATIC i32 set_next_timer(u64 now) {
 	i32 i;
 	u64 next_task_time = SIZE_MAX;
 
@@ -61,7 +61,7 @@ STATIC int set_next_timer(u64 now) {
 	return 0;
 }
 
-STATIC void timeout_handler(int __attribute__((unused)) v) {
+STATIC void timeout_handler(i32 __attribute__((unused)) v) {
 	TaskEntry rem_tasks[MAX_TASKS];
 	i32 rem_task_count = 0;
 	u64 now = micros() / 1000;

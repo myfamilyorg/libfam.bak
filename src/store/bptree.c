@@ -198,7 +198,7 @@ STATIC BpTreeNode *new_node(BpTxn *txn, BpTreeNode *node, u16 midpoint) {
 	return new;
 }
 
-STATIC int split_node(BpTxn *txn, BpTreeNode *node, const void *key,
+STATIC i32 split_node(BpTxn *txn, BpTreeNode *node, const void *key,
 		      u16 key_len, const void *value, u16 value_len,
 		      u16 key_index, u64 space_needed) {
 	i32 i;

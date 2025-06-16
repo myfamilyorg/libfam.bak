@@ -28,11 +28,11 @@
 
 #include <types.H>
 
-i32 set_nonblocking(int socket);
+i32 set_nonblocking(i32 socket);
 i32 socket_connect(const u8 addr[4], u16 port);
-i32 socket_listen(int *fd, const u8 addr[4], u16 port,
+i32 socket_listen(i32 *fd, const u8 addr[4], u16 port,
 		  u16 backlog);
-i32 socket_accept(int fd);
+i32 socket_accept(i32 fd);
 
 unsigned short htons(unsigned short host);
 unsigned short ntohs(unsigned short net);

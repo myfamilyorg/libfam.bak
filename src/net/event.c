@@ -36,7 +36,7 @@ STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), event_match);
 
 i32 multiplex(void) { return epoll_create1(0); }
 
-i32 mregister(int multiplex, int fd, int flags, void *attach) {
+i32 mregister(i32 multiplex, int fd, int flags, void *attach) {
 	struct epoll_event ev;
 	i32 event_flags = 0;
 
@@ -70,7 +70,7 @@ i32 mregister(int multiplex, int fd, int flags, void *attach) {
 
 	return 0;
 }
-i32 mwait(int multiplex, Event *events, int max_events, i64 timeout_millis) {
+i32 mwait(i32 multiplex, Event *events, int max_events, i64 timeout_millis) {
 	i32 timeout = (timeout_millis >= 0) ? (int)timeout_millis : -1;
 	return epoll_pwait(multiplex, (struct epoll_event *)events, max_events,
 			   timeout, NULL, 0);

@@ -36,7 +36,7 @@ unsigned short ntohs(unsigned short net) {
 	return ((net & 0xFF) << 8) | ((net >> 8) & 0xFF);
 }
 
-i32 set_nonblocking(int socket) {
+i32 set_nonblocking(i32 socket) {
 	i32 flags;
 	if ((flags = fcntl(socket, F_GETFL, 0)) == -1) {
 		close(socket);
@@ -68,7 +68,7 @@ i32 socket_connect(const u8 addr[4], u16 port) {
 	return ret;
 }
 
-i32 socket_listen(int *fd, const u8 addr[4], u16 port,
+i32 socket_listen(i32 *fd, const u8 addr[4], u16 port,
 		  u16 backlog) {
 	i32 opt = 1;
 	struct sockaddr_in address;
@@ -109,7 +109,7 @@ i32 socket_listen(int *fd, const u8 addr[4], u16 port,
 	return port;
 }
 
-i32 socket_accept(int fd) {
+i32 socket_accept(i32 fd) {
 	i32 ret = accept(fd, NULL, NULL);
 	if (ret < 0) return -1;
 	if (set_nonblocking(ret) == -1) return -1;

@@ -162,7 +162,7 @@
 		return (ret_type)result;                                       \
 	}
 
-static void syscall_exit(int status) {
+static void syscall_exit(i32 status) {
 	__asm__ volatile(
 	    "mov x8, #93\n" /* exit syscall number (ARM64) */
 	    "mov x0, %0\n"  /* status */
@@ -179,7 +179,7 @@ static void syscall_restorer(void) {
 		: "x8", "memory");
 }
 
-static int syscall_waitid(int idtype, int id, siginfo_t *infop, int options) {
+static int syscall_waitid(i32 idtype, int id, siginfo_t *infop, int options) {
 	i64 result;
 	__asm__ volatile(
 	    "mov x8, #95\n"
@@ -328,7 +328,7 @@ static int syscall_waitid(int idtype, int id, siginfo_t *infop, int options) {
 		return (ret_type)result;                                     \
 	}
 
-static void syscall_exit(int status) {
+static void syscall_exit(i32 status) {
 	__asm__ volatile(
 	    "movq $60, %%rax\n" /* exit syscall number (Linux) */
 	    "movq %0, %%rdi\n"	/* status */
@@ -348,7 +348,7 @@ static void syscall_restorer(void) {
 	    : "%rax", "%rcx", "%r11", "memory");
 }
 
-static int syscall_waitid(int idtype, i32 id, siginfo_t *infop, int options) {
+static int syscall_waitid(i32 idtype, i32 id, siginfo_t *infop, int options) {
 	i64 result;
 	__asm__ volatile(
 	    "movq $247, %%rax\n"
@@ -368,111 +368,111 @@ static int syscall_waitid(int idtype, i32 id, siginfo_t *infop, int options) {
 #endif /* Arch */
 
 #ifdef __aarch64__
-DEFINE_SYSCALL2(59, int, pipe2, int *, fds, int, flags)
-DEFINE_SYSCALL3(35, int, unlinkat, int, dfd, const u8 *, path, int, flag)
-DEFINE_SYSCALL3(64, i64, write, int, fd, const void *, buf, u64, count)
-DEFINE_SYSCALL3(63, i64, read, int, fd, void *, buf, u64, count)
-DEFINE_SYSCALL2(215, int, munmap, void *, addr, u64, len)
-DEFINE_SYSCALL1(57, int, close, int, fd)
-DEFINE_SYSCALL3(25, int, fcntl, int, fd, int, cmd, i64, arg)
-DEFINE_SYSCALL3(203, int, connect, int, sockfd, const struct sockaddr *, addr,
+DEFINE_SYSCALL2(59, i32, pipe2, int *, fds, i32, flags)
+DEFINE_SYSCALL3(35, i32, unlinkat, i32, dfd, const u8 *, path, i32, flag)
+DEFINE_SYSCALL3(64, i64, write, i32, fd, const void *, buf, u64, count)
+DEFINE_SYSCALL3(63, i64, read, i32, fd, void *, buf, u64, count)
+DEFINE_SYSCALL2(215, i32, munmap, void *, addr, u64, len)
+DEFINE_SYSCALL1(57, i32, close, i32, fd)
+DEFINE_SYSCALL3(25, i32, fcntl, i32, fd, i32, cmd, i64, arg)
+DEFINE_SYSCALL3(203, i32, connect, i32, sockfd, const struct sockaddr *, addr,
 		u32, addrlen)
-DEFINE_SYSCALL5(208, int, setsockopt, int, sockfd, int, level, int, optname,
+DEFINE_SYSCALL5(208, i32, setsockopt, i32, sockfd, i32, level, i32, optname,
 		const void *, optval, u32, optlen)
-DEFINE_SYSCALL3(200, int, bind, int, sockfd, const struct sockaddr *, addr,
+DEFINE_SYSCALL3(200, i32, bind, i32, sockfd, const struct sockaddr *, addr,
 		u32, addrlen)
-DEFINE_SYSCALL2(201, int, listen, int, sockfd, int, backlog)
-DEFINE_SYSCALL3(204, int, getsockname, int, sockfd, struct sockaddr *, addr,
+DEFINE_SYSCALL2(201, i32, listen, i32, sockfd, i32, backlog)
+DEFINE_SYSCALL3(204, i32, getsockname, i32, sockfd, struct sockaddr *, addr,
 		u32 *, addrlen)
-DEFINE_SYSCALL3(202, int, accept, int, sockfd, struct sockaddr *, addr,
+DEFINE_SYSCALL3(202, i32, accept, i32, sockfd, struct sockaddr *, addr,
 		u32 *, addrlen)
-DEFINE_SYSCALL2(210, int, shutdown, int, sockfd, int, how)
-DEFINE_SYSCALL3(198, int, socket, int, domain, int, type, int, protocol)
-DEFINE_SYSCALL3(278, int, getrandom, void *, buffer, u64, length,
+DEFINE_SYSCALL2(210, i32, shutdown, i32, sockfd, i32, how)
+DEFINE_SYSCALL3(198, i32, socket, i32, domain, i32, type, i32, protocol)
+DEFINE_SYSCALL3(278, i32, getrandom, void *, buffer, u64, length,
 		u32, flags)
-DEFINE_SYSCALL6(222, void *, mmap, void *, addr, u64, length, int, prot, int,
-		flags, int, fd, i64, offset)
-DEFINE_SYSCALL2(101, int, nanosleep, const struct timespec *, req,
+DEFINE_SYSCALL6(222, void *, mmap, void *, addr, u64, length, i32, prot, int,
+		flags, i32, fd, i64, offset)
+DEFINE_SYSCALL2(101, i32, nanosleep, const struct timespec *, req,
 		struct timespec *, rem)
-DEFINE_SYSCALL0(124, int, sched_yield)
-DEFINE_SYSCALL2(169, int, gettimeofday, struct timeval *, tv, void *, tz)
-DEFINE_SYSCALL2(170, int, settimeofday, const struct timeval *, tv,
+DEFINE_SYSCALL0(124, i32, sched_yield)
+DEFINE_SYSCALL2(169, i32, gettimeofday, struct timeval *, tv, void *, tz)
+DEFINE_SYSCALL2(170, i32, settimeofday, const struct timeval *, tv,
 		const void *, tz)
-DEFINE_SYSCALL1(20, int, epoll_create1, int, flags)
-DEFINE_SYSCALL6(22, int, epoll_pwait, int, epfd, struct epoll_event *, events,
-		int, maxevents, int, timeout, const sigset_t *, sigs, int, size)
-DEFINE_SYSCALL4(21, int, epoll_ctl, int, epfd, int, op, int, fd,
+DEFINE_SYSCALL1(20, i32, epoll_create1, i32, flags)
+DEFINE_SYSCALL6(22, i32, epoll_pwait, i32, epfd, struct epoll_event *, events,
+		i32, maxevents, i32, timeout, const sigset_t *, sigs, i32, size)
+DEFINE_SYSCALL4(21, i32, epoll_ctl, i32, epfd, i32, op, i32, fd,
 		struct epoll_event *, event)
-DEFINE_SYSCALL4(56, int, openat, int, dfd, const u8 *, pathname, int, flags,
+DEFINE_SYSCALL4(56, i32, openat, i32, dfd, const u8 *, pathname, i32, flags,
 		u32, mode)
-DEFINE_SYSCALL3(62, i64, lseek, int, fd, i64, offset, int, whence)
-DEFINE_SYSCALL1(83, int, fdatasync, int, fd)
-DEFINE_SYSCALL2(46, int, ftruncate, int, fd, i64, length)
-DEFINE_SYSCALL3(103, int, setitimer, i32, which,
+DEFINE_SYSCALL3(62, i64, lseek, i32, fd, i64, offset, i32, whence)
+DEFINE_SYSCALL1(83, i32, fdatasync, i32, fd)
+DEFINE_SYSCALL2(46, i32, ftruncate, i32, fd, i64, length)
+DEFINE_SYSCALL3(103, i32, setitimer, i32, which,
 		const struct itimerval *, new_value, struct itimerval *,
 		old_value)
-DEFINE_SYSCALL2(435, int, clone3, struct clone_args *, args, u64, size)
-DEFINE_SYSCALL6(98, i64, futex, u32 *, uaddr, int, futex_op, u32,
+DEFINE_SYSCALL2(435, i32, clone3, struct clone_args *, args, u64, size)
+DEFINE_SYSCALL6(98, i64, futex, u32 *, uaddr, i32, futex_op, u32,
 		val, const struct timespec *, timeout, u32 *, uaddr2,
 		u32, val3)
-DEFINE_SYSCALL4(134, int, rt_sigaction, int, signum,
+DEFINE_SYSCALL4(134, i32, rt_sigaction, i32, signum,
 		const struct rt_sigaction *, act, struct rt_sigaction *, oldact,
 		u64, sigsetsize)
 DEFINE_SYSCALL0(172, i32, getpid)
-DEFINE_SYSCALL2(129, int, kill, i32, pid, int, signal)
+DEFINE_SYSCALL2(129, i32, kill, i32, pid, i32, signal)
 #elif defined(__amd64__)
 /* System call definitions */
-DEFINE_SYSCALL2(293, int, pipe2, int *, fds, int, flags)
-DEFINE_SYSCALL3(263, int, unlinkat, int, dfd, const u8 *, path, int, flags)
-DEFINE_SYSCALL3(1, i64, write, int, fd, const void *, buf, u64, count)
-DEFINE_SYSCALL3(0, i64, read, int, fd, void *, buf, u64, count)
-DEFINE_SYSCALL2(11, int, munmap, void *, addr, u64, len)
-DEFINE_SYSCALL1(3, int, close, int, fd)
-DEFINE_SYSCALL3(72, int, fcntl, int, fd, int, cmd, i64, arg)
-DEFINE_SYSCALL3(42, int, connect, int, sockfd, const struct sockaddr *, addr,
+DEFINE_SYSCALL2(293, i32, pipe2, int *, fds, i32, flags)
+DEFINE_SYSCALL3(263, i32, unlinkat, i32, dfd, const u8 *, path, i32, flags)
+DEFINE_SYSCALL3(1, i64, write, i32, fd, const void *, buf, u64, count)
+DEFINE_SYSCALL3(0, i64, read, i32, fd, void *, buf, u64, count)
+DEFINE_SYSCALL2(11, i32, munmap, void *, addr, u64, len)
+DEFINE_SYSCALL1(3, i32, close, i32, fd)
+DEFINE_SYSCALL3(72, i32, fcntl, i32, fd, i32, cmd, i64, arg)
+DEFINE_SYSCALL3(42, i32, connect, i32, sockfd, const struct sockaddr *, addr,
 		u32, addrlen)
-DEFINE_SYSCALL5(54, int, setsockopt, int, sockfd, int, level, int, optname,
+DEFINE_SYSCALL5(54, i32, setsockopt, i32, sockfd, i32, level, i32, optname,
 		const void *, optval, u32, optlen)
-DEFINE_SYSCALL3(49, int, bind, int, sockfd, const struct sockaddr *, addr,
+DEFINE_SYSCALL3(49, i32, bind, i32, sockfd, const struct sockaddr *, addr,
 		u32, addrlen)
-DEFINE_SYSCALL2(50, int, listen, int, sockfd, int, backlog)
-DEFINE_SYSCALL3(51, int, getsockname, int, sockfd, struct sockaddr *, addr,
+DEFINE_SYSCALL2(50, i32, listen, i32, sockfd, i32, backlog)
+DEFINE_SYSCALL3(51, i32, getsockname, i32, sockfd, struct sockaddr *, addr,
 		u32 *, addrlen)
-DEFINE_SYSCALL3(43, int, accept, int, sockfd, struct sockaddr *, addr,
+DEFINE_SYSCALL3(43, i32, accept, i32, sockfd, struct sockaddr *, addr,
 		u32 *, addrlen)
-DEFINE_SYSCALL2(48, int, shutdown, int, sockfd, int, how)
-DEFINE_SYSCALL3(41, int, socket, int, domain, int, type, int, protocol)
-DEFINE_SYSCALL3(318, int, getrandom, void *, buffer, u64, length,
+DEFINE_SYSCALL2(48, i32, shutdown, i32, sockfd, i32, how)
+DEFINE_SYSCALL3(41, i32, socket, i32, domain, i32, type, i32, protocol)
+DEFINE_SYSCALL3(318, i32, getrandom, void *, buffer, u64, length,
 		u32, flags)
-DEFINE_SYSCALL6(9, void *, mmap, void *, addr, u64, length, int, prot, int,
-		flags, int, fd, i64, offset)
-DEFINE_SYSCALL2(35, int, nanosleep, const struct timespec *, req,
+DEFINE_SYSCALL6(9, void *, mmap, void *, addr, u64, length, i32, prot, int,
+		flags, i32, fd, i64, offset)
+DEFINE_SYSCALL2(35, i32, nanosleep, const struct timespec *, req,
 		struct timespec *, rem)
-DEFINE_SYSCALL0(24, int, sched_yield)
-DEFINE_SYSCALL2(96, int, gettimeofday, struct timeval *, tv, void *, tz)
-DEFINE_SYSCALL2(164, int, settimeofday, const struct timeval *, tv,
+DEFINE_SYSCALL0(24, i32, sched_yield)
+DEFINE_SYSCALL2(96, i32, gettimeofday, struct timeval *, tv, void *, tz)
+DEFINE_SYSCALL2(164, i32, settimeofday, const struct timeval *, tv,
 		const void *, tz)
-DEFINE_SYSCALL1(291, int, epoll_create1, int, flags)
-DEFINE_SYSCALL6(281, int, epoll_pwait, int, epfd, struct epoll_event *, events,
-		int, maxevents, int, timeout, const sigset_t *, sigs, int, size)
-DEFINE_SYSCALL4(233, int, epoll_ctl, int, epfd, int, op, int, fd,
+DEFINE_SYSCALL1(291, i32, epoll_create1, i32, flags)
+DEFINE_SYSCALL6(281, i32, epoll_pwait, i32, epfd, struct epoll_event *, events,
+		i32, maxevents, i32, timeout, const sigset_t *, sigs, i32, size)
+DEFINE_SYSCALL4(233, i32, epoll_ctl, i32, epfd, i32, op, i32, fd,
 		struct epoll_event *, event)
-DEFINE_SYSCALL4(257, int, openat, int, dfd, const u8 *, pathname, int, flags,
+DEFINE_SYSCALL4(257, i32, openat, i32, dfd, const u8 *, pathname, i32, flags,
 		u32, mode)
-DEFINE_SYSCALL3(8, i64, lseek, int, fd, i64, offset, int, whence)
-DEFINE_SYSCALL1(75, int, fdatasync, int, fd)
-DEFINE_SYSCALL2(77, int, ftruncate, int, fd, i64, length)
-DEFINE_SYSCALL3(38, int, setitimer, i32, which,
+DEFINE_SYSCALL3(8, i64, lseek, i32, fd, i64, offset, i32, whence)
+DEFINE_SYSCALL1(75, i32, fdatasync, i32, fd)
+DEFINE_SYSCALL2(77, i32, ftruncate, i32, fd, i64, length)
+DEFINE_SYSCALL3(38, i32, setitimer, i32, which,
 		const struct itimerval *, new_value, struct itimerval *,
 		old_value)
-DEFINE_SYSCALL2(435, int, clone3, struct clone_args *, args, u64, size)
-DEFINE_SYSCALL6(202, i64, futex, u32 *, uaddr, int, futex_op, u32,
+DEFINE_SYSCALL2(435, i32, clone3, struct clone_args *, args, u64, size)
+DEFINE_SYSCALL6(202, i64, futex, u32 *, uaddr, i32, futex_op, u32,
 		val, const struct timespec *, timeout, u32 *, uaddr2,
 		u32, val3)
-DEFINE_SYSCALL4(13, int, rt_sigaction, int, signum, const struct rt_sigaction *,
+DEFINE_SYSCALL4(13, i32, rt_sigaction, i32, signum, const struct rt_sigaction *,
 		act, struct rt_sigaction *, oldact, u64, sigsetsize)
 DEFINE_SYSCALL0(39, i32, getpid)
-DEFINE_SYSCALL2(62, int, kill, i32, pid, int, signal)
+DEFINE_SYSCALL2(62, i32, kill, i32, pid, i32, signal)
 #endif /* Arch */
 
 i32 clone3(struct clone_args *args, u64 size) {
@@ -480,19 +480,19 @@ i32 clone3(struct clone_args *args, u64 size) {
 	SET_ERR
 }
 
-i32 pipe2(int fds[2], int flags) {
+i32 pipe2(i32 fds[2], int flags) {
 	i32 ret = syscall_pipe2(fds, flags);
 	SET_ERR
 }
-i32 unlinkat(int dfd, const u8 *path, int flags) {
+i32 unlinkat(i32 dfd, const u8 *path, int flags) {
 	i32 ret = syscall_unlinkat(dfd, path, flags);
 	SET_ERR
 }
-i64 write(int fd, const void *buf, u64 count) {
+i64 write(i32 fd, const void *buf, u64 count) {
 	i64 ret = syscall_write(fd, buf, count);
 	SET_ERR
 }
-i64 read(int fd, void *buf, u64 count) {
+i64 read(i32 fd, void *buf, u64 count) {
 	i64 ret = syscall_read(fd, buf, count);
 	SET_ERR
 }
@@ -506,7 +506,7 @@ i32 sched_yield(void) {
 void __gcov_dump(void);
 #endif /* COVERAGE */
 
-void exit(int status) {
+void exit(i32 status) {
 	execute_exits();
 #ifdef COVERAGE
 	__gcov_dump();
@@ -519,12 +519,12 @@ i32 munmap(void *addr, u64 len) {
 	SET_ERR
 }
 
-i32 close(int fd) {
+i32 close(i32 fd) {
 	i32 ret = syscall_close(fd);
 	SET_ERR
 }
 
-i32 fcntl(int fd, int op, ...) {
+i32 fcntl(i32 fd, int op, ...) {
 	__builtin_va_list ap;
 	i64 arg;
 	i32 ret;
@@ -557,49 +557,49 @@ i32 fcntl(int fd, int op, ...) {
 	SET_ERR
 }
 
-i32 fdatasync(int fd) {
+i32 fdatasync(i32 fd) {
 	i32 ret = syscall_fdatasync(fd);
 	SET_ERR
 }
 
-i32 ftruncate(int fd, i64 length) {
+i32 ftruncate(i32 fd, i64 length) {
 	i32 ret = syscall_ftruncate(fd, length);
 	SET_ERR
 }
 
-i32 connect(int sockfd, const struct sockaddr *addr, u32 addrlen) {
+i32 connect(i32 sockfd, const struct sockaddr *addr, u32 addrlen) {
 	i32 ret = syscall_connect(sockfd, addr, addrlen);
 	SET_ERR
 }
 
-i32 setsockopt(int sockfd, int level, int optname, const void *optval,
+i32 setsockopt(i32 sockfd, int level, int optname, const void *optval,
 	       u32 optlen) {
 	i32 ret = syscall_setsockopt(sockfd, level, optname, optval, optlen);
 	SET_ERR
 }
 
-i32 bind(int sockfd, const struct sockaddr *addr, u32 addrlen) {
+i32 bind(i32 sockfd, const struct sockaddr *addr, u32 addrlen) {
 	i32 ret = syscall_bind(sockfd, addr, addrlen);
 	SET_ERR
 }
-i32 listen(int sockfd, int backlog) {
+i32 listen(i32 sockfd, int backlog) {
 	i32 ret = syscall_listen(sockfd, backlog);
 	SET_ERR
 }
-i32 getsockname(int sockfd, struct sockaddr *addr, u32 *addrlen) {
+i32 getsockname(i32 sockfd, struct sockaddr *addr, u32 *addrlen) {
 	i32 ret = syscall_getsockname(sockfd, addr, addrlen);
 	SET_ERR
 }
-i32 accept(int sockfd, struct sockaddr *addr, u32 *addrlen) {
+i32 accept(i32 sockfd, struct sockaddr *addr, u32 *addrlen) {
 	i32 ret = syscall_accept(sockfd, addr, addrlen);
 	SET_ERR
 }
-i32 shutdown(int sockfd, int how) {
+i32 shutdown(i32 sockfd, int how) {
 	i32 ret = syscall_shutdown(sockfd, how);
 	SET_ERR
 }
 
-i32 socket(int domain, int type, int protocol) {
+i32 socket(i32 domain, int type, int protocol) {
 	i32 ret = syscall_socket(domain, type, protocol);
 	SET_ERR
 }
@@ -658,29 +658,29 @@ i32 settimeofday(const struct timeval *tv, const struct timezone *tz) {
 	i32 ret = syscall_settimeofday(tv, tz);
 	SET_ERR
 }
-i32 epoll_create1(int flags) {
+i32 epoll_create1(i32 flags) {
 	i32 ret = syscall_epoll_create1(flags);
 	SET_ERR
 }
 
-i32 epoll_pwait(int epfd, struct epoll_event *events, int maxevents,
+i32 epoll_pwait(i32 epfd, struct epoll_event *events, int maxevents,
 		i32 timeout, const sigset_t *sigmask, u64 size) {
 	i32 ret = syscall_epoll_pwait(epfd, events, maxevents, timeout, sigmask,
 				      size);
 	SET_ERR
 }
 
-i32 epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
+i32 epoll_ctl(i32 epfd, int op, int fd, struct epoll_event *event) {
 	i32 ret = syscall_epoll_ctl(epfd, op, fd, event);
 	SET_ERR
 }
 
-i32 openat(int dfd, const u8 *pathname, int flags, u32 mode) {
+i32 openat(i32 dfd, const u8 *pathname, int flags, u32 mode) {
 	i32 ret = syscall_openat(dfd, pathname, flags, mode);
 	SET_ERR
 }
 
-i64 lseek(int fd, i64 offset, int whence) {
+i64 lseek(i32 fd, i64 offset, int whence) {
 	i64 ret = syscall_lseek(fd, offset, whence);
 	SET_ERR
 }
@@ -691,7 +691,7 @@ i32 setitimer(i32 which, const struct itimerval *new_value,
 	SET_ERR
 }
 
-i32 rt_sigaction(int signum, const struct rt_sigaction *act,
+i32 rt_sigaction(i32 signum, const struct rt_sigaction *act,
 		 struct rt_sigaction *oldact, u64 sigsetsize) {
 	i32 ret = syscall_rt_sigaction(signum, act, oldact, sigsetsize);
 	SET_ERR
