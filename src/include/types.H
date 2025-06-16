@@ -114,8 +114,8 @@ struct sockaddr_in {
 };
 
 struct timespec {
-	long tv_sec;
-	long tv_nsec;
+	uint64_t tv_sec;
+	uint64_t tv_nsec;
 };
 
 struct timezone {
@@ -124,8 +124,8 @@ struct timezone {
 };
 
 struct timeval {
-	long tv_sec;
-	long tv_usec;
+	uint64_t tv_sec;
+	uint64_t tv_usec;
 };
 
 struct itimerval {
