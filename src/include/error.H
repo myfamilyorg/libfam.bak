@@ -164,7 +164,7 @@
 #define EKEYREVOKED 128	   /* Key has been revoked */
 #define EKEYREJECTED 129   /* Key was rejected by service */
 
-extern int err;
+extern i32 err;
 
 const u8 *error_string(i32 err_code);
 void perror(const u8 *);

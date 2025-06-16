@@ -32,9 +32,9 @@
 
 typedef struct Connection Connection;
 
-typedef int (*OnRecvFn)(void *ctx, Connection *conn, u64 rlen);
-typedef int (*OnAcceptFn)(void *ctx, Connection *conn);
-typedef int (*OnCloseFn)(void *ctx, Connection *conn);
+typedef i32 (*OnRecvFn)(void *ctx, Connection *conn, u64 rlen);
+typedef i32 (*OnAcceptFn)(void *ctx, Connection *conn);
+typedef i32 (*OnCloseFn)(void *ctx, Connection *conn);
 
 typedef enum { Acceptor, Inbound, Outbound } ConnectionType;
 

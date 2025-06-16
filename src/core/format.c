@@ -40,7 +40,7 @@ static void reverse(u8* str, u64 len) {
 	}
 }
 
-static u64 uint_to_str(u64 num, u8* buf, int base, int upper) {
+static u64 uint_to_str(u64 num, u8* buf, i32 base, i32 upper) {
 	const u8* digits;
 	u64 i;
 	u64 temp;
@@ -58,7 +58,7 @@ static u64 uint_to_str(u64 num, u8* buf, int base, int upper) {
 	return i;
 }
 
-static u64 int_to_str(i64 num, u8* buf, int base, int upper) {
+static u64 int_to_str(i64 num, u8* buf, i32 base, i32 upper) {
 	u64 i;
 	i64 temp;
 
@@ -72,7 +72,7 @@ static u64 int_to_str(i64 num, u8* buf, int base, int upper) {
 
 	return i + uint_to_str((u64)temp, buf + i, base, upper);
 }
-static int vsnprintf(u8* str, u64 size, const u8* format,
+static i32 vsnprintf(u8* str, u64 size, const u8* format,
 		     __builtin_va_list ap) {
 	const u8* fmt;
 	u64 pos;

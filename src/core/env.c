@@ -33,7 +33,7 @@
 
 extern u8 **environ;
 
-static int env_count(void) {
+static i32 env_count(void) {
 	i32 count = 0;
 	if (environ) {
 		while (environ[count]) count++;
@@ -87,7 +87,7 @@ u8 *getenv(const u8 *name) {
 	return 0;
 }
 
-i32 setenv(const u8 *name, const u8 *value, int overwrite) {
+i32 setenv(const u8 *name, const u8 *value, i32 overwrite) {
 	u8 *existing, *new_entry, **new_environ;
 	i32 name_len, value_len, entry_len, i, count;
 

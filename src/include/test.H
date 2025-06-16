@@ -37,7 +37,7 @@
 void add_test_fn(void (*test_fn)(void), const u8 *name);
 static __attribute__ ((unused)) const u8 *__assertion_msg = "\nassertion failed in test";
 
-extern int exe_test;
+extern i32 exe_test;
 typedef struct {
 	void (*test_fn)(void);
 	u8 name[MAX_TEST_NAME + 1];

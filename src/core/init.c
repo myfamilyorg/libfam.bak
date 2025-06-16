@@ -29,7 +29,7 @@
 
 #define MAX_EXIT 64
 
-static int has_begun = 0;
+static i32 has_begun = 0;
 
 void begin(void) {
 	if (!has_begun) {

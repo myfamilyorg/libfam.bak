@@ -48,7 +48,7 @@ i64 micros(void) {
 	return (i64)tv.tv_sec * 1000000 + tv.tv_usec;
 }
 
-i32 open(const u8 *path, int flags, u32 mode) {
+i32 open(const u8 *path, i32 flags, u32 mode) {
 	return openat(-100, path, flags, mode);
 }
 

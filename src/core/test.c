@@ -985,7 +985,7 @@ Test(b642) {
 	ASSERT(!memcmp(buf3, "abcde", 5), "five_byte_decode");
 }
 
-extern int cur_tasks;
+extern i32 cur_tasks;
 i32 ecount = 0;
 void my_exit(void) { ecount++; }
 

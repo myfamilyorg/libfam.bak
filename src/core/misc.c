@@ -105,7 +105,7 @@ u8 *substrn(const u8 *s, const u8 *sub, u64 n) {
 	return NULL;
 }
 
-u8 *strchr(const u8 *s, int c) {
+u8 *strchr(const u8 *s, i32 c) {
 	while (*s) {
 		if (*s == c) return (u8 *)s;
 		s++;
@@ -113,7 +113,7 @@ u8 *strchr(const u8 *s, int c) {
 	return (*s == c) ? (u8 *)s : 0;
 }
 
-void *memset(void *dest, int c, u64 n) {
+void *memset(void *dest, i32 c, u64 n) {
 	u8 *s = (u8 *)dest;
 	u64 i;
 
@@ -328,7 +328,7 @@ i128 string_to_int128(const u8 *buf, u64 len) {
 	return result;
 }
 
-u64 double_to_string(u8 *buf, double v, int max_decimals) {
+u64 double_to_string(u8 *buf, double v, i32 max_decimals) {
 	u8 temp[41];
 	u64 pos = 0;
 	u64 len;
@@ -636,7 +636,7 @@ u64 b64_decode(const u8 *in, u64 in_len, u8 *out, u64 out_max) {
 	i32 b1;
 	i32 b2;
 	i32 b3;
-	static const int decode_table[256] = {
+	static const i32 decode_table[256] = {
 	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63,

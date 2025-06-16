@@ -107,7 +107,7 @@ STATIC void rbtree_insert_fixup(RbTree *tree, RbTreeNode *k) {
 }
 
 STATIC void rbtree_insert_transplant(RbTreeNode *prev, RbTreeNode *next,
-				     int is_right) {
+				     i32 is_right) {
 	RbTreeNode *parent = PARENT(next);
 	memcpy((u8 *)next, (u8 *)prev, sizeof(RbTreeNode));
 

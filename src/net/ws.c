@@ -324,7 +324,7 @@ i32 ws_stop(Ws *ws) {
 u64 ws_connection_id(WsConnection *conn) { return conn->id; }
 WsConnection *ws_connect(Ws *ws, const u8 *url);
 
-i32 ws_connection_close(WsConnection *conn, int code __attribute__((unused)),
+i32 ws_connection_close(WsConnection *conn, i32 code __attribute__((unused)),
 			const u8 *reason __attribute__((unused))) {
 	connection_close(&conn->connection);
 	return 0;

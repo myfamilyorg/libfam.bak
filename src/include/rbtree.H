@@ -44,7 +44,7 @@ typedef struct RbTree {
 	RbTreeNode *root;
 } RbTree;
 
-typedef int (*RbTreeSearch)(RbTreeNode *base, const RbTreeNode *value,
+typedef i32 (*RbTreeSearch)(RbTreeNode *base, const RbTreeNode *value,
 			    RbTreeNodePair *retval);
 
 RbTreeNode *rbtree_put(RbTree *tree, RbTreeNode *value,

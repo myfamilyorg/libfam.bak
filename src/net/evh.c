@@ -185,7 +185,7 @@ STATIC i32 proc_write(Evh *evh, Connection *conn,
 	return 0;
 }
 
-STATIC void event_loop(Evh *evh, void *ctx, int wakeup) {
+STATIC void event_loop(Evh *evh, void *ctx, i32 wakeup) {
 	i32 i, count;
 	Event events[MAX_EVENTS];
 

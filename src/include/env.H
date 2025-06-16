@@ -30,7 +30,7 @@
 
 u8 *getenv(const u8 *name);
 i32 unsetenv(const u8 *name);
-i32 setenv(const u8 *name, const u8 *value, int overwrite);
+i32 setenv(const u8 *name, const u8 *value, i32 overwrite);
 void init_environ(void);
 
 #endif /* _ENV_H__ */
