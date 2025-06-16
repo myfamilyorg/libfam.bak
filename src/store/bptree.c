@@ -29,6 +29,7 @@
 #include <error.H>
 #include <format.H>
 #include <misc.H>
+#include <rbtree.H>
 #include <sys.H>
 
 #define MIN_SIZE (NODE_SIZE * 4)
@@ -59,6 +60,7 @@ struct BpTxn {
 	BpTree *tree;
 	u64 txn_id;
 	u64 root;
+	RbTree overrides;
 };
 
 typedef struct {
