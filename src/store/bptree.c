@@ -32,19 +32,18 @@
 #include <rbtree.H>
 #include <sys.H>
 
+#define STATIC_ASSERT(condition, message) \
+	typedef u8 static_assert_##message[(condition) ? 1 : -1]
+
 #define MIN_SIZE (NODE_SIZE * 4)
 #define BASE_PTR(txn) ((u8 *)txn->tree->base)
-#define RUNTIME_NODE(txn) ((RuntimeNode *)(BASE_PTR(txn) + (NODE_SIZE * 2)))
+#define RUNTIME_NODE(tree) ((RuntimeNode *)((u8 *)tree->base + (NODE_SIZE * 2)))
 #define METADATA1(tree) ((MetadataNode *)tree->base)
 #define METADATA2(tree) ((MetadataNode *)(((u8 *)tree->base + NODE_SIZE)))
-#define FREE_LIST_NODE(tree) ((FreeList *)(((u8 *)tree->base + 3 * NODE_SIZE)))
 #define NODE_OFFSET(index) (index * NODE_SIZE)
 #define NODE(txn, index) \
 	((BpTreeNode *)(((u8 *)txn->tree->base) + NODE_SIZE * index))
-#define FIRST_NODE 4
-
-#define STATIC_ASSERT(condition, message) \
-	typedef u8 static_assert_##message[(condition) ? 1 : -1]
+#define FIRST_NODE 3
 
 STATIC_ASSERT(sizeof(BpTreeNode) == NODE_SIZE, bptree_node_size);
 STATIC_ASSERT(sizeof(BpTreeLeafNode) == sizeof(BpTreeInternalNode),
@@ -70,22 +69,83 @@ typedef struct {
 
 typedef struct {
 	u64 next_txn_id;
+	u64 free_list_head;
+	u64 next_file_node;
 } RuntimeNode;
 
 typedef struct {
-	u64 head;
-	u64 next_file_node;
-} FreeList;
+	RbTreeNode _reserved;
+	u64 node_id;
+	u64 override;
+} BpRbTreeNode;
+
+STATIC i32 bptree_rbtree_search(RbTreeNode *cur, const RbTreeNode *value,
+				RbTreeNodePair *retval) {
+	while (cur) {
+		u64 v1 = ((BpRbTreeNode *)cur)->node_id;
+		u64 v2 = ((BpRbTreeNode *)value)->node_id;
+		if (v1 == v2) {
+			retval->self = cur;
+			break;
+		} else if (v1 < v2) {
+			retval->parent = cur;
+			retval->is_right = 1;
+			cur = cur->right;
+		} else {
+			retval->parent = cur;
+			retval->is_right = 0;
+			cur = cur->left;
+		}
+		retval->self = cur;
+	}
+	return 0;
+}
+
+STATIC BpTreeNode *allocate_node(BpTxn *txn) {
+	RuntimeNode *runtime;
+	u64 expected, current;
+	if (!txn) return NULL;
+
+	runtime = RUNTIME_NODE(txn->tree);
+	do {
+		current = ALOAD(&runtime->next_file_node);
+		if (current * NODE_SIZE >= txn->tree->capacity) {
+			err = ENOMEM;
+			return NULL;
+		}
+		expected = current;
+	} while (!__cas64(&runtime->next_file_node, &expected, current + 1));
+	return NODE(txn, current);
+}
+
+STATIC BpTreeNode *copy_node(BpTxn *txn, BpTreeNode *node) {
+	BpTreeNode *copy;
+	BpRbTreeNode *value = alloc(sizeof(BpRbTreeNode));
+	if (!value) return NULL;
+	copy = allocate_node(txn);
+	if (!copy) {
+		release(value);
+		return NULL;
+	}
+
+	value->node_id = bptree_node_id(txn, node);
+	value->override = bptree_node_id(txn, copy);
+	rbtree_put(&txn->overrides, (RbTreeNode *)value, bptree_rbtree_search);
+	memcpy(copy, node, NODE_SIZE);
+	copy->is_copy = true;
+
+	return copy;
+}
 
 STATIC void bptree_ensure_init(BpTree *tree) {
 	MetadataNode *m1 = METADATA1(tree);
-	FreeList *fl = FREE_LIST_NODE(tree);
+	RuntimeNode *run = RUNTIME_NODE(tree);
 	u64 expected = 0;
 	__cas64(&m1->root, &expected, FIRST_NODE);
 	expected = 0;
 	__cas64(&m1->counter, &expected, 1);
 	expected = 0;
-	__cas64(&fl->next_file_node, &expected, FIRST_NODE + 1);
+	__cas64(&run->next_file_node, &expected, FIRST_NODE + 1);
 }
 
 STATIC void shift_by_offset(BpTreeNode *node, u16 key_index, u16 shift) {
@@ -117,23 +177,6 @@ STATIC void place_entry(BpTreeNode *node, u16 key_index, const void *key,
 	    value, value_len);
 }
 
-STATIC BpTreeNode *allocate_node(BpTxn *txn) {
-	FreeList *free_list;
-	u64 expected, current;
-	if (!txn) return NULL;
-
-	free_list = FREE_LIST_NODE(txn->tree);
-	do {
-		current = ALOAD(&free_list->next_file_node);
-		if (current * NODE_SIZE >= txn->tree->capacity) {
-			err = ENOMEM;
-			return NULL;
-		}
-		expected = current;
-	} while (!__cas64(&free_list->next_file_node, &expected, current + 1));
-	return NODE(txn, current);
-}
-
 STATIC void insert_entry(BpTreeNode *node, u16 key_index, u16 space_needed,
 			 const void *key, u16 key_len, const void *value,
 			 u32 value_len) {
@@ -149,83 +192,99 @@ STATIC void insert_entry(BpTreeNode *node, u16 key_index, u16 space_needed,
 	node->num_entries++;
 }
 
-STATIC BpTreeNode *new_node(BpTxn *txn, BpTreeNode *node, u16 midpoint) {
-	BpTreeNode *new = allocate_node(txn);
-	BpTreeNode *nparent = allocate_node(txn);
-	BpTreeInternalEntry ent;
-	u16 mid_offset = node->data.leaf.entry_offsets[midpoint];
-	BpTreeEntry *mident =
-	    (BpTreeEntry *)(((u8 *)node->data.leaf.entries) + mid_offset);
-	BpTreeEntry *zeroent = (BpTreeEntry *)((u8 *)node->data.leaf.entries);
-	if (!nparent || !new) return NULL; /* TODO: release other */
-
-	printf("new node!\n");
-
-	nparent->is_internal = true;
-	nparent->parent_id = 0; /* Set to root for now */
-	nparent->num_entries = 2;
-	nparent->used_bytes = mident->key_len + zeroent->key_len +
-			      sizeof(BpTreeInternalEntry) * 2;
-	nparent->data.internal.entry_offsets[0] = 0;
-	nparent->data.internal.entry_offsets[1] =
-	    zeroent->key_len + sizeof(BpTreeInternalEntry);
-	printf("setting offset=%u\n", nparent->data.internal.entry_offsets[1]);
-
-	txn->root = bptree_node_id(txn, nparent);
-	new->parent_id = txn->root;
-	node->parent_id = txn->root;
-
-	ent.key_len = zeroent->key_len;
-	ent.node_id = bptree_node_id(txn, node);
-	printf("ent->node_id=%i\n", ent.node_id);
-
-	memcpy((u8 *)nparent->data.internal.key_entries, &ent,
-	       sizeof(BpTreeInternalEntry));
-	memcpy((u8 *)nparent->data.internal.key_entries +
-		   sizeof(BpTreeInternalEntry),
-	       (u8 *)zeroent + sizeof(BpTreeEntry), zeroent->key_len);
-
-	ent.key_len = mident->key_len;
-	ent.node_id = bptree_node_id(txn, new);
-	printf("new ent->node_id=%i,offsetent=%i\n", ent.node_id,
-	       sizeof(BpTreeInternalEntry) + zeroent->key_len);
-
-	memcpy((u8 *)nparent->data.internal.key_entries +
-		   sizeof(BpTreeInternalEntry) + zeroent->key_len,
-	       &ent, sizeof(BpTreeInternalEntry));
-	memcpy((u8 *)nparent->data.internal.key_entries +
-		   sizeof(BpTreeInternalEntry) * 2 + zeroent->key_len,
-	       (u8 *)mident + sizeof(BpTreeEntry), mident->key_len);
-
-	return new;
-}
-
 STATIC i32 split_node(BpTxn *txn, BpTreeNode *node, const void *key,
 		      u16 key_len, const void *value, u16 value_len,
 		      u16 key_index, u64 space_needed) {
-	i32 i;
-	u16 midpoint;
-	u16 pos;
-	BpTreeNode *new;
+	BpTreeNode *nparent, *sibling;
+	BpTreeEntry *ent;
+	BpTreeInternalEntry *internal_ent;
+	BpRbTreeNode *nvalue;
+	u16 midpoint, pos, i;
+	if (!txn || !node || !key || key_len == 0 || !value || value_len == 0 ||
+	    key_index > node->num_entries || space_needed == 0) {
+		return -1;
+	}
 
-	midpoint = node->num_entries / 2;
-	new = new_node(txn, node, midpoint);
-	if (!new) return -1;
+	if (!node->is_copy) {
+		node = copy_node(txn, node);
+		if (node == NULL) return -1;
+	}
 
+	printf("split_node\n");
+
+	nparent = allocate_node(txn);
+	sibling = allocate_node(txn);
+
+	if (nparent == NULL || sibling == NULL) return -1;
+	/* TODO: release any good nodes */
+
+	nparent->is_copy = sibling->is_copy = true;
+	nparent->is_internal = true;
+	/* TODO: for now just root, but later add support */
+	nparent->parent_id = 0;
+	nparent->num_entries = 2;
+	sibling->parent_id = bptree_node_id(txn, nparent);
+	sibling->is_internal = false;
+
+	midpoint = node->num_entries / 2; /* TODO: edge cases */
 	pos = node->data.leaf.entry_offsets[midpoint];
-	memcpy(new->data.leaf.entries, node->data.leaf.entries + pos,
+
+	printf("midpoint=%u,pos=%u\n", midpoint, pos);
+
+	memcpy(sibling->data.leaf.entries, node->data.leaf.entries + pos,
 	       node->used_bytes - pos);
 	memcpy(node->data.leaf.entry_offsets,
-	       new->data.leaf.entry_offsets + midpoint,
+	       sibling->data.leaf.entry_offsets + midpoint,
 	       node->num_entries - midpoint);
 	for (i = 0; i < node->num_entries - midpoint; i++)
-		new->data.leaf.entry_offsets[i] -= pos;
+		sibling->data.leaf.entry_offsets[i] -= pos;
+	sibling->num_entries = node->num_entries - midpoint;
+	node->num_entries = midpoint;
+	sibling->used_bytes = node->used_bytes - pos;
+	node->used_bytes = pos;
+
+	nparent->data.internal.entry_offsets[0] = 0;
+	ent = (BpTreeEntry *)node->data.leaf.entries;
+	internal_ent =
+	    (BpTreeInternalEntry *)nparent->data.internal.key_entries;
+	internal_ent->node_id = bptree_node_id(txn, node);
+	internal_ent->key_len = ent->key_len;
+
+	memcpy((u8 *)nparent->data.internal.key_entries +
+		   sizeof(BpTreeInternalEntry),
+	       node->data.leaf.entries + sizeof(BpTreeEntry), ent->key_len);
+	nparent->data.internal.entry_offsets[1] =
+	    ent->key_len + sizeof(BpTreeInternalEntry);
+	ent = (BpTreeEntry *)sibling->data.leaf.entries;
+	internal_ent =
+	    (BpTreeInternalEntry *)((u8 *)nparent->data.internal.key_entries +
+				    nparent->data.internal.entry_offsets[1]);
+	internal_ent->node_id = bptree_node_id(txn, sibling);
+	internal_ent->key_len = ent->key_len;
+	memcpy((u8 *)nparent->data.internal.key_entries +
+		   nparent->data.internal.entry_offsets[1] +
+		   sizeof(BpTreeInternalEntry),
+	       sibling->data.leaf.entries + sizeof(BpTreeEntry), ent->key_len);
+
+	nparent->used_bytes = nparent->data.internal.entry_offsets[1] +
+			      ent->key_len + sizeof(BpTreeInternalEntry);
+
+	nvalue = alloc(sizeof(BpRbTreeNode));
+	if (nvalue == NULL) {
+		/* TODO: cleanup */
+		return -1;
+	}
+	nvalue->node_id = txn->root;
+	nvalue->override = bptree_node_id(txn, nparent);
+
+	/* TODO release returned node */
+	rbtree_put(&txn->overrides, (RbTreeNode *)nvalue, bptree_rbtree_search);
 
 	if (key_index <= midpoint)
 		insert_entry(node, key_index, space_needed, key, key_len, value,
 			     value_len);
 	else
-		insert_entry(new, key_index - midpoint, space_needed, key,
+		insert_entry(sibling, key_index - midpoint, space_needed, key,
 			     key_len, value, value_len);
 
 	return 0;
@@ -285,7 +344,8 @@ BpTxn *bptxn_start(BpTree *tree) {
 	ret = alloc(sizeof(BpTxn));
 	if (ret == NULL) return NULL;
 	ret->tree = tree;
-	ret->txn_id = __add64(&(RUNTIME_NODE(ret)->next_txn_id), 1);
+	ret->txn_id = __add64(&(RUNTIME_NODE(tree)->next_txn_id), 1);
+	ret->overrides = INIT_RBTREE;
 
 	m1 = METADATA1(tree);
 	m2 = METADATA2(tree);
@@ -304,54 +364,23 @@ BpTxn *bptxn_start(BpTree *tree) {
 	return ret;
 }
 
-i32 bptxn_commit(BpTxn *txn);
-i32 bptxn_abort(BpTxn *txn);
-
-i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
-	       u32 value_len, const BpTreeSearch search) {
-	BpTreeSearchResult res;
-	BpTreeNode *node, *copy;
-	u64 space_needed;
-
-	if (key_len == 0 || value_len == 0 || key == NULL || value == NULL ||
-	    txn == NULL) {
-		err = EINVAL;
-		return -1;
-	}
-
-	node = NODE(txn, txn->root);
-	search(txn, key, key_len, node, &res);
-	if (res.found) return -1; /* Duplicate */
-
-	space_needed = key_len + value_len + sizeof(BpTreeEntry);
-	if (space_needed + node->used_bytes > LEAF_ARRAY_SIZE ||
-	    (u64)(node->num_entries + 1) >= MAX_LEAF_ENTRIES) {
-		if (split_node(txn, node, key, key_len, value, value_len,
-			       res.key_index, space_needed) == -1)
-			return -1;
-
-	} else {
-		copy = allocate_node(txn);
-		if (!copy) return -1;
-		memcpy(copy, node, NODE_SIZE);
-		txn->root = bptree_node_id(txn, copy);
-
-		insert_entry(copy, res.key_index, space_needed, key, key_len,
-			     value, value_len);
-	}
-
-	return 0;
-}
-
-BpTreeEntry *bptree_remove(BpTxn *txn, const void *key, u16 key_len,
-			   const void *value, u64 value_len,
-			   const BpTreeSearch search);
-
 BpTreeNode *bptxn_get_node(BpTxn *txn, u64 node_id) {
+	RbTreeNodePair retval = {0};
+	BpRbTreeNode value;
 	BpTreeNode *ret = NODE(txn, node_id);
 	if ((((u8 *)ret) - ((u8 *)txn->tree->base)) + NODE_SIZE >
 	    txn->tree->capacity)
 		return NULL;
+	/* Check for overrides */
+	value.node_id = node_id;
+	bptree_rbtree_search(txn->overrides.root, (RbTreeNode *)&value,
+			     &retval);
+
+	if (retval.self) {
+		u64 override = ((BpRbTreeNode *)retval.self)->override;
+		return NODE(txn, override);
+	}
+
 	return ret;
 }
 BpTreeNode *bptree_root(BpTxn *txn) {
@@ -361,4 +390,40 @@ BpTreeNode *bptree_root(BpTxn *txn) {
 
 u64 bptree_node_id(BpTxn *txn, const BpTreeNode *node) {
 	return ((u8 *)node - (u8 *)txn->tree->base) / NODE_SIZE;
+}
+
+i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
+	       u32 value_len, const BpTreeSearch search) {
+	BpTreeSearchResult res;
+	BpTreeNode *node;
+	u64 space_needed;
+
+	if (key_len == 0 || value_len == 0 || key == NULL || value == NULL ||
+	    txn == NULL) {
+		err = EINVAL;
+		return -1;
+	}
+
+	node = bptxn_get_node(txn, txn->root);
+	search(txn, key, key_len, node, &res);
+	if (res.found) return -1;
+
+	space_needed = key_len + value_len + sizeof(BpTreeEntry);
+	if (space_needed + node->used_bytes > LEAF_ARRAY_SIZE ||
+	    (u64)(node->num_entries + 1) >= MAX_LEAF_ENTRIES) {
+		printf("split!\n");
+		split_node(txn, node, key, key_len, value, value_len,
+			   res.key_index, space_needed);
+
+	} else {
+		if (!node->is_copy) {
+			node = copy_node(txn, node);
+			if (node == NULL) return -1;
+		}
+
+		insert_entry(node, res.key_index, space_needed, key, key_len,
+			     value, value_len);
+	}
+
+	return 0;
 }

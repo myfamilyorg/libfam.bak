@@ -32,7 +32,6 @@
 void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 			const BpTreeNode *node, BpTreeSearchResult *retval) {
 	i32 i;
-	/* Simplify for now, just use root node only */
 	retval->found = false;
 
 	while (node->is_internal) {
@@ -223,3 +222,4 @@ Test(bptree_split) {
 	release(txn);
 	unlink(path);
 }
+

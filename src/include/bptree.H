@@ -46,55 +46,56 @@ typedef struct BpTxn BpTxn;
 
 /* The result returned in a search, used by put/remove */
 typedef struct {
-	u64 node_id;
-	u16 key_index;
-	bool found;
+        u64 node_id;
+        u16 key_index;
+        bool found;
 } BpTreeSearchResult;
 
 /* BpTree entry */
 typedef struct {
-	u32 value_len;
-	u16 key_len;
-	u8 flags;
+        u32 value_len;
+        u16 key_len;
+        u8 flags;
 } BpTreeEntry;
 
 /* BpTree Internal entry */
 typedef struct {
-	u16 key_len;
-	u64 node_id;
+        u16 key_len;
+        u64 node_id;
 } BpTreeInternalEntry;
 
 /* Data specific to an internal node */
 typedef struct {
-	u16 entry_offsets[MAX_INTERNAL_ENTRIES];
-	u8 key_entries[INTERNAL_ARRAY_SIZE];
+        u16 entry_offsets[MAX_INTERNAL_ENTRIES];
+        u8 key_entries[INTERNAL_ARRAY_SIZE];
 } BpTreeInternalNode;
 
 /* Data specific to a leaf node */
 typedef struct {
-	u64 next_leaf;
-	u16 entry_offsets[MAX_LEAF_ENTRIES];
-	u8 entries[LEAF_ARRAY_SIZE];
+        u64 next_leaf;
+        u16 entry_offsets[MAX_LEAF_ENTRIES];
+        u8 entries[LEAF_ARRAY_SIZE];
 } BpTreeLeafNode;
+
 
 /* BpTree Node */
 typedef struct {
-	u64 node_id;
 	u64 parent_id;
-	u64 free_list_next;
-	u16 num_entries;
-	u16 used_bytes;
+        u16 num_entries;
+        u16 used_bytes;
 	bool is_internal;
-	union {
-		BpTreeInternalNode internal;
-		BpTreeLeafNode leaf;
-	} data;
+	bool is_copy;
+	u8 reserved[18];
+        union {
+                BpTreeInternalNode internal;
+                BpTreeLeafNode leaf;
+        } data;
 } BpTreeNode;
 
 /* User defined search */
 typedef void (*BpTreeSearch)(BpTxn *txn, const void *key, u16 key_len,
-			     const BpTreeNode *node,
-			     BpTreeSearchResult *retval);
+                             const BpTreeNode *node,
+                             BpTreeSearchResult *retval);
 
 /* Opening/Closing */
 BpTree *bptree_open(const u8 *path);
@@ -107,10 +108,10 @@ i32 bptxn_abort(BpTxn *txn);
 
 /* Modification functions */
 i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
-	       u32 value_len, const BpTreeSearch search);
+               u32 value_len, const BpTreeSearch search);
 BpTreeEntry *bptree_remove(BpTxn *txn, const void *key, u16 key_len,
-			   const void *value, u64 value_len,
-			   const BpTreeSearch search);
+                           const void *value, u64 value_len,
+                           const BpTreeSearch search);
 
 /* Helpers needed for search */
 BpTreeNode *bptxn_get_node(BpTxn *txn, u64 node_id);

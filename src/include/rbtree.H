@@ -26,7 +26,7 @@
 #ifndef _RBTREE_H
 #define _RBTREE_H
 
-#define INIT_RBTREE      {0}           
+#include <types.H>
 
 typedef struct RbTreeNode {
 	struct RbTreeNode *parent_color;
@@ -43,6 +43,8 @@ typedef struct {
 typedef struct {
 	RbTreeNode *root;
 } RbTree;
+
+static const RbTree INIT_RBTREE = {NULL};
 
 typedef i32 (*RbTreeSearch)(RbTreeNode *base, const RbTreeNode *value,
 			    RbTreeNodePair *retval);
