@@ -631,7 +631,7 @@ Test(rbtree3) {
 		}
 
 		for (i = 0; i < STRESS_SIZE; i++) {
-			RbTreeNodePair retval;
+			RbTreeNodePair retval = {0};
 			TestRbTreeNode v = {0};
 			v.value = values[i].value;
 			test_rbsearch(tree.root, (RbTreeNode *)&v, &retval);
