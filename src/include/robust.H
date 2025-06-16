@@ -39,7 +39,7 @@ void robustguard_cleanup(RobustGuardImpl *lg);
 #define RobustGuard \
 	RobustGuardImpl __attribute__((unused, cleanup(robustguard_cleanup)))
 
-int robust_init(RobustLock *lock, u64 *shared_memory_location);
+i32 robust_init(RobustLock *lock, u64 *shared_memory_location);
 RobustGuard robust_lock(RobustLock *lock);
 
 #endif /* _ROBUST_H */

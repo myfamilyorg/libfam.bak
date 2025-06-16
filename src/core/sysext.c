@@ -29,12 +29,12 @@
 #include <sys.H>
 #include <syscall_const.H>
 
-int file(const u8 *path) {
-	int ret = open(path, O_CREAT | O_RDWR, 0600);
+i32 file(const u8 *path) {
+	i32 ret = open(path, O_CREAT | O_RDWR, 0600);
 	return ret;
 }
-int exists(const u8 *path) {
-	int fd = open(path, O_RDWR, 0600);
+i32 exists(const u8 *path) {
+	i32 fd = open(path, O_RDWR, 0600);
 	if (fd > 0) {
 		close(fd);
 		return 1;
@@ -48,15 +48,15 @@ i64 micros(void) {
 	return (i64)tv.tv_sec * 1000000 + tv.tv_usec;
 }
 
-int open(const u8 *path, int flags, u32 mode) {
+i32 open(const u8 *path, int flags, u32 mode) {
 	return openat(-100, path, flags, mode);
 }
 
-int unlink(const u8 *path) { return unlinkat(-100, path, 0); }
+i32 unlink(const u8 *path) { return unlinkat(-100, path, 0); }
 
-int sleepm(u64 millis) {
+i32 sleepm(u64 millis) {
 	struct timespec req;
-	int ret;
+	i32 ret;
 	req.tv_sec = millis / 1000;
 	req.tv_nsec = (millis % 1000) * 1000000;
 	ret = nanosleep(&req, &req);
@@ -68,8 +68,8 @@ i64 fsize(int fd) {
 	return ret;
 }
 
-int fresize(int fd, i64 length) {
-	int ret = ftruncate(fd, length);
+i32 fresize(int fd, i64 length) {
+	i32 ret = ftruncate(fd, length);
 	return ret;
 }
 
@@ -99,19 +99,19 @@ void *smap(u64 length) {
 	return v;
 }
 
-int flush(int fd) {
-	int ret = fdatasync(fd);
+i32 flush(int fd) {
+	i32 ret = fdatasync(fd);
 	return ret;
 }
 
-int sched_yield(void);
-int yield(void) {
-	int ret = sched_yield();
+i32 sched_yield(void);
+i32 yield(void) {
+	i32 ret = sched_yield();
 	return ret;
 }
 
-int pipe(int fds[2]) { return pipe2(fds, 0); }
+i32 pipe(int fds[2]) { return pipe2(fds, 0); }
 
-int getentropy(void *buffer, u64 length) {
+i32 getentropy(void *buffer, u64 length) {
 	return getrandom(buffer, length, GRND_RANDOM);
 }

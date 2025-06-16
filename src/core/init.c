@@ -41,7 +41,7 @@ void begin(void) {
 static void (*exit_fns[MAX_EXIT])(void);
 static u64 exit_count = 0;
 
-int register_exit(void (*fn)(void)) {
+i32 register_exit(void (*fn)(void)) {
 	u64 index = exit_count++;
 	if (index >= MAX_EXIT) {
 		exit_count--;
@@ -53,7 +53,7 @@ int register_exit(void (*fn)(void)) {
 }
 
 void __attribute__((destructor)) execute_exits(void) {
-	int i;
+	i32 i;
 	for (i = exit_count - 1; i >= 0; i--) {
 		exit_fns[i]();
 	}

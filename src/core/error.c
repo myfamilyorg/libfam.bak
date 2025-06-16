@@ -27,12 +27,12 @@
 #include <misc.H>
 #include <sys.H>
 
-int err = 0;
-int *__error(void) { return &err; }
+i32 err = 0;
+i32 *__error(void) { return &err; }
 bool _debug_no_write = false;
 
 void perror(const u8 *s) {
-	int len = 0, v = 2;
+	i32 len = 0, v = 2;
 	const u8 *err_msg;
 	if (s == NULL) return;
 	len = strlen(s);

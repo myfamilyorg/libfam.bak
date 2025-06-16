@@ -45,7 +45,7 @@ void sha1_init(SHA1_CTX *ctx) {
 
 static void sha1_transform(SHA1_CTX *ctx, const u8 *data) {
 	u32 a, b, c, d, e, t, w[80];
-	int i;
+	i32 i;
 
 	a = ctx->state[0];
 	b = ctx->state[1];

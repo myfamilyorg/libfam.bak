@@ -37,10 +37,10 @@ u8 LOCALHOST[4] = {127, 0, 0, 1};
 
 Test(event) {
 	Event events[10];
-	int val = 101;
-	int fds[2];
-	int mplex = multiplex();
-	int x;
+	i32 val = 101;
+	i32 fds[2];
+	i32 mplex = multiplex();
+	i32 x;
 	ASSERT(mplex > 0, "mplex");
 	pipe(fds);
 	ASSERT_EQ(mregister(mplex, fds[0], MULTIPLEX_FLAG_READ, &val), 0,
@@ -57,9 +57,9 @@ Test(event) {
 
 Test(socket_connect) {
 	u8 buf[10] = {0};
-	int server = -1, inbound;
-	int port = socket_listen(&server, LOCALHOST, 0, 10);
-	int conn = socket_connect(LOCALHOST, port);
+	i32 server = -1, inbound;
+	i32 port = socket_listen(&server, LOCALHOST, 0, 10);
+	i32 conn = socket_connect(LOCALHOST, port);
 
 	write(conn, "test", 4);
 	inbound = socket_accept(server);
@@ -76,13 +76,13 @@ Test(socket_connect) {
 }
 
 typedef struct {
-	int fd;
-	int v;
+	i32 fd;
+	i32 v;
 } ConnectionInfo;
 
 Test(multi_socket) {
 	u8 buf[10];
-	int server, inbound, client, mplex, port, cpid;
+	i32 server, inbound, client, mplex, port, cpid;
 	Event events[10];
 
 	mplex = multiplex();
@@ -93,7 +93,7 @@ Test(multi_socket) {
 	if ((cpid = two())) {
 		bool exit = false;
 		while (!exit) {
-			int v, i;
+			i32 v, i;
 			err = 0;
 			v = mwait(mplex, events, 10, -1);
 			for (i = 0; i < v; i++) {
@@ -134,7 +134,7 @@ Test(multi_socket) {
 }
 
 Test(socket_fails) {
-	int fd1, fd2, port;
+	i32 fd1, fd2, port;
 	ASSERT((port = socket_listen(&fd1, LOCALHOST, 0, 1)) > 0, "listen");
 	ASSERT(socket_listen(&fd2, LOCALHOST, port, 1) == -1, "listen2");
 	close(fd1);
@@ -144,13 +144,13 @@ Test(socket_fails) {
 u64 *value;
 Evh evh1;
 
-int on_accept(void *ctx __attribute__((unused)),
+i32 on_accept(void *ctx __attribute__((unused)),
 	      Connection *conn __attribute__((unused))) {
 	__add64(value, 1);
 	return 0;
 }
 
-int on_recv(void *ctx __attribute__((unused)), Connection *conn,
+i32 on_recv(void *ctx __attribute__((unused)), Connection *conn,
 	    u64 rlen __attribute__((unused))) {
 	u8 buf[1024 * 64];
 	InboundData *ib = &conn->data.inbound;
@@ -161,13 +161,13 @@ int on_recv(void *ctx __attribute__((unused)), Connection *conn,
 	return 0;
 }
 
-int on_close(void *ctx __attribute__((unused)),
+i32 on_close(void *ctx __attribute__((unused)),
 	     Connection *conn __attribute__((unused))) {
 	return 0;
 }
 
 Test(test_evh1) {
-	int port, tconn, total, x;
+	i32 port, tconn, total, x;
 	u8 buf[100];
 	Connection *conn;
 	ASSERT_BYTES(0);
@@ -203,18 +203,18 @@ Test(test_evh1) {
 	ASSERT_BYTES(0);
 }
 
-int *value2;
+i32 *value2;
 
-int on_accept2(void *ctx __attribute__((unused)),
+i32 on_accept2(void *ctx __attribute__((unused)),
 	       Connection *conn __attribute__((unused))) {
 	return 0;
 }
 
-int on_recv2(void *ctx __attribute__((unused)), Connection *conn,
+i32 on_recv2(void *ctx __attribute__((unused)), Connection *conn,
 	     u64 rlen __attribute__((unused))) {
 	InboundData *ib = &conn->data.inbound;
-	int *v = (int *)(ib->rbuf + ib->rbuf_offset - rlen);
-	int nv = *v + 1;
+	i32 *v = (int *)(ib->rbuf + ib->rbuf_offset - rlen);
+	i32 nv = *v + 1;
 
 	ASSERT_EQ(rlen, sizeof(int), "sizeof(int)");
 	ASTORE(value2, nv);
@@ -226,14 +226,14 @@ int on_recv2(void *ctx __attribute__((unused)), Connection *conn,
 	return 0;
 }
 
-int on_close2(void *ctx __attribute__((unused)),
+i32 on_close2(void *ctx __attribute__((unused)),
 	      Connection *conn __attribute__((unused))) {
 	return 0;
 }
 
 Test(test_evh2) {
 	Evh evh2;
-	int port, initial = 101;
+	i32 port, initial = 101;
 	Connection *conn, *client;
 	ASSERT_BYTES(0);
 
@@ -344,7 +344,7 @@ Test(test_evh_clear) {
 	ASSERT_BYTES(0);
 }
 
-int proc_wakeup(int fd);
+i32 proc_wakeup(int fd);
 
 u64 *confirm = NULL;
 
@@ -352,7 +352,7 @@ Test(test_evh_direct) { ASSERT_EQ(proc_wakeup(-1), -1, "proc_wakeup"); }
 
 void ws_on_open(WsConnection *conn __attribute__((unused))) {}
 void ws_on_close(WsConnection *conn __attribute__((unused))) {}
-int ws_on_message(WsConnection *conn, WsMessage *msg) {
+i32 ws_on_message(WsConnection *conn, WsMessage *msg) {
 	u8 buf[1024 * 64];
 
 	memcpy(buf, msg->buffer, msg->len);
@@ -372,7 +372,7 @@ Test(ws1) {
 	u16 port;
 	Ws *ws;
 	u8 buf[1];
-	int socket;
+	i32 socket;
 	const u8 *msg =
 	    "GET / HTTP/1.1\r\nSec-WebSocket-Key: "
 	    "dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n";
@@ -404,7 +404,7 @@ Test(ws1) {
 
 void ws_on_open2(WsConnection *conn __attribute__((unused))) {}
 void ws_on_close2(WsConnection *conn __attribute__((unused))) {}
-int ws_on_message2(WsConnection *conn, WsMessage *msg) {
+i32 ws_on_message2(WsConnection *conn, WsMessage *msg) {
 	u8 *buf = alloc(msg->len + 1);
 	memcpy(buf, msg->buffer, msg->len);
 	buf[msg->len] = 0;
@@ -421,25 +421,25 @@ Test(ws2) {
 	ASSERT_BYTES(0);
 }
 
-int on_accept3(void *ctx __attribute__((unused)),
+i32 on_accept3(void *ctx __attribute__((unused)),
 	       Connection *conn __attribute__((unused))) {
 	return 0;
 }
 
-int on_recv3(void *ctx __attribute__((unused)),
+i32 on_recv3(void *ctx __attribute__((unused)),
 	     Connection *conn __attribute__((unused)),
 	     u64 rlen __attribute__((unused))) {
 	return 0;
 }
 
-int on_close3(void *ctx __attribute__((unused)),
+i32 on_close3(void *ctx __attribute__((unused)),
 	      Connection *conn __attribute__((unused))) {
 	return 0;
 }
 
 Test(connection_write) {
 	Evh evh3;
-	int port, initial = 101;
+	i32 port, initial = 101;
 	Connection *conn, *client;
 	ASSERT_BYTES(0);
 

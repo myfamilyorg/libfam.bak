@@ -108,7 +108,7 @@ void recv(Channel *channel, void *dst) {
 	}
 }
 
-int recv_now(Channel *channel, void *dst) {
+i32 recv_now(Channel *channel, void *dst) {
 	u64 tail, head;
 	do {
 		tail = ALOAD(&channel->inner->tail);
@@ -124,7 +124,7 @@ int recv_now(Channel *channel, void *dst) {
 	return 0;
 }
 
-int send(Channel *channel, const void *src) {
+i32 send(Channel *channel, const void *src) {
 	u64 tail, head, num_messages;
 	do {
 		head = ALOAD(&channel->inner->head);

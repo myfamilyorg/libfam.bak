@@ -72,7 +72,7 @@ STATIC int ws_proc_handshake(WsConnection *wsconn) {
 	u8 accept[32];
 	u8 hash[20];
 	u8 decoded_key[16];
-	int lendec;
+	i32 lendec;
 	const u8 *guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 	if ((end = substrn(rbuf, "\r\n\r\n", rbuf_offset))) {
@@ -225,7 +225,7 @@ STATIC int ws_on_recv_proc(void *ctx, Connection *conn,
 	while (true) {
 		err = 0;
 		if (!wsconn->handshake_complete) {
-			int res = ws_proc_handshake(wsconn);
+			i32 res = ws_proc_handshake(wsconn);
 			if (res == 0) {
 				wsconn->handshake_complete = true;
 				continue;
@@ -281,7 +281,7 @@ Ws *ws_init(WsConfig *config, OnMessage on_message, OnOpen on_open,
 	return ret;
 }
 
-int ws_start(Ws *ws) {
+i32 ws_start(Ws *ws) {
 	u64 i;
 	ws->acceptor =
 	    evh_acceptor(ws->config.addr, ws->config.port, ws->config.backlog,
@@ -309,7 +309,7 @@ int ws_start(Ws *ws) {
 	return 0;
 }
 
-int ws_stop(Ws *ws) {
+i32 ws_stop(Ws *ws) {
 	u64 i;
 	for (i = 0; i < ws->workers; i++) {
 		evh_stop(&ws->evh[i]);
@@ -324,13 +324,13 @@ int ws_stop(Ws *ws) {
 u64 ws_connection_id(WsConnection *conn) { return conn->id; }
 WsConnection *ws_connect(Ws *ws, const u8 *url);
 
-int ws_connection_close(WsConnection *conn, int code __attribute__((unused)),
+i32 ws_connection_close(WsConnection *conn, int code __attribute__((unused)),
 			const u8 *reason __attribute__((unused))) {
 	connection_close(&conn->connection);
 	return 0;
 }
 
-int ws_send(WsConnection *conn, WsMessage *msg) {
+i32 ws_send(WsConnection *conn, WsMessage *msg) {
 	u8 buf[10];
 	u64 header_len;
 

@@ -52,7 +52,7 @@ STATIC_ASSERT(sizeof(BpTreeLeafNode) == sizeof(BpTreeInternalNode),
 struct BpTree {
 	void *base;
 	u64 capacity;
-	int fd;
+	i32 fd;
 };
 
 struct BpTxn {
@@ -87,7 +87,7 @@ STATIC void bptree_ensure_init(BpTree *tree) {
 }
 
 STATIC void shift_by_offset(BpTreeNode *node, u16 key_index, u16 shift) {
-	int i;
+	i32 i;
 	u16 pos = node->data.leaf.entry_offsets[key_index];
 	u16 bytes_to_move = node->used_bytes - pos;
 	void *dst = node->data.leaf.entries + pos + shift;
@@ -201,7 +201,7 @@ STATIC BpTreeNode *new_node(BpTxn *txn, BpTreeNode *node, u16 midpoint) {
 STATIC int split_node(BpTxn *txn, BpTreeNode *node, const void *key,
 		      u16 key_len, const void *value, u16 value_len,
 		      u16 key_index, u64 space_needed) {
-	int i;
+	i32 i;
 	u16 midpoint;
 	u16 pos;
 	BpTreeNode *new;
@@ -231,7 +231,7 @@ STATIC int split_node(BpTxn *txn, BpTreeNode *node, const void *key,
 
 BpTree *bptree_open(const u8 *path) {
 	BpTree *ret;
-	int fd = file(path);
+	i32 fd = file(path);
 	u64 capacity;
 
 	if (fd < 0) return NULL;
@@ -262,7 +262,7 @@ BpTree *bptree_open(const u8 *path) {
 	return ret;
 }
 
-int bptree_close(BpTree *tree) {
+i32 bptree_close(BpTree *tree) {
 	if (!tree) {
 		err = EINVAL;
 		return -1;
@@ -302,10 +302,10 @@ BpTxn *bptxn_start(BpTree *tree) {
 	return ret;
 }
 
-int bptxn_commit(BpTxn *txn);
-int bptxn_abort(BpTxn *txn);
+i32 bptxn_commit(BpTxn *txn);
+i32 bptxn_abort(BpTxn *txn);
 
-int bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
+i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 	       u32 value_len, const BpTreeSearch search) {
 	BpTreeSearchResult res;
 	BpTreeNode *node, *copy;

@@ -36,8 +36,8 @@ unsigned short ntohs(unsigned short net) {
 	return ((net & 0xFF) << 8) | ((net >> 8) & 0xFF);
 }
 
-int set_nonblocking(int socket) {
-	int flags;
+i32 set_nonblocking(int socket) {
+	i32 flags;
 	if ((flags = fcntl(socket, F_GETFL, 0)) == -1) {
 		close(socket);
 		return -1;
@@ -50,9 +50,9 @@ int set_nonblocking(int socket) {
 	return 0;
 }
 
-int socket_connect(const u8 addr[4], u16 port) {
+i32 socket_connect(const u8 addr[4], u16 port) {
 	struct sockaddr_in address = {0};
-	int ret = socket(AF_INET, SOCK_STREAM, 0);
+	i32 ret = socket(AF_INET, SOCK_STREAM, 0);
 	if (ret < 0) return ret;
 
 	address.sin_family = AF_INET;
@@ -68,12 +68,12 @@ int socket_connect(const u8 addr[4], u16 port) {
 	return ret;
 }
 
-int socket_listen(int *fd, const u8 addr[4], u16 port,
+i32 socket_listen(int *fd, const u8 addr[4], u16 port,
 		  u16 backlog) {
-	int opt = 1;
+	i32 opt = 1;
 	struct sockaddr_in address;
 	socklen_t addr_len;
-	int ret = socket(AF_INET, SOCK_STREAM, 0);
+	i32 ret = socket(AF_INET, SOCK_STREAM, 0);
 
 	if (ret < 0) return -1;
 
@@ -109,8 +109,8 @@ int socket_listen(int *fd, const u8 addr[4], u16 port,
 	return port;
 }
 
-int socket_accept(int fd) {
-	int ret = accept(fd, NULL, NULL);
+i32 socket_accept(int fd) {
+	i32 ret = accept(fd, NULL, NULL);
 	if (ret < 0) return -1;
 	if (set_nonblocking(ret) == -1) return -1;
 	return ret;

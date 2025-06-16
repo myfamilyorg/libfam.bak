@@ -38,7 +38,7 @@ bool debug_force_write_buffer = 0;
 Connection *evh_acceptor(u8 addr[4], u16 port, u16 backlog,
 			 OnRecvFn on_recv_fn, OnAcceptFn on_accept_fn,
 			 OnCloseFn on_close_fn) {
-	int pval;
+	i32 pval;
 	Connection *conn = alloc(sizeof(Connection));
 	if (conn == NULL) return NULL;
 	conn->conn_type = Acceptor;
@@ -84,7 +84,7 @@ Connection *evh_client(u8 addr[4], u16 port, OnRecvFn on_recv_fn,
 	return client;
 }
 
-int connection_close(Connection *connection) {
+i32 connection_close(Connection *connection) {
 	if (connection->conn_type == Acceptor) {
 		return close(connection->socket);
 	} else {
@@ -96,7 +96,7 @@ int connection_close(Connection *connection) {
 	}
 }
 
-int connection_write(Connection *connection, const void *buf, u64 len) {
+i32 connection_write(Connection *connection, const void *buf, u64 len) {
 	i64 wlen = 0;
 	InboundData *ib = &connection->data.inbound;
 	LockGuard lg = wlock(&ib->lock);

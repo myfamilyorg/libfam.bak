@@ -58,7 +58,7 @@ typedef __uint128_t u128;
 
 typedef union epoll_data {
 	void *ptr;
-	int fd;
+	i32 fd;
 	u32 u32;
 	u64 u64;
 } epoll_data_t;
@@ -119,8 +119,8 @@ struct timespec {
 };
 
 struct timezone {
-	int tz_minuteswest;
-	int tz_dsttime;
+	i32 tz_minuteswest;
+	i32 tz_dsttime;
 };
 
 struct timeval {
@@ -134,9 +134,9 @@ struct itimerval {
 };
 
 typedef struct {
-	int si_pid;
-	int si_code;
-	int si_status;
+	i32 si_pid;
+	i32 si_code;
+	i32 si_status;
 	u8 pad[128 - 3 * sizeof(int)];
 } siginfo_t;
 

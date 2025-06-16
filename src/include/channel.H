@@ -39,7 +39,7 @@ Channel channel(u64 element_size);
 Channel channel2(u64 element_size, u64 capacity);
 bool channel_ok(Channel *channel);
 void recv(Channel *channel, void *dst);
-int recv_now(Channel *channel, void *dst);
-int send(Channel *channel, const void *src);
+i32 recv_now(Channel *channel, void *dst);
+i32 send(Channel *channel, const void *src);
 
 #endif /* _CHANNEL_H__ */

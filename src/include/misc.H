@@ -31,14 +31,14 @@
 u64 strlen(const u8 *S);
 u8 *strcpy(u8 *dest, const u8 *src);
 u8 *strcat(u8 *dest, const u8 *src);
-int strcmp(const u8 *s1, const u8 *s2);
-int strcmpn(const u8 *s1, const u8 *s2, u64 n);
+i32 strcmp(const u8 *s1, const u8 *s2);
+i32 strcmpn(const u8 *s1, const u8 *s2, u64 n);
 u8 *substr(const u8 *s, const u8 *sub);
 u8 *substrn(const u8 *s, const u8 *sub, u64 n);
 u8 *strchr(const u8 *s, int c);
 void *memset(void *ptr, int x, u64 n);
 void *memcpy(void *dst, const void *src, u64 n);
-int memcmp(const void *s1, const void *s2, u64 n);
+i32 memcmp(const void *s1, const void *s2, u64 n);
 void *memorymove(void *dst, const void *src, u64 n);
 void byteszero(void *dst, u64 n);
 u64 u128_to_string(u8 *buf, u128 v);

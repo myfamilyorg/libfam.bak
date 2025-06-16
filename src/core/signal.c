@@ -41,7 +41,7 @@ static TaskEntry pending_tasks[MAX_TASKS];
 STATIC int cur_tasks = 0;
 
 STATIC int set_next_timer(u64 now) {
-	int i;
+	i32 i;
 	u64 next_task_time = SIZE_MAX;
 
 	for (i = 0; i < cur_tasks; i++) {
@@ -63,9 +63,9 @@ STATIC int set_next_timer(u64 now) {
 
 STATIC void timeout_handler(int __attribute__((unused)) v) {
 	TaskEntry rem_tasks[MAX_TASKS];
-	int rem_task_count = 0;
+	i32 rem_task_count = 0;
 	u64 now = micros() / 1000;
-	int i;
+	i32 i;
 	for (i = 0; i < cur_tasks; i++) {
 		if (now >= pending_tasks[i].exec_millis) {
 			pending_tasks[i].task();
@@ -86,7 +86,7 @@ void __attribute__((constructor)) signals_init(void) {
 	act.k_sa_restorer = restorer;
 	if (rt_sigaction(SIGPIPE, &act, NULL, 8) < 0) {
 		const u8 *msg = "WARN: could not register SIGPIPE handler\n";
-		int __attribute__((unused)) v = write(2, msg, strlen(msg));
+		i32 __attribute__((unused)) v = write(2, msg, strlen(msg));
 	}
 	act2.k_sa_handler = timeout_handler;
 	act2.k_sa_flags = SA_RESTORER;
@@ -94,9 +94,9 @@ void __attribute__((constructor)) signals_init(void) {
 	rt_sigaction(SIGALRM, &act2, NULL, 8);
 	cur_tasks = 0;
 }
-int timeout(void (*task)(void), u64 milliseconds) {
+i32 timeout(void (*task)(void), u64 milliseconds) {
 	u64 now = micros() / 1000;
-	int ret;
+	i32 ret;
 
 	if (!task || milliseconds == 0) {
 		err = EINVAL;

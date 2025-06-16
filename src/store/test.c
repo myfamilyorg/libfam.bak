@@ -31,7 +31,7 @@
 
 void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 			const BpTreeNode *node, BpTreeSearchResult *retval) {
-	int i;
+	i32 i;
 	/* Simplify for now, just use root node only */
 	retval->found = false;
 
@@ -45,7 +45,7 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 				 offset + sizeof(BpTreeInternalEntry));
 		u16 len = key_len > entry->key_len ? entry->key_len : key_len;
 
-		int v = strcmpn(key, cmp_key, len);
+		i32 v = strcmpn(key, cmp_key, len);
 		if (v >= 0) {
 			node = bptxn_get_node(txn, entry->node_id);
 		} else {
@@ -59,7 +59,7 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 	}
 
 	for (i = 0; i < node->num_entries; i++) {
-		int v;
+		i32 v;
 		u16 offset = node->data.leaf.entry_offsets[i];
 		BpTreeEntry *entry =
 		    (BpTreeEntry *)((u8 *)node->data.leaf.entries + offset);
@@ -84,7 +84,7 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 
 Test(store1) {
 	const u8 *path = "/tmp/store1.dat";
-	int fd, i, x;
+	i32 fd, i, x;
 	BpTree *tree;
 	BpTxn *txn;
 	Rng rng;
@@ -127,7 +127,7 @@ Test(store1) {
 
 		for (i = 1; i < 11; i++) {
 			u8 key_buf[20], value_buf[20];
-			int v;
+			i32 v;
 
 			memcpy(key_buf, keys[i], 20);
 			memcpy(value_buf, values[i], 20);
@@ -141,7 +141,7 @@ Test(store1) {
 		}
 
 		for (i = 1; i < 11; i++) {
-			int v = bptree_put(txn, keys[i], rand_key_lens[i],
+			i32 v = bptree_put(txn, keys[i], rand_key_lens[i],
 					   values[i], rand_value_lens[i],
 					   test_bptree_search);
 			ASSERT(v, "insertcheck");
@@ -158,7 +158,7 @@ Test(store1) {
 
 Test(bptree_split) {
 	const u8 *path = "/tmp/store1.dat";
-	int fd, i;
+	i32 fd, i;
 	BpTree *tree;
 	BpTxn *txn;
 	Rng rng;
@@ -199,7 +199,7 @@ Test(bptree_split) {
 
 	for (i = 1; i < BPTREE_SPLIT_ITT; i++) {
 		u8 key_buf[20], value_buf[20];
-		int v;
+		i32 v;
 
 		memcpy(key_buf, keys[i], 20);
 		memcpy(value_buf, values[i], 20);
@@ -212,7 +212,7 @@ Test(bptree_split) {
 	}
 
 	for (i = 1; i < BPTREE_SPLIT_ITT; i++) {
-		int v;
+		i32 v;
 		v = bptree_put(txn, keys[i], rand_key_lens[i], values[i],
 			       rand_value_lens[i], test_bptree_search);
 		ASSERT(v, "insertcheck");

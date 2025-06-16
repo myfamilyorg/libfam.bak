@@ -158,7 +158,7 @@ STATIC void __attribute__((constructor)) init_memory(void) {
 	if (memory_base == NULL) {
 		u64 bytes = get_memory_bytes();
 		u64 bitmap_bytes;
-		int i;
+		i32 i;
 		AllocHeader *h;
 
 		bitmap_bits = bytes / CHUNK_SIZE;
@@ -229,7 +229,7 @@ STATIC u64 atomic_load_or_allocate(u64 *ptr, u32 slab_size) {
 
 STATIC void *allocate_slab(u64 size) {
 	AllocHeader *header = memory_base;
-	int index = calculate_slab_index(size);
+	i32 index = calculate_slab_index(size);
 	void *chunk_bitmap;
 	Chunk *chunk;
 	u64 slab_size = calculate_slab_size(size);

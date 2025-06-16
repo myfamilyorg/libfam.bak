@@ -30,8 +30,8 @@
 #include <test.H>
 
 u8 **environ = 0;
-int cur_tests = 0;
-int exe_test = 0;
+i32 cur_tests = 0;
+i32 exe_test = 0;
 
 TestEntry tests[MAX_TESTS];
 
@@ -55,7 +55,7 @@ void call_constructors(void) {
 }
 
 #ifndef COVERAGE
-int main(int argc, u8 *argv[], u8 *envp[]);
+i32 main(int argc, u8 *argv[], u8 *envp[]);
 
 #ifdef __aarch64__
 __asm__(
@@ -93,9 +93,9 @@ __asm__(
 #endif /* __amd64__ */
 #endif /* COVERAGE */
 
-int main(int argc __attribute__((unused)), u8 **argv __attribute__((unused)),
+i32 main(int argc __attribute__((unused)), u8 **argv __attribute__((unused)),
 	 u8 **envp) {
-	int test_count = 0;
+	i32 test_count = 0;
 	u8 *tp;
 	u64 total;
 	double ms;

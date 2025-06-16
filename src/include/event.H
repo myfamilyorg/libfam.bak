@@ -40,11 +40,11 @@ typedef struct {
 #endif
 } Event;
 
-int multiplex(void);
-int mregister(int multiplex, int fd, int flags, void *attach);
-int mwait(int multiplex, Event events[], int max_events, i64 timeout);
-int event_is_read(Event event);
-int event_is_write(Event event);
+i32 multiplex(void);
+i32 mregister(int multiplex, int fd, int flags, void *attach);
+i32 mwait(int multiplex, Event events[], int max_events, i64 timeout);
+i32 event_is_read(Event event);
+i32 event_is_write(Event event);
 void *event_attachment(Event event);
 
 #endif /* _EVENT_H */

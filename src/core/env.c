@@ -34,7 +34,7 @@
 extern u8 **environ;
 
 static int env_count(void) {
-	int count = 0;
+	i32 count = 0;
 	if (environ) {
 		while (environ[count]) count++;
 	}
@@ -42,8 +42,8 @@ static int env_count(void) {
 }
 
 void init_environ(void) {
-	int count = env_count();
-	int i;
+	i32 count = env_count();
+	i32 i;
 
 	/* Allocate new environ array */
 	u8 **newenv = alloc(sizeof(u8 *) * (count + 1));
@@ -51,7 +51,7 @@ void init_environ(void) {
 
 	/* Copy each string */
 	for (i = 0; i < count; i++) {
-		int len = strlen(environ[i]) + 1; /* Include null terminator */
+		i32 len = strlen(environ[i]) + 1; /* Include null terminator */
 		newenv[i] = alloc(len);
 		if (!newenv[i]) {
 			/* Cleanup on failure */
@@ -77,7 +77,7 @@ u8 *getenv(const u8 *name) {
 
 	for (env = environ; *env; env++) {
 		u8 *str = *env;
-		int i = 0;
+		i32 i = 0;
 		while (name[i] && str[i] && name[i] == str[i] && str[i] != '=')
 			i++;
 		if (name[i] == 0 && str[i] == '=') {
@@ -87,9 +87,9 @@ u8 *getenv(const u8 *name) {
 	return 0;
 }
 
-int setenv(const u8 *name, const u8 *value, int overwrite) {
+i32 setenv(const u8 *name, const u8 *value, int overwrite) {
 	u8 *existing, *new_entry, **new_environ;
-	int name_len, value_len, entry_len, i, count;
+	i32 name_len, value_len, entry_len, i, count;
 
 	if (!name || !*name || strchr(name, '=')) return -1;
 
@@ -135,9 +135,9 @@ int setenv(const u8 *name, const u8 *value, int overwrite) {
 	return 0;
 }
 
-int unsetenv(const u8 *name) {
+i32 unsetenv(const u8 *name) {
 	u8 *existing;
-	int count, i;
+	i32 count, i;
 	if (!name || !*name || strchr(name, '=')) return -1;
 
 	existing = getenv(name);

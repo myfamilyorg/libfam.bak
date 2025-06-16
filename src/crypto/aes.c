@@ -235,7 +235,7 @@ void aes_ctr_xcrypt_buffer(AesContext *ctx, u8 *buf, u64 length) {
 	u8 buffer[AES_BLOCKLEN];
 
 	u64 i;
-	int bi;
+	i32 bi;
 	for (i = 0, bi = AES_BLOCKLEN; i < length; ++i, ++bi) {
 		if (bi == AES_BLOCKLEN) /* we need to regen xor compliment in
 					   buffer */

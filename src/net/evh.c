@@ -45,7 +45,7 @@ Connection wakeup_attachment = {0};
 
 STATIC int proc_wakeup(int wakeup) {
 	u8 buf[1];
-	int v;
+	i32 v;
 	v = read(wakeup, buf, 1);
 	if (v <= 0) return -1;
 	return 0;
@@ -54,7 +54,7 @@ STATIC int proc_wakeup(int wakeup) {
 STATIC int proc_acceptor(Evh *evh, Connection *acceptor, void *ctx) {
 	while (true) {
 		Connection *nconn;
-		int fd = socket_accept(acceptor->socket);
+		i32 fd = socket_accept(acceptor->socket);
 		if (fd == -1) {
 			if (err != EAGAIN) perror("socket_accept");
 			break;
@@ -103,7 +103,7 @@ STATIC int check_capacity(Connection *conn) {
 }
 
 STATIC int proc_close(Connection *conn, void *ctx) {
-	int res;
+	i32 res;
 	InboundData *ib = &conn->data.inbound;
 	LockGuard lg;
 
@@ -154,7 +154,7 @@ STATIC int proc_write(Evh *evh, Connection *conn,
 	InboundData *ib = &conn->data.inbound;
 	i64 wlen;
 	u64 cur = 0;
-	int sock = conn->socket;
+	i32 sock = conn->socket;
 	LockGuard lg = wlock(&ib->lock);
 
 	while (cur < ib->wbuf_offset) {
@@ -186,7 +186,7 @@ STATIC int proc_write(Evh *evh, Connection *conn,
 }
 
 STATIC void event_loop(Evh *evh, void *ctx, int wakeup) {
-	int i, count;
+	i32 i, count;
 	Event events[MAX_EVENTS];
 
 	while (true) {
@@ -218,7 +218,7 @@ end_while:
 }
 
 STATIC int init_event_loop(Evh *evh, void *ctx) {
-	int fds[2];
+	i32 fds[2];
 	i32 pid;
 	if (pipe(fds) == -1) {
 		return -1;
@@ -250,7 +250,7 @@ STATIC int init_event_loop(Evh *evh, void *ctx) {
 	return 0;
 }
 
-int evh_register(Evh *evh, Connection *connection) {
+i32 evh_register(Evh *evh, Connection *connection) {
 	if (connection->conn_type == Acceptor)
 		return mregister(evh->mplex, connection->socket,
 				 MULTIPLEX_FLAG_ACCEPT, connection);
@@ -261,7 +261,7 @@ int evh_register(Evh *evh, Connection *connection) {
 	}
 }
 
-int evh_start(Evh *evh, void *ctx, u64 connection_alloc_overhead) {
+i32 evh_start(Evh *evh, void *ctx, u64 connection_alloc_overhead) {
 	evh->mplex = multiplex();
 	evh->connection_alloc_overhead = connection_alloc_overhead;
 	evh->stopped = alloc(sizeof(u64));
@@ -280,7 +280,7 @@ int evh_start(Evh *evh, void *ctx, u64 connection_alloc_overhead) {
 	return 0;
 }
 
-int evh_stop(Evh *evh) {
+i32 evh_stop(Evh *evh) {
 	if (close(evh->wakeup) == -1) return -1;
 	while (!ALOAD(evh->stopped)) yield();
 	waitid(P_PID, *evh->stopped, NULL, WEXITED);

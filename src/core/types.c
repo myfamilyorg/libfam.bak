@@ -32,7 +32,7 @@
 	u8 *u8s = (u8 *)&test;                                               \
 	if (u8s[0] != 0x34) {                                                \
 		const u8 *msg = "Error: Big-endian systems not supported\n"; \
-		int v = write(2, msg, strlen(msg));                          \
+		i32 v = write(2, msg, strlen(msg));                          \
 		if (v) {                                                     \
 		}                                                            \
 		exit(-1);                                                    \

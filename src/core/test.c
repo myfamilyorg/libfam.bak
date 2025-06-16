@@ -34,11 +34,11 @@
 #include <test.H>
 
 typedef struct {
-	int value1;
-	int value2;
-	int value3;
-	int value4;
-	int value5;
+	i32 value1;
+	i32 value2;
+	i32 value3;
+	i32 value4;
+	i32 value5;
 	u32 uvalue1;
 	u32 uvalue2;
 } SharedStateData;
@@ -56,7 +56,7 @@ Test(env) {
 
 Test(two1) {
 	void *base = smap(sizeof(SharedStateData));
-	int cpid;
+	i32 cpid;
 	SharedStateData *state = (SharedStateData *)base;
 	state->value1 = 0;
 	state->value2 = 0;
@@ -74,7 +74,7 @@ Test(two1) {
 
 Test(futex1) {
 	void *base = smap(sizeof(SharedStateData));
-	int cpid;
+	i32 cpid;
 	SharedStateData *state = (SharedStateData *)base;
 	state->uvalue1 = (u32)0;
 	if ((cpid = two())) {
@@ -128,7 +128,7 @@ Test(timeout2) {
 }
 
 Test(timeout3) {
-	int pid, i;
+	i32 pid, i;
 	SharedStateData *state =
 	    (SharedStateData *)smap(sizeof(SharedStateData));
 
@@ -163,7 +163,7 @@ Test(timeout3) {
 }
 
 Test(timeout4) {
-	int i;
+	i32 i;
 	ASSERT(timeout(NULL, 100), "timeout NULL");
 	ASTORE(&tfunv1, 0);
 
@@ -279,7 +279,7 @@ Test(misc) {
 	u8 buf1[10];
 	u8 buf2[10];
 	u8 sx[100];
-	int len;
+	i32 len;
 	i128 v, v2;
 	u128 y, x;
 
@@ -510,7 +510,7 @@ Test(double_to_string) {
 
 Test(colors) {
 	const u8 *test_file = "/tmp/colortest";
-	int fd;
+	i32 fd;
 
 	if (getenv("NO_COLOR")) return; /* Can't test without colors */
 	unlink(test_file);
@@ -615,7 +615,7 @@ Test(colors) {
 	unsetenv("NO_COLOR");
 }
 
-int *__error(void);
+i32 *__error(void);
 
 Test(errors) {
 	ASSERT(!strcmp("Success", error_string(0)), "success");
@@ -860,7 +860,7 @@ Test(errors) {
 
 Test(snprintf) {
 	u8 buf[1024];
-	int len = snprintf(NULL, 0, "test%i", 1);
+	i32 len = snprintf(NULL, 0, "test%i", 1);
 	ASSERT_EQ(len, 5, "len=5");
 	ASSERT_EQ(snprintf(buf, sizeof(buf), "%i%s%s 3%d", 1, "xyz", "ghi", 4),
 		  10, "len=10");
@@ -901,7 +901,7 @@ Test(b64) {
 	u8 buf[128];
 	u8 buf2[128];
 	u8 buf3[128];
-	int len, len2;
+	i32 len, len2;
 	memcpy(buf, "0123456789", 10);
 	len = b64_encode(buf, 10, buf2, 128);
 	len2 = b64_decode(buf2, len, buf3, 128);
@@ -986,11 +986,11 @@ Test(b642) {
 }
 
 extern int cur_tasks;
-int ecount = 0;
+i32 ecount = 0;
 void my_exit(void) { ecount++; }
 
 Test(begin) {
-	int i;
+	i32 i;
 	cur_tasks = 1;
 	begin();
 	ASSERT_EQ(cur_tasks, 0, "cur_tasks");
@@ -1004,13 +1004,13 @@ Test(begin) {
 }
 
 Test(pipe) {
-	int fds[2], fv;
+	i32 fds[2], fv;
 	err = 0;
 	ASSERT(!pipe(fds), "pipe");
 	ASSERT(!err, "not err");
 	if ((fv = two())) {
 		u8 buf[10];
-		int v = read(fds[0], buf, 10);
+		i32 v = read(fds[0], buf, 10);
 		ASSERT_EQ(v, 4, "v==4");
 		ASSERT_EQ(buf[0], 't', "t");
 		ASSERT_EQ(buf[1], 'e', "e");
@@ -1026,7 +1026,7 @@ Test(pipe) {
 
 Test(files1) {
 	const u8 *fname = "/tmp/ftest.tmp";
-	int dup, fd;
+	i32 dup, fd;
 	unlink(fname);
 	err = 0;
 	fd = file(fname);

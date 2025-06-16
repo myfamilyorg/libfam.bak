@@ -475,17 +475,17 @@ DEFINE_SYSCALL0(39, i32, getpid)
 DEFINE_SYSCALL2(62, int, kill, i32, pid, int, signal)
 #endif /* Arch */
 
-int clone3(struct clone_args *args, u64 size) {
-	int ret = syscall_clone3(args, size);
+i32 clone3(struct clone_args *args, u64 size) {
+	i32 ret = syscall_clone3(args, size);
 	SET_ERR
 }
 
-int pipe2(int fds[2], int flags) {
-	int ret = syscall_pipe2(fds, flags);
+i32 pipe2(int fds[2], int flags) {
+	i32 ret = syscall_pipe2(fds, flags);
 	SET_ERR
 }
-int unlinkat(int dfd, const u8 *path, int flags) {
-	int ret = syscall_unlinkat(dfd, path, flags);
+i32 unlinkat(int dfd, const u8 *path, int flags) {
+	i32 ret = syscall_unlinkat(dfd, path, flags);
 	SET_ERR
 }
 i64 write(int fd, const void *buf, u64 count) {
@@ -497,8 +497,8 @@ i64 read(int fd, void *buf, u64 count) {
 	SET_ERR
 }
 
-int sched_yield(void) {
-	int ret = syscall_sched_yield();
+i32 sched_yield(void) {
+	i32 ret = syscall_sched_yield();
 	SET_ERR
 }
 
@@ -514,20 +514,20 @@ void exit(int status) {
 	syscall_exit(status);
 	while (true);
 }
-int munmap(void *addr, u64 len) {
-	int ret = syscall_munmap(addr, len);
+i32 munmap(void *addr, u64 len) {
+	i32 ret = syscall_munmap(addr, len);
 	SET_ERR
 }
 
-int close(int fd) {
-	int ret = syscall_close(fd);
+i32 close(int fd) {
+	i32 ret = syscall_close(fd);
 	SET_ERR
 }
 
-int fcntl(int fd, int op, ...) {
+i32 fcntl(int fd, int op, ...) {
 	__builtin_va_list ap;
 	i64 arg;
-	int ret;
+	i32 ret;
 
 	__builtin_va_start(ap, op);
 
@@ -557,50 +557,50 @@ int fcntl(int fd, int op, ...) {
 	SET_ERR
 }
 
-int fdatasync(int fd) {
-	int ret = syscall_fdatasync(fd);
+i32 fdatasync(int fd) {
+	i32 ret = syscall_fdatasync(fd);
 	SET_ERR
 }
 
-int ftruncate(int fd, i64 length) {
-	int ret = syscall_ftruncate(fd, length);
+i32 ftruncate(int fd, i64 length) {
+	i32 ret = syscall_ftruncate(fd, length);
 	SET_ERR
 }
 
-int connect(int sockfd, const struct sockaddr *addr, u32 addrlen) {
-	int ret = syscall_connect(sockfd, addr, addrlen);
+i32 connect(int sockfd, const struct sockaddr *addr, u32 addrlen) {
+	i32 ret = syscall_connect(sockfd, addr, addrlen);
 	SET_ERR
 }
 
-int setsockopt(int sockfd, int level, int optname, const void *optval,
+i32 setsockopt(int sockfd, int level, int optname, const void *optval,
 	       u32 optlen) {
-	int ret = syscall_setsockopt(sockfd, level, optname, optval, optlen);
+	i32 ret = syscall_setsockopt(sockfd, level, optname, optval, optlen);
 	SET_ERR
 }
 
-int bind(int sockfd, const struct sockaddr *addr, u32 addrlen) {
-	int ret = syscall_bind(sockfd, addr, addrlen);
+i32 bind(int sockfd, const struct sockaddr *addr, u32 addrlen) {
+	i32 ret = syscall_bind(sockfd, addr, addrlen);
 	SET_ERR
 }
-int listen(int sockfd, int backlog) {
-	int ret = syscall_listen(sockfd, backlog);
+i32 listen(int sockfd, int backlog) {
+	i32 ret = syscall_listen(sockfd, backlog);
 	SET_ERR
 }
-int getsockname(int sockfd, struct sockaddr *addr, u32 *addrlen) {
-	int ret = syscall_getsockname(sockfd, addr, addrlen);
+i32 getsockname(int sockfd, struct sockaddr *addr, u32 *addrlen) {
+	i32 ret = syscall_getsockname(sockfd, addr, addrlen);
 	SET_ERR
 }
-int accept(int sockfd, struct sockaddr *addr, u32 *addrlen) {
-	int ret = syscall_accept(sockfd, addr, addrlen);
+i32 accept(int sockfd, struct sockaddr *addr, u32 *addrlen) {
+	i32 ret = syscall_accept(sockfd, addr, addrlen);
 	SET_ERR
 }
-int shutdown(int sockfd, int how) {
-	int ret = syscall_shutdown(sockfd, how);
+i32 shutdown(int sockfd, int how) {
+	i32 ret = syscall_shutdown(sockfd, how);
 	SET_ERR
 }
 
-int socket(int domain, int type, int protocol) {
-	int ret = syscall_socket(domain, type, protocol);
+i32 socket(int domain, int type, int protocol) {
+	i32 ret = syscall_socket(domain, type, protocol);
 	SET_ERR
 }
 
@@ -609,7 +609,7 @@ i64 futex(u32 *uaddr, int futex_op, u32 val,
 	i64 ret = syscall_futex(uaddr, futex_op, val, timeout, uaddr2, val3);
 	SET_ERR
 }
-int getrandom(void *buf, u64 len, u32 flags) {
+i32 getrandom(void *buf, u64 len, u32 flags) {
 	u64 total;
 	if (len > 256) {
 		err = EIO;
@@ -645,38 +645,38 @@ void *mmap(void *addr, u64 length, int prot, int flags, int fd,
 	return ret;
 }
 
-int nanosleep(const struct timespec *req, struct timespec *rem) {
-	int ret = syscall_nanosleep(req, rem);
+i32 nanosleep(const struct timespec *req, struct timespec *rem) {
+	i32 ret = syscall_nanosleep(req, rem);
 	SET_ERR
 }
-int gettimeofday(struct timeval *tv, void *tz) {
-	int ret = syscall_gettimeofday(tv, tz);
-	SET_ERR
-}
-
-int settimeofday(const struct timeval *tv, const struct timezone *tz) {
-	int ret = syscall_settimeofday(tv, tz);
-	SET_ERR
-}
-int epoll_create1(int flags) {
-	int ret = syscall_epoll_create1(flags);
+i32 gettimeofday(struct timeval *tv, void *tz) {
+	i32 ret = syscall_gettimeofday(tv, tz);
 	SET_ERR
 }
 
-int epoll_pwait(int epfd, struct epoll_event *events, int maxevents,
-		int timeout, const sigset_t *sigmask, u64 size) {
-	int ret = syscall_epoll_pwait(epfd, events, maxevents, timeout, sigmask,
+i32 settimeofday(const struct timeval *tv, const struct timezone *tz) {
+	i32 ret = syscall_settimeofday(tv, tz);
+	SET_ERR
+}
+i32 epoll_create1(int flags) {
+	i32 ret = syscall_epoll_create1(flags);
+	SET_ERR
+}
+
+i32 epoll_pwait(int epfd, struct epoll_event *events, int maxevents,
+		i32 timeout, const sigset_t *sigmask, u64 size) {
+	i32 ret = syscall_epoll_pwait(epfd, events, maxevents, timeout, sigmask,
 				      size);
 	SET_ERR
 }
 
-int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
-	int ret = syscall_epoll_ctl(epfd, op, fd, event);
+i32 epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
+	i32 ret = syscall_epoll_ctl(epfd, op, fd, event);
 	SET_ERR
 }
 
-int openat(int dfd, const u8 *pathname, int flags, u32 mode) {
-	int ret = syscall_openat(dfd, pathname, flags, mode);
+i32 openat(int dfd, const u8 *pathname, int flags, u32 mode) {
+	i32 ret = syscall_openat(dfd, pathname, flags, mode);
 	SET_ERR
 }
 
@@ -685,21 +685,21 @@ i64 lseek(int fd, i64 offset, int whence) {
 	SET_ERR
 }
 
-int setitimer(i32 which, const struct itimerval *new_value,
+i32 setitimer(i32 which, const struct itimerval *new_value,
 	      struct itimerval *old_value) {
-	int ret = syscall_setitimer(which, new_value, old_value);
+	i32 ret = syscall_setitimer(which, new_value, old_value);
 	SET_ERR
 }
 
-int rt_sigaction(int signum, const struct rt_sigaction *act,
+i32 rt_sigaction(int signum, const struct rt_sigaction *act,
 		 struct rt_sigaction *oldact, u64 sigsetsize) {
-	int ret = syscall_rt_sigaction(signum, act, oldact, sigsetsize);
+	i32 ret = syscall_rt_sigaction(signum, act, oldact, sigsetsize);
 	SET_ERR
 }
 
 void restorer(void) { syscall_restorer(); }
 
-int waitid(i32 i32ype, i32 id, siginfo_t *sigs, int options) {
+i32 waitid(i32 i32ype, i32 id, siginfo_t *sigs, int options) {
 	i32 ret = syscall_waitid(i32ype, id, sigs, options);
 	SET_ERR
 }
@@ -708,7 +708,7 @@ i32 getpid(void) {
 	i32 ret = syscall_getpid();
 	SET_ERR
 }
-int kill(i32 pid, int signal) {
-	int ret = syscall_kill(pid, signal);
+i32 kill(i32 pid, int signal) {
+	i32 ret = syscall_kill(pid, signal);
 	SET_ERR
 }

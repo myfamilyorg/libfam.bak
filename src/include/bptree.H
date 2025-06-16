@@ -98,15 +98,15 @@ typedef void (*BpTreeSearch)(BpTxn *txn, const void *key, u16 key_len,
 
 /* Opening/Closing */
 BpTree *bptree_open(const u8 *path);
-int bptree_close(BpTree *);
+i32 bptree_close(BpTree *);
 
 /* Txn management */
 BpTxn *bptxn_start(BpTree *tree);
-int bptxn_commit(BpTxn *txn);
-int bptxn_abort(BpTxn *txn);
+i32 bptxn_commit(BpTxn *txn);
+i32 bptxn_abort(BpTxn *txn);
 
 /* Modification functions */
-int bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
+i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 	       u32 value_len, const BpTreeSearch search);
 BpTreeEntry *bptree_remove(BpTxn *txn, const void *key, u16 key_len,
 			   const void *value, u64 value_len,

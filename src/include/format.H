@@ -28,8 +28,8 @@
 
 #include <types.H>
 
-int snprintf(u8 *buf, u64 size, const u8 *fmt, ...);
-int printf(const u8 *fmt, ...);
+i32 snprintf(u8 *buf, u64 size, const u8 *fmt, ...);
+i32 printf(const u8 *fmt, ...);
 void panic(const u8 *fmt, ...);
 
 #endif /* _FORMAT_H */

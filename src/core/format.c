@@ -80,7 +80,7 @@ static int vsnprintf(u8* str, u64 size, const u8* format,
 	u8 buf[1024];
 	u64 i;
 	u64 j;
-	int val;
+	i32 val;
 	u32 uval;
 	double dval;
 	const u8* s;
@@ -200,9 +200,9 @@ static int vsnprintf(u8* str, u64 size, const u8* format,
 }
 
 /* snprintf implementation that takes variable arguments */
-int snprintf(u8* str, u64 size, const u8* format, ...) {
+i32 snprintf(u8* str, u64 size, const u8* format, ...) {
 	__builtin_va_list ap;
-	int len;
+	i32 len;
 
 	__builtin_va_start(ap, format);
 	len = vsnprintf(str, size, format, ap);
@@ -211,9 +211,9 @@ int snprintf(u8* str, u64 size, const u8* format, ...) {
 }
 
 /* printf implementation */
-int printf(const u8* format, ...) {
+i32 printf(const u8* format, ...) {
 	__builtin_va_list ap, ap_copy;
-	int len;
+	i32 len;
 	u8* buf;
 
 	__builtin_va_start(ap, format);
@@ -239,7 +239,7 @@ int printf(const u8* format, ...) {
 
 void panic(const u8* format, ...) {
 	__builtin_va_list ap, ap_copy;
-	int len;
+	i32 len;
 	u8* buf;
 
 	__builtin_va_start(ap, format);

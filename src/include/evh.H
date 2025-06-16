@@ -48,7 +48,7 @@ typedef struct {
 typedef struct {
 	OnRecvFn on_recv;
 	OnCloseFn on_close;
-	int mplex;
+	i32 mplex;
 	Lock lock;
 	bool is_closed;
 	u8 *rbuf;
@@ -61,7 +61,7 @@ typedef struct {
 
 struct Connection {
 	ConnectionType conn_type;
-	int socket;
+	i32 socket;
 	union {
 		AcceptorData acceptor;
 		InboundData inbound;
@@ -69,16 +69,16 @@ struct Connection {
 };
 
 typedef struct {
-	int wakeup;
-	int mplex;
+	i32 wakeup;
+	i32 mplex;
 	u64 *stopped;
 	u64 id;
 	u64 connection_alloc_overhead;
 } Evh;
 
-int evh_register(Evh *evh, Connection *connection);
-int evh_start(Evh *evh, void *ctx, u64 connection_alloc_overhead);
-int evh_stop(Evh *evh);
+i32 evh_register(Evh *evh, Connection *connection);
+i32 evh_start(Evh *evh, void *ctx, u64 connection_alloc_overhead);
+i32 evh_stop(Evh *evh);
 
 Connection *evh_acceptor(u8 addr[4], u16 port, u16 backlog,
 			 OnRecvFn on_recv, OnAcceptFn on_accept,
@@ -86,8 +86,8 @@ Connection *evh_acceptor(u8 addr[4], u16 port, u16 backlog,
 Connection *evh_client(u8 addr[4], u16 port, OnRecvFn on_recv,
 		       OnCloseFn on_close, u64 connection_alloc_overhead);
 u16 evh_acceptor_port(Connection *conn);
-int connection_close(Connection *connection);
-int connection_write(Connection *connection, const void *buf, u64 len);
+i32 connection_close(Connection *connection);
+i32 connection_write(Connection *connection, const void *buf, u64 len);
 void connection_clear_rbuf_through(Connection *conn, u64 off);
 void connection_clear_rbuf(Connection *conn);
 

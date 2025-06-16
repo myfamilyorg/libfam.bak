@@ -37,7 +37,7 @@ typedef struct RbTreeNode {
 typedef struct RbTreeNodePair {
 	RbTreeNode *parent;
 	RbTreeNode *self;
-	int is_right;
+	i32 is_right;
 } RbTreeNodePair;
 
 typedef struct RbTree {

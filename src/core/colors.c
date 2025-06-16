@@ -28,7 +28,7 @@
 #include <misc.H>
 #include <types.H>
 
-int no_color(void) {
+i32 no_color(void) {
 	u8 *noc = getenv("NO_COLOR");
 	return noc != NULL;
 }

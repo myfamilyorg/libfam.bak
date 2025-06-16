@@ -26,11 +26,11 @@
 #include <types.H>
 
 #ifdef __aarch64__
-int __cas32(volatile u32 *a, u32 *expected, u32 desired) {
+i32 __cas32(volatile u32 *a, u32 *expected, u32 desired) {
 	u32 result;
-	int success;
+	i32 success;
 	u32 orig_expected = *expected;
-	int retries = 5;
+	i32 retries = 5;
 	while (retries--) {
 		__asm__ volatile(
 		    "ldaxr %w0, [%2]\n"	   /* Load-exclusive 32-bit */
@@ -97,11 +97,11 @@ u32 __and32(volatile u32 *a, u32 v) {
 	return old;
 }
 
-int __cas64(volatile u64 *a, u64 *expected, u64 desired) {
+i32 __cas64(volatile u64 *a, u64 *expected, u64 desired) {
 	u64 result;
-	int success;
+	i32 success;
 	u64 orig_expected = *expected;
-	int retries = 5;
+	i32 retries = 5;
 	while (retries--) {
 		__asm__ volatile(
 		    "ldaxr %0, [%2]\n"

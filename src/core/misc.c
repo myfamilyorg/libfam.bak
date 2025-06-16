@@ -50,7 +50,7 @@ u8 *strcat(u8 *dest, const u8 *src) {
 	return dest;
 }
 
-int strcmp(const u8 *X, const u8 *Y) {
+i32 strcmp(const u8 *X, const u8 *Y) {
 	if (X == NULL || Y == NULL) {
 		if (X == Y) return 0;
 		return X == NULL ? -1 : 1;
@@ -64,7 +64,7 @@ int strcmp(const u8 *X, const u8 *Y) {
 	return 0;
 }
 
-int strcmpn(const u8 *X, const u8 *Y, u64 n) {
+i32 strcmpn(const u8 *X, const u8 *Y, u64 n) {
 	while (n > 0 && *X == *Y && *X != '\0' && *Y != '\0') {
 		X++;
 		Y++;
@@ -127,7 +127,7 @@ void *memset(void *dest, int c, u64 n) {
 	return dest;
 }
 
-int memcmp(const void *s1, const void *s2, u64 n) {
+i32 memcmp(const void *s1, const void *s2, u64 n) {
 	/* Cast pointers to u8 for byte-by-byte comparison */
 	const u8 *p1 = (const u8 *)s1;
 	const u8 *p2 = (const u8 *)s2;
@@ -186,7 +186,7 @@ void byteszero(void *s, u64 len) { memset(s, 0, len); }
 
 u64 u128_to_string(u8 *buf, u128 v) {
 	u8 temp[40];
-	int i = 0, j = 0;
+	i32 i = 0, j = 0;
 
 	if (v == 0) {
 		buf[0] = '0';
@@ -211,7 +211,7 @@ u64 i128_to_string(u8 *buf, i128 v) {
 	const i128 int128_min = INT128_MIN;
 	const u128 int128_min_abs = (u128)0x8000000000000000UL << 64;
 
-	int is_negative = v < 0;
+	i32 is_negative = v < 0;
 	u128 abs_v;
 
 	if (is_negative) {
@@ -275,7 +275,7 @@ u128 string_to_uint128(const u8 *buf, u64 len) {
 /* Convert string to signed 128-bit integer using string_to_uint128 */
 i128 string_to_int128(const u8 *buf, u64 len) {
 	u64 i;
-	int sign;
+	i32 sign;
 	u128 abs_value;
 	i128 result;
 
@@ -332,11 +332,11 @@ u64 double_to_string(u8 *buf, double v, int max_decimals) {
 	u8 temp[41];
 	u64 pos = 0;
 	u64 len;
-	int i;
-	int is_negative;
+	i32 i;
+	i32 is_negative;
 	u64 int_part;
 	double frac_part;
-	int int_start;
+	i32 int_start;
 
 	/* Handle special cases: NaN, infinity */
 	if (v != v) {
@@ -423,13 +423,13 @@ u64 double_to_string(u8 *buf, double v, int max_decimals) {
 
 	/* Decimal point and fractional part */
 	if (frac_part > 0 && max_decimals > 0) {
-		int digits = 0;
+		i32 digits = 0;
 		u64 frac_start;
 
 		buf[pos++] = '.';
 		frac_start = pos;
 		while (digits < max_decimals) { /* Stop at max_decimals */
-			int digit;
+			i32 digit;
 			frac_part *= 10;
 			digit = (int)frac_part;
 			if (digit > 9) digit = 9; /* Cap digit */
@@ -456,7 +456,7 @@ u128 __umodti3(u128 a, u128 b) {
 	u64 a_hi;
 	u64 a_lo;
 	u128 remainder;
-	int shift;
+	i32 shift;
 
 	/* Handle division by zero */
 	if (b == 0) {
@@ -521,7 +521,7 @@ u128 __udivti3(u128 a, u128 b) {
 	u64 a_lo;
 	u128 quotient;
 	u128 remainder;
-	int shift;
+	i32 shift;
 
 	/* Handle division by zero */
 	if (b == 0) {
@@ -581,7 +581,7 @@ u128 __udivti3(u128 a, u128 b) {
 
 	return quotient;
 }
-int printf(const u8 *, ...);
+i32 printf(const u8 *, ...);
 /* Base64 encode */
 u64 b64_encode(const u8 *in, u64 in_len, u8 *out, u64 out_max) {
 	u64 i;
@@ -632,10 +632,10 @@ u64 b64_encode(const u8 *in, u64 in_len, u8 *out, u64 out_max) {
 u64 b64_decode(const u8 *in, u64 in_len, u8 *out, u64 out_max) {
 	u64 i;
 	u64 j;
-	int b0;
-	int b1;
-	int b2;
-	int b3;
+	i32 b0;
+	i32 b1;
+	i32 b2;
+	i32 b3;
 	static const int decode_table[256] = {
 	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,

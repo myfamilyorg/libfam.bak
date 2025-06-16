@@ -33,8 +33,8 @@ typedef struct {
 	AesContext ctx;
 } Rng;
 
-int rng_init(Rng *rng);
-int rng_reseed(Rng *rng);
+i32 rng_init(Rng *rng);
+i32 rng_reseed(Rng *rng);
 void rng_gen(Rng *rng, void *v, u64 size);
 
 #if TEST == 1

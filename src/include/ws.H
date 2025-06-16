@@ -45,15 +45,15 @@ typedef void (*OnOpen)(WsConnection *conn);
 typedef void (*OnClose)(WsConnection *conn);
 typedef int (*OnMessage)(WsConnection *conn, WsMessage *msg);
 
-int ws_send(WsConnection *conn, WsMessage *msg);
+i32 ws_send(WsConnection *conn, WsMessage *msg);
 Ws *ws_init(WsConfig *config, OnMessage on_message, OnOpen on_open,
 	    OnClose on_close);
-int ws_start(Ws *ws);
-int ws_stop(Ws *ws);
+i32 ws_start(Ws *ws);
+i32 ws_stop(Ws *ws);
 
 u64 ws_connection_id(WsConnection *connection);
 WsConnection *ws_connect(Ws *ws, const u8 *url);
-int ws_connection_close(WsConnection *conn, int code, const u8 *reason);
+i32 ws_connection_close(WsConnection *conn, int code, const u8 *reason);
 const u8 *ws_connection_uri(WsConnection *conn);
 u16 ws_port(Ws *ws);
 

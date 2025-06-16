@@ -28,9 +28,9 @@
 #include <syscall.H>
 #include <syscall_const.H>
 
-int rng_init(Rng *rng) {
+i32 rng_init(Rng *rng) {
 	u8 iv[16], key[32];
-	int ret = 0;
+	i32 ret = 0;
 
 	if (getrandom(key, 32, GRND_RANDOM)) ret = -1;
 	if (getrandom(iv, 16, GRND_RANDOM)) ret = -1;
@@ -39,7 +39,7 @@ int rng_init(Rng *rng) {
 	return ret;
 }
 
-int rng_reseed(Rng *rng) { return rng_init(rng); }
+i32 rng_reseed(Rng *rng) { return rng_init(rng); }
 
 void rng_gen(Rng *rng, void *v, u64 size) {
 	aes_ctr_xcrypt_buffer(&rng->ctx, (u8 *)v, size);

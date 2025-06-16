@@ -243,7 +243,7 @@ STATIC void rbtree_remove_fixup(RbTree *tree, RbTreeNode *p, RbTreeNode *w,
 
 STATIC void rbtree_remove_impl(RbTree *tree, RbTreeNodePair *pair) {
 	RbTreeNode *node_to_delete = pair->self;
-	int do_fixup = IS_BLACK(node_to_delete);
+	i32 do_fixup = IS_BLACK(node_to_delete);
 	RbTreeNode *x = 0, *w = 0, *p = 0;
 
 	if (LEFT(node_to_delete) == 0) {

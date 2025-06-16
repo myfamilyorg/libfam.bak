@@ -30,22 +30,22 @@
 #include <types.H>
 
 /* system calls applied */
-int unlink(const u8 *path);
-int open(const u8 *pathname, int flags, u32 mode);
-int pipe(int fds[2]);
-int getentropy(void *buffer, u64 length);
-int yield(void);
-int timeout(void (*task)(void), u64 milliseconds);
+i32 unlink(const u8 *path);
+i32 open(const u8 *pathname, int flags, u32 mode);
+i32 pipe(int fds[2]);
+i32 getentropy(void *buffer, u64 length);
+i32 yield(void);
+i32 timeout(void (*task)(void), u64 milliseconds);
 void *map(u64 length);
 void *fmap(int fd, i64 size, i64 offset);
 void *smap(u64 length);
-int exists(const u8 *path);
-int file(const u8 *path);
+i32 exists(const u8 *path);
+i32 file(const u8 *path);
 i64 fsize(int fd);
-int fresize(int fd, i64 length);
-int flush(int fd);
+i32 fresize(int fd, i64 length);
+i32 flush(int fd);
 i64 micros(void);
-int sleepm(u64 millis);
+i32 sleepm(u64 millis);
 i32 two(void);
 i32 two2(bool share_fds);
 

@@ -26,12 +26,14 @@
 #ifndef _INIT_H
 #define _INIT_H
 
+#include <types.H>
+
 /* Init tasks */
 void begin(void);
 void signals_init(void);
 
 /* Exit tasks */
 void execute_exits(void);
-int register_exit(void (*fn)(void));
+i32 register_exit(void (*fn)(void));
 
 #endif /* _INIT_H */

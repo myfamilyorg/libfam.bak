@@ -37,12 +37,12 @@
 typedef struct {
 	Lock lock1;
 	Lock lock2;
-	int value1;
+	i32 value1;
 } SharedStateData;
 
 Test(lock) {
 	Lock l1 = LOCK_INIT;
-	int pid;
+	i32 pid;
 	SharedStateData *state = alloc(sizeof(SharedStateData));
 	ASSERT(state != NULL, "Failed to allocate state");
 
@@ -70,7 +70,7 @@ Test(lock) {
 		ASSERT(0, "two() failed in read contention");
 	}
 	if (pid) {
-		int timeout_ms = 1000;
+		i32 timeout_ms = 1000;
 		while (ALOAD(&state->value1) == 0 && timeout_ms > 0) {
 			sleepm(1);
 			timeout_ms -= 1;
@@ -103,7 +103,7 @@ Test(lock) {
 		ASSERT(0, "two() failed in write contention");
 	}
 	if (pid) {
-		int timeout_ms = 10000;
+		i32 timeout_ms = 10000;
 		while (ALOAD(&state->value1) == 0 && timeout_ms > 0) {
 			sleepm(1);
 			timeout_ms -= 1;
@@ -136,7 +136,7 @@ Test(lock) {
 		ASSERT(0, "two() failed in write starvation");
 	}
 	if (pid) {
-		int timeout_ms = 1000;
+		i32 timeout_ms = 1000;
 		while (ALOAD(&state->lock1) == 0 && timeout_ms > 0) {
 			sleepm(1);
 			timeout_ms -= 1;
@@ -170,7 +170,7 @@ Test(lock) {
 			}
 			exit(0);
 		} else {
-			int timeout_ms = 1000;
+			i32 timeout_ms = 1000;
 			while (ALOAD(&state->lock1) == 0 && timeout_ms > 0) {
 				sleepm(1);
 				timeout_ms -= 1;
@@ -191,13 +191,13 @@ Test(lock) {
 typedef struct {
 	RobustLock lock1;
 	RobustLock lock2;
-	int value1;
-	int value2;
+	i32 value1;
+	i32 value2;
 } RobustState;
 
 Test(robust1) {
 	RobustState *state = (RobustState *)smap(sizeof(RobustState));
-	int cpid, i;
+	i32 cpid, i;
 	state->lock1 = LOCK_INIT;
 	state->value1 = 0;
 
@@ -227,7 +227,7 @@ Test(robust1) {
 
 Test(robust2) {
 	RobustState *state = (RobustState *)smap(sizeof(RobustState));
-	int cpid, i;
+	i32 cpid, i;
 	state->lock1 = LOCK_INIT;
 	state->value1 = 0;
 	/* reap any zombie processes */
@@ -252,8 +252,8 @@ Test(robust2) {
 }
 
 typedef struct {
-	int x;
-	int y;
+	i32 x;
+	i32 y;
 } TestMessage;
 
 Test(channel1) {
@@ -299,9 +299,9 @@ Test(channel2) {
 }
 
 Test(channel3) {
-	int size = 100, i;
+	i32 size = 100, i;
 	for (i = 0; i < size; i++) {
-		int pid;
+		i32 pid;
 		Channel ch1 = channel(sizeof(TestMessage));
 		err = 0;
 		pid = two();
@@ -343,7 +343,7 @@ Test(channel_notify) {
 	Channel ch1 = channel(sizeof(TestMessage));
 	Channel ch2 = channel(sizeof(TestMessage));
 
-	int pid = two();
+	i32 pid = two();
 	ASSERT(pid >= 0, "pid>=0");
 	if (pid) {
 		TestMessage msg = {0}, msg2 = {0};
@@ -373,7 +373,7 @@ Test(channel_notify) {
 }
 
 Test(channel_cycle) {
-	int pid, i;
+	i32 pid, i;
 	Channel ch1 = channel2(sizeof(TestMessage), 8);
 	TestMessage msg;
 	msg.x = 1;
@@ -399,7 +399,7 @@ Test(channel_cycle) {
 
 Test(channel_err) {
 	TestMessage msg;
-	int i;
+	i32 i;
 	Channel ch1, ch2, ch3;
 
 	ASSERT_BYTES(0);
@@ -434,7 +434,7 @@ typedef struct {
 	u64 value;
 } TestRbTreeNode;
 
-int test_rbsearch(RbTreeNode *cur, const RbTreeNode *value,
+i32 test_rbsearch(RbTreeNode *cur, const RbTreeNode *value,
 		  RbTreeNodePair *retval) {
 	while (cur) {
 		u64 v1 = ((TestRbTreeNode *)cur)->value;
@@ -481,8 +481,8 @@ bool check_no_consecutive_red(RbTreeNode *node) {
 	       check_no_consecutive_red(RIGHT(node));
 }
 
-int check_black_height(RbTreeNode *node) {
-	int left_height, right_height;
+i32 check_black_height(RbTreeNode *node) {
+	i32 left_height, right_height;
 	if (!node) return 1;
 	left_height = check_black_height(LEFT(node));
 	right_height = check_black_height(RIGHT(node));

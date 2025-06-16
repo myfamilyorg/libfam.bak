@@ -29,8 +29,8 @@
 #include <types.H>
 
 u8 *getenv(const u8 *name);
-int unsetenv(const u8 *name);
-int setenv(const u8 *name, const u8 *value, int overwrite);
+i32 unsetenv(const u8 *name);
+i32 setenv(const u8 *name, const u8 *value, int overwrite);
 void init_environ(void);
 
 #endif /* _ENV_H__ */

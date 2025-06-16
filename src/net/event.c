@@ -34,11 +34,11 @@
 
 STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), event_match);
 
-int multiplex(void) { return epoll_create1(0); }
+i32 multiplex(void) { return epoll_create1(0); }
 
-int mregister(int multiplex, int fd, int flags, void *attach) {
+i32 mregister(int multiplex, int fd, int flags, void *attach) {
 	struct epoll_event ev;
-	int event_flags = 0;
+	i32 event_flags = 0;
 
 	if (flags & MULTIPLEX_FLAG_READ) {
 		event_flags |= (EPOLLIN | EPOLLET | EPOLLRDHUP);
@@ -70,18 +70,18 @@ int mregister(int multiplex, int fd, int flags, void *attach) {
 
 	return 0;
 }
-int mwait(int multiplex, Event *events, int max_events, i64 timeout_millis) {
-	int timeout = (timeout_millis >= 0) ? (int)timeout_millis : -1;
+i32 mwait(int multiplex, Event *events, int max_events, i64 timeout_millis) {
+	i32 timeout = (timeout_millis >= 0) ? (int)timeout_millis : -1;
 	return epoll_pwait(multiplex, (struct epoll_event *)events, max_events,
 			   timeout, NULL, 0);
 }
 
-int event_is_read(Event event) {
+i32 event_is_read(Event event) {
 	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
 	return epoll_ev->events & EPOLLIN;
 }
 
-int event_is_write(Event event) {
+i32 event_is_write(Event event) {
 	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
 	return epoll_ev->events & EPOLLOUT;
 }
