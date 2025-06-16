@@ -35,11 +35,6 @@ void test_bptree_search(BpTxn *txn, const void *key, uint16_t key_len,
 	/* Simplify for now, just use root node only */
 	retval->found = false;
 
-	/*
-	printf("node->id=%i is_internal=%i,num=%i\n", bptree_node_id(txn, node),
-	       node->is_internal, node->num_entries);
-	       */
-
 	while (node->is_internal) {
 		uint16_t offset = node->data.internal.entry_offsets[1];
 		BpTreeInternalEntry *entry =
@@ -53,17 +48,12 @@ void test_bptree_search(BpTxn *txn, const void *key, uint16_t key_len,
 		    key_len > entry->key_len ? entry->key_len : key_len;
 
 		int v = strcmpn(key, cmp_key, len);
-		/*printf("v=%i\n", v);*/
-		/*printf("key_cmp=%s,offset=%u\n", cmp_key, offset);*/
 		if (v >= 0) {
-			printf("ausing node id = %i,offset=%i\n",
-			       entry->node_id, offset);
 			node = bptxn_get_node(txn, entry->node_id);
 		} else {
 			entry =
 			    (BpTreeInternalEntry *)((uint8_t *)node->data
 							.internal.key_entries);
-			printf("busing node id = %i\n", entry->node_id);
 
 			node = bptxn_get_node(txn, entry->node_id);
 		}

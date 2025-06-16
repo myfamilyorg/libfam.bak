@@ -203,14 +203,6 @@ STATIC BpTreeNode *new_node(BpTxn *txn, BpTreeNode *node, uint16_t midpoint) {
 	return new;
 }
 
-/*
- * typedef struct {
-	uint16_t key_len;
-	uint64_t node_id;
-} BpTreeInternalEntry;
-
-*/
-
 STATIC int split_node(BpTxn *txn, BpTreeNode *node, const void *key,
 		      uint16_t key_len, const void *value, uint16_t value_len,
 		      uint16_t key_index, uint64_t space_needed) {
