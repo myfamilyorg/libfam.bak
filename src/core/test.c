@@ -270,8 +270,8 @@ Test(atomic) {
 	ASSERT(!y, "!y");
 }
 
-uint128_t __umodti3(uint128_t a, uint128_t b);
-uint128_t __udivti3(uint128_t a, uint128_t b);
+u128 __umodti3(u128 a, u128 b);
+u128 __udivti3(u128 a, u128 b);
 
 Test(misc) {
 	const char *s = "abcdefghi";
@@ -280,8 +280,8 @@ Test(misc) {
 	char buf2[10];
 	char sx[100];
 	int len;
-	int128_t v, v2;
-	uint128_t y, x;
+	i128 v, v2;
+	u128 y, x;
 
 	ASSERT(strcmpn("1abc", "1def", 4) < 0, "strcmpn1");
 	ASSERT(strcmpn("1ubc", "1def", 4) > 0, "strcmpn2");
@@ -296,19 +296,19 @@ Test(misc) {
 	ASSERT_EQ(buf2[0], 0, "byteszero");
 
 	memset(buf2, 'a', 10);
-	memset((uint8_t *)buf2 + 3, 'b', 7);
-	memorymove((uint8_t *)buf2 + 3, (uint8_t *)buf2, 7);
+	memset((u8 *)buf2 + 3, 'b', 7);
+	memorymove((u8 *)buf2 + 3, (u8 *)buf2, 7);
 	ASSERT_EQ(buf2[3], 'a', "b0");
 
-	ASSERT_EQ(uint128_t_to_string(buf1, 100), 3, "100 len");
+	ASSERT_EQ(u128_to_string(buf1, 100), 3, "100 len");
 	ASSERT(!strcmpn(buf1, "100", 3), "100");
-	ASSERT_EQ(uint128_t_to_string(buf1, 0), 1, "0 len");
+	ASSERT_EQ(u128_to_string(buf1, 0), 1, "0 len");
 	ASSERT_EQ(buf1[0], '0', "0 value");
-	ASSERT_EQ(int128_t_to_string(buf1, -10), 3, "-10 len");
+	ASSERT_EQ(i128_to_string(buf1, -10), 3, "-10 len");
 	ASSERT_EQ(buf1[0], '-', "-10 value");
 	ASSERT_EQ(buf1[1], '1', "-10 value2");
 	ASSERT_EQ(buf1[2], '0', "-10 value3");
-	ASSERT_EQ(int128_t_to_string(buf1, 10), 2, "10 len");
+	ASSERT_EQ(i128_to_string(buf1, 10), 2, "10 len");
 
 	ASSERT_EQ(string_to_uint128(" 123", 4), 123, "123");
 	err = 0;
@@ -337,7 +337,7 @@ Test(misc) {
 	ASSERT_EQ(string_to_int128("-3", 2), -3, "-3");
 	ASSERT_EQ(string_to_int128("+5", 2), 5, "+5");
 	ASSERT_EQ(string_to_int128("-", 1), 0, "-");
-	len = uint128_t_to_string(sx, UINT128_MAX);
+	len = u128_to_string(sx, UINT128_MAX);
 	ASSERT_EQ(string_to_int128(sx, len), 0, "overflow int128");
 
 	ASSERT_EQ(double_to_string(buf1, 1.2, 1), 3, "double to str 1.2");
@@ -350,8 +350,8 @@ Test(misc) {
 
 	ASSERT_EQ(__umodti3(11, 10), 1, "11 % 10");
 	ASSERT_EQ(__udivti3(31, 10), 3, "31 / 10");
-	y = ((uint128_t)1) << 64;
-	x = __umodti3(y, ((uint128_t)1) << 66);
+	y = ((u128)1) << 64;
+	x = __umodti3(y, ((u128)1) << 66);
 	ASSERT_EQ(x, y, "big mod");
 
 	ASSERT_EQ(double_to_string(bufbig, 0.0, 3), 1, "d2str0.0");
@@ -361,10 +361,10 @@ Test(misc) {
 }
 
 Test(udivti3) {
-	uint128_t a, b, q;
+	u128 a, b, q;
 
 	a = 16;
-	b = ((uint128_t)1) << 65;
+	b = ((u128)1) << 65;
 	q = __udivti3(a, b);
 	ASSERT_EQ(q, 0, "small_a_div");
 
@@ -373,31 +373,31 @@ Test(udivti3) {
 	q = __udivti3(a, b);
 	ASSERT_EQ(q, 10, "64bit_small_div");
 
-	a = ((uint128_t)1) << 80;
+	a = ((u128)1) << 80;
 	b = 2;
 	q = __udivti3(a, b);
-	ASSERT_EQ(q, ((uint128_t)1) << 79, "64bit_large_div");
+	ASSERT_EQ(q, ((u128)1) << 79, "64bit_large_div");
 
-	a = ((uint128_t)100) << 65;
-	b = ((uint128_t)10) << 65;
+	a = ((u128)100) << 65;
+	b = ((u128)10) << 65;
 	q = __udivti3(a, b);
 	ASSERT_EQ(q, 10, "128bit_div");
 
-	a = ((uint128_t)1) << 65;
-	b = ((uint128_t)1) << 65;
+	a = ((u128)1) << 65;
+	b = ((u128)1) << 65;
 	q = __udivti3(a, b);
 	ASSERT_EQ(q, 1, "128bit_div");
 
-	a = ((uint128_t)1) << 100;
-	b = ((uint128_t)1) << 10;
+	a = ((u128)1) << 100;
+	b = ((u128)1) << 10;
 	q = __udivti3(a, b);
-	ASSERT_EQ(q, ((uint128_t)1) << 90, "large_a_small_b_div");
+	ASSERT_EQ(q, ((u128)1) << 90, "large_a_small_b_div");
 }
 Test(umodti3) {
-	uint128_t a, b, r;
+	u128 a, b, r;
 
 	a = 16;
-	b = ((uint128_t)1) << 65;
+	b = ((u128)1) << 65;
 	r = __umodti3(a, b);
 	ASSERT_EQ(r, 16, "small_a_mod");
 
@@ -406,23 +406,23 @@ Test(umodti3) {
 	r = __umodti3(a, b);
 	ASSERT_EQ(r, 2, "64bit_small_mod");
 
-	a = ((uint128_t)1) << 80;
+	a = ((u128)1) << 80;
 	b = 3;
 	r = __umodti3(a, b);
 	ASSERT_EQ(r, 1, "64bit_large_mod");
 
-	a = ((uint128_t)100) << 65;
-	b = ((uint128_t)7) << 65;
+	a = ((u128)100) << 65;
+	b = ((u128)7) << 65;
 	r = __umodti3(a, b);
-	ASSERT_EQ(r, ((uint128_t)2) << 65, "128bit_mod");
+	ASSERT_EQ(r, ((u128)2) << 65, "128bit_mod");
 
-	a = ((uint128_t)1) << 65;
-	b = ((uint128_t)1) << 65;
+	a = ((u128)1) << 65;
+	b = ((u128)1) << 65;
 	r = __umodti3(a, b);
 	ASSERT_EQ(r, 0, "equal_mod");
 
-	a = ((uint128_t)1) << 100;
-	b = ((uint128_t)1) << 10;
+	a = ((u128)1) << 100;
+	b = ((u128)1) << 10;
 	r = __umodti3(a, b);
 	ASSERT_EQ(r, 0, "large_a_small_b_mod");
 }
@@ -898,9 +898,9 @@ Test(snprintf) {
 }
 
 Test(b64) {
-	uint8_t buf[128];
-	uint8_t buf2[128];
-	uint8_t buf3[128];
+	u8 buf[128];
+	u8 buf2[128];
+	u8 buf3[128];
 	int len, len2;
 	memcpy(buf, "0123456789", 10);
 	len = b64_encode(buf, 10, buf2, 128);
@@ -919,15 +919,15 @@ Test(b64) {
 }
 
 /* Helper function to compare encoded output with expected string */
-static void assert_b64_eq(const uint8_t *out, const char *expected,
+static void assert_b64_eq(const u8 *out, const char *expected,
 			  const char *msg) {
 	ASSERT(!strcmp((const char *)out, expected), msg);
 }
 
 Test(b642) {
-	uint8_t buf[128];
-	uint8_t buf2[128];
-	uint8_t buf3[128];
+	u8 buf[128];
+	u8 buf2[128];
+	u8 buf3[128];
 	u64 len, len2;
 
 	/* Test 1: Normal case (10 bytes, exercises main loop) */
@@ -1052,14 +1052,14 @@ Test(files1) {
 }
 
 Test(entropy) {
-	uint8_t buf[1024];
-	uint128_t v1 = 0, v2 = 0;
+	u8 buf[1024];
+	u128 v1 = 0, v2 = 0;
 	ASSERT(!getentropy(buf, 64), "getentropy");
 	ASSERT(getentropy(buf, 1024), "overflow");
 	ASSERT(getentropy(NULL, 100), "null");
 	ASSERT_EQ(v1, v2, "eq");
-	getentropy(&v1, sizeof(uint128_t));
-	getentropy(&v2, sizeof(uint128_t));
+	getentropy(&v1, sizeof(u128));
+	getentropy(&v2, sizeof(u128));
 	ASSERT(v1 != v2, "v1 != v2");
 	ASSERT(v1 != 0, "v1 != 0");
 	ASSERT(v2 != 0, "v2 != 0");

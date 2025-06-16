@@ -29,7 +29,7 @@
 #include <syscall_const.H>
 
 int rng_init(Rng *rng) {
-	uint8_t iv[16], key[32];
+	u8 iv[16], key[32];
 	int ret = 0;
 
 	if (getrandom(key, 32, GRND_RANDOM)) ret = -1;
@@ -42,12 +42,12 @@ int rng_init(Rng *rng) {
 int rng_reseed(Rng *rng) { return rng_init(rng); }
 
 void rng_gen(Rng *rng, void *v, u64 size) {
-	aes_ctr_xcrypt_buffer(&rng->ctx, (uint8_t *)v, size);
+	aes_ctr_xcrypt_buffer(&rng->ctx, (u8 *)v, size);
 }
 
 #if TEST == 1
-void rng_test_seed(Rng *rng, uint8_t key[32], uint8_t iv[16]) {
-	uint8_t v0[1] = {0};
+void rng_test_seed(Rng *rng, u8 key[32], u8 iv[16]) {
+	u8 v0[1] = {0};
 	aes_init(&rng->ctx, key, iv);
 	rng_gen(rng, &v0, 1);
 }

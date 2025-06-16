@@ -41,14 +41,14 @@ void *memcpy(void *dst, const void *src, u64 n);
 int memcmp(const void *s1, const void *s2, u64 n);
 void *memorymove(void *dst, const void *src, u64 n);
 void byteszero(void *dst, u64 n);
-u64 uint128_t_to_string(char *buf, uint128_t v);
-u64 int128_t_to_string(char *buf, int128_t v);
+u64 u128_to_string(char *buf, u128 v);
+u64 i128_to_string(char *buf, i128 v);
 u64 double_to_string(char *buf, double v, int max_decimals);
-u64 b64_encode(const uint8_t *in, u64 in_len, uint8_t *out,
+u64 b64_encode(const u8 *in, u64 in_len, u8 *out,
 		  u64 out_max);
-u64 b64_decode(const uint8_t *in, u64 in_len, uint8_t *out,
+u64 b64_decode(const u8 *in, u64 in_len, u8 *out,
 		  u64 out_max);
-uint128_t string_to_uint128(const char *buf, u64 len);
-int128_t string_to_int128(const char *buf, u64 len);
+u128 string_to_uint128(const char *buf, u64 len);
+i128 string_to_int128(const char *buf, u64 len);
 
 #endif /* _MISC_H */

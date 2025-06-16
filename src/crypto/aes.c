@@ -40,9 +40,9 @@
 
 /*****************************************************************************/
 /* state - array holding the intermediate results during decryption. */
-typedef uint8_t state_t[4][4];
+typedef u8 state_t[4][4];
 
-static const uint8_t sbox[256] = {
+static const u8 sbox[256] = {
     /* 0     1    2      3     4    5     6     7      8    9     A      B    C
      */
     /* D     E     F */
@@ -72,7 +72,7 @@ static const uint8_t sbox[256] = {
 /* The round constant word array, Rcon[i], contains the values given by */
 /* x to the power (i-1) being powers of x (x is denoted as {02}) in the field */
 /* GF(2^8) */
-static const uint8_t Rcon[11] = {0x8d, 0x01, 0x02, 0x04, 0x08, 0x10,
+static const u8 Rcon[11] = {0x8d, 0x01, 0x02, 0x04, 0x08, 0x10,
 				 0x20, 0x40, 0x80, 0x1b, 0x36};
 
 #define getSBoxValue(num) (sbox[(num)])
@@ -80,9 +80,9 @@ static const uint8_t Rcon[11] = {0x8d, 0x01, 0x02, 0x04, 0x08, 0x10,
 /* This function produces Nb(Nr+1) round keys. The round keys are used in each
  */
 /* round to decrypt the states. */
-static void KeyExpansion(uint8_t *RoundKey, const uint8_t *Key) {
+static void KeyExpansion(u8 *RoundKey, const u8 *Key) {
 	unsigned i, j, k;
-	uint8_t tempa[4];
+	u8 tempa[4];
 
 	/* The first round key is the key itself. */
 	for (i = 0; i < Nk; ++i) {
@@ -104,7 +104,7 @@ static void KeyExpansion(uint8_t *RoundKey, const uint8_t *Key) {
 
 		if (i % Nk == 0) {
 			{
-				const uint8_t chartmp = tempa[0];
+				const u8 chartmp = tempa[0];
 				tempa[0] = tempa[1];
 				tempa[1] = tempa[2];
 				tempa[2] = tempa[3];
@@ -137,18 +137,18 @@ static void KeyExpansion(uint8_t *RoundKey, const uint8_t *Key) {
 	}
 }
 
-void aes_init(AesContext *ctx, const uint8_t *key, const uint8_t *iv) {
+void aes_init(AesContext *ctx, const u8 *key, const u8 *iv) {
 	KeyExpansion(ctx->RoundKey, key);
 	memcpy(ctx->Iv, iv, AES_BLOCKLEN);
 }
 
-void aes_set_iv(AesContext *ctx, const uint8_t *iv) {
+void aes_set_iv(AesContext *ctx, const u8 *iv) {
 	memcpy(ctx->Iv, iv, AES_BLOCKLEN);
 }
 
-static void AddRoundKey(uint8_t round, state_t *state,
-			const uint8_t *RoundKey) {
-	uint8_t i, j;
+static void AddRoundKey(u8 round, state_t *state,
+			const u8 *RoundKey) {
+	u8 i, j;
 	for (i = 0; i < 4; ++i) {
 		for (j = 0; j < 4; ++j) {
 			(*state)[i][j] ^=
@@ -158,7 +158,7 @@ static void AddRoundKey(uint8_t round, state_t *state,
 }
 
 static void SubBytes(state_t *state) {
-	uint8_t i, j;
+	u8 i, j;
 	for (i = 0; i < 4; ++i) {
 		for (j = 0; j < 4; ++j) {
 			(*state)[j][i] = getSBoxValue((*state)[j][i]);
@@ -167,7 +167,7 @@ static void SubBytes(state_t *state) {
 }
 
 static void ShiftRows(state_t *state) {
-	uint8_t temp;
+	u8 temp;
 	temp = (*state)[0][1];
 	(*state)[0][1] = (*state)[1][1];
 	(*state)[1][1] = (*state)[2][1];
@@ -189,11 +189,11 @@ static void ShiftRows(state_t *state) {
 	(*state)[1][3] = temp;
 }
 
-static uint8_t xtime(uint8_t x) { return ((x << 1) ^ (((x >> 7) & 1) * 0x1b)); }
+static u8 xtime(u8 x) { return ((x << 1) ^ (((x >> 7) & 1) * 0x1b)); }
 
 static void MixColumns(state_t *state) {
-	uint8_t i;
-	uint8_t Tmp, Tm, t;
+	u8 i;
+	u8 Tmp, Tm, t;
 	for (i = 0; i < 4; ++i) {
 		t = (*state)[i][0];
 		Tmp = (*state)[i][0] ^ (*state)[i][1] ^ (*state)[i][2] ^
@@ -213,8 +213,8 @@ static void MixColumns(state_t *state) {
 	}
 }
 
-static void Cipher(state_t *state, const uint8_t *RoundKey) {
-	uint8_t round = 0;
+static void Cipher(state_t *state, const u8 *RoundKey) {
+	u8 round = 0;
 
 	AddRoundKey(0, state, RoundKey);
 
@@ -232,8 +232,8 @@ static void Cipher(state_t *state, const uint8_t *RoundKey) {
 
 /* Symmetrical operation: same function for encrypting as for decrypting. Note
  * any IV/nonce should never be reused with the same key */
-void aes_ctr_xcrypt_buffer(AesContext *ctx, uint8_t *buf, u64 length) {
-	uint8_t buffer[AES_BLOCKLEN];
+void aes_ctr_xcrypt_buffer(AesContext *ctx, u8 *buf, u64 length) {
+	u8 buffer[AES_BLOCKLEN];
 
 	u64 i;
 	int bi;

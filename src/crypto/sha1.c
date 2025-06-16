@@ -29,7 +29,7 @@
 typedef struct {
 	u32 state[5];
 	u64 count;
-	uint8_t buffer[64];
+	u8 buffer[64];
 } SHA1_CTX;
 
 void sha1_init(SHA1_CTX *ctx) {
@@ -43,7 +43,7 @@ void sha1_init(SHA1_CTX *ctx) {
 
 #define ROTL(x, n) (((x) << (n)) | ((x) >> (32 - (n))))
 
-static void sha1_transform(SHA1_CTX *ctx, const uint8_t *data) {
+static void sha1_transform(SHA1_CTX *ctx, const u8 *data) {
 	u32 a, b, c, d, e, t, w[80];
 	int i;
 
@@ -90,7 +90,7 @@ static void sha1_transform(SHA1_CTX *ctx, const uint8_t *data) {
 	ctx->state[4] += e;
 }
 
-void sha1_update(SHA1_CTX *ctx, const uint8_t *data, u64 len) {
+void sha1_update(SHA1_CTX *ctx, const u8 *data, u64 len) {
 	u64 i = ctx->count % 64;
 	ctx->count += len;
 
@@ -118,7 +118,7 @@ void sha1_update(SHA1_CTX *ctx, const uint8_t *data, u64 len) {
 	}
 }
 
-void sha1_final(SHA1_CTX *ctx, uint8_t *digest) {
+void sha1_final(SHA1_CTX *ctx, u8 *digest) {
 	u64 bits;
 	u64 i = ctx->count % 64;
 	ctx->buffer[i++] = 0x80;

@@ -35,7 +35,7 @@
 
 bool debug_force_write_buffer = 0;
 
-Connection *evh_acceptor(uint8_t addr[4], uint16_t port, uint16_t backlog,
+Connection *evh_acceptor(u8 addr[4], u16 port, u16 backlog,
 			 OnRecvFn on_recv_fn, OnAcceptFn on_accept_fn,
 			 OnCloseFn on_close_fn) {
 	int pval;
@@ -53,13 +53,13 @@ Connection *evh_acceptor(uint8_t addr[4], uint16_t port, uint16_t backlog,
 	conn->data.acceptor.port = pval;
 	return conn;
 }
-uint16_t evh_acceptor_port(Connection *conn) {
+u16 evh_acceptor_port(Connection *conn) {
 	if (conn->conn_type == Acceptor) return conn->data.acceptor.port;
 	err = EINVAL;
 	return 0;
 }
 
-Connection *evh_client(uint8_t addr[4], uint16_t port, OnRecvFn on_recv_fn,
+Connection *evh_client(u8 addr[4], u16 port, OnRecvFn on_recv_fn,
 		       OnCloseFn on_close_fn,
 		       u64 connection_alloc_overhead) {
 	Connection *client =
@@ -109,7 +109,7 @@ int connection_write(Connection *connection, const void *buf, u64 len) {
 			wlen = 0;
 		else
 			wlen = write(connection->socket,
-				     (uint8_t *)buf + offset, len);
+				     (u8 *)buf + offset, len);
 		if (err == EINTR) {
 			if (wlen > 0) offset += wlen;
 			goto write_block;
@@ -141,7 +141,7 @@ int connection_write(Connection *connection, const void *buf, u64 len) {
 		ib->wbuf = tmp;
 		ib->wbuf_capacity = ib->wbuf_offset + len - wlen;
 	}
-	memcpy(ib->wbuf + ib->wbuf_offset, (uint8_t *)buf + wlen, len - wlen);
+	memcpy(ib->wbuf + ib->wbuf_offset, (u8 *)buf + wlen, len - wlen);
 	ib->wbuf_offset += len - wlen;
 
 	return 0;

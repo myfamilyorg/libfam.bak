@@ -70,8 +70,8 @@ STATIC int ws_proc_handshake(WsConnection *wsconn) {
 	char key[24];
 	SHA1_CTX sha1;
 	char accept[32];
-	uint8_t hash[20];
-	uint8_t decoded_key[16];
+	u8 hash[20];
+	u8 decoded_key[16];
 	int lendec;
 	const char *guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
@@ -105,18 +105,18 @@ STATIC int ws_proc_handshake(WsConnection *wsconn) {
 		memcpy(wsconn->uri, rbuf + 4, i - 4);
 		wsconn->uri[i - 4] = 0;
 
-		lendec = b64_decode((uint8_t *)key, 24, decoded_key, 16);
+		lendec = b64_decode((u8 *)key, 24, decoded_key, 16);
 		if (lendec != 16) {
 			err = EINVAL;
 			return -1;
 		}
 
 		sha1_init(&sha1);
-		sha1_update(&sha1, (uint8_t *)key, 24);
-		sha1_update(&sha1, (uint8_t *)guid, strlen(guid));
+		sha1_update(&sha1, (u8 *)key, 24);
+		sha1_update(&sha1, (u8 *)guid, strlen(guid));
 		sha1_final(&sha1, hash);
 
-		if (!b64_encode(hash, 20, (uint8_t *)accept, sizeof(accept))) {
+		if (!b64_encode(hash, 20, (u8 *)accept, sizeof(accept))) {
 			err = EINVAL;
 			return -1;
 		}
@@ -146,12 +146,12 @@ STATIC int proc_message_single(Ws *ws, WsConnection *wsconn, u64 offset,
 
 STATIC int ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 	u64 rbuf_offset = wsconn->connection.data.inbound.rbuf_offset;
-	uint8_t *rbuf = wsconn->connection.data.inbound.rbuf;
+	u8 *rbuf = wsconn->connection.data.inbound.rbuf;
 	bool fin, mask;
-	uint8_t op;
+	u8 op;
 	u64 len;
 	u64 data_start;
-	uint8_t masking_key[4] = {0};
+	u8 masking_key[4] = {0};
 
 	if (rbuf_offset < 2) {
 		err = EAGAIN;
@@ -191,7 +191,7 @@ STATIC int ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 
 	if (mask) {
 		u64 i;
-		uint8_t *payload;
+		u8 *payload;
 		masking_key[0] = rbuf[data_start - 4];
 		masking_key[1] = rbuf[data_start - 3];
 		masking_key[2] = rbuf[data_start - 2];
@@ -331,13 +331,13 @@ int ws_connection_close(WsConnection *conn, int code __attribute__((unused)),
 }
 
 int ws_send(WsConnection *conn, WsMessage *msg) {
-	uint8_t buf[10];
+	u8 buf[10];
 	u64 header_len;
 
 	buf[0] = 0x82;
 
 	if (msg->len <= 125) {
-		buf[1] = (uint8_t)msg->len;
+		buf[1] = (u8)msg->len;
 		header_len = 2;
 	} else if (msg->len <= 65535) {
 		buf[1] = 126;
@@ -366,5 +366,5 @@ int ws_send(WsConnection *conn, WsMessage *msg) {
 
 const char *ws_connection_uri(WsConnection *conn) { return conn->uri; }
 
-uint16_t ws_port(Ws *ws) { return evh_acceptor_port(ws->acceptor); }
+u16 ws_port(Ws *ws) { return evh_acceptor_port(ws->acceptor); }
 

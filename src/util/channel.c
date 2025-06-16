@@ -39,11 +39,11 @@ struct ChannelInner {
 	u64 head;
 	u64 tail;
 	u32 wait;
-	uint8_t padding[12];
+	u8 padding[12];
 };
 
 #define ELEMENT_AT(channel, i)                              \
-	((uint8_t *)channel->inner + sizeof(ChannelInner) + \
+	((u8 *)channel->inner + sizeof(ChannelInner) + \
 	 i * channel->inner->element_size)
 
 #define NEXT_POS(channel, pos) ((pos + 1) % channel->inner->capacity)

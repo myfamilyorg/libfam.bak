@@ -38,7 +38,7 @@ int rng_reseed(Rng *rng);
 void rng_gen(Rng *rng, void *v, u64 size);
 
 #if TEST == 1
-void rng_test_seed(Rng *rng, uint8_t key[32], uint8_t iv[16]);
+void rng_test_seed(Rng *rng, u8 key[32], u8 iv[16]);
 #endif /* TEST */
 
 #endif /* _RNG_H */

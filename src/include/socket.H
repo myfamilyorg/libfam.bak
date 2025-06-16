@@ -29,9 +29,9 @@
 #include <types.H>
 
 int set_nonblocking(int socket);
-int socket_connect(const uint8_t addr[4], uint16_t port);
-int socket_listen(int *fd, const uint8_t addr[4], uint16_t port,
-		  uint16_t backlog);
+int socket_connect(const u8 addr[4], u16 port);
+int socket_listen(int *fd, const u8 addr[4], u16 port,
+		  u16 backlog);
 int socket_accept(int fd);
 
 unsigned short htons(unsigned short host);

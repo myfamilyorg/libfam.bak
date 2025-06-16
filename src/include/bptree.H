@@ -47,34 +47,34 @@ typedef struct BpTxn BpTxn;
 /* The result returned in a search, used by put/remove */
 typedef struct {
 	u64 node_id;
-	uint16_t key_index;
+	u16 key_index;
 	bool found;
 } BpTreeSearchResult;
 
 /* BpTree entry */
 typedef struct {
 	u32 value_len;
-	uint16_t key_len;
-	uint8_t flags;
+	u16 key_len;
+	u8 flags;
 } BpTreeEntry;
 
 /* BpTree Internal entry */
 typedef struct {
-	uint16_t key_len;
+	u16 key_len;
 	u64 node_id;
 } BpTreeInternalEntry;
 
 /* Data specific to an internal node */
 typedef struct {
-	uint16_t entry_offsets[MAX_INTERNAL_ENTRIES];
-	uint8_t key_entries[INTERNAL_ARRAY_SIZE];
+	u16 entry_offsets[MAX_INTERNAL_ENTRIES];
+	u8 key_entries[INTERNAL_ARRAY_SIZE];
 } BpTreeInternalNode;
 
 /* Data specific to a leaf node */
 typedef struct {
 	u64 next_leaf;
-	uint16_t entry_offsets[MAX_LEAF_ENTRIES];
-	uint8_t entries[LEAF_ARRAY_SIZE];
+	u16 entry_offsets[MAX_LEAF_ENTRIES];
+	u8 entries[LEAF_ARRAY_SIZE];
 } BpTreeLeafNode;
 
 /* BpTree Node */
@@ -82,8 +82,8 @@ typedef struct {
 	u64 node_id;
 	u64 parent_id;
 	u64 free_list_next;
-	uint16_t num_entries;
-	uint16_t used_bytes;
+	u16 num_entries;
+	u16 used_bytes;
 	bool is_internal;
 	union {
 		BpTreeInternalNode internal;
@@ -92,7 +92,7 @@ typedef struct {
 } BpTreeNode;
 
 /* User defined search */
-typedef void (*BpTreeSearch)(BpTxn *txn, const void *key, uint16_t key_len,
+typedef void (*BpTreeSearch)(BpTxn *txn, const void *key, u16 key_len,
 			     const BpTreeNode *node,
 			     BpTreeSearchResult *retval);
 
@@ -106,9 +106,9 @@ int bptxn_commit(BpTxn *txn);
 int bptxn_abort(BpTxn *txn);
 
 /* Modification functions */
-int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
+int bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 	       u32 value_len, const BpTreeSearch search);
-BpTreeEntry *bptree_remove(BpTxn *txn, const void *key, uint16_t key_len,
+BpTreeEntry *bptree_remove(BpTxn *txn, const void *key, u16 key_len,
 			   const void *value, u64 value_len,
 			   const BpTreeSearch search);
 

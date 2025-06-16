@@ -30,20 +30,20 @@
 #define NULL ((void *)0)
 #endif /* NULL */
 
-typedef signed char int8_t;
-typedef short int int16_t;
+typedef signed char i8;
+typedef short int i16;
 typedef int i32;
 typedef long i64;
-typedef __int128_t int128_t;
+typedef __int128_t i128;
 
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
+typedef unsigned char u8;
+typedef unsigned short int u16;
 typedef unsigned int u32;
 typedef unsigned long u64;
-typedef __uint128_t uint128_t;
+typedef __uint128_t u128;
 
 #ifndef bool
-#define bool uint8_t
+#define bool u8
 #endif
 
 #ifndef false

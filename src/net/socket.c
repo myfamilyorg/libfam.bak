@@ -50,7 +50,7 @@ int set_nonblocking(int socket) {
 	return 0;
 }
 
-int socket_connect(const uint8_t addr[4], uint16_t port) {
+int socket_connect(const u8 addr[4], u16 port) {
 	struct sockaddr_in address = {0};
 	int ret = socket(AF_INET, SOCK_STREAM, 0);
 	if (ret < 0) return ret;
@@ -68,8 +68,8 @@ int socket_connect(const uint8_t addr[4], uint16_t port) {
 	return ret;
 }
 
-int socket_listen(int *fd, const uint8_t addr[4], uint16_t port,
-		  uint16_t backlog) {
+int socket_listen(int *fd, const u8 addr[4], u16 port,
+		  u16 backlog) {
 	int opt = 1;
 	struct sockaddr_in address;
 	socklen_t addr_len;

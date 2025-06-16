@@ -33,13 +33,13 @@
 #include <types.H>
 
 typedef struct {
-	uint8_t RoundKey[AES_KEYEXPSIZE];
-	uint8_t Iv[AES_BLOCKLEN];
+	u8 RoundKey[AES_KEYEXPSIZE];
+	u8 Iv[AES_BLOCKLEN];
 } AesContext;
 
-void aes_init(AesContext *ctx, const uint8_t *key, const uint8_t *iv);
-void aes_set_iv(AesContext *ctx, const uint8_t *iv);
+void aes_init(AesContext *ctx, const u8 *key, const u8 *iv);
+void aes_set_iv(AesContext *ctx, const u8 *iv);
 
-void aes_ctr_xcrypt_buffer(AesContext *ctx, uint8_t *buf, u64 length);
+void aes_ctr_xcrypt_buffer(AesContext *ctx, u8 *buf, u64 length);
 
 #endif /* _AES_H */

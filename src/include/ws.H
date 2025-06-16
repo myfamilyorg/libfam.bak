@@ -27,15 +27,15 @@
 #define _WS_H
 
 typedef struct {
-	uint8_t *buffer;
+	u8 *buffer;
 	u64 len;
 } WsMessage;
 
 typedef struct {
-	uint16_t port;
-	uint8_t addr[4];
-	uint16_t backlog;
-	uint16_t workers;
+	u16 port;
+	u8 addr[4];
+	u16 backlog;
+	u16 workers;
 } WsConfig;
 
 typedef struct WsConnection WsConnection;
@@ -55,6 +55,6 @@ u64 ws_connection_id(WsConnection *connection);
 WsConnection *ws_connect(Ws *ws, const char *url);
 int ws_connection_close(WsConnection *conn, int code, const char *reason);
 const char *ws_connection_uri(WsConnection *conn);
-uint16_t ws_port(Ws *ws);
+u16 ws_port(Ws *ws);
 
 #endif /* _WS_H */

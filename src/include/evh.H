@@ -42,7 +42,7 @@ typedef struct {
 	OnRecvFn on_recv;
 	OnAcceptFn on_accept;
 	OnCloseFn on_close;
-	uint16_t port;
+	u16 port;
 } AcceptorData;
 
 typedef struct {
@@ -51,10 +51,10 @@ typedef struct {
 	int mplex;
 	Lock lock;
 	bool is_closed;
-	uint8_t *rbuf;
+	u8 *rbuf;
 	u64 rbuf_capacity;
 	u64 rbuf_offset;
-	uint8_t *wbuf;
+	u8 *wbuf;
 	u64 wbuf_capacity;
 	u64 wbuf_offset;
 } InboundData;
@@ -80,12 +80,12 @@ int evh_register(Evh *evh, Connection *connection);
 int evh_start(Evh *evh, void *ctx, u64 connection_alloc_overhead);
 int evh_stop(Evh *evh);
 
-Connection *evh_acceptor(uint8_t addr[4], uint16_t port, uint16_t backlog,
+Connection *evh_acceptor(u8 addr[4], u16 port, u16 backlog,
 			 OnRecvFn on_recv, OnAcceptFn on_accept,
 			 OnCloseFn on_close);
-Connection *evh_client(uint8_t addr[4], uint16_t port, OnRecvFn on_recv,
+Connection *evh_client(u8 addr[4], u16 port, OnRecvFn on_recv,
 		       OnCloseFn on_close, u64 connection_alloc_overhead);
-uint16_t evh_acceptor_port(Connection *conn);
+u16 evh_acceptor_port(Connection *conn);
 int connection_close(Connection *connection);
 int connection_write(Connection *connection, const void *buf, u64 len);
 void connection_clear_rbuf_through(Connection *conn, u64 off);

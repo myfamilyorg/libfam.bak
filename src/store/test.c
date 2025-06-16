@@ -29,22 +29,22 @@
 #include <rng.H>
 #include <test.H>
 
-void test_bptree_search(BpTxn *txn, const void *key, uint16_t key_len,
+void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 			const BpTreeNode *node, BpTreeSearchResult *retval) {
 	int i;
 	/* Simplify for now, just use root node only */
 	retval->found = false;
 
 	while (node->is_internal) {
-		uint16_t offset = node->data.internal.entry_offsets[1];
+		u16 offset = node->data.internal.entry_offsets[1];
 		BpTreeInternalEntry *entry =
-		    (BpTreeInternalEntry *)((uint8_t *)node->data.internal
+		    (BpTreeInternalEntry *)((u8 *)node->data.internal
 						.key_entries +
 					    offset);
 		const char *cmp_key __attribute__((unused)) =
-		    (const char *)((uint8_t *)node->data.internal.key_entries +
+		    (const char *)((u8 *)node->data.internal.key_entries +
 				   offset + sizeof(BpTreeInternalEntry));
-		uint16_t len =
+		u16 len =
 		    key_len > entry->key_len ? entry->key_len : key_len;
 
 		int v = strcmpn(key, cmp_key, len);
@@ -52,7 +52,7 @@ void test_bptree_search(BpTxn *txn, const void *key, uint16_t key_len,
 			node = bptxn_get_node(txn, entry->node_id);
 		} else {
 			entry =
-			    (BpTreeInternalEntry *)((uint8_t *)node->data
+			    (BpTreeInternalEntry *)((u8 *)node->data
 							.internal.key_entries);
 
 			node = bptxn_get_node(txn, entry->node_id);
@@ -62,13 +62,13 @@ void test_bptree_search(BpTxn *txn, const void *key, uint16_t key_len,
 
 	for (i = 0; i < node->num_entries; i++) {
 		int v;
-		uint16_t offset = node->data.leaf.entry_offsets[i];
+		u16 offset = node->data.leaf.entry_offsets[i];
 		BpTreeEntry *entry =
-		    (BpTreeEntry *)((uint8_t *)node->data.leaf.entries +
+		    (BpTreeEntry *)((u8 *)node->data.leaf.entries +
 				    offset);
 		const char *cmp_key =
-		    (const char *)((uint8_t *)entry + sizeof(BpTreeEntry));
-		uint16_t len =
+		    (const char *)((u8 *)entry + sizeof(BpTreeEntry));
+		u16 len =
 		    key_len > entry->key_len ? entry->key_len : key_len;
 
 		v = strcmpn(key, cmp_key, len);
@@ -92,13 +92,13 @@ Test(store1) {
 	BpTree *tree;
 	BpTxn *txn;
 	Rng rng;
-	uint8_t keys[11][20];
-	uint8_t values[11][20];
-	uint8_t rand_key_lens[11];
-	uint8_t rand_value_lens[11];
+	u8 keys[11][20];
+	u8 values[11][20];
+	u8 rand_key_lens[11];
+	u8 rand_value_lens[11];
 
-	uint8_t key[32] = {3};
-	uint8_t iv[16] = {2};
+	u8 key[32] = {3};
+	u8 iv[16] = {2};
 
 	rng_test_seed(&rng, key, iv);
 
@@ -113,8 +113,8 @@ Test(store1) {
 		txn = bptxn_start(tree);
 
 		for (i = 1; i < 11; i++) {
-			uint8_t keybuf[20] = {0};
-			uint8_t valuebuf[20] = {0};
+			u8 keybuf[20] = {0};
+			u8 valuebuf[20] = {0};
 			u64 klen = 0, vlen = 0;
 
 			rng_gen(&rng, keybuf, 20);
@@ -166,13 +166,13 @@ Test(bptree_split) {
 	BpTree *tree;
 	BpTxn *txn;
 	Rng rng;
-	uint8_t keys[BPTREE_SPLIT_ITT][20];
-	uint8_t values[BPTREE_SPLIT_ITT][20];
-	uint8_t rand_key_lens[BPTREE_SPLIT_ITT];
-	uint8_t rand_value_lens[BPTREE_SPLIT_ITT];
+	u8 keys[BPTREE_SPLIT_ITT][20];
+	u8 values[BPTREE_SPLIT_ITT][20];
+	u8 rand_key_lens[BPTREE_SPLIT_ITT];
+	u8 rand_value_lens[BPTREE_SPLIT_ITT];
 
-	uint8_t key[32] = {4};
-	uint8_t iv[16] = {1};
+	u8 key[32] = {4};
+	u8 iv[16] = {1};
 
 	rng_test_seed(&rng, key, iv);
 	unlink(path);
@@ -185,8 +185,8 @@ Test(bptree_split) {
 	txn = bptxn_start(tree);
 
 	for (i = 1; i < BPTREE_SPLIT_ITT; i++) {
-		uint8_t keybuf[20] = {0};
-		uint8_t valuebuf[20] = {0};
+		u8 keybuf[20] = {0};
+		u8 valuebuf[20] = {0};
 		u64 klen = 0, vlen = 0;
 
 		rng_gen(&rng, keybuf, 20);

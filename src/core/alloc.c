@@ -99,7 +99,7 @@
 			expected = ALOAD(last_free_ptr);                  \
 	} while (0)
 #define CHUNK_OFFSET                                             \
-	((uint8_t *)((u64)memory_base + sizeof(AllocHeader) + \
+	((u8 *)((u64)memory_base + sizeof(AllocHeader) + \
 		     bitmap_pages * PAGE_SIZE))
 #define BITMAP_CAPACITY(slab_size) \
 	((8UL * (CHUNK_SIZE - sizeof(Chunk))) / (1 + 8 * (slab_size)))
@@ -112,14 +112,14 @@ typedef struct {
 
 typedef struct {
 	AllocHeaderData data;
-	uint8_t padding[PAGE_SIZE - sizeof(AllocHeaderData)];
+	u8 padding[PAGE_SIZE - sizeof(AllocHeaderData)];
 } AllocHeader;
 
 typedef struct {
 	u32 slab_size;
 	u64 last_free;
 	u64 next;
-	uint8_t padding[12];
+	u8 padding[12];
 } Chunk;
 
 static void *memory_base = NULL;
@@ -246,7 +246,7 @@ STATIC void *allocate_slab(u64 size) {
 		NEXT_FREE_BIT(chunk_bitmap, max, ret, &chunk->last_free);
 		if (ret != (u64)-1) {
 			u64 bitmap_size = BITMAP_SIZE(slab_size);
-			ret_ptr = (uint8_t *)chunk + sizeof(Chunk) +
+			ret_ptr = (u8 *)chunk + sizeof(Chunk) +
 				  bitmap_size + (ret * slab_size);
 			break;
 		}

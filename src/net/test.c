@@ -33,7 +33,7 @@
 #include <test.H>
 #include <ws.H>
 
-uint8_t LOCALHOST[4] = {127, 0, 0, 1};
+u8 LOCALHOST[4] = {127, 0, 0, 1};
 
 Test(event) {
 	Event events[10];
@@ -220,7 +220,7 @@ int on_recv2(void *ctx __attribute__((unused)), Connection *conn,
 	ASTORE(value2, nv);
 
 	if (nv < 105)
-		connection_write(conn, (uint8_t *)&nv, sizeof(int));
+		connection_write(conn, (u8 *)&nv, sizeof(int));
 	else
 		connection_close(conn);
 	return 0;
@@ -251,7 +251,7 @@ Test(test_evh2) {
 	evh_register(&evh2, client);
 
 	ASSERT_EQ(*value2, 0, "0");
-	connection_write(client, (uint8_t *)&initial, sizeof(int));
+	connection_write(client, (u8 *)&initial, sizeof(int));
 	while (true) {
 		yield();
 		if (ALOAD(value2) == 105) break;
@@ -269,7 +269,7 @@ Test(test_evh2) {
 Test(test_evh_coverage) {
 	Connection *conn =
 	    evh_acceptor(LOCALHOST, 0, 10, on_recv2, on_accept2, on_close2);
-	uint16_t port = evh_acceptor_port(conn);
+	u16 port = evh_acceptor_port(conn);
 	ASSERT(
 	    !evh_acceptor(LOCALHOST, port, 10, on_recv2, on_accept2, on_close2),
 	    "listen on same port");
@@ -284,7 +284,7 @@ Test(test_evh_coverage) {
 Test(test_evh_other_situations) {
 	Connection *conn =
 	    evh_acceptor(LOCALHOST, 0, 10, on_recv2, on_accept2, on_close2);
-	uint16_t port = evh_acceptor_port(conn);
+	u16 port = evh_acceptor_port(conn);
 
 	Connection *client =
 	    evh_client(LOCALHOST, port, on_recv2, on_close2, 0);
@@ -301,7 +301,7 @@ Test(test_evh_other_situations) {
 Test(test_evh_other_situations2) {
 	Connection *conn =
 	    evh_acceptor(LOCALHOST, 0, 10, on_recv2, on_accept2, on_close2);
-	uint16_t port = evh_acceptor_port(conn);
+	u16 port = evh_acceptor_port(conn);
 
 	Connection *client =
 	    evh_client(LOCALHOST, port, on_recv2, on_close2, 0);
@@ -319,7 +319,7 @@ Test(test_evh_other_situations2) {
 Test(test_evh_clear) {
 	Connection *conn =
 	    evh_acceptor(LOCALHOST, 0, 10, on_recv2, on_accept2, on_close2);
-	uint16_t port = evh_acceptor_port(conn);
+	u16 port = evh_acceptor_port(conn);
 
 	Connection *client =
 	    evh_client(LOCALHOST, port, on_recv2, on_close2, 0);
@@ -369,9 +369,9 @@ WsConfig WS_STD_CFG = {0, {127, 0, 0, 1}, 10, 2};
 WsConfig WS_EXT = {3737, {0, 0, 0, 0}, 10, 2};
 
 Test(ws1) {
-	uint16_t port;
+	u16 port;
 	Ws *ws;
-	uint8_t buf[1];
+	u8 buf[1];
 	int socket;
 	const char *msg =
 	    "GET / HTTP/1.1\r\nSec-WebSocket-Key: "
@@ -458,7 +458,7 @@ Test(connection_write) {
 
 	ASSERT_EQ(*value2, 0, "0");
 	debug_force_write_buffer = true;
-	connection_write(client, (uint8_t *)&initial, sizeof(int));
+	connection_write(client, (u8 *)&initial, sizeof(int));
 	while (true) {
 		yield();
 		if (ALOAD(value2) == 105) break;

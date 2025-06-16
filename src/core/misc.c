@@ -59,8 +59,8 @@ int strcmp(const char *X, const char *Y) {
 		X++;
 		Y++;
 	}
-	if ((uint8_t)*X > (uint8_t)*Y) return 1;
-	if ((uint8_t)*Y > (uint8_t)*X) return -1;
+	if ((u8)*X > (u8)*Y) return 1;
+	if ((u8)*Y > (u8)*X) return -1;
 	return 0;
 }
 
@@ -71,14 +71,14 @@ int strcmpn(const char *X, const char *Y, u64 n) {
 		n--;
 	}
 	if (n == 0) return 0;
-	return (uint8_t)*X - (uint8_t)*Y;
+	return (u8)*X - (u8)*Y;
 }
 
 char *substr(const char *s, const char *sub) {
 	if (s == NULL || sub == NULL) return NULL;
 	for (; *s; s++) {
 		const char *tmps = s, *tmpsub = sub;
-		while (*(uint8_t *)tmps == *(uint8_t *)tmpsub && *tmps) {
+		while (*(u8 *)tmps == *(u8 *)tmpsub && *tmps) {
 			tmps++;
 			tmpsub++;
 		}
@@ -114,7 +114,7 @@ char *strchr(const char *s, int c) {
 }
 
 void *memset(void *dest, int c, u64 n) {
-	uint8_t *s = (uint8_t *)dest;
+	u8 *s = (u8 *)dest;
 	u64 i;
 
 	if (dest == NULL || n == 0) {
@@ -122,7 +122,7 @@ void *memset(void *dest, int c, u64 n) {
 	}
 
 	for (i = 0; i < n; i++) {
-		s[i] = (uint8_t)c;
+		s[i] = (u8)c;
 	}
 	return dest;
 }
@@ -146,8 +146,8 @@ int memcmp(const void *s1, const void *s2, u64 n) {
 }
 
 void *memcpy(void *dest, const void *src, u64 n) {
-	uint8_t *d = (uint8_t *)dest;
-	const uint8_t *s = (uint8_t *)src;
+	u8 *d = (u8 *)dest;
+	const u8 *s = (u8 *)src;
 	u64 i;
 
 	if (dest == NULL || src == NULL || n == 0) {
@@ -161,8 +161,8 @@ void *memcpy(void *dest, const void *src, u64 n) {
 }
 
 void *memorymove(void *dest, const void *src, u64 n) {
-	uint8_t *d = (uint8_t *)dest;
-	const uint8_t *s = (uint8_t *)src;
+	u8 *d = (u8 *)dest;
+	const u8 *s = (u8 *)src;
 	u64 i;
 
 	if (dest == NULL || src == NULL || n == 0) {
@@ -184,7 +184,7 @@ void *memorymove(void *dest, const void *src, u64 n) {
 
 void byteszero(void *s, u64 len) { memset(s, 0, len); }
 
-u64 uint128_t_to_string(char *buf, uint128_t v) {
+u64 u128_to_string(char *buf, u128 v) {
 	char temp[40];
 	int i = 0, j = 0;
 
@@ -206,39 +206,39 @@ u64 uint128_t_to_string(char *buf, uint128_t v) {
 	return j;
 }
 
-u64 int128_t_to_string(char *buf, int128_t v) {
+u64 i128_to_string(char *buf, i128 v) {
 	u64 len;
-	const int128_t int128_min = INT128_MIN;
-	const uint128_t int128_min_abs = (uint128_t)0x8000000000000000UL << 64;
+	const i128 int128_min = INT128_MIN;
+	const u128 int128_min_abs = (u128)0x8000000000000000UL << 64;
 
 	int is_negative = v < 0;
-	uint128_t abs_v;
+	u128 abs_v;
 
 	if (is_negative) {
 		*buf = '-';
 		buf++;
-		abs_v = v == int128_min ? int128_min_abs : (uint128_t)(-v);
+		abs_v = v == int128_min ? int128_min_abs : (u128)(-v);
 	} else {
-		abs_v = (uint128_t)v;
+		abs_v = (u128)v;
 	}
 
-	len = uint128_t_to_string(buf, abs_v);
+	len = u128_to_string(buf, abs_v);
 	return is_negative ? len + 1 : len;
 }
 
 /* Convert string to unsigned 128-bit integer */
-uint128_t string_to_uint128(const char *buf, u64 len) {
-	uint128_t result;
+u128 string_to_uint128(const char *buf, u64 len) {
+	u128 result;
 	u64 i;
 	char c;
 
 	/* Input validation */
 	if (!buf || len == 0) {
 		err = EINVAL;
-		return (uint128_t)0;
+		return (u128)0;
 	}
 
-	result = (uint128_t)0;
+	result = (u128)0;
 	i = 0;
 
 	/* Skip leading whitespace */
@@ -248,7 +248,7 @@ uint128_t string_to_uint128(const char *buf, u64 len) {
 
 	if (i == len) {
 		err = EINVAL;
-		return (uint128_t)0;
+		return (u128)0;
 	}
 
 	/* Process digits */
@@ -256,13 +256,13 @@ uint128_t string_to_uint128(const char *buf, u64 len) {
 		c = buf[i];
 		if (c < '0' || c > '9') {
 			err = EINVAL;
-			return (uint128_t)0;
+			return (u128)0;
 		}
 
 		/* Check for overflow */
 		if (result > UINT128_MAX / 10) {
 			err = EINVAL;
-			return (uint128_t)0;
+			return (u128)0;
 		}
 
 		result = result * 10 + (c - '0');
@@ -273,16 +273,16 @@ uint128_t string_to_uint128(const char *buf, u64 len) {
 }
 
 /* Convert string to signed 128-bit integer using string_to_uint128 */
-int128_t string_to_int128(const char *buf, u64 len) {
+i128 string_to_int128(const char *buf, u64 len) {
 	u64 i;
 	int sign;
-	uint128_t abs_value;
-	int128_t result;
+	u128 abs_value;
+	i128 result;
 
 	/* Input validation */
 	if (!buf || len == 0) {
 		err = EINVAL;
-		return (int128_t)0;
+		return (i128)0;
 	}
 
 	i = 0;
@@ -295,7 +295,7 @@ int128_t string_to_int128(const char *buf, u64 len) {
 
 	if (i == len) {
 		err = EINVAL;
-		return (int128_t)0;
+		return (i128)0;
 	}
 
 	/* Handle sign */
@@ -308,23 +308,23 @@ int128_t string_to_int128(const char *buf, u64 len) {
 
 	if (i == len) {
 		err = EINVAL;
-		return (int128_t)0;
+		return (i128)0;
 	}
 
 	/* Use string_to_uint128 for absolute value */
 	err = 0;
 	abs_value = string_to_uint128(buf + i, len - i);
 	if (err == EINVAL) {
-		return (int128_t)0; /* Propagate error */
+		return (i128)0; /* Propagate error */
 	}
 
 	/* Check for overflow */
-	if (abs_value > (uint128_t)INT128_MAX + (sign == -1 ? 1 : 0)) {
+	if (abs_value > (u128)INT128_MAX + (sign == -1 ? 1 : 0)) {
 		err = EINVAL;
-		return (int128_t)0;
+		return (i128)0;
 	}
 
-	result = sign * (int128_t)abs_value;
+	result = sign * (i128)abs_value;
 	return result;
 }
 
@@ -451,11 +451,11 @@ u64 double_to_string(char *buf, double v, int max_decimals) {
 	return pos;
 }
 
-uint128_t __umodti3(uint128_t a, uint128_t b) {
+u128 __umodti3(u128 a, u128 b) {
 	u64 b_lo;
 	u64 a_hi;
 	u64 a_lo;
-	uint128_t remainder;
+	u128 remainder;
 	int shift;
 
 	/* Handle division by zero */
@@ -478,7 +478,7 @@ uint128_t __umodti3(uint128_t a, uint128_t b) {
 		a_lo = (u64)a;
 
 		if (a_hi == 0) {
-			return (uint128_t)(a_lo % b_lo);
+			return (u128)(a_lo % b_lo);
 		}
 
 		/* Compute remainder for a_hi != 0 */
@@ -515,12 +515,12 @@ uint128_t __umodti3(uint128_t a, uint128_t b) {
 	return remainder;
 }
 
-uint128_t __udivti3(uint128_t a, uint128_t b) {
+u128 __udivti3(u128 a, u128 b) {
 	u64 b_lo;
 	u64 a_hi;
 	u64 a_lo;
-	uint128_t quotient;
-	uint128_t remainder;
+	u128 quotient;
+	u128 remainder;
 	int shift;
 
 	/* Handle division by zero */
@@ -543,15 +543,15 @@ uint128_t __udivti3(uint128_t a, uint128_t b) {
 		a_lo = (u64)a;
 
 		if (a_hi == 0) {
-			return (uint128_t)(a_lo / b_lo);
+			return (u128)(a_lo / b_lo);
 		}
 
 		/* Compute quotient for a_hi != 0 */
-		quotient = (uint128_t)a_hi / b_lo;
+		quotient = (u128)a_hi / b_lo;
 		quotient <<= 32;
-		quotient |= (uint128_t)(a_lo >> 32) / b_lo;
+		quotient |= (u128)(a_lo >> 32) / b_lo;
 		quotient <<= 32;
-		quotient |= (uint128_t)(a_lo & 0xffffffff) / b_lo;
+		quotient |= (u128)(a_lo & 0xffffffff) / b_lo;
 		return quotient;
 	}
 
@@ -573,7 +573,7 @@ uint128_t __udivti3(uint128_t a, uint128_t b) {
 	while (shift >= 0) {
 		if (remainder >= b) {
 			remainder -= b;
-			quotient |= ((uint128_t)1) << shift;
+			quotient |= ((u128)1) << shift;
 		}
 		b >>= 1;
 		shift--;
@@ -583,7 +583,7 @@ uint128_t __udivti3(uint128_t a, uint128_t b) {
 }
 int printf(const char *, ...);
 /* Base64 encode */
-u64 b64_encode(const uint8_t *in, u64 in_len, uint8_t *out,
+u64 b64_encode(const u8 *in, u64 in_len, u8 *out,
 		  u64 out_max) {
 	u64 i;
 	u64 j;
@@ -630,7 +630,7 @@ u64 b64_encode(const uint8_t *in, u64 in_len, uint8_t *out,
 }
 
 /* Base64 decode */
-u64 b64_decode(const uint8_t *in, u64 in_len, uint8_t *out,
+u64 b64_decode(const u8 *in, u64 in_len, u8 *out,
 		  u64 out_max) {
 	u64 i;
 	u64 j;
