@@ -34,13 +34,13 @@ typedef struct RbTreeNode {
 	struct RbTreeNode *left;
 } RbTreeNode;
 
-typedef struct RbTreeNodePair {
+typedef struct {
 	RbTreeNode *parent;
 	RbTreeNode *self;
 	i32 is_right;
 } RbTreeNodePair;
 
-typedef struct RbTree {
+typedef struct {
 	RbTreeNode *root;
 } RbTree;
 
