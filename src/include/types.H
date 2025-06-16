@@ -86,7 +86,7 @@ struct clone_args {
 };
 
 struct rt_sigaction {
-	void (*k_sa_handler)(int);
+	void (*k_sa_handler)(i32);
 	u64 k_sa_flags;
 	void (*k_sa_restorer)(void);
 	u64 k_sa_mask;
@@ -137,7 +137,7 @@ typedef struct {
 	i32 si_pid;
 	i32 si_code;
 	i32 si_status;
-	u8 pad[128 - 3 * sizeof(int)];
+	u8 pad[128 - 3 * sizeof(i32)];
 } siginfo_t;
 
 typedef struct {

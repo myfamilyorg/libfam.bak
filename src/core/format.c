@@ -165,7 +165,7 @@ static i32 vsnprintf(u8* str, u64 size, const u8* format,
 				break;
 
 			case 'c':
-				c = (u8) __builtin_va_arg(ap, int);
+				c = (u8) __builtin_va_arg(ap, i32);
 				len++;
 				if (str && pos < size) {
 					str[pos++] = c;
@@ -196,7 +196,7 @@ static i32 vsnprintf(u8* str, u64 size, const u8* format,
 		}
 	}
 
-	return (int)len;
+	return (i32)len;
 }
 
 /* snprintf implementation that takes variable arguments */

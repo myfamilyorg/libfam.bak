@@ -39,50 +39,50 @@
 #ifdef __aarch64__
 #define DEFINE_SYSCALL0(sysno, ret_type, name) \
 	static ret_type syscall_##name(void) { \
-		i64 result;                   \
+		i64 result;                    \
 		__asm__ volatile(              \
 		    "mov x8, %1\n"             \
 		    "svc #0\n"                 \
 		    "mov %0, x0\n"             \
 		    : "=r"(result)             \
-		    : "r"((i64)(sysno))       \
+		    : "r"((i64)(sysno))        \
 		    : "x8", "x0", "memory");   \
 		return (ret_type)result;       \
 	}
 
 #define DEFINE_SYSCALL1(sysno, ret_type, name, type1, arg1) \
 	static ret_type syscall_##name(type1 arg1) {        \
-		i64 result;                                \
+		i64 result;                                 \
 		__asm__ volatile(                           \
 		    "mov x8, %1\n"                          \
 		    "mov x0, %2\n"                          \
 		    "svc #0\n"                              \
 		    "mov %0, x0\n"                          \
 		    : "=r"(result)                          \
-		    : "r"((i64)(sysno)), "r"((i64)(arg1)) \
+		    : "r"((i64)(sysno)), "r"((i64)(arg1))   \
 		    : "x8", "x0", "memory");                \
 		return (ret_type)result;                    \
 	}
 
-#define DEFINE_SYSCALL2(sysno, ret_type, name, type1, arg1, type2, arg2)       \
-	static ret_type syscall_##name(type1 arg1, type2 arg2) {               \
-		i64 result;                                                   \
-		__asm__ volatile(                                              \
-		    "mov x8, %1\n"                                             \
-		    "mov x0, %2\n"                                             \
-		    "mov x1, %3\n"                                             \
-		    "svc #0\n"                                                 \
-		    "mov %0, x0\n"                                             \
-		    : "=r"(result)                                             \
+#define DEFINE_SYSCALL2(sysno, ret_type, name, type1, arg1, type2, arg2)    \
+	static ret_type syscall_##name(type1 arg1, type2 arg2) {            \
+		i64 result;                                                 \
+		__asm__ volatile(                                           \
+		    "mov x8, %1\n"                                          \
+		    "mov x0, %2\n"                                          \
+		    "mov x1, %3\n"                                          \
+		    "svc #0\n"                                              \
+		    "mov %0, x0\n"                                          \
+		    : "=r"(result)                                          \
 		    : "r"((i64)(sysno)), "r"((i64)(arg1)), "r"((i64)(arg2)) \
-		    : "x8", "x0", "x1", "memory");                             \
-		return (ret_type)result;                                       \
+		    : "x8", "x0", "x1", "memory");                          \
+		return (ret_type)result;                                    \
 	}
 
 #define DEFINE_SYSCALL3(sysno, ret_type, name, type1, arg1, type2, arg2,     \
 			type3, arg3)                                         \
 	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3) { \
-		i64 result;                                                 \
+		i64 result;                                                  \
 		__asm__ volatile(                                            \
 		    "mov x8, %1\n"                                           \
 		    "mov x0, %2\n"                                           \
@@ -91,75 +91,74 @@
 		    "svc #0\n"                                               \
 		    "mov %0, x0\n"                                           \
 		    : "=r"(result)                                           \
-		    : "r"((i64)(sysno)), "r"((i64)(arg1)),                 \
-		      "r"((i64)(arg2)), "r"((i64)(arg3))                   \
+		    : "r"((i64)(sysno)), "r"((i64)(arg1)), "r"((i64)(arg2)), \
+		      "r"((i64)(arg3))                                       \
 		    : "x8", "x0", "x1", "x2", "memory");                     \
 		return (ret_type)result;                                     \
 	}
 
-#define DEFINE_SYSCALL4(sysno, ret_type, name, type1, arg1, type2, arg2,      \
-			type3, arg3, type4, arg4)                             \
-	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3,    \
-				       type4 arg4) {                          \
+#define DEFINE_SYSCALL4(sysno, ret_type, name, type1, arg1, type2, arg2,     \
+			type3, arg3, type4, arg4)                            \
+	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3,   \
+				       type4 arg4) {                         \
 		i64 result;                                                  \
-		__asm__ volatile(                                             \
-		    "mov x8, %1\n"                                            \
-		    "mov x0, %2\n"                                            \
-		    "mov x1, %3\n"                                            \
-		    "mov x2, %4\n"                                            \
-		    "mov x3, %5\n"                                            \
-		    "svc #0\n"                                                \
-		    "mov %0, x0\n"                                            \
-		    : "=r"(result)                                            \
-		    : "r"((i64)(sysno)), "r"((i64)(arg1)),                  \
-		      "r"((i64)(arg2)), "r"((i64)(arg3)), "r"((i64)(arg4)) \
-		    : "x8", "x0", "x1", "x2", "x3", "memory");                \
-		return (ret_type)result;                                      \
+		__asm__ volatile(                                            \
+		    "mov x8, %1\n"                                           \
+		    "mov x0, %2\n"                                           \
+		    "mov x1, %3\n"                                           \
+		    "mov x2, %4\n"                                           \
+		    "mov x3, %5\n"                                           \
+		    "svc #0\n"                                               \
+		    "mov %0, x0\n"                                           \
+		    : "=r"(result)                                           \
+		    : "r"((i64)(sysno)), "r"((i64)(arg1)), "r"((i64)(arg2)), \
+		      "r"((i64)(arg3)), "r"((i64)(arg4))                     \
+		    : "x8", "x0", "x1", "x2", "x3", "memory");               \
+		return (ret_type)result;                                     \
 	}
 
-#define DEFINE_SYSCALL5(sysno, ret_type, name, type1, arg1, type2, arg2,       \
-			type3, arg3, type4, arg4, type5, arg5)                 \
-	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3,     \
-				       type4 arg4, type5 arg5) {               \
-		i64 result;                                                   \
-		__asm__ volatile(                                              \
-		    "mov x8, %1\n"                                             \
-		    "mov x0, %2\n"                                             \
-		    "mov x1, %3\n"                                             \
-		    "mov x2, %4\n"                                             \
-		    "mov x3, %5\n"                                             \
-		    "mov x4, %6\n"                                             \
-		    "svc #0\n"                                                 \
-		    "mov %0, x0\n"                                             \
-		    : "=r"(result)                                             \
-		    : "r"((i64)(sysno)), "r"((i64)(arg1)),                   \
-		      "r"((i64)(arg2)), "r"((i64)(arg3)), "r"((i64)(arg4)), \
-		      "r"((i64)(arg5))                                        \
-		    : "x8", "x0", "x1", "x2", "x3", "x4", "memory");           \
-		return (ret_type)result;                                       \
+#define DEFINE_SYSCALL5(sysno, ret_type, name, type1, arg1, type2, arg2,     \
+			type3, arg3, type4, arg4, type5, arg5)               \
+	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3,   \
+				       type4 arg4, type5 arg5) {             \
+		i64 result;                                                  \
+		__asm__ volatile(                                            \
+		    "mov x8, %1\n"                                           \
+		    "mov x0, %2\n"                                           \
+		    "mov x1, %3\n"                                           \
+		    "mov x2, %4\n"                                           \
+		    "mov x3, %5\n"                                           \
+		    "mov x4, %6\n"                                           \
+		    "svc #0\n"                                               \
+		    "mov %0, x0\n"                                           \
+		    : "=r"(result)                                           \
+		    : "r"((i64)(sysno)), "r"((i64)(arg1)), "r"((i64)(arg2)), \
+		      "r"((i64)(arg3)), "r"((i64)(arg4)), "r"((i64)(arg5))   \
+		    : "x8", "x0", "x1", "x2", "x3", "x4", "memory");         \
+		return (ret_type)result;                                     \
 	}
 
-#define DEFINE_SYSCALL6(sysno, ret_type, name, type1, arg1, type2, arg2,       \
-			type3, arg3, type4, arg4, type5, arg5, type6, arg6)    \
-	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3,     \
-				       type4 arg4, type5 arg5, type6 arg6) {   \
-		i64 result;                                                   \
-		__asm__ volatile(                                              \
-		    "mov x8, %1\n"                                             \
-		    "mov x0, %2\n"                                             \
-		    "mov x1, %3\n"                                             \
-		    "mov x2, %4\n"                                             \
-		    "mov x3, %5\n"                                             \
-		    "mov x4, %6\n"                                             \
-		    "mov x5, %7\n"                                             \
-		    "svc #0\n"                                                 \
-		    "mov %0, x0\n"                                             \
-		    : "=r"(result)                                             \
-		    : "r"((i64)(sysno)), "r"((i64)(arg1)),                   \
-		      "r"((i64)(arg2)), "r"((i64)(arg3)), "r"((i64)(arg4)), \
-		      "r"((i64)(arg5)), "r"((i64)(arg6))                     \
-		    : "x8", "x0", "x1", "x2", "x3", "x4", "x5", "memory");     \
-		return (ret_type)result;                                       \
+#define DEFINE_SYSCALL6(sysno, ret_type, name, type1, arg1, type2, arg2,     \
+			type3, arg3, type4, arg4, type5, arg5, type6, arg6)  \
+	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3,   \
+				       type4 arg4, type5 arg5, type6 arg6) { \
+		i64 result;                                                  \
+		__asm__ volatile(                                            \
+		    "mov x8, %1\n"                                           \
+		    "mov x0, %2\n"                                           \
+		    "mov x1, %3\n"                                           \
+		    "mov x2, %4\n"                                           \
+		    "mov x3, %5\n"                                           \
+		    "mov x4, %6\n"                                           \
+		    "mov x5, %7\n"                                           \
+		    "svc #0\n"                                               \
+		    "mov %0, x0\n"                                           \
+		    : "=r"(result)                                           \
+		    : "r"((i64)(sysno)), "r"((i64)(arg1)), "r"((i64)(arg2)), \
+		      "r"((i64)(arg3)), "r"((i64)(arg4)), "r"((i64)(arg5)),  \
+		      "r"((i64)(arg6))                                       \
+		    : "x8", "x0", "x1", "x2", "x3", "x4", "x5", "memory");   \
+		return (ret_type)result;                                     \
 	}
 
 static void syscall_exit(i32 status) {
@@ -190,17 +189,16 @@ static i32 syscall_waitid(i32 idtype, i32 id, siginfo_t *infop, i32 options) {
 	    "svc #0\n"
 	    "mov %0, x0\n"
 	    : "=r"(result)
-	    : "r"((i64)idtype), "r"((i64)id), "r"((i64)infop),
-	      "r"((i64)options)
+	    : "r"((i64)idtype), "r"((i64)id), "r"((i64)infop), "r"((i64)options)
 	    : "x8", "x0", "x1", "x2", "x3", "memory");
-	return (int)result;
+	return (i32)result;
 }
 
 #elif defined(__amd64__)
 
 #define DEFINE_SYSCALL0(sysno, ret_type, name)                        \
 	static ret_type syscall_##name(void) {                        \
-		i64 result;                                          \
+		i64 result;                                           \
 		__asm__ volatile("movq $" #sysno                      \
 				 ", %%rax\n"                          \
 				 "syscall\n"                          \
@@ -213,21 +211,21 @@ static i32 syscall_waitid(i32 idtype, i32 id, siginfo_t *infop, i32 options) {
 
 #define DEFINE_SYSCALL1(sysno, ret_type, name, type1, arg1)                   \
 	static ret_type syscall_##name(type1 arg1) {                          \
-		i64 result;                                                  \
+		i64 result;                                                   \
 		__asm__ volatile("movq $" #sysno                              \
 				 ", %%rax\n"                                  \
 				 "movq %1, %%rdi\n"                           \
 				 "syscall\n"                                  \
 				 "movq %%rax, %0\n"                           \
 				 : "=r"(result)                               \
-				 : "r"((i64)(arg1))                          \
+				 : "r"((i64)(arg1))                           \
 				 : "%rax", "%rcx", "%r11", "%rdi", "memory"); \
 		return (ret_type)result;                                      \
 	}
 
 #define DEFINE_SYSCALL2(sysno, ret_type, name, type1, arg1, type2, arg2)   \
 	static ret_type syscall_##name(type1 arg1, type2 arg2) {           \
-		i64 result;                                               \
+		i64 result;                                                \
 		__asm__ volatile("movq $" #sysno                           \
 				 ", %%rax\n"                               \
 				 "movq %1, %%rdi\n"                        \
@@ -235,36 +233,36 @@ static i32 syscall_waitid(i32 idtype, i32 id, siginfo_t *infop, i32 options) {
 				 "syscall\n"                               \
 				 "movq %%rax, %0\n"                        \
 				 : "=r"(result)                            \
-				 : "r"((i64)(arg1)), "r"((i64)(arg2))    \
+				 : "r"((i64)(arg1)), "r"((i64)(arg2))      \
 				 : "%rax", "%rcx", "%r11", "%rdi", "%rsi", \
 				   "memory");                              \
 		return (ret_type)result;                                   \
 	}
 
-#define DEFINE_SYSCALL3(sysno, ret_type, name, type1, arg1, type2, arg2,      \
-			type3, arg3)                                          \
-	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3) {  \
+#define DEFINE_SYSCALL3(sysno, ret_type, name, type1, arg1, type2, arg2,     \
+			type3, arg3)                                         \
+	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3) { \
 		i64 result;                                                  \
-		__asm__ volatile(                                             \
-		    "movq $" #sysno                                           \
-		    ", %%rax\n"                                               \
-		    "movq %1, %%rdi\n"                                        \
-		    "movq %2, %%rsi\n"                                        \
-		    "movq %3, %%rdx\n"                                        \
-		    "syscall\n"                                               \
-		    "movq %%rax, %0\n"                                        \
-		    : "=r"(result)                                            \
-		    : "r"((i64)(arg1)), "r"((i64)(arg2)), "r"((i64)(arg3)) \
-		    : "%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r11",         \
-		      "memory");                                              \
-		return (ret_type)result;                                      \
+		__asm__ volatile(                                            \
+		    "movq $" #sysno                                          \
+		    ", %%rax\n"                                              \
+		    "movq %1, %%rdi\n"                                       \
+		    "movq %2, %%rsi\n"                                       \
+		    "movq %3, %%rdx\n"                                       \
+		    "syscall\n"                                              \
+		    "movq %%rax, %0\n"                                       \
+		    : "=r"(result)                                           \
+		    : "r"((i64)(arg1)), "r"((i64)(arg2)), "r"((i64)(arg3))   \
+		    : "%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r11",        \
+		      "memory");                                             \
+		return (ret_type)result;                                     \
 	}
 
 #define DEFINE_SYSCALL4(sysno, ret_type, name, type1, arg1, type2, arg2,   \
 			type3, arg3, type4, arg4)                          \
 	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3, \
 				       type4 arg4) {                       \
-		i64 result;                                               \
+		i64 result;                                                \
 		__asm__ volatile("movq $" #sysno                           \
 				 ", %%rax\n"                               \
 				 "movq %1, %%rdi\n"                        \
@@ -274,8 +272,8 @@ static i32 syscall_waitid(i32 idtype, i32 id, siginfo_t *infop, i32 options) {
 				 "syscall\n"                               \
 				 "movq %%rax, %0\n"                        \
 				 : "=r"(result)                            \
-				 : "r"((i64)(arg1)), "r"((i64)(arg2)),   \
-				   "r"((i64)(arg3)), "r"((i64)(arg4))    \
+				 : "r"((i64)(arg1)), "r"((i64)(arg2)),     \
+				   "r"((i64)(arg3)), "r"((i64)(arg4))      \
 				 : "%rax", "%rcx", "%r11", "%rdi", "%rsi", \
 				   "%rdx", "%r10", "memory");              \
 		return (ret_type)result;                                   \
@@ -285,7 +283,7 @@ static i32 syscall_waitid(i32 idtype, i32 id, siginfo_t *infop, i32 options) {
 			type3, arg3, type4, arg4, type5, arg5)             \
 	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3, \
 				       type4 arg4, type5 arg5) {           \
-		i64 result;                                               \
+		i64 result;                                                \
 		__asm__ volatile("movq $" #sysno                           \
 				 ", %%rax\n"                               \
 				 "movq %1, %%rdi\n"                        \
@@ -296,9 +294,9 @@ static i32 syscall_waitid(i32 idtype, i32 id, siginfo_t *infop, i32 options) {
 				 "syscall\n"                               \
 				 "movq %%rax, %0\n"                        \
 				 : "=r"(result)                            \
-				 : "r"((i64)(arg1)), "r"((i64)(arg2)),   \
-				   "r"((i64)(arg3)), "r"((i64)(arg4)),   \
-				   "r"((i64)(arg5))                       \
+				 : "r"((i64)(arg1)), "r"((i64)(arg2)),     \
+				   "r"((i64)(arg3)), "r"((i64)(arg4)),     \
+				   "r"((i64)(arg5))                        \
 				 : "%rax", "%rcx", "%r11", "%rdi", "%rsi", \
 				   "%rdx", "%r10", "%r8", "memory");       \
 		return (ret_type)result;                                   \
@@ -308,7 +306,7 @@ static i32 syscall_waitid(i32 idtype, i32 id, siginfo_t *infop, i32 options) {
 			type3, arg3, type4, arg4, type5, arg5, type6, arg6)  \
 	static ret_type syscall_##name(type1 arg1, type2 arg2, type3 arg3,   \
 				       type4 arg4, type5 arg5, type6 arg6) { \
-		i64 result;                                                 \
+		i64 result;                                                  \
 		__asm__ volatile("movq $" #sysno                             \
 				 ", %%rax\n"                                 \
 				 "movq %1, %%rdi\n"                          \
@@ -320,9 +318,9 @@ static i32 syscall_waitid(i32 idtype, i32 id, siginfo_t *infop, i32 options) {
 				 "syscall\n"                                 \
 				 "movq %%rax, %0\n"                          \
 				 : "=r"(result)                              \
-				 : "r"((i64)(arg1)), "r"((i64)(arg2)),     \
-				   "r"((i64)(arg3)), "r"((i64)(arg4)),     \
-				   "r"((i64)(arg5)), "r"((i64)(arg6))      \
+				 : "r"((i64)(arg1)), "r"((i64)(arg2)),       \
+				   "r"((i64)(arg3)), "r"((i64)(arg4)),       \
+				   "r"((i64)(arg5)), "r"((i64)(arg6))        \
 				 : "%rax", "%rcx", "%r11", "%rdi", "%rsi",   \
 				   "%rdx", "%r10", "%r8", "%r9", "memory");  \
 		return (ret_type)result;                                     \
@@ -359,10 +357,9 @@ static i32 syscall_waitid(i32 idtype, i32 id, siginfo_t *infop, i32 options) {
 	    "syscall\n"
 	    "movq %%rax, %0\n"
 	    : "=r"(result)
-	    : "r"((i64)idtype), "r"((i64)id), "r"((i64)infop),
-	      "r"((i64)options)
+	    : "r"((i64)idtype), "r"((i64)id), "r"((i64)infop), "r"((i64)options)
 	    : "rax", "rdi", "rsi", "rdx", "r10", "rcx", "r11", "memory");
-	return (int)result;
+	return (i32)result;
 }
 
 #endif /* Arch */
@@ -379,18 +376,17 @@ DEFINE_SYSCALL3(203, i32, connect, i32, sockfd, const struct sockaddr *, addr,
 		u32, addrlen)
 DEFINE_SYSCALL5(208, i32, setsockopt, i32, sockfd, i32, level, i32, optname,
 		const void *, optval, u32, optlen)
-DEFINE_SYSCALL3(200, i32, bind, i32, sockfd, const struct sockaddr *, addr,
-		u32, addrlen)
+DEFINE_SYSCALL3(200, i32, bind, i32, sockfd, const struct sockaddr *, addr, u32,
+		addrlen)
 DEFINE_SYSCALL2(201, i32, listen, i32, sockfd, i32, backlog)
 DEFINE_SYSCALL3(204, i32, getsockname, i32, sockfd, struct sockaddr *, addr,
 		u32 *, addrlen)
-DEFINE_SYSCALL3(202, i32, accept, i32, sockfd, struct sockaddr *, addr,
-		u32 *, addrlen)
+DEFINE_SYSCALL3(202, i32, accept, i32, sockfd, struct sockaddr *, addr, u32 *,
+		addrlen)
 DEFINE_SYSCALL2(210, i32, shutdown, i32, sockfd, i32, how)
 DEFINE_SYSCALL3(198, i32, socket, i32, domain, i32, type, i32, protocol)
-DEFINE_SYSCALL3(278, i32, getrandom, void *, buffer, u64, length,
-		u32, flags)
-DEFINE_SYSCALL6(222, void *, mmap, void *, addr, u64, length, i32, prot, int,
+DEFINE_SYSCALL3(278, i32, getrandom, void *, buffer, u64, length, u32, flags)
+DEFINE_SYSCALL6(222, void *, mmap, void *, addr, u64, length, i32, prot, i32,
 		flags, i32, fd, i64, offset)
 DEFINE_SYSCALL2(101, i32, nanosleep, const struct timespec *, req,
 		struct timespec *, rem)
@@ -408,13 +404,11 @@ DEFINE_SYSCALL4(56, i32, openat, i32, dfd, const u8 *, pathname, i32, flags,
 DEFINE_SYSCALL3(62, i64, lseek, i32, fd, i64, offset, i32, whence)
 DEFINE_SYSCALL1(83, i32, fdatasync, i32, fd)
 DEFINE_SYSCALL2(46, i32, ftruncate, i32, fd, i64, length)
-DEFINE_SYSCALL3(103, i32, setitimer, i32, which,
-		const struct itimerval *, new_value, struct itimerval *,
-		old_value)
+DEFINE_SYSCALL3(103, i32, setitimer, i32, which, const struct itimerval *,
+		new_value, struct itimerval *, old_value)
 DEFINE_SYSCALL2(435, i32, clone3, struct clone_args *, args, u64, size)
-DEFINE_SYSCALL6(98, i64, futex, u32 *, uaddr, i32, futex_op, u32,
-		val, const struct timespec *, timeout, u32 *, uaddr2,
-		u32, val3)
+DEFINE_SYSCALL6(98, i64, futex, u32 *, uaddr, i32, futex_op, u32, val,
+		const struct timespec *, timeout, u32 *, uaddr2, u32, val3)
 DEFINE_SYSCALL4(134, i32, rt_sigaction, i32, signum,
 		const struct rt_sigaction *, act, struct rt_sigaction *, oldact,
 		u64, sigsetsize)
@@ -433,18 +427,17 @@ DEFINE_SYSCALL3(42, i32, connect, i32, sockfd, const struct sockaddr *, addr,
 		u32, addrlen)
 DEFINE_SYSCALL5(54, i32, setsockopt, i32, sockfd, i32, level, i32, optname,
 		const void *, optval, u32, optlen)
-DEFINE_SYSCALL3(49, i32, bind, i32, sockfd, const struct sockaddr *, addr,
-		u32, addrlen)
+DEFINE_SYSCALL3(49, i32, bind, i32, sockfd, const struct sockaddr *, addr, u32,
+		addrlen)
 DEFINE_SYSCALL2(50, i32, listen, i32, sockfd, i32, backlog)
 DEFINE_SYSCALL3(51, i32, getsockname, i32, sockfd, struct sockaddr *, addr,
 		u32 *, addrlen)
-DEFINE_SYSCALL3(43, i32, accept, i32, sockfd, struct sockaddr *, addr,
-		u32 *, addrlen)
+DEFINE_SYSCALL3(43, i32, accept, i32, sockfd, struct sockaddr *, addr, u32 *,
+		addrlen)
 DEFINE_SYSCALL2(48, i32, shutdown, i32, sockfd, i32, how)
 DEFINE_SYSCALL3(41, i32, socket, i32, domain, i32, type, i32, protocol)
-DEFINE_SYSCALL3(318, i32, getrandom, void *, buffer, u64, length,
-		u32, flags)
-DEFINE_SYSCALL6(9, void *, mmap, void *, addr, u64, length, i32, prot, int,
+DEFINE_SYSCALL3(318, i32, getrandom, void *, buffer, u64, length, u32, flags)
+DEFINE_SYSCALL6(9, void *, mmap, void *, addr, u64, length, i32, prot, i32,
 		flags, i32, fd, i64, offset)
 DEFINE_SYSCALL2(35, i32, nanosleep, const struct timespec *, req,
 		struct timespec *, rem)
@@ -462,13 +455,11 @@ DEFINE_SYSCALL4(257, i32, openat, i32, dfd, const u8 *, pathname, i32, flags,
 DEFINE_SYSCALL3(8, i64, lseek, i32, fd, i64, offset, i32, whence)
 DEFINE_SYSCALL1(75, i32, fdatasync, i32, fd)
 DEFINE_SYSCALL2(77, i32, ftruncate, i32, fd, i64, length)
-DEFINE_SYSCALL3(38, i32, setitimer, i32, which,
-		const struct itimerval *, new_value, struct itimerval *,
-		old_value)
+DEFINE_SYSCALL3(38, i32, setitimer, i32, which, const struct itimerval *,
+		new_value, struct itimerval *, old_value)
 DEFINE_SYSCALL2(435, i32, clone3, struct clone_args *, args, u64, size)
-DEFINE_SYSCALL6(202, i64, futex, u32 *, uaddr, i32, futex_op, u32,
-		val, const struct timespec *, timeout, u32 *, uaddr2,
-		u32, val3)
+DEFINE_SYSCALL6(202, i64, futex, u32 *, uaddr, i32, futex_op, u32, val,
+		const struct timespec *, timeout, u32 *, uaddr2, u32, val3)
 DEFINE_SYSCALL4(13, i32, rt_sigaction, i32, signum, const struct rt_sigaction *,
 		act, struct rt_sigaction *, oldact, u64, sigsetsize)
 DEFINE_SYSCALL0(39, i32, getpid)
@@ -604,8 +595,8 @@ i32 socket(i32 domain, i32 type, i32 protocol) {
 	SET_ERR
 }
 
-i64 futex(u32 *uaddr, i32 futex_op, u32 val,
-	   const struct timespec *timeout, u32 *uaddr2, u32 val3) {
+i64 futex(u32 *uaddr, i32 futex_op, u32 val, const struct timespec *timeout,
+	  u32 *uaddr2, u32 val3) {
 	i64 ret = syscall_futex(uaddr, futex_op, val, timeout, uaddr2, val3);
 	SET_ERR
 }
@@ -633,8 +624,7 @@ i32 getrandom(void *buf, u64 len, u32 flags) {
 	return 0;
 }
 
-void *mmap(void *addr, u64 length, i32 prot, i32 flags, i32 fd,
-	   i64 offset) {
+void *mmap(void *addr, u64 length, i32 prot, i32 flags, i32 fd, i64 offset) {
 	void *ret;
 	ret = syscall_mmap(addr, length, prot, flags, fd, offset);
 

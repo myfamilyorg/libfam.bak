@@ -71,7 +71,7 @@ i32 mregister(i32 multiplex, i32 fd, i32 flags, void *attach) {
 	return 0;
 }
 i32 mwait(i32 multiplex, Event *events, i32 max_events, i64 timeout_millis) {
-	i32 timeout = (timeout_millis >= 0) ? (int)timeout_millis : -1;
+	i32 timeout = (timeout_millis >= 0) ? (i32)timeout_millis : -1;
 	return epoll_pwait(multiplex, (struct epoll_event *)events, max_events,
 			   timeout, NULL, 0);
 }

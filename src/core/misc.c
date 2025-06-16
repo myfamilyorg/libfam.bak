@@ -137,7 +137,7 @@ i32 memcmp(const void *s1, const void *s2, u64 n) {
 	for (i = 0; i < n; i++) {
 		if (p1[i] != p2[i]) {
 			/* Return difference as u8 values */
-			return (int)(p1[i] - p2[i]);
+			return (i32)(p1[i] - p2[i]);
 		}
 	}
 
@@ -416,7 +416,7 @@ u64 double_to_string(u8 *buf, double v, i32 max_decimals) {
 			temp[pos++ - int_start] = '0' + (int_part % 10);
 			int_part /= 10;
 		}
-		for (i = 0; i < (int)(pos - int_start); i++) {
+		for (i = 0; i < (i32)(pos - int_start); i++) {
 			buf[int_start + i] = temp[pos - int_start - 1 - i];
 		}
 	}
@@ -431,7 +431,7 @@ u64 double_to_string(u8 *buf, double v, i32 max_decimals) {
 		while (digits < max_decimals) { /* Stop at max_decimals */
 			i32 digit;
 			frac_part *= 10;
-			digit = (int)frac_part;
+			digit = (i32)frac_part;
 			if (digit > 9) digit = 9; /* Cap digit */
 			buf[pos++] = '0' + digit;
 			frac_part -= digit;

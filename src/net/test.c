@@ -216,11 +216,11 @@ i32 on_recv2(void *ctx __attribute__((unused)), Connection *conn,
 	i32 *v = (i32 *)(ib->rbuf + ib->rbuf_offset - rlen);
 	i32 nv = *v + 1;
 
-	ASSERT_EQ(rlen, sizeof(int), "sizeof(int)");
+	ASSERT_EQ(rlen, sizeof(i32), "sizeof(i32)");
 	ASTORE(value2, nv);
 
 	if (nv < 105)
-		connection_write(conn, (u8 *)&nv, sizeof(int));
+		connection_write(conn, (u8 *)&nv, sizeof(i32));
 	else
 		connection_close(conn);
 	return 0;
@@ -237,7 +237,7 @@ Test(test_evh2) {
 	Connection *conn, *client;
 	ASSERT_BYTES(0);
 
-	value2 = alloc(sizeof(int));
+	value2 = alloc(sizeof(i32));
 	*value2 = 0;
 	ASSERT(!evh_start(&evh2, NULL, 0), "evh_start");
 
@@ -251,7 +251,7 @@ Test(test_evh2) {
 	evh_register(&evh2, client);
 
 	ASSERT_EQ(*value2, 0, "0");
-	connection_write(client, (u8 *)&initial, sizeof(int));
+	connection_write(client, (u8 *)&initial, sizeof(i32));
 	while (true) {
 		yield();
 		if (ALOAD(value2) == 105) break;
@@ -443,7 +443,7 @@ Test(connection_write) {
 	Connection *conn, *client;
 	ASSERT_BYTES(0);
 
-	value2 = alloc(sizeof(int));
+	value2 = alloc(sizeof(i32));
 	*value2 = 0;
 	ASSERT(!evh_start(&evh3, NULL, 0), "evh_start");
 
@@ -458,7 +458,7 @@ Test(connection_write) {
 
 	ASSERT_EQ(*value2, 0, "0");
 	debug_force_write_buffer = true;
-	connection_write(client, (u8 *)&initial, sizeof(int));
+	connection_write(client, (u8 *)&initial, sizeof(i32));
 	while (true) {
 		yield();
 		if (ALOAD(value2) == 105) break;
