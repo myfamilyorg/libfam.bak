@@ -34,13 +34,13 @@
 #define MAX_TESTS 1024
 #define MAX_TEST_NAME 128
 
-void add_test_fn(void (*test_fn)(void), const char *name);
-static __attribute__ ((unused)) const char *__assertion_msg = "\nassertion failed in test";
+void add_test_fn(void (*test_fn)(void), const u8 *name);
+static __attribute__ ((unused)) const u8 *__assertion_msg = "\nassertion failed in test";
 
 extern int exe_test;
 typedef struct {
 	void (*test_fn)(void);
-	char name[MAX_TEST_NAME + 1];
+	u8 name[MAX_TEST_NAME + 1];
 } TestEntry;
 extern TestEntry tests[];
 

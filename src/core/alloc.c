@@ -137,12 +137,12 @@ void reset_allocated_bytes(void) { ASTORE(allocated_bytes, 0); }
 
 STATIC u64 get_memory_bytes(void) {
 	u64 shm_size = SHM_SIZE_DEFAULT;
-	char *smembytes;
+	u8 *smembytes;
 	smembytes = getenv("SHARED_MEMORY_BYTES");
 	if (smembytes) {
 		u64 bytes = string_to_uint128(smembytes, strlen(smembytes));
 		if (bytes < CHUNK_SIZE * 4 || bytes % CHUNK_SIZE != 0) {
-			const char *msg =
+			const u8 *msg =
 			    "WARN: SHARED_MEMORY_BYTES must be divisible by "
 			    "CHUNK_SIZE and greater than or equal CHUNK_SIZE * "
 			    "4. Using default.\n";

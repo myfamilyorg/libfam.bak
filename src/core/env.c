@@ -31,7 +31,7 @@
 #define MEMSAN 0
 #endif /* MEMSAN */
 
-extern char **environ;
+extern u8 **environ;
 
 static int env_count(void) {
 	int count = 0;
@@ -46,7 +46,7 @@ void init_environ(void) {
 	int i;
 
 	/* Allocate new environ array */
-	char **newenv = alloc(sizeof(char *) * (count + 1));
+	u8 **newenv = alloc(sizeof(u8 *) * (count + 1));
 	if (!newenv) return; /* Handle allocation failure gracefully */
 
 	/* Copy each string */
@@ -71,12 +71,12 @@ void init_environ(void) {
 #endif
 }
 
-char *getenv(const char *name) {
-	char **env;
+u8 *getenv(const u8 *name) {
+	u8 **env;
 	if (!name || !environ) return 0;
 
 	for (env = environ; *env; env++) {
-		char *str = *env;
+		u8 *str = *env;
 		int i = 0;
 		while (name[i] && str[i] && name[i] == str[i] && str[i] != '=')
 			i++;
@@ -87,8 +87,8 @@ char *getenv(const char *name) {
 	return 0;
 }
 
-int setenv(const char *name, const char *value, int overwrite) {
-	char *existing, *new_entry, **new_environ;
+int setenv(const u8 *name, const u8 *value, int overwrite) {
+	u8 *existing, *new_entry, **new_environ;
 	int name_len, value_len, entry_len, i, count;
 
 	if (!name || !*name || strchr(name, '=')) return -1;
@@ -118,14 +118,14 @@ int setenv(const char *name, const char *value, int overwrite) {
 		}
 	} else {
 		count = env_count();
-		new_environ = alloc((count + 2) * sizeof(char *));
+		new_environ = alloc((count + 2) * sizeof(u8 *));
 		if (!new_environ) {
 			release(new_entry);
 			return -1;
 		}
 
 		if (environ) {
-			memcpy(new_environ, environ, count * sizeof(char *));
+			memcpy(new_environ, environ, count * sizeof(u8 *));
 			release(environ);
 		}
 		new_environ[count] = new_entry;
@@ -135,8 +135,8 @@ int setenv(const char *name, const char *value, int overwrite) {
 	return 0;
 }
 
-int unsetenv(const char *name) {
-	char *existing;
+int unsetenv(const u8 *name) {
+	u8 *existing;
 	int count, i;
 	if (!name || !*name || strchr(name, '=')) return -1;
 
@@ -148,7 +148,7 @@ int unsetenv(const char *name) {
 		if (environ[i] == existing - (strlen(name) + 1)) {
 			release(environ[i]);
 			memorymove(&environ[i], &environ[i + 1],
-				   (count - i) * sizeof(char *));
+				   (count - i) * sizeof(u8 *));
 			return 0;
 		}
 	}

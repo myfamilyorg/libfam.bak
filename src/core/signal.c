@@ -85,7 +85,7 @@ void __attribute__((constructor)) signals_init(void) {
 	act.k_sa_flags = SA_RESTORER;
 	act.k_sa_restorer = restorer;
 	if (rt_sigaction(SIGPIPE, &act, NULL, 8) < 0) {
-		const char *msg = "WARN: could not register SIGPIPE handler\n";
+		const u8 *msg = "WARN: could not register SIGPIPE handler\n";
 		int __attribute__((unused)) v = write(2, msg, strlen(msg));
 	}
 	act2.k_sa_handler = timeout_handler;

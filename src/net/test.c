@@ -56,7 +56,7 @@ Test(event) {
 }
 
 Test(socket_connect) {
-	char buf[10] = {0};
+	u8 buf[10] = {0};
 	int server = -1, inbound;
 	int port = socket_listen(&server, LOCALHOST, 0, 10);
 	int conn = socket_connect(LOCALHOST, port);
@@ -81,7 +81,7 @@ typedef struct {
 } ConnectionInfo;
 
 Test(multi_socket) {
-	char buf[10];
+	u8 buf[10];
 	int server, inbound, client, mplex, port, cpid;
 	Event events[10];
 
@@ -152,7 +152,7 @@ int on_accept(void *ctx __attribute__((unused)),
 
 int on_recv(void *ctx __attribute__((unused)), Connection *conn,
 	    u64 rlen __attribute__((unused))) {
-	char buf[1024 * 64];
+	u8 buf[1024 * 64];
 	InboundData *ib = &conn->data.inbound;
 	memcpy(buf, ib->rbuf, ib->rbuf_offset);
 	buf[ib->rbuf_offset] = 0;
@@ -168,7 +168,7 @@ int on_close(void *ctx __attribute__((unused)),
 
 Test(test_evh1) {
 	int port, tconn, total, x;
-	char buf[100];
+	u8 buf[100];
 	Connection *conn;
 	ASSERT_BYTES(0);
 	value = alloc(sizeof(u64));
@@ -353,7 +353,7 @@ Test(test_evh_direct) { ASSERT_EQ(proc_wakeup(-1), -1, "proc_wakeup"); }
 void ws_on_open(WsConnection *conn __attribute__((unused))) {}
 void ws_on_close(WsConnection *conn __attribute__((unused))) {}
 int ws_on_message(WsConnection *conn, WsMessage *msg) {
-	char buf[1024 * 64];
+	u8 buf[1024 * 64];
 
 	memcpy(buf, msg->buffer, msg->len);
 	buf[msg->len] = 0;
@@ -373,7 +373,7 @@ Test(ws1) {
 	Ws *ws;
 	u8 buf[1];
 	int socket;
-	const char *msg =
+	const u8 *msg =
 	    "GET / HTTP/1.1\r\nSec-WebSocket-Key: "
 	    "dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n";
 
@@ -405,7 +405,7 @@ Test(ws1) {
 void ws_on_open2(WsConnection *conn __attribute__((unused))) {}
 void ws_on_close2(WsConnection *conn __attribute__((unused))) {}
 int ws_on_message2(WsConnection *conn, WsMessage *msg) {
-	char *buf = alloc(msg->len + 1);
+	u8 *buf = alloc(msg->len + 1);
 	memcpy(buf, msg->buffer, msg->len);
 	buf[msg->len] = 0;
 	ws_send(conn, msg);

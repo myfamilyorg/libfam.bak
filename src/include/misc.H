@@ -28,27 +28,27 @@
 
 #include <types.H>
 
-u64 strlen(const char *S);
-char *strcpy(char *dest, const char *src);
-char *strcat(char *dest, const char *src);
-int strcmp(const char *s1, const char *s2);
-int strcmpn(const char *s1, const char *s2, u64 n);
-char *substr(const char *s, const char *sub);
-char *substrn(const char *s, const char *sub, u64 n);
-char *strchr(const char *s, int c);
+u64 strlen(const u8 *S);
+u8 *strcpy(u8 *dest, const u8 *src);
+u8 *strcat(u8 *dest, const u8 *src);
+int strcmp(const u8 *s1, const u8 *s2);
+int strcmpn(const u8 *s1, const u8 *s2, u64 n);
+u8 *substr(const u8 *s, const u8 *sub);
+u8 *substrn(const u8 *s, const u8 *sub, u64 n);
+u8 *strchr(const u8 *s, int c);
 void *memset(void *ptr, int x, u64 n);
 void *memcpy(void *dst, const void *src, u64 n);
 int memcmp(const void *s1, const void *s2, u64 n);
 void *memorymove(void *dst, const void *src, u64 n);
 void byteszero(void *dst, u64 n);
-u64 u128_to_string(char *buf, u128 v);
-u64 i128_to_string(char *buf, i128 v);
-u64 double_to_string(char *buf, double v, int max_decimals);
+u64 u128_to_string(u8 *buf, u128 v);
+u64 i128_to_string(u8 *buf, i128 v);
+u64 double_to_string(u8 *buf, double v, int max_decimals);
 u64 b64_encode(const u8 *in, u64 in_len, u8 *out,
 		  u64 out_max);
 u64 b64_decode(const u8 *in, u64 in_len, u8 *out,
 		  u64 out_max);
-u128 string_to_uint128(const char *buf, u64 len);
-i128 string_to_int128(const char *buf, u64 len);
+u128 string_to_uint128(const u8 *buf, u64 len);
+i128 string_to_int128(const u8 *buf, u64 len);
 
 #endif /* _MISC_H */

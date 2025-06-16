@@ -38,22 +38,20 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 	while (node->is_internal) {
 		u16 offset = node->data.internal.entry_offsets[1];
 		BpTreeInternalEntry *entry =
-		    (BpTreeInternalEntry *)((u8 *)node->data.internal
-						.key_entries +
-					    offset);
-		const char *cmp_key __attribute__((unused)) =
-		    (const char *)((u8 *)node->data.internal.key_entries +
-				   offset + sizeof(BpTreeInternalEntry));
-		u16 len =
-		    key_len > entry->key_len ? entry->key_len : key_len;
+		    (BpTreeInternalEntry
+			 *)((u8 *)node->data.internal.key_entries + offset);
+		const u8 *cmp_key __attribute__((unused)) =
+		    (const u8 *)((u8 *)node->data.internal.key_entries +
+				 offset + sizeof(BpTreeInternalEntry));
+		u16 len = key_len > entry->key_len ? entry->key_len : key_len;
 
 		int v = strcmpn(key, cmp_key, len);
 		if (v >= 0) {
 			node = bptxn_get_node(txn, entry->node_id);
 		} else {
 			entry =
-			    (BpTreeInternalEntry *)((u8 *)node->data
-							.internal.key_entries);
+			    (BpTreeInternalEntry *)((u8 *)node->data.internal
+							.key_entries);
 
 			node = bptxn_get_node(txn, entry->node_id);
 		}
@@ -64,12 +62,10 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 		int v;
 		u16 offset = node->data.leaf.entry_offsets[i];
 		BpTreeEntry *entry =
-		    (BpTreeEntry *)((u8 *)node->data.leaf.entries +
-				    offset);
-		const char *cmp_key =
-		    (const char *)((u8 *)entry + sizeof(BpTreeEntry));
-		u16 len =
-		    key_len > entry->key_len ? entry->key_len : key_len;
+		    (BpTreeEntry *)((u8 *)node->data.leaf.entries + offset);
+		const u8 *cmp_key =
+		    (const u8 *)((u8 *)entry + sizeof(BpTreeEntry));
+		u16 len = key_len > entry->key_len ? entry->key_len : key_len;
 
 		v = strcmpn(key, cmp_key, len);
 
@@ -87,7 +83,7 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 }
 
 Test(store1) {
-	const char *path = "/tmp/store1.dat";
+	const u8 *path = "/tmp/store1.dat";
 	int fd, i, x;
 	BpTree *tree;
 	BpTxn *txn;
@@ -130,7 +126,7 @@ Test(store1) {
 		}
 
 		for (i = 1; i < 11; i++) {
-			char key_buf[20], value_buf[20];
+			u8 key_buf[20], value_buf[20];
 			int v;
 
 			memcpy(key_buf, keys[i], 20);
@@ -161,7 +157,7 @@ Test(store1) {
 #define BPTREE_SPLIT_ITT 512
 
 Test(bptree_split) {
-	const char *path = "/tmp/store1.dat";
+	const u8 *path = "/tmp/store1.dat";
 	int fd, i;
 	BpTree *tree;
 	BpTxn *txn;
@@ -202,7 +198,7 @@ Test(bptree_split) {
 	}
 
 	for (i = 1; i < BPTREE_SPLIT_ITT; i++) {
-		char key_buf[20], value_buf[20];
+		u8 key_buf[20], value_buf[20];
 		int v;
 
 		memcpy(key_buf, keys[i], 20);

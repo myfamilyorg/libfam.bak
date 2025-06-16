@@ -369,7 +369,7 @@ static int syscall_waitid(int idtype, i32 id, siginfo_t *infop, int options) {
 
 #ifdef __aarch64__
 DEFINE_SYSCALL2(59, int, pipe2, int *, fds, int, flags)
-DEFINE_SYSCALL3(35, int, unlinkat, int, dfd, const char *, path, int, flag)
+DEFINE_SYSCALL3(35, int, unlinkat, int, dfd, const u8 *, path, int, flag)
 DEFINE_SYSCALL3(64, i64, write, int, fd, const void *, buf, u64, count)
 DEFINE_SYSCALL3(63, i64, read, int, fd, void *, buf, u64, count)
 DEFINE_SYSCALL2(215, int, munmap, void *, addr, u64, len)
@@ -403,7 +403,7 @@ DEFINE_SYSCALL6(22, int, epoll_pwait, int, epfd, struct epoll_event *, events,
 		int, maxevents, int, timeout, const sigset_t *, sigs, int, size)
 DEFINE_SYSCALL4(21, int, epoll_ctl, int, epfd, int, op, int, fd,
 		struct epoll_event *, event)
-DEFINE_SYSCALL4(56, int, openat, int, dfd, const char *, pathname, int, flags,
+DEFINE_SYSCALL4(56, int, openat, int, dfd, const u8 *, pathname, int, flags,
 		u32, mode)
 DEFINE_SYSCALL3(62, i64, lseek, int, fd, i64, offset, int, whence)
 DEFINE_SYSCALL1(83, int, fdatasync, int, fd)
@@ -423,7 +423,7 @@ DEFINE_SYSCALL2(129, int, kill, i32, pid, int, signal)
 #elif defined(__amd64__)
 /* System call definitions */
 DEFINE_SYSCALL2(293, int, pipe2, int *, fds, int, flags)
-DEFINE_SYSCALL3(263, int, unlinkat, int, dfd, const char *, path, int, flags)
+DEFINE_SYSCALL3(263, int, unlinkat, int, dfd, const u8 *, path, int, flags)
 DEFINE_SYSCALL3(1, i64, write, int, fd, const void *, buf, u64, count)
 DEFINE_SYSCALL3(0, i64, read, int, fd, void *, buf, u64, count)
 DEFINE_SYSCALL2(11, int, munmap, void *, addr, u64, len)
@@ -457,7 +457,7 @@ DEFINE_SYSCALL6(281, int, epoll_pwait, int, epfd, struct epoll_event *, events,
 		int, maxevents, int, timeout, const sigset_t *, sigs, int, size)
 DEFINE_SYSCALL4(233, int, epoll_ctl, int, epfd, int, op, int, fd,
 		struct epoll_event *, event)
-DEFINE_SYSCALL4(257, int, openat, int, dfd, const char *, pathname, int, flags,
+DEFINE_SYSCALL4(257, int, openat, int, dfd, const u8 *, pathname, int, flags,
 		u32, mode)
 DEFINE_SYSCALL3(8, i64, lseek, int, fd, i64, offset, int, whence)
 DEFINE_SYSCALL1(75, int, fdatasync, int, fd)
@@ -484,7 +484,7 @@ int pipe2(int fds[2], int flags) {
 	int ret = syscall_pipe2(fds, flags);
 	SET_ERR
 }
-int unlinkat(int dfd, const char *path, int flags) {
+int unlinkat(int dfd, const u8 *path, int flags) {
 	int ret = syscall_unlinkat(dfd, path, flags);
 	SET_ERR
 }
@@ -675,7 +675,7 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
 	SET_ERR
 }
 
-int openat(int dfd, const char *pathname, int flags, u32 mode) {
+int openat(int dfd, const u8 *pathname, int flags, u32 mode) {
 	int ret = syscall_openat(dfd, pathname, flags, mode);
 	SET_ERR
 }

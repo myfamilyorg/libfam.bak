@@ -29,13 +29,13 @@
 #include <sys.H>
 #include <test.H>
 
-char **environ = 0;
+u8 **environ = 0;
 int cur_tests = 0;
 int exe_test = 0;
 
 TestEntry tests[MAX_TESTS];
 
-void add_test_fn(void (*test_fn)(void), const char *name) {
+void add_test_fn(void (*test_fn)(void), const u8 *name) {
 	if (strlen(name) > MAX_TEST_NAME) panic("test name too long!");
 	if (cur_tests >= MAX_TESTS) panic("too many tests!");
 	tests[cur_tests].test_fn = test_fn;
@@ -55,7 +55,7 @@ void call_constructors(void) {
 }
 
 #ifndef COVERAGE
-int main(int argc, char *argv[], char *envp[]);
+int main(int argc, u8 *argv[], u8 *envp[]);
 
 #ifdef __aarch64__
 __asm__(
@@ -93,10 +93,10 @@ __asm__(
 #endif /* __amd64__ */
 #endif /* COVERAGE */
 
-int main(int argc __attribute__((unused)), char **argv __attribute__((unused)),
-	 char **envp) {
+int main(int argc __attribute__((unused)), u8 **argv __attribute__((unused)),
+	 u8 **envp) {
 	int test_count = 0;
-	char *tp;
+	u8 *tp;
 	u64 total;
 	double ms;
 

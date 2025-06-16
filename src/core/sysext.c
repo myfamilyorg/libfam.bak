@@ -29,11 +29,11 @@
 #include <sys.H>
 #include <syscall_const.H>
 
-int file(const char *path) {
+int file(const u8 *path) {
 	int ret = open(path, O_CREAT | O_RDWR, 0600);
 	return ret;
 }
-int exists(const char *path) {
+int exists(const u8 *path) {
 	int fd = open(path, O_RDWR, 0600);
 	if (fd > 0) {
 		close(fd);
@@ -48,11 +48,11 @@ i64 micros(void) {
 	return (i64)tv.tv_sec * 1000000 + tv.tv_usec;
 }
 
-int open(const char *path, int flags, u32 mode) {
+int open(const u8 *path, int flags, u32 mode) {
 	return openat(-100, path, flags, mode);
 }
 
-int unlink(const char *path) { return unlinkat(-100, path, 0); }
+int unlink(const u8 *path) { return unlinkat(-100, path, 0); }
 
 int sleepm(u64 millis) {
 	struct timespec req;

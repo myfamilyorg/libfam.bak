@@ -94,14 +94,14 @@ struct rt_sigaction {
 
 struct sockaddr {
 	unsigned short sa_family;
-	char sa_data[14];
+	u8 sa_data[14];
 };
 
 typedef unsigned short sa_family_t;
 
 struct sockaddr_un {
 	sa_family_t sun_family;
-	char sun_path[108];
+	u8 sun_path[108];
 };
 
 typedef u32 socklen_t;
@@ -137,7 +137,7 @@ typedef struct {
 	int si_pid;
 	int si_code;
 	int si_status;
-	char pad[128 - 3 * sizeof(int)];
+	u8 pad[128 - 3 * sizeof(int)];
 } siginfo_t;
 
 typedef struct {

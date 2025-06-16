@@ -26,9 +26,11 @@
 #ifndef _ENV_H__
 #define _ENV_H__
 
-char *getenv(const char *name);
-int unsetenv(const char *name);
-int setenv(const char *name, const char *value, int overwrite);
+#include <types.H>
+
+u8 *getenv(const u8 *name);
+int unsetenv(const u8 *name);
+int setenv(const u8 *name, const u8 *value, int overwrite);
 void init_environ(void);
 
 #endif /* _ENV_H__ */

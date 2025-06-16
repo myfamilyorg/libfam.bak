@@ -26,31 +26,33 @@
 #ifndef _COLORS_H
 #define _COLORS_H
 
-const char *get_dimmed(void);
+#include <types.H>
+
+const u8 *get_dimmed(void);
 #define DIMMED get_dimmed()
 
-const char *get_red(void);
+const u8 *get_red(void);
 #define RED get_red()
 
-const char *get_bright_red(void);
+const u8 *get_bright_red(void);
 #define BRIGHT_RED get_bright_red()
 
-const char *get_green(void);
+const u8 *get_green(void);
 #define GREEN get_green()
 
-const char *get_yellow(void);
+const u8 *get_yellow(void);
 #define YELLOW get_yellow()
 
-const char *get_cyan(void);
+const u8 *get_cyan(void);
 #define CYAN get_cyan()
 
-const char *get_magenta(void);
+const u8 *get_magenta(void);
 #define MAGENTA get_magenta()
 
-const char *get_blue(void);
+const u8 *get_blue(void);
 #define BLUE get_blue()
 
-const char *get_reset(void);
+const u8 *get_reset(void);
 #define RESET get_reset()
 
 #endif /* _COLORS_H */

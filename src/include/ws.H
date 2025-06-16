@@ -52,9 +52,9 @@ int ws_start(Ws *ws);
 int ws_stop(Ws *ws);
 
 u64 ws_connection_id(WsConnection *connection);
-WsConnection *ws_connect(Ws *ws, const char *url);
-int ws_connection_close(WsConnection *conn, int code, const char *reason);
-const char *ws_connection_uri(WsConnection *conn);
+WsConnection *ws_connect(Ws *ws, const u8 *url);
+int ws_connection_close(WsConnection *conn, int code, const u8 *reason);
+const u8 *ws_connection_uri(WsConnection *conn);
 u16 ws_port(Ws *ws);
 
 #endif /* _WS_H */

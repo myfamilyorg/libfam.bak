@@ -29,28 +29,28 @@
 #include <sys.H>
 #include <types.H>
 
-u64 strlen(const char *X) {
-	const char *Y;
+u64 strlen(const u8 *X) {
+	const u8 *Y;
 	if (X == NULL) return 0;
 	Y = X;
 	while (*X) X++;
 	return X - Y;
 }
 
-char *strcpy(char *dest, const char *src) {
-	char *ptr = dest;
+u8 *strcpy(u8 *dest, const u8 *src) {
+	u8 *ptr = dest;
 	while ((*ptr++ = *src++));
 	return dest;
 }
 
-char *strcat(char *dest, const char *src) {
-	char *ptr = dest;
+u8 *strcat(u8 *dest, const u8 *src) {
+	u8 *ptr = dest;
 	while (*ptr) ptr++;
 	while ((*ptr++ = *src++));
 	return dest;
 }
 
-int strcmp(const char *X, const char *Y) {
+int strcmp(const u8 *X, const u8 *Y) {
 	if (X == NULL || Y == NULL) {
 		if (X == Y) return 0;
 		return X == NULL ? -1 : 1;
@@ -64,7 +64,7 @@ int strcmp(const char *X, const char *Y) {
 	return 0;
 }
 
-int strcmpn(const char *X, const char *Y, u64 n) {
+int strcmpn(const u8 *X, const u8 *Y, u64 n) {
 	while (n > 0 && *X == *Y && *X != '\0' && *Y != '\0') {
 		X++;
 		Y++;
@@ -74,43 +74,43 @@ int strcmpn(const char *X, const char *Y, u64 n) {
 	return (u8)*X - (u8)*Y;
 }
 
-char *substr(const char *s, const char *sub) {
+u8 *substr(const u8 *s, const u8 *sub) {
 	if (s == NULL || sub == NULL) return NULL;
 	for (; *s; s++) {
-		const char *tmps = s, *tmpsub = sub;
+		const u8 *tmps = s, *tmpsub = sub;
 		while (*(u8 *)tmps == *(u8 *)tmpsub && *tmps) {
 			tmps++;
 			tmpsub++;
 		}
-		if (*tmpsub == '\0') return (char *)s;
+		if (*tmpsub == '\0') return (u8 *)s;
 	}
 	return NULL;
 }
 
-char *substrn(const char *s, const char *sub, u64 n) {
+u8 *substrn(const u8 *s, const u8 *sub, u64 n) {
 	u64 i;
 	if (s == NULL || sub == NULL || n == 0) return NULL;
-	if (*sub == '\0') return (char *)s;
+	if (*sub == '\0') return (u8 *)s;
 
 	for (i = 0; i < n && s[i]; i++) {
-		const char *tmps = s + i, *tmpsub = sub;
+		const u8 *tmps = s + i, *tmpsub = sub;
 		u64 j = i;
 		while (j < n && *tmps == *tmpsub && *tmps) {
 			tmps++;
 			tmpsub++;
 			j++;
 		}
-		if (*tmpsub == '\0') return (char *)(s + i);
+		if (*tmpsub == '\0') return (u8 *)(s + i);
 	}
 	return NULL;
 }
 
-char *strchr(const char *s, int c) {
+u8 *strchr(const u8 *s, int c) {
 	while (*s) {
-		if (*s == c) return (char *)s;
+		if (*s == c) return (u8 *)s;
 		s++;
 	}
-	return (*s == c) ? (char *)s : 0;
+	return (*s == c) ? (u8 *)s : 0;
 }
 
 void *memset(void *dest, int c, u64 n) {
@@ -184,8 +184,8 @@ void *memorymove(void *dest, const void *src, u64 n) {
 
 void byteszero(void *s, u64 len) { memset(s, 0, len); }
 
-u64 u128_to_string(char *buf, u128 v) {
-	char temp[40];
+u64 u128_to_string(u8 *buf, u128 v) {
+	u8 temp[40];
 	int i = 0, j = 0;
 
 	if (v == 0) {
@@ -206,7 +206,7 @@ u64 u128_to_string(char *buf, u128 v) {
 	return j;
 }
 
-u64 i128_to_string(char *buf, i128 v) {
+u64 i128_to_string(u8 *buf, i128 v) {
 	u64 len;
 	const i128 int128_min = INT128_MIN;
 	const u128 int128_min_abs = (u128)0x8000000000000000UL << 64;
@@ -227,10 +227,10 @@ u64 i128_to_string(char *buf, i128 v) {
 }
 
 /* Convert string to unsigned 128-bit integer */
-u128 string_to_uint128(const char *buf, u64 len) {
+u128 string_to_uint128(const u8 *buf, u64 len) {
 	u128 result;
 	u64 i;
-	char c;
+	u8 c;
 
 	/* Input validation */
 	if (!buf || len == 0) {
@@ -273,7 +273,7 @@ u128 string_to_uint128(const char *buf, u64 len) {
 }
 
 /* Convert string to signed 128-bit integer using string_to_uint128 */
-i128 string_to_int128(const char *buf, u64 len) {
+i128 string_to_int128(const u8 *buf, u64 len) {
 	u64 i;
 	int sign;
 	u128 abs_value;
@@ -328,8 +328,8 @@ i128 string_to_int128(const char *buf, u64 len) {
 	return result;
 }
 
-u64 double_to_string(char *buf, double v, int max_decimals) {
-	char temp[41];
+u64 double_to_string(u8 *buf, double v, int max_decimals) {
+	u8 temp[41];
 	u64 pos = 0;
 	u64 len;
 	int i;
@@ -581,12 +581,12 @@ u128 __udivti3(u128 a, u128 b) {
 
 	return quotient;
 }
-int printf(const char *, ...);
+int printf(const u8 *, ...);
 /* Base64 encode */
 u64 b64_encode(const u8 *in, u64 in_len, u8 *out, u64 out_max) {
 	u64 i;
 	u64 j;
-	static const char *b64_table =
+	static const u8 *b64_table =
 	    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 	if (!in || !out || out_max < ((in_len + 2) / 3) * 4 + 1) {

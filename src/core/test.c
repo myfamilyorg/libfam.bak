@@ -186,7 +186,7 @@ Test(timeout4) {
 #define CHUNK_SIZE (1024 * 1024 * 4)
 
 Test(alloc1) {
-	char *t1, *t2, *t3, *t4, *t5;
+	u8 *t1, *t2, *t3, *t4, *t5;
 
 	t1 = alloc(CHUNK_SIZE);
 	t4 = alloc(8);
@@ -226,7 +226,7 @@ Test(alloc1) {
 }
 
 Test(resize) {
-	char *t1 = resize(NULL, 8), *t2, *t3, *t4, *t5;
+	u8 *t1 = resize(NULL, 8), *t2, *t3, *t4, *t5;
 	ASSERT(t1, "t1 not null");
 	t2 = resize(t1, 16);
 	ASSERT(t1 != t2, "t1!=t2");
@@ -274,11 +274,11 @@ u128 __umodti3(u128 a, u128 b);
 u128 __udivti3(u128 a, u128 b);
 
 Test(misc) {
-	const char *s = "abcdefghi";
-	char bufbig[200];
-	char buf1[10];
-	char buf2[10];
-	char sx[100];
+	const u8 *s = "abcdefghi";
+	u8 bufbig[200];
+	u8 buf1[10];
+	u8 buf2[10];
+	u8 sx[100];
 	int len;
 	i128 v, v2;
 	u128 y, x;
@@ -428,7 +428,7 @@ Test(umodti3) {
 }
 
 Test(double_to_string) {
-	char buf[64]; /* Ensure sufficient size */
+	u8 buf[64]; /* Ensure sufficient size */
 	u64 len;
 
 	/* NaN (lines 310–316) */
@@ -509,7 +509,7 @@ Test(double_to_string) {
 }
 
 Test(colors) {
-	const char *test_file = "/tmp/colortest";
+	const u8 *test_file = "/tmp/colortest";
 	int fd;
 
 	if (getenv("NO_COLOR")) return; /* Can't test without colors */
@@ -859,7 +859,7 @@ Test(errors) {
 }
 
 Test(snprintf) {
-	char buf[1024];
+	u8 buf[1024];
 	int len = snprintf(NULL, 0, "test%i", 1);
 	ASSERT_EQ(len, 5, "len=5");
 	ASSERT_EQ(snprintf(buf, sizeof(buf), "%i%s%s 3%d", 1, "xyz", "ghi", 4),
@@ -919,9 +919,9 @@ Test(b64) {
 }
 
 /* Helper function to compare encoded output with expected string */
-static void assert_b64_eq(const u8 *out, const char *expected,
-			  const char *msg) {
-	ASSERT(!strcmp((const char *)out, expected), msg);
+static void assert_b64_eq(const u8 *out, const u8 *expected,
+			  const u8 *msg) {
+	ASSERT(!strcmp((const u8 *)out, expected), msg);
 }
 
 Test(b642) {
@@ -1009,7 +1009,7 @@ Test(pipe) {
 	ASSERT(!pipe(fds), "pipe");
 	ASSERT(!err, "not err");
 	if ((fv = two())) {
-		char buf[10];
+		u8 buf[10];
 		int v = read(fds[0], buf, 10);
 		ASSERT_EQ(v, 4, "v==4");
 		ASSERT_EQ(buf[0], 't', "t");
@@ -1025,7 +1025,7 @@ Test(pipe) {
 }
 
 Test(files1) {
-	const char *fname = "/tmp/ftest.tmp";
+	const u8 *fname = "/tmp/ftest.tmp";
 	int dup, fd;
 	unlink(fname);
 	err = 0;
@@ -1066,7 +1066,7 @@ Test(entropy) {
 }
 
 Test(map_err) {
-	char buf[100];
+	u8 buf[100];
 	void *v;
 	err = 0;
 	v = mmap(buf, 100, PROT_READ | PROT_WRITE, MAP_SHARED, -1, 0);
@@ -1085,11 +1085,11 @@ Test(map_err) {
 }
 
 Test(memcmp) {
-	char buf1[11] = "abcde12345";
-	char buf2[11] = "abcde12345"; /* Identical to buf1 */
-	char buf3[11] = "abcde12346"; /* Differs at last byte ('6' vs '5') */
-	char buf4[11] = "abcde12344"; /* Differs at last byte ('4' vs '5') */
-	char buf5[11] = "abcda12345"; /* Differs at 5th byte ('a' vs 'e') */
+	u8 buf1[11] = "abcde12345";
+	u8 buf2[11] = "abcde12345"; /* Identical to buf1 */
+	u8 buf3[11] = "abcde12346"; /* Differs at last byte ('6' vs '5') */
+	u8 buf4[11] = "abcde12344"; /* Differs at last byte ('4' vs '5') */
+	u8 buf5[11] = "abcda12345"; /* Differs at 5th byte ('a' vs 'e') */
 
 	/* Test 1: Equal buffers (full length) */
 	ASSERT_EQ(memcmp(buf1, buf2, 10), 0, "equal_full_length");

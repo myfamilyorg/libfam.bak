@@ -33,7 +33,7 @@ bool _debug_no_write = false;
 
 void perror(const u8 *s) {
 	int len = 0, v = 2;
-	const char *err_msg;
+	const u8 *err_msg;
 	if (s == NULL) return;
 	len = strlen(s);
 	if (!_debug_no_write && len) v = write(2, s, len);
@@ -44,7 +44,7 @@ void perror(const u8 *s) {
 	if (!_debug_no_write && v == len) v = write(2, "\n", 1);
 }
 
-const char *error_string(int err_code) {
+const u8 *error_string(int err_code) {
 	switch (err_code) {
 		case SUCCESS:
 			return "Success";

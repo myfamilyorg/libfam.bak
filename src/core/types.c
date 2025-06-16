@@ -27,19 +27,19 @@
 #include <syscall.H>
 #include <types.H>
 
-#define CheckEndian()                                                          \
-	u16 test = 0x1234;                                                \
-	u8 *u8s = (u8 *)&test;                                  \
-	if (u8s[0] != 0x34) {                                             \
-		const char *msg = "Error: Big-endian systems not supported\n"; \
-		int v = write(2, msg, strlen(msg));                            \
-		if (v) {                                                       \
-		}                                                              \
-		exit(-1);                                                      \
+#define CheckEndian()                                                        \
+	u16 test = 0x1234;                                                   \
+	u8 *u8s = (u8 *)&test;                                               \
+	if (u8s[0] != 0x34) {                                                \
+		const u8 *msg = "Error: Big-endian systems not supported\n"; \
+		int v = write(2, msg, strlen(msg));                          \
+		if (v) {                                                     \
+		}                                                            \
+		exit(-1);                                                    \
 	}
 
 #define STATIC_ASSERT(condition, message) \
-	typedef char static_assert_##message[(condition) ? 1 : -1]
+	typedef u8 static_assert_##message[(condition) ? 1 : -1]
 
 STATIC_ASSERT(sizeof(u8) == 1, u8_sizes_match);
 STATIC_ASSERT(sizeof(i8) == 1, i8_sizes_match);

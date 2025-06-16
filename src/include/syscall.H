@@ -32,7 +32,7 @@ int pipe(int fds[2]);
 int pipe2(int fds[2], int flags);
 i32 getpid(void);
 int kill(i32 pid, int signal);
-int unlinkat(int dfd, const char *path, int flags);
+int unlinkat(int dfd, const u8 *path, int flags);
 i64 write(int fd, const void *buf, u64 count);
 i64 read(int fd, void *buf, u64 count);
 int sched_yield(void);
@@ -62,7 +62,7 @@ int epoll_create1(int flags);
 int epoll_pwait(int epfd, struct epoll_event *events, int maxevents,
 		int timeout, const sigset_t *sigmask, u64 size);
 int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
-int openat(int dfd, const char *pathname, int flags, u32 mode);
+int openat(int dfd, const u8 *pathname, int flags, u32 mode);
 i64 lseek(int fd, i64 offset, int whence);
 int setitimer(i32 which, const struct itimerval *new_value,
 	      struct itimerval *old_value);

@@ -97,7 +97,7 @@ typedef void (*BpTreeSearch)(BpTxn *txn, const void *key, u16 key_len,
 			     BpTreeSearchResult *retval);
 
 /* Opening/Closing */
-BpTree *bptree_open(const char *path);
+BpTree *bptree_open(const u8 *path);
 int bptree_close(BpTree *);
 
 /* Txn management */

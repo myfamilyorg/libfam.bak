@@ -48,36 +48,36 @@ struct WsConnection {
 	Connection connection;
 	u64 id;
 	bool handshake_complete;
-	char uri[MAX_URI_LEN + 1];
+	u8 uri[MAX_URI_LEN + 1];
 };
 
-static const char *BAD_REQUEST =
+static const u8 *BAD_REQUEST =
     "HTTP/1.1 400 Bad Request\r\n\
 Connection: close\r\n\
 Content-Length: 0\r\n\
 \r\n";
 
-static const char *SWITCHING_PROTOS =
+static const u8 *SWITCHING_PROTOS =
     "HTTP/1.1 101 Switching Protocols\r\n\
 Upgrade: websocket\r\n\
 Connection: Upgrade\r\n\
 Sec-WebSocket-Accept: ";
 
 STATIC int ws_proc_handshake(WsConnection *wsconn) {
-	char *rbuf = (char *)wsconn->connection.data.inbound.rbuf;
+	u8 *rbuf = (u8 *)wsconn->connection.data.inbound.rbuf;
 	u64 rbuf_offset = wsconn->connection.data.inbound.rbuf_offset;
-	char *end;
-	char key[24];
+	u8 *end;
+	u8 key[24];
 	SHA1_CTX sha1;
-	char accept[32];
+	u8 accept[32];
 	u8 hash[20];
 	u8 decoded_key[16];
 	int lendec;
-	const char *guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+	const u8 *guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 	if ((end = substrn(rbuf, "\r\n\r\n", rbuf_offset))) {
 		u64 len = end - rbuf, i;
-		char *sec_websocket_key = NULL;
+		u8 *sec_websocket_key = NULL;
 		sec_websocket_key = substrn(rbuf, "Sec-WebSocket-Key: ", len);
 		if (sec_websocket_key == NULL) {
 			err = EPROTO;
@@ -322,10 +322,10 @@ int ws_stop(Ws *ws) {
 }
 
 u64 ws_connection_id(WsConnection *conn) { return conn->id; }
-WsConnection *ws_connect(Ws *ws, const char *url);
+WsConnection *ws_connect(Ws *ws, const u8 *url);
 
 int ws_connection_close(WsConnection *conn, int code __attribute__((unused)),
-			const char *reason __attribute__((unused))) {
+			const u8 *reason __attribute__((unused))) {
 	connection_close(&conn->connection);
 	return 0;
 }
@@ -364,7 +364,7 @@ int ws_send(WsConnection *conn, WsMessage *msg) {
 	return connection_write(&conn->connection, msg->buffer, msg->len);
 }
 
-const char *ws_connection_uri(WsConnection *conn) { return conn->uri; }
+const u8 *ws_connection_uri(WsConnection *conn) { return conn->uri; }
 
 u16 ws_port(Ws *ws) { return evh_acceptor_port(ws->acceptor); }
 

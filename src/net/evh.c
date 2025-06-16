@@ -44,7 +44,7 @@ void __gcov_dump(void);
 Connection wakeup_attachment = {0};
 
 STATIC int proc_wakeup(int wakeup) {
-	char buf[1];
+	u8 buf[1];
 	int v;
 	v = read(wakeup, buf, 1);
 	if (v <= 0) return -1;

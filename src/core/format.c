@@ -28,10 +28,10 @@
 #include <misc.H>
 #include <syscall.H>
 
-static void reverse(char* str, u64 len) {
+static void reverse(u8* str, u64 len) {
 	u64 i;
 	u64 j;
-	char tmp;
+	u8 tmp;
 
 	for (i = 0, j = len - 1; i < j; i++, j--) {
 		tmp = str[i];
@@ -40,8 +40,8 @@ static void reverse(char* str, u64 len) {
 	}
 }
 
-static u64 uint_to_str(u64 num, char* buf, int base, int upper) {
-	const char* digits;
+static u64 uint_to_str(u64 num, u8* buf, int base, int upper) {
+	const u8* digits;
 	u64 i;
 	u64 temp;
 
@@ -58,7 +58,7 @@ static u64 uint_to_str(u64 num, char* buf, int base, int upper) {
 	return i;
 }
 
-static u64 int_to_str(i64 num, char* buf, int base, int upper) {
+static u64 int_to_str(i64 num, u8* buf, int base, int upper) {
 	u64 i;
 	i64 temp;
 
@@ -72,19 +72,19 @@ static u64 int_to_str(i64 num, char* buf, int base, int upper) {
 
 	return i + uint_to_str((u64)temp, buf + i, base, upper);
 }
-static int vsnprintf(char* str, u64 size, const char* format,
+static int vsnprintf(u8* str, u64 size, const u8* format,
 		     __builtin_va_list ap) {
-	const char* fmt;
+	const u8* fmt;
 	u64 pos;
 	u64 len;
-	char buf[1024];
+	u8 buf[1024];
 	u64 i;
 	u64 j;
 	int val;
 	u32 uval;
 	double dval;
-	const char* s;
-	char c;
+	const u8* s;
+	u8 c;
 
 	pos = 0;
 	len = 0;
@@ -152,7 +152,7 @@ static int vsnprintf(char* str, u64 size, const char* format,
 				break;
 
 			case 's':
-				s = __builtin_va_arg(ap, const char*);
+				s = __builtin_va_arg(ap, const u8*);
 				if (!s) {
 					s = "(null)";
 				}
@@ -165,7 +165,7 @@ static int vsnprintf(char* str, u64 size, const char* format,
 				break;
 
 			case 'c':
-				c = (char)__builtin_va_arg(ap, int);
+				c = (u8) __builtin_va_arg(ap, int);
 				len++;
 				if (str && pos < size) {
 					str[pos++] = c;
@@ -200,7 +200,7 @@ static int vsnprintf(char* str, u64 size, const char* format,
 }
 
 /* snprintf implementation that takes variable arguments */
-int snprintf(char* str, u64 size, const char* format, ...) {
+int snprintf(u8* str, u64 size, const u8* format, ...) {
 	__builtin_va_list ap;
 	int len;
 
@@ -211,10 +211,10 @@ int snprintf(char* str, u64 size, const char* format, ...) {
 }
 
 /* printf implementation */
-int printf(const char* format, ...) {
+int printf(const u8* format, ...) {
 	__builtin_va_list ap, ap_copy;
 	int len;
-	char* buf;
+	u8* buf;
 
 	__builtin_va_start(ap, format);
 	__builtin_va_copy(ap_copy, ap);
@@ -237,10 +237,10 @@ int printf(const char* format, ...) {
 	return len;
 }
 
-void panic(const char* format, ...) {
+void panic(const u8* format, ...) {
 	__builtin_va_list ap, ap_copy;
 	int len;
-	char* buf;
+	u8* buf;
 
 	__builtin_va_start(ap, format);
 	__builtin_va_copy(ap_copy, ap);

@@ -36,15 +36,14 @@
 #define RUNTIME_NODE(txn) ((RuntimeNode *)(BASE_PTR(txn) + (NODE_SIZE * 2)))
 #define METADATA1(tree) ((MetadataNode *)tree->base)
 #define METADATA2(tree) ((MetadataNode *)(((u8 *)tree->base + NODE_SIZE)))
-#define FREE_LIST_NODE(tree) \
-	((FreeList *)(((u8 *)tree->base + 3 * NODE_SIZE)))
+#define FREE_LIST_NODE(tree) ((FreeList *)(((u8 *)tree->base + 3 * NODE_SIZE)))
 #define NODE_OFFSET(index) (index * NODE_SIZE)
 #define NODE(txn, index) \
 	((BpTreeNode *)(((u8 *)txn->tree->base) + NODE_SIZE * index))
 #define FIRST_NODE 4
 
 #define STATIC_ASSERT(condition, message) \
-	typedef char static_assert_##message[(condition) ? 1 : -1]
+	typedef u8 static_assert_##message[(condition) ? 1 : -1]
 
 STATIC_ASSERT(sizeof(BpTreeNode) == NODE_SIZE, bptree_node_size);
 STATIC_ASSERT(sizeof(BpTreeLeafNode) == sizeof(BpTreeInternalNode),
@@ -87,8 +86,7 @@ STATIC void bptree_ensure_init(BpTree *tree) {
 	__cas64(&fl->next_file_node, &expected, FIRST_NODE + 1);
 }
 
-STATIC void shift_by_offset(BpTreeNode *node, u16 key_index,
-			    u16 shift) {
+STATIC void shift_by_offset(BpTreeNode *node, u16 key_index, u16 shift) {
 	int i;
 	u16 pos = node->data.leaf.entry_offsets[key_index];
 	u16 bytes_to_move = node->used_bytes - pos;
@@ -103,19 +101,18 @@ STATIC void shift_by_offset(BpTreeNode *node, u16 key_index,
 }
 
 STATIC void place_entry(BpTreeNode *node, u16 key_index, const void *key,
-			u16 key_len, const void *value,
-			u32 value_len) {
+			u16 key_len, const void *value, u32 value_len) {
 	u16 pos = node->data.leaf.entry_offsets[key_index];
 	BpTreeEntry entry = {0};
 	entry.value_len = value_len;
 	entry.key_len = key_len;
 	memcpy((u8 *)node->data.leaf.entries + pos, &entry,
 	       sizeof(BpTreeEntry));
-	memcpy((u8 *)node->data.leaf.entries + pos + sizeof(BpTreeEntry),
-	       key, key_len);
-	memcpy((u8 *)node->data.leaf.entries + pos + sizeof(BpTreeEntry) +
-		   key_len,
-	       value, value_len);
+	memcpy((u8 *)node->data.leaf.entries + pos + sizeof(BpTreeEntry), key,
+	       key_len);
+	memcpy(
+	    (u8 *)node->data.leaf.entries + pos + sizeof(BpTreeEntry) + key_len,
+	    value, value_len);
 }
 
 STATIC BpTreeNode *allocate_node(BpTxn *txn) {
@@ -135,9 +132,8 @@ STATIC BpTreeNode *allocate_node(BpTxn *txn) {
 	return NODE(txn, current);
 }
 
-STATIC void insert_entry(BpTreeNode *node, u16 key_index,
-			 u16 space_needed, const void *key,
-			 u16 key_len, const void *value,
+STATIC void insert_entry(BpTreeNode *node, u16 key_index, u16 space_needed,
+			 const void *key, u16 key_len, const void *value,
 			 u32 value_len) {
 	if (node->num_entries > key_index)
 		shift_by_offset(node, key_index, space_needed);
@@ -158,8 +154,7 @@ STATIC BpTreeNode *new_node(BpTxn *txn, BpTreeNode *node, u16 midpoint) {
 	u16 mid_offset = node->data.leaf.entry_offsets[midpoint];
 	BpTreeEntry *mident =
 	    (BpTreeEntry *)(((u8 *)node->data.leaf.entries) + mid_offset);
-	BpTreeEntry *zeroent =
-	    (BpTreeEntry *)((u8 *)node->data.leaf.entries);
+	BpTreeEntry *zeroent = (BpTreeEntry *)((u8 *)node->data.leaf.entries);
 	if (!nparent || !new) return NULL; /* TODO: release other */
 
 	printf("new node!\n");
@@ -234,7 +229,7 @@ STATIC int split_node(BpTxn *txn, BpTreeNode *node, const void *key,
 	return 0;
 }
 
-BpTree *bptree_open(const char *path) {
+BpTree *bptree_open(const u8 *path) {
 	BpTree *ret;
 	int fd = file(path);
 	u64 capacity;

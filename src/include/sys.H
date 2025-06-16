@@ -30,8 +30,8 @@
 #include <types.H>
 
 /* system calls applied */
-int unlink(const char *path);
-int open(const char *pathname, int flags, u32 mode);
+int unlink(const u8 *path);
+int open(const u8 *pathname, int flags, u32 mode);
 int pipe(int fds[2]);
 int getentropy(void *buffer, u64 length);
 int yield(void);
@@ -39,8 +39,8 @@ int timeout(void (*task)(void), u64 milliseconds);
 void *map(u64 length);
 void *fmap(int fd, i64 size, i64 offset);
 void *smap(u64 length);
-int exists(const char *path);
-int file(const char *path);
+int exists(const u8 *path);
+int file(const u8 *path);
 i64 fsize(int fd);
 int fresize(int fd, i64 length);
 int flush(int fd);
