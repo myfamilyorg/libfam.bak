@@ -456,8 +456,54 @@ int test_rbsearch(RbTreeNode *cur, const RbTreeNode *value,
 	return 0;
 }
 
+#define PARENT(node) ((RbTreeNode *)((uint64_t)node->parent_color & ~0x1))
+#define RIGHT(node) node->right
+#define LEFT(node) node->left
+#define ROOT(tree) (tree->root)
+#define IS_RED(node) (node && ((uint64_t)node->parent_color & 0x1))
+#define IS_BLACK(node) !IS_RED(node)
+#define ROOT(tree) (tree->root)
+
+static bool check_root_black(RbTree *tree) {
+	if (!ROOT(tree)) return true;
+	return IS_BLACK(ROOT(tree));
+}
+
+bool check_no_consecutive_red(RbTreeNode *node) {
+	if (!node) return true;
+
+	if (IS_RED(node)) {
+		if (RIGHT(node) && IS_RED(RIGHT(node))) return false;
+		if (LEFT(node) && IS_RED(LEFT(node))) return false;
+	}
+
+	return check_no_consecutive_red(LEFT(node)) &&
+	       check_no_consecutive_red(RIGHT(node));
+}
+
+int check_black_height(RbTreeNode *node) {
+	int left_height, right_height;
+	if (!node) return 1;
+	left_height = check_black_height(LEFT(node));
+	right_height = check_black_height(RIGHT(node));
+
+	if (left_height == -1 || right_height == -1) return -1;
+
+	if (left_height != right_height) return -1;
+
+	return left_height + (IS_BLACK(node) ? 1 : 0);
+}
+
+static void validate_rbtree(RbTree *tree) {
+	ASSERT(check_root_black(tree), "Root must be black");
+	ASSERT(check_no_consecutive_red(ROOT(tree)),
+	       "No consecutive red nodes");
+	ASSERT(check_black_height(ROOT(tree)) != -1,
+	       "Inconsistent black height");
+}
+
 Test(rbtree1) {
-	RbTree tree = {0};
+	RbTree tree = INIT_RBTREE;
 	TestRbTreeNode v1 = {{0}, 1};
 	TestRbTreeNode v2 = {{0}, 2};
 	TestRbTreeNode v3 = {{0}, 3};
@@ -468,7 +514,9 @@ Test(rbtree1) {
 	RbTreeNodePair retval;
 
 	rbtree_put(&tree, (RbTreeNode *)&v1, test_rbsearch);
+	validate_rbtree(&tree);
 	rbtree_put(&tree, (RbTreeNode *)&v2, test_rbsearch);
+	validate_rbtree(&tree);
 
 	test_rbsearch(tree.root, (RbTreeNode *)&v1, &retval);
 	ASSERT_EQ(((TestRbTreeNode *)retval.self)->value, 1, "value=1");
@@ -479,17 +527,23 @@ Test(rbtree1) {
 	ASSERT_EQ(retval.self, NULL, "self=NULL");
 
 	rbtree_remove(&tree, (RbTreeNode *)&v2, test_rbsearch);
+	validate_rbtree(&tree);
 	test_rbsearch(tree.root, (RbTreeNode *)&v2, &retval);
 	ASSERT_EQ(retval.self, NULL, "retval=NULL2");
+
 	rbtree_put(&tree, (RbTreeNode *)&v3, test_rbsearch);
+	validate_rbtree(&tree);
 	rbtree_put(&tree, (RbTreeNode *)&v4, test_rbsearch);
+	validate_rbtree(&tree);
 
 	out = (TestRbTreeNode *)rbtree_put(&tree, (RbTreeNode *)&vx,
 					   test_rbsearch);
-
+	validate_rbtree(&tree);
 	ASSERT_EQ(out, &v3, "out=v3");
+
 	out2 = (TestRbTreeNode *)rbtree_put(&tree, (RbTreeNode *)&vy,
 					    test_rbsearch);
+	validate_rbtree(&tree);
 	ASSERT_EQ(out2, &v4, "out2=v4");
 }
 
@@ -502,17 +556,18 @@ Test(rbtree2) {
 	ASSERT(!rng_init(&rng), "rng_init");
 
 	for (size = 1; size < SIZE; size++) {
-		RbTree tree = {0};
+		RbTree tree = INIT_RBTREE;
 		TestRbTreeNode values[SIZE];
 		for (i = 0; i < size; i++) {
 			rng_gen(&rng, &values[i].value, sizeof(uint64_t));
 			rbtree_put(&tree, (RbTreeNode *)&values[i],
 				   test_rbsearch);
+			validate_rbtree(&tree);
 		}
 
 		for (i = 0; i < size; i++) {
-			TestRbTreeNode v = {0};
 			RbTreeNodePair retval;
+			TestRbTreeNode v = {{0}, 0};
 			v.value = values[i].value;
 
 			test_rbsearch(tree.root, (RbTreeNode *)&v, &retval);
@@ -522,12 +577,86 @@ Test(rbtree2) {
 		}
 
 		for (i = 0; i < size; i++) {
-			TestRbTreeNode v = {0};
+			TestRbTreeNode v = {{0}, 0};
 			v.value = values[i].value;
 			rbtree_remove(&tree, (RbTreeNode *)&v, test_rbsearch);
+			validate_rbtree(&tree);
 		}
 
 		ASSERT_EQ(tree.root, NULL, "root=NULL");
+		validate_rbtree(&tree);
 	}
 }
 
+#define STRESS_SIZE 1000
+#define OPERATIONS 2000
+
+Test(rbtree3) {
+	Rng rng;
+	RbTree tree = INIT_RBTREE;
+	TestRbTreeNode values[STRESS_SIZE];
+	bool exists[STRESS_SIZE] = {0};
+	uint64_t i, op;
+
+	ASSERT(!rng_init(&rng), "rng_init");
+
+	for (i = 0; i < STRESS_SIZE; i++) {
+		rng_gen(&rng, &values[i].value, sizeof(uint64_t));
+	}
+
+	for (op = 0; op < OPERATIONS; op++) {
+		int32_t i;
+		uint64_t idx;
+		bool do_insert = false;
+		rng_gen(&rng, &idx, sizeof(uint64_t));
+		idx %= STRESS_SIZE;
+		rng_gen(&rng, &i, sizeof(int32_t));
+		do_insert = (i % 2) == 0;
+
+		if (do_insert) {
+			TestRbTreeNode *old = (TestRbTreeNode *)rbtree_put(
+			    &tree, (RbTreeNode *)&values[idx], test_rbsearch);
+			if (old) {
+				ASSERT_EQ(old->value, values[idx].value,
+					  "Duplicate value mismatch");
+			}
+			exists[idx] = true;
+			validate_rbtree(&tree);
+		} else {
+			TestRbTreeNode v = {0};
+			v.value = values[idx].value;
+			rbtree_remove(&tree, (RbTreeNode *)&v, test_rbsearch);
+			exists[idx] = false;
+			validate_rbtree(&tree);
+		}
+
+		for (i = 0; i < STRESS_SIZE; i++) {
+			RbTreeNodePair retval;
+			TestRbTreeNode v = {0};
+			v.value = values[i].value;
+			test_rbsearch(tree.root, (RbTreeNode *)&v, &retval);
+			if (exists[i]) {
+				ASSERT(retval.self != NULL,
+				       "Expected value not found");
+				ASSERT_EQ(
+				    ((TestRbTreeNode *)retval.self)->value,
+				    values[i].value, "Wrong value");
+			} else {
+				ASSERT_EQ(retval.self, NULL,
+					  "Unexpected value found");
+			}
+		}
+	}
+
+	for (i = 0; i < STRESS_SIZE; i++) {
+		if (exists[i]) {
+			TestRbTreeNode v = {0};
+			v.value = values[i].value;
+			rbtree_remove(&tree, (RbTreeNode *)&v, test_rbsearch);
+			validate_rbtree(&tree);
+		}
+	}
+
+	ASSERT_EQ(tree.root, NULL, "Tree not empty after cleanup");
+	validate_rbtree(&tree);
+}

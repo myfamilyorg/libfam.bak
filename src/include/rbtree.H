@@ -26,11 +26,7 @@
 #ifndef _RBTREE_H
 #define _RBTREE_H
 
-#define INIT_RBTREE                 \
-	({                           \
-		RbTree _ret__ = {0}; \
-		_ret__;              \
-	})
+#define INIT_RBTREE      {0}           
 
 typedef struct RbTreeNode {
 	struct RbTreeNode *parent_color;
