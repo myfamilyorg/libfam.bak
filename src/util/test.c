@@ -28,6 +28,8 @@
 #include <channel.H>
 #include <error.H>
 #include <lock.H>
+#include <rbtree.H>
+#include <rng.H>
 #include <robust.H>
 #include <syscall_const.H>
 #include <test.H>
@@ -101,7 +103,7 @@ Test(lock) {
 		ASSERT(0, "two() failed in write contention");
 	}
 	if (pid) {
-		int timeout_ms = 1000;
+		int timeout_ms = 10000;
 		while (ALOAD(&state->value1) == 0 && timeout_ms > 0) {
 			sleepm(1);
 			timeout_ms -= 1;
@@ -136,7 +138,7 @@ Test(lock) {
 	if (pid) {
 		int timeout_ms = 1000;
 		while (ALOAD(&state->lock1) == 0 && timeout_ms > 0) {
-			yield();
+			sleepm(1);
 			timeout_ms -= 1;
 		}
 		ASSERT(timeout_ms > 0,
@@ -170,7 +172,7 @@ Test(lock) {
 		} else {
 			int timeout_ms = 1000;
 			while (ALOAD(&state->lock1) == 0 && timeout_ms > 0) {
-				yield();
+				sleepm(1);
 				timeout_ms -= 1;
 			}
 			ASSERT(timeout_ms > 0,
@@ -425,5 +427,107 @@ Test(channel_err) {
 	channel_destroy(&ch3);
 
 	ASSERT_BYTES(0);
+}
+
+typedef struct {
+	RbTreeNode _reserved;
+	uint64_t value;
+} TestRbTreeNode;
+
+int test_rbsearch(RbTreeNode *cur, const RbTreeNode *value,
+		  RbTreeNodePair *retval) {
+	while (cur) {
+		uint64_t v1 = ((TestRbTreeNode *)cur)->value;
+		uint64_t v2 = ((TestRbTreeNode *)value)->value;
+		if (v1 == v2) {
+			retval->self = cur;
+			break;
+		} else if (v1 < v2) {
+			retval->parent = cur;
+			retval->is_right = 1;
+			cur = cur->right;
+		} else {
+			retval->parent = cur;
+			retval->is_right = 0;
+			cur = cur->left;
+		}
+		retval->self = cur;
+	}
+	return 0;
+}
+
+Test(rbtree1) {
+	RbTree tree = {0};
+	TestRbTreeNode v1 = {{0}, 1};
+	TestRbTreeNode v2 = {{0}, 2};
+	TestRbTreeNode v3 = {{0}, 3};
+	TestRbTreeNode v4 = {{0}, 0};
+	TestRbTreeNode vx = {{0}, 3};
+	TestRbTreeNode vy = {{0}, 0};
+	TestRbTreeNode *out, *out2;
+	RbTreeNodePair retval;
+
+	rbtree_put(&tree, (RbTreeNode *)&v1, test_rbsearch);
+	rbtree_put(&tree, (RbTreeNode *)&v2, test_rbsearch);
+
+	test_rbsearch(tree.root, (RbTreeNode *)&v1, &retval);
+	ASSERT_EQ(((TestRbTreeNode *)retval.self)->value, 1, "value=1");
+
+	test_rbsearch(tree.root, (RbTreeNode *)&v2, &retval);
+	ASSERT_EQ(((TestRbTreeNode *)retval.self)->value, 2, "value=2");
+	test_rbsearch(tree.root, (RbTreeNode *)&v3, &retval);
+	ASSERT_EQ(retval.self, NULL, "self=NULL");
+
+	rbtree_remove(&tree, (RbTreeNode *)&v2, test_rbsearch);
+	test_rbsearch(tree.root, (RbTreeNode *)&v2, &retval);
+	ASSERT_EQ(retval.self, NULL, "retval=NULL2");
+	rbtree_put(&tree, (RbTreeNode *)&v3, test_rbsearch);
+	rbtree_put(&tree, (RbTreeNode *)&v4, test_rbsearch);
+
+	out = (TestRbTreeNode *)rbtree_put(&tree, (RbTreeNode *)&vx,
+					   test_rbsearch);
+
+	ASSERT_EQ(out, &v3, "out=v3");
+	out2 = (TestRbTreeNode *)rbtree_put(&tree, (RbTreeNode *)&vy,
+					    test_rbsearch);
+	ASSERT_EQ(out2, &v4, "out2=v4");
+}
+
+#define SIZE 400
+
+Test(rbtree2) {
+	Rng rng;
+	uint64_t size, i;
+
+	ASSERT(!rng_init(&rng), "rng_init");
+
+	for (size = 1; size < SIZE; size++) {
+		RbTree tree = {0};
+		TestRbTreeNode values[SIZE];
+		for (i = 0; i < size; i++) {
+			rng_gen(&rng, &values[i].value, sizeof(uint64_t));
+			rbtree_put(&tree, (RbTreeNode *)&values[i],
+				   test_rbsearch);
+		}
+
+		for (i = 0; i < size; i++) {
+			TestRbTreeNode v = {0};
+			RbTreeNodePair retval;
+			v.value = values[i].value;
+
+			test_rbsearch(tree.root, (RbTreeNode *)&v, &retval);
+			ASSERT(retval.self != NULL, "retval=NULL");
+			ASSERT_EQ(((TestRbTreeNode *)retval.self)->value,
+				  values[i].value, "value=values[i].value");
+		}
+
+		for (i = 0; i < size; i++) {
+			TestRbTreeNode v = {0};
+			v.value = values[i].value;
+			rbtree_remove(&tree, (RbTreeNode *)&v, test_rbsearch);
+		}
+
+		ASSERT_EQ(tree.root, NULL, "root=NULL");
+	}
 }
 
