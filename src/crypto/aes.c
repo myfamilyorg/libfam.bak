@@ -73,7 +73,7 @@ static const u8 sbox[256] = {
 /* x to the power (i-1) being powers of x (x is denoted as {02}) in the field */
 /* GF(2^8) */
 static const u8 Rcon[11] = {0x8d, 0x01, 0x02, 0x04, 0x08, 0x10,
-				 0x20, 0x40, 0x80, 0x1b, 0x36};
+			    0x20, 0x40, 0x80, 0x1b, 0x36};
 
 #define getSBoxValue(num) (sbox[(num)])
 
@@ -104,11 +104,11 @@ static void KeyExpansion(u8 *RoundKey, const u8 *Key) {
 
 		if (i % Nk == 0) {
 			{
-				const u8 chartmp = tempa[0];
+				const u8 ctmp = tempa[0];
 				tempa[0] = tempa[1];
 				tempa[1] = tempa[2];
 				tempa[2] = tempa[3];
-				tempa[3] = chartmp;
+				tempa[3] = ctmp;
 			}
 
 			{
@@ -146,8 +146,7 @@ void aes_set_iv(AesContext *ctx, const u8 *iv) {
 	memcpy(ctx->Iv, iv, AES_BLOCKLEN);
 }
 
-static void AddRoundKey(u8 round, state_t *state,
-			const u8 *RoundKey) {
+static void AddRoundKey(u8 round, state_t *state, const u8 *RoundKey) {
 	u8 i, j;
 	for (i = 0; i < 4; ++i) {
 		for (j = 0; j < 4; ++j) {
