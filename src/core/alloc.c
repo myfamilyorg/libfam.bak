@@ -42,19 +42,18 @@
 
 #define NEXT_FREE_BIT(base, max, result, last_free_ptr)                       \
 	do {                                                                  \
-		u64 max_words;                                             \
-		u64 *bitmap;                                             \
-		u64 local_last_free;                                       \
-		(result) = (u64)-1;                                      \
-		bitmap = (u64 *)((unsigned char *)(base));               \
+		u64 max_words;                                                \
+		u64 *bitmap;                                                  \
+		u64 local_last_free;                                          \
+		(result) = (u64) - 1;                                         \
+		bitmap = (u64 *)((u8 *)(base));                               \
 		max_words = ((max) + 63) >> 6;                                \
 		local_last_free = ALOAD(last_free_ptr);                       \
 		while (local_last_free < max_words) {                         \
 			if (bitmap[local_last_free] != ~0UL) {                \
-				u64 word = bitmap[local_last_free];      \
-				u64 bit_value = __builtin_ctzll(~word);    \
-				u64 index =                                \
-				    local_last_free * 64 + bit_value;         \
+				u64 word = bitmap[local_last_free];           \
+				u64 bit_value = __builtin_ctzll(~word);       \
+				u64 index = local_last_free * 64 + bit_value; \
 				if (index < max) {                            \
 					if (__cas64(                          \
 						&bitmap[local_last_free],     \
@@ -68,9 +67,9 @@
 			}                                                     \
 			local_last_free++;                                    \
 		}                                                             \
-		if ((result) == (u64)-1 &&                               \
+		if ((result) == (u64) - 1 &&                                  \
 		    local_last_free > ALOAD(last_free_ptr)) {                 \
-			u64 expected = ALOAD(last_free_ptr);             \
+			u64 expected = ALOAD(last_free_ptr);                  \
 			while (expected < local_last_free &&                  \
 			       !__cas64(last_free_ptr, &expected,             \
 					local_last_free))                     \
@@ -79,13 +78,13 @@
 	} while (0)
 #define RELEASE_BIT(base, index, last_free_ptr)                           \
 	do {                                                              \
-		u64 new_last_free = index / 64;                        \
-		u64 expected = ALOAD(last_free_ptr);                 \
-		u64 *bitmap = (u64 *)((unsigned char *)(base)); \
-		u64 *word_ptr = &bitmap[index / 64];                 \
-		u64 bit_mask = 1UL << (index % 64);                  \
+		u64 new_last_free = index / 64;                           \
+		u64 expected = ALOAD(last_free_ptr);                      \
+		u64 *bitmap = (u64 *)((u8 *)(base));                      \
+		u64 *word_ptr = &bitmap[index / 64];                      \
+		u64 bit_mask = 1UL << (index % 64);                       \
 		while (1) {                                               \
-			u64 old_value = *word_ptr, new_value;        \
+			u64 old_value = *word_ptr, new_value;             \
 			if ((old_value & bit_mask) == 0) {                \
 				panic("Double free!");                    \
 			}                                                 \
@@ -98,9 +97,9 @@
 		       !__cas64(last_free_ptr, &expected, new_last_free)) \
 			expected = ALOAD(last_free_ptr);                  \
 	} while (0)
-#define CHUNK_OFFSET                                             \
+#define CHUNK_OFFSET                                     \
 	((u8 *)((u64)memory_base + sizeof(AllocHeader) + \
-		     bitmap_pages * PAGE_SIZE))
+		bitmap_pages * PAGE_SIZE))
 #define BITMAP_CAPACITY(slab_size) \
 	((8UL * (CHUNK_SIZE - sizeof(Chunk))) / (1 + 8 * (slab_size)))
 #define BITMAP_SIZE(slab_size) (((BITMAP_CAPACITY(slab_size) + 127) / 128) * 16)
@@ -171,8 +170,7 @@ STATIC void __attribute__((constructor)) init_memory(void) {
 			panic("Could not allocate shared memory.");
 
 		h = (AllocHeader *)memory_base;
-		for (i = 0; i < 32; i++)
-			h->data.slab_pointers[i] = (u64)-1;
+		for (i = 0; i < 32; i++) h->data.slab_pointers[i] = (u64)-1;
 	}
 }
 
@@ -246,8 +244,8 @@ STATIC void *allocate_slab(u64 size) {
 		NEXT_FREE_BIT(chunk_bitmap, max, ret, &chunk->last_free);
 		if (ret != (u64)-1) {
 			u64 bitmap_size = BITMAP_SIZE(slab_size);
-			ret_ptr = (u8 *)chunk + sizeof(Chunk) +
-				  bitmap_size + (ret * slab_size);
+			ret_ptr = (u8 *)chunk + sizeof(Chunk) + bitmap_size +
+				  (ret * slab_size);
 			break;
 		}
 		cur = atomic_load_or_allocate(&chunk->next, slab_size);
@@ -285,14 +283,13 @@ void *alloc(u64 size) {
 
 void release(void *ptr) {
 	AllocHeader *alloc_header = memory_base;
-	u64 offset =
-	    (u64)ptr - ((u64)memory_base + sizeof(AllocHeader) +
-			   bitmap_pages * PAGE_SIZE);
+	u64 offset = (u64)ptr - ((u64)memory_base + sizeof(AllocHeader) +
+				 bitmap_pages * PAGE_SIZE);
 	if (ptr == NULL ||
 	    (u64)ptr < (u64)memory_base + sizeof(AllocHeader) +
-			      bitmap_pages * PAGE_SIZE ||
+			   bitmap_pages * PAGE_SIZE ||
 	    (u64)ptr >= (u64)memory_base + sizeof(AllocHeader) +
-			       bitmap_pages * PAGE_SIZE + get_memory_bytes()) {
+			    bitmap_pages * PAGE_SIZE + get_memory_bytes()) {
 		err = EINVAL;
 		return;
 	}
@@ -309,8 +306,7 @@ void release(void *ptr) {
 		void *base = (void *)((u64)chunk + sizeof(Chunk));
 		u64 slab_size = chunk->slab_size;
 		u64 bitmap_size = BITMAP_SIZE(slab_size);
-		u64 index =
-		    ((u64)ptr - ((u64)base + bitmap_size)) / slab_size;
+		u64 index = ((u64)ptr - ((u64)base + bitmap_size)) / slab_size;
 		RELEASE_BIT(base, index, &chunk->last_free);
 #if MEMSAN == 1
 		__sub64(allocated_bytes, slab_size);
@@ -343,11 +339,10 @@ void *resize(void *ptr, u64 new_size) {
 
 	/* Validate pointer */
 	h = (AllocHeader *)memory_base;
-	base_offset = (u64)memory_base + sizeof(AllocHeader) +
-		      bitmap_pages * PAGE_SIZE;
+	base_offset =
+	    (u64)memory_base + sizeof(AllocHeader) + bitmap_pages * PAGE_SIZE;
 	total_size = get_memory_bytes();
-	if ((u64)ptr < base_offset ||
-	    (u64)ptr >= base_offset + total_size) {
+	if ((u64)ptr < base_offset || (u64)ptr >= base_offset + total_size) {
 		err = EINVAL;
 		return NULL;
 	}
@@ -381,8 +376,8 @@ void *resize(void *ptr, u64 new_size) {
 		void *base = (void *)((u64)chunk + sizeof(Chunk));
 		u64 old_slab_size = chunk->slab_size;
 		u64 bitmap_size = BITMAP_SIZE(old_slab_size);
-		u64 index = ((u64)ptr - ((u64)base + bitmap_size)) /
-				 old_slab_size;
+		u64 index =
+		    ((u64)ptr - ((u64)base + bitmap_size)) / old_slab_size;
 		u64 new_slab_size = calculate_slab_size(new_size);
 
 		if (old_slab_size == new_slab_size) {

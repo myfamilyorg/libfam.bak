@@ -128,15 +128,15 @@ void *memset(void *dest, int c, u64 n) {
 }
 
 int memcmp(const void *s1, const void *s2, u64 n) {
-	/* Cast pointers to unsigned char for byte-by-byte comparison */
-	const unsigned char *p1 = (const unsigned char *)s1;
-	const unsigned char *p2 = (const unsigned char *)s2;
+	/* Cast pointers to u8 for byte-by-byte comparison */
+	const u8 *p1 = (const u8 *)s1;
+	const u8 *p2 = (const u8 *)s2;
 	u64 i;
 
 	/* Compare each byte */
 	for (i = 0; i < n; i++) {
 		if (p1[i] != p2[i]) {
-			/* Return difference as unsigned char values */
+			/* Return difference as u8 values */
 			return (int)(p1[i] - p2[i]);
 		}
 	}
@@ -583,8 +583,7 @@ u128 __udivti3(u128 a, u128 b) {
 }
 int printf(const char *, ...);
 /* Base64 encode */
-u64 b64_encode(const u8 *in, u64 in_len, u8 *out,
-		  u64 out_max) {
+u64 b64_encode(const u8 *in, u64 in_len, u8 *out, u64 out_max) {
 	u64 i;
 	u64 j;
 	static const char *b64_table =
@@ -630,8 +629,7 @@ u64 b64_encode(const u8 *in, u64 in_len, u8 *out,
 }
 
 /* Base64 decode */
-u64 b64_decode(const u8 *in, u64 in_len, u8 *out,
-		  u64 out_max) {
+u64 b64_decode(const u8 *in, u64 in_len, u8 *out, u64 out_max) {
 	u64 i;
 	u64 j;
 	int b0;
@@ -672,13 +670,13 @@ u64 b64_decode(const u8 *in, u64 in_len, u8 *out,
 
 	j = 0;
 	for (i = 0; i < in_len; i += 4) {
-		b0 = decode_table[(unsigned char)in[i]];
-		b1 = decode_table[(unsigned char)in[i + 1]];
+		b0 = decode_table[(u8)in[i]];
+		b1 = decode_table[(u8)in[i + 1]];
 		b2 = (i + 2 < in_len && in[i + 2] != '=')
-			 ? decode_table[(unsigned char)in[i + 2]]
+			 ? decode_table[(u8)in[i + 2]]
 			 : -1;
 		b3 = (i + 3 < in_len && in[i + 3] != '=')
-			 ? decode_table[(unsigned char)in[i + 3]]
+			 ? decode_table[(u8)in[i + 3]]
 			 : -1;
 
 		if (b0 == -1 || b1 == -1 ||
@@ -690,14 +688,14 @@ u64 b64_decode(const u8 *in, u64 in_len, u8 *out,
 		if (j + 3 > out_max) {
 			return 0;
 		}
-		out[j] = (unsigned char)((b0 << 2) | (b1 >> 4));
+		out[j] = (u8)((b0 << 2) | (b1 >> 4));
 		j++;
 		if (i + 2 < in_len && in[i + 2] != '=') {
-			out[j] = (unsigned char)((b1 << 4) | (b2 >> 2));
+			out[j] = (u8)((b1 << 4) | (b2 >> 2));
 			j++;
 		}
 		if (i + 3 < in_len && in[i + 3] != '=') {
-			out[j] = (unsigned char)((b2 << 6) | b3);
+			out[j] = (u8)((b2 << 6) | b3);
 			j++;
 		}
 	}

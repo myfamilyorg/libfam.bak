@@ -110,7 +110,7 @@ struct sockaddr_in {
         unsigned short sin_family;
         unsigned short sin_port;
         u32 sin_addr;
-        unsigned char sin_zero[8];
+        u8 sin_zero[8];
 };
 
 struct timespec {
