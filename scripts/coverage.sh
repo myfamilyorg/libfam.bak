@@ -31,9 +31,9 @@ COVDIR=".cov"
 
 # Compiler and flags
 CC="gcc"
-CFLAGS="-DPAGE_SIZE=16384 -I${INCLDIR} -O0 -Wno-attributes -DMEMSAN=0 -DSTATIC= -g -Wno-format-truncation -Wno-format -D_FORTIFY_SOURCE=0"
+CFLAGS="-DPAGE_SIZE=16384 -I${INCLDIR} -O0 -Wno-builtin-declaration-mismatch -Wno-pointer-sign -Wno-error=pointer-sign -Wno-attributes -DMEMSAN=0 -DSTATIC= -g -Wno-format-truncation -Wno-format -D_FORTIFY_SOURCE=0"
 COVFLAGS="--coverage -O1 -DTEST=1 -DCOVERAGE"
-LDFLAGS="--coverage"
+LDFLAGS="--coverage -Wno-builtin-declaration-mismatch"
 LIBCGCOV=""
 
 # Source files
