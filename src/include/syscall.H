@@ -30,47 +30,47 @@
 
 int pipe(int fds[2]);
 int pipe2(int fds[2], int flags);
-int32_t getpid(void);
-int kill(int32_t pid, int signal);
+i32 getpid(void);
+int kill(i32 pid, int signal);
 int unlinkat(int dfd, const char *path, int flags);
-int64_t write(int fd, const void *buf, uint64_t count);
-int64_t read(int fd, void *buf, uint64_t count);
+i64 write(int fd, const void *buf, u64 count);
+i64 read(int fd, void *buf, u64 count);
 int sched_yield(void);
 void exit(int status);
-int munmap(void *addr, uint64_t len);
+int munmap(void *addr, u64 len);
 int close(int fd);
 int fcntl(int fd, int op, ...);
-int clone3(struct clone_args *args, uint64_t size);
+int clone3(struct clone_args *args, u64 size);
 int fdatasync(int fd);
-int ftruncate(int fd, int64_t length);
-int connect(int sockfd, const struct sockaddr *addr, uint32_t addrlen);
+int ftruncate(int fd, i64 length);
+int connect(int sockfd, const struct sockaddr *addr, u32 addrlen);
 int setsockopt(int sockfd, int level, int optname, const void *optval,
-	       uint32_t optlen);
-int bind(int sockfd, const struct sockaddr *addr, uint32_t addrlen);
+	       u32 optlen);
+int bind(int sockfd, const struct sockaddr *addr, u32 addrlen);
 int listen(int sockfd, int backlog);
-int getsockname(int sockfd, struct sockaddr *addr, uint32_t *addrlen);
-int accept(int sockfd, struct sockaddr *addr, uint32_t *addrlen);
+int getsockname(int sockfd, struct sockaddr *addr, u32 *addrlen);
+int accept(int sockfd, struct sockaddr *addr, u32 *addrlen);
 int shutdown(int sockfd, int how);
 int socket(int domain, int type, int protocol);
-int getrandom(void *buf, uint64_t len, uint32_t flags);
-void *mmap(void *addr, uint64_t length, int prot, int flags, int fd,
-	   int64_t offset);
+int getrandom(void *buf, u64 len, u32 flags);
+void *mmap(void *addr, u64 length, int prot, int flags, int fd,
+	   i64 offset);
 int nanosleep(const struct timespec *req, struct timespec *rem);
 int gettimeofday(struct timeval *tv, void *tz);
 int settimeofday(const struct timeval *tv, const struct timezone *tz);
 int epoll_create1(int flags);
 int epoll_pwait(int epfd, struct epoll_event *events, int maxevents,
-		int timeout, const sigset_t *sigmask, uint64_t size);
+		int timeout, const sigset_t *sigmask, u64 size);
 int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
-int openat(int dfd, const char *pathname, int flags, uint32_t mode);
-int64_t lseek(int fd, int64_t offset, int whence);
-int setitimer(int32_t which, const struct itimerval *new_value,
+int openat(int dfd, const char *pathname, int flags, u32 mode);
+i64 lseek(int fd, i64 offset, int whence);
+int setitimer(i32 which, const struct itimerval *new_value,
 	      struct itimerval *old_value);
 int rt_sigaction(int signum, const struct rt_sigaction *act,
-		 struct rt_sigaction *oldact, uint64_t sigsetsize);
+		 struct rt_sigaction *oldact, u64 sigsetsize);
 void restorer(void);
-int64_t futex(uint32_t *uaddr, int futex_op, uint32_t val,
-	   const struct timespec *timeout, uint32_t *uaddr2, uint32_t val3);
-int waitid(int32_t int32_type, int32_t id, siginfo_t *sigs, int options);
+i64 futex(u32 *uaddr, int futex_op, u32 val,
+	   const struct timespec *timeout, u32 *uaddr2, u32 val3);
+int waitid(i32 i32ype, i32 id, siginfo_t *sigs, int options);
 
 #endif /* _SYSCALL_H */

@@ -35,18 +35,18 @@
 
 struct Ws {
 	Evh *evh;
-	uint64_t workers;
+	u64 workers;
 	OnMessage on_message;
 	OnOpen on_open;
 	OnClose on_close;
 	WsConfig config;
-	uint64_t next_id;
+	u64 next_id;
 	Connection *acceptor;
 };
 
 struct WsConnection {
 	Connection connection;
-	uint64_t id;
+	u64 id;
 	bool handshake_complete;
 	char uri[MAX_URI_LEN + 1];
 };
@@ -65,7 +65,7 @@ Sec-WebSocket-Accept: ";
 
 STATIC int ws_proc_handshake(WsConnection *wsconn) {
 	char *rbuf = (char *)wsconn->connection.data.inbound.rbuf;
-	uint64_t rbuf_offset = wsconn->connection.data.inbound.rbuf_offset;
+	u64 rbuf_offset = wsconn->connection.data.inbound.rbuf_offset;
 	char *end;
 	char key[24];
 	SHA1_CTX sha1;
@@ -76,7 +76,7 @@ STATIC int ws_proc_handshake(WsConnection *wsconn) {
 	const char *guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 	if ((end = substrn(rbuf, "\r\n\r\n", rbuf_offset))) {
-		uint64_t len = end - rbuf, i;
+		u64 len = end - rbuf, i;
 		char *sec_websocket_key = NULL;
 		sec_websocket_key = substrn(rbuf, "Sec-WebSocket-Key: ", len);
 		if (sec_websocket_key == NULL) {
@@ -84,7 +84,7 @@ STATIC int ws_proc_handshake(WsConnection *wsconn) {
 			return -1;
 		}
 		sec_websocket_key += 19;
-		if ((uint64_t)(sec_websocket_key - rbuf) + 24 > len) {
+		if ((u64)(sec_websocket_key - rbuf) + 24 > len) {
 			err = EOVERFLOW;
 			return -1;
 		}
@@ -134,8 +134,8 @@ STATIC int ws_proc_handshake(WsConnection *wsconn) {
 	}
 }
 
-STATIC int proc_message_single(Ws *ws, WsConnection *wsconn, uint64_t offset,
-			       uint64_t len) {
+STATIC int proc_message_single(Ws *ws, WsConnection *wsconn, u64 offset,
+			       u64 len) {
 	WsMessage msg;
 	msg.buffer = wsconn->connection.data.inbound.rbuf + offset;
 	msg.len = len;
@@ -145,12 +145,12 @@ STATIC int proc_message_single(Ws *ws, WsConnection *wsconn, uint64_t offset,
 }
 
 STATIC int ws_proc_frames(Ws *ws, WsConnection *wsconn) {
-	uint64_t rbuf_offset = wsconn->connection.data.inbound.rbuf_offset;
+	u64 rbuf_offset = wsconn->connection.data.inbound.rbuf_offset;
 	uint8_t *rbuf = wsconn->connection.data.inbound.rbuf;
 	bool fin, mask;
 	uint8_t op;
-	uint64_t len;
-	uint64_t data_start;
+	u64 len;
+	u64 data_start;
 	uint8_t masking_key[4] = {0};
 
 	if (rbuf_offset < 2) {
@@ -175,10 +175,10 @@ STATIC int ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 			err = EAGAIN;
 			return -1;
 		}
-		len = ((uint64_t)rbuf[2] << 56) | ((uint64_t)rbuf[3] << 48) |
-		      ((uint64_t)rbuf[4] << 40) | ((uint64_t)rbuf[5] << 32) |
-		      ((uint64_t)rbuf[6] << 24) | ((uint64_t)rbuf[7] << 16) |
-		      ((uint64_t)rbuf[8] << 8) | rbuf[9];
+		len = ((u64)rbuf[2] << 56) | ((u64)rbuf[3] << 48) |
+		      ((u64)rbuf[4] << 40) | ((u64)rbuf[5] << 32) |
+		      ((u64)rbuf[6] << 24) | ((u64)rbuf[7] << 16) |
+		      ((u64)rbuf[8] << 8) | rbuf[9];
 		data_start = mask ? 14 : 10;
 	} else
 		data_start = mask ? 6 : 2;
@@ -190,7 +190,7 @@ STATIC int ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 	}
 
 	if (mask) {
-		uint64_t i;
+		u64 i;
 		uint8_t *payload;
 		masking_key[0] = rbuf[data_start - 4];
 		masking_key[1] = rbuf[data_start - 3];
@@ -218,7 +218,7 @@ STATIC int ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 }
 
 STATIC int ws_on_recv_proc(void *ctx, Connection *conn,
-			   uint64_t rlen __attribute__((unused))) {
+			   u64 rlen __attribute__((unused))) {
 	Ws *ws = ctx;
 	WsConnection *wsconn = (WsConnection *)conn;
 
@@ -282,7 +282,7 @@ Ws *ws_init(WsConfig *config, OnMessage on_message, OnOpen on_open,
 }
 
 int ws_start(Ws *ws) {
-	uint64_t i;
+	u64 i;
 	ws->acceptor =
 	    evh_acceptor(ws->config.addr, ws->config.port, ws->config.backlog,
 			 ws_on_recv_proc, ws_on_accept_proc, ws_on_close_proc);
@@ -310,7 +310,7 @@ int ws_start(Ws *ws) {
 }
 
 int ws_stop(Ws *ws) {
-	uint64_t i;
+	u64 i;
 	for (i = 0; i < ws->workers; i++) {
 		evh_stop(&ws->evh[i]);
 	}
@@ -321,7 +321,7 @@ int ws_stop(Ws *ws) {
 	return 0;
 }
 
-uint64_t ws_connection_id(WsConnection *conn) { return conn->id; }
+u64 ws_connection_id(WsConnection *conn) { return conn->id; }
 WsConnection *ws_connect(Ws *ws, const char *url);
 
 int ws_connection_close(WsConnection *conn, int code __attribute__((unused)),
@@ -332,7 +332,7 @@ int ws_connection_close(WsConnection *conn, int code __attribute__((unused)),
 
 int ws_send(WsConnection *conn, WsMessage *msg) {
 	uint8_t buf[10];
-	uint64_t header_len;
+	u64 header_len;
 
 	buf[0] = 0x82;
 

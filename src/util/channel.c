@@ -34,11 +34,11 @@
 #define DEFAULT_CAPACITY 1024
 
 struct ChannelInner {
-	uint64_t element_size;
-	uint64_t capacity;
-	uint64_t head;
-	uint64_t tail;
-	uint32_t wait;
+	u64 element_size;
+	u64 capacity;
+	u64 head;
+	u64 tail;
+	u32 wait;
 	uint8_t padding[12];
 };
 
@@ -48,8 +48,8 @@ struct ChannelInner {
 
 #define NEXT_POS(channel, pos) ((pos + 1) % channel->inner->capacity)
 
-STATIC int notify(Channel *channel, uint64_t num_messages) {
-	uint32_t exp = 1;
+STATIC int notify(Channel *channel, u64 num_messages) {
+	u32 exp = 1;
 	if (__cas32(&channel->inner->wait, &exp, 0))
 		return futex(&channel->inner->wait, FUTEX_WAKE, num_messages,
 			     NULL, NULL, 0) >= 0
@@ -60,17 +60,17 @@ STATIC int notify(Channel *channel, uint64_t num_messages) {
 
 void channel_destroy(Channel *channel) {
 	if (channel && channel->inner) {
-		uint64_t size =
+		u64 size =
 		    sizeof(ChannelInner) +
 		    channel->inner->element_size * channel->inner->capacity;
 		munmap(channel->inner, size);
 		channel->inner = NULL;
 	}
 }
-Channel channel(uint64_t element_size) {
+Channel channel(u64 element_size) {
 	return channel2(element_size, DEFAULT_CAPACITY);
 }
-Channel channel2(uint64_t element_size, uint64_t capacity) {
+Channel channel2(u64 element_size, u64 capacity) {
 	Channel ret = {0};
 	if (capacity == 0 || element_size == 0) {
 		err = EINVAL;
@@ -88,7 +88,7 @@ Channel channel2(uint64_t element_size, uint64_t capacity) {
 bool channel_ok(Channel *channel) { return channel && channel->inner != NULL; }
 
 void recv(Channel *channel, void *dst) {
-	uint64_t tail, head, num_messages;
+	u64 tail, head, num_messages;
 
 	while (recv_now(channel, dst) == -1) {
 		ASTORE(&channel->inner->wait, 1);
@@ -109,7 +109,7 @@ void recv(Channel *channel, void *dst) {
 }
 
 int recv_now(Channel *channel, void *dst) {
-	uint64_t tail, head;
+	u64 tail, head;
 	do {
 		tail = ALOAD(&channel->inner->tail);
 		head = ALOAD(&channel->inner->head);
@@ -125,7 +125,7 @@ int recv_now(Channel *channel, void *dst) {
 }
 
 int send(Channel *channel, const void *src) {
-	uint64_t tail, head, num_messages;
+	u64 tail, head, num_messages;
 	do {
 		head = ALOAD(&channel->inner->head);
 		tail = ALOAD(&channel->inner->tail);

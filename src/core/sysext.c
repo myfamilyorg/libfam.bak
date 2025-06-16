@@ -42,19 +42,19 @@ int exists(const char *path) {
 	return 0;
 }
 
-int64_t micros(void) {
+i64 micros(void) {
 	struct timeval tv;
 	if (gettimeofday(&tv, NULL) == -1) return -1;
-	return (int64_t)tv.tv_sec * 1000000 + tv.tv_usec;
+	return (i64)tv.tv_sec * 1000000 + tv.tv_usec;
 }
 
-int open(const char *path, int flags, uint32_t mode) {
+int open(const char *path, int flags, u32 mode) {
 	return openat(-100, path, flags, mode);
 }
 
 int unlink(const char *path) { return unlinkat(-100, path, 0); }
 
-int sleepm(uint64_t millis) {
+int sleepm(u64 millis) {
 	struct timespec req;
 	int ret;
 	req.tv_sec = millis / 1000;
@@ -63,17 +63,17 @@ int sleepm(uint64_t millis) {
 	return ret;
 }
 
-int64_t fsize(int fd) {
-	int64_t ret = lseek(fd, 0, SEEK_END);
+i64 fsize(int fd) {
+	i64 ret = lseek(fd, 0, SEEK_END);
 	return ret;
 }
 
-int fresize(int fd, int64_t length) {
+int fresize(int fd, i64 length) {
 	int ret = ftruncate(fd, length);
 	return ret;
 }
 
-void *map(uint64_t length) {
+void *map(u64 length) {
 	void *v = mmap(NULL, length, PROT_READ | PROT_WRITE,
 		       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (v == MAP_FAILED) {
@@ -81,7 +81,7 @@ void *map(uint64_t length) {
 	}
 	return v;
 }
-void *fmap(int fd, int64_t size, int64_t offset) {
+void *fmap(int fd, i64 size, i64 offset) {
 	void *v =
 	    mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, offset);
 	if (v == MAP_FAILED) {
@@ -90,7 +90,7 @@ void *fmap(int fd, int64_t size, int64_t offset) {
 	return v;
 }
 
-void *smap(uint64_t length) {
+void *smap(u64 length) {
 	void *v = mmap(NULL, length, PROT_READ | PROT_WRITE,
 		       MAP_ANONYMOUS | MAP_SHARED, -1, 0);
 	if (v == MAP_FAILED) {
@@ -112,6 +112,6 @@ int yield(void) {
 
 int pipe(int fds[2]) { return pipe2(fds, 0); }
 
-int getentropy(void *buffer, uint64_t length) {
+int getentropy(void *buffer, u64 length) {
 	return getrandom(buffer, length, GRND_RANDOM);
 }

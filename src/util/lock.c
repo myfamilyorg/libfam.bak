@@ -39,7 +39,7 @@ void lockguard_cleanup(LockGuardImpl *lg) {
 		__and32(lg->lock, WREQUEST);
 		futex(lg->lock, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
 	} else {
-		uint32_t v = __sub32(lg->lock, 1);
+		u32 v = __sub32(lg->lock, 1);
 		if ((v & ~(WREQUEST | WFLAG)) == 1)
 			futex(lg->lock, FUTEX_WAKE, 1, NULL, NULL, 0);
 	}
@@ -49,7 +49,7 @@ LockGuardImpl rlock(Lock *lock) {
 	LockGuardImpl ret = {NULL, false};
 	ret.lock = lock;
 	while (true) {
-		uint32_t cur = ALOAD(lock);
+		u32 cur = ALOAD(lock);
 		if ((cur & (WREQUEST | WFLAG)) == 0) {
 			if (__cas32(lock, &cur, cur + 1)) break;
 		} else
@@ -62,12 +62,12 @@ LockGuardImpl wlock(Lock *lock) {
 	LockGuardImpl ret = {NULL, true};
 	ret.lock = lock;
 	while (true) {
-		uint32_t cur = ALOAD(lock);
+		u32 cur = ALOAD(lock);
 		if ((cur & ~WREQUEST) == 0) {
 			if (__cas32(lock, &cur, WFLAG)) break;
 		} else {
 			if ((cur & WREQUEST) == 0) {
-				int32_t desired = cur | WREQUEST;
+				i32 desired = cur | WREQUEST;
 				if (!__cas32(lock, &cur, desired)) continue;
 			}
 			futex(lock, FUTEX_WAIT, cur | WREQUEST, NULL, NULL, 0);

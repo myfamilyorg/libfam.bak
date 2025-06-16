@@ -71,7 +71,7 @@ int mregister(int multiplex, int fd, int flags, void *attach) {
 	return 0;
 }
 int mwait(int multiplex, Event *events, int max_events,
-	  int64_t timeout_millis) {
+	  i64 timeout_millis) {
 	int timeout = (timeout_millis >= 0) ? (int)timeout_millis : -1;
 	return epoll_pwait(multiplex, (struct epoll_event *)events, max_events,
 			   timeout, NULL, 0);

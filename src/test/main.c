@@ -97,7 +97,7 @@ int main(int argc __attribute__((unused)), char **argv __attribute__((unused)),
 	 char **envp) {
 	int test_count = 0;
 	char *tp;
-	uint64_t total;
+	u64 total;
 	double ms;
 
 #ifndef COVERAGE
@@ -123,14 +123,14 @@ int main(int argc __attribute__((unused)), char **argv __attribute__((unused)),
 	for (exe_test = 0; exe_test < cur_tests; exe_test++) {
 		if (!tp || !strcmp(tp, "*") ||
 		    !strcmp(tests[exe_test].name, tp)) {
-			uint64_t start;
+			u64 start;
 			printf("%sRunning test%s %d [%s%s%s]", YELLOW, RESET,
 			       1 + test_count, DIMMED, tests[exe_test].name,
 			       RESET);
 			start = micros();
 			tests[exe_test].test_fn();
 			printf(" %s[%i %ss]%s \n", GREEN,
-			       (int32_t)(micros() - start), "µ", RESET);
+			       (i32)(micros() - start), "µ", RESET);
 			test_count++;
 		}
 	}

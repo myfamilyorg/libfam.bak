@@ -33,12 +33,12 @@
 #include <sys.H>
 #include <types.H>
 
-void *alloc(uint64_t size);
+void *alloc(u64 size);
 void release(void *ptr);
-void *resize(void *ptr, uint64_t size);
+void *resize(void *ptr, u64 size);
 
 #if MEMSAN == 1
-uint64_t get_allocated_bytes(void);
+u64 get_allocated_bytes(void);
 void reset_allocated_bytes(void);
 #endif /* MEMSAN */
 

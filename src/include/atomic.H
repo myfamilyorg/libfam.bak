@@ -34,17 +34,17 @@
 
 
 #ifdef __aarch64__
-uint32_t __cas32(uint32_t *ptr, uint32_t *expected, uint32_t desired);
-uint32_t __and32(uint32_t *ptr, uint32_t value);
-uint32_t __add32(uint32_t *ptr, uint32_t value);
-uint32_t __sub32(uint32_t *ptr, uint32_t value);
-uint32_t __or32(volatile uint32_t *a, uint32_t v);
+u32 __cas32(u32 *ptr, u32 *expected, u32 desired);
+u32 __and32(u32 *ptr, u32 value);
+u32 __add32(u32 *ptr, u32 value);
+u32 __sub32(u32 *ptr, u32 value);
+u32 __or32(volatile u32 *a, u32 v);
 
-uint64_t __cas64(uint64_t *ptr, uint64_t *expected, uint64_t desired);
-uint64_t __and64(uint64_t *ptr, uint64_t value);
-uint64_t __add64(uint64_t *ptr, uint64_t value);
-uint64_t __sub64(uint64_t *ptr, uint64_t value);
-uint64_t __or64(volatile uint64_t *a, uint64_t v);
+u64 __cas64(u64 *ptr, u64 *expected, u64 desired);
+u64 __and64(u64 *ptr, u64 value);
+u64 __add64(u64 *ptr, u64 value);
+u64 __sub64(u64 *ptr, u64 value);
+u64 __or64(volatile u64 *a, u64 v);
 
 #elif defined(__amd64__)
 

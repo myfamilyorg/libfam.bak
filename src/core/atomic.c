@@ -26,10 +26,10 @@
 #include <types.H>
 
 #ifdef __aarch64__
-int __cas32(volatile uint32_t *a, uint32_t *expected, uint32_t desired) {
-	uint32_t result;
+int __cas32(volatile u32 *a, u32 *expected, u32 desired) {
+	u32 result;
 	int success;
-	uint32_t orig_expected = *expected;
+	u32 orig_expected = *expected;
 	int retries = 5;
 	while (retries--) {
 		__asm__ volatile(
@@ -53,8 +53,8 @@ int __cas32(volatile uint32_t *a, uint32_t *expected, uint32_t desired) {
 	return success;
 }
 
-uint32_t __add32(volatile uint32_t *a, uint32_t v) {
-	uint32_t old, tmp;
+u32 __add32(volatile u32 *a, u32 v) {
+	u32 old, tmp;
 	__asm__ volatile(
 	    "1: ldaxr %w0, [%2]\n" /* Load-exclusive 32-bit */
 	    "add %w1, %w0, %w3\n"  /* Compute new value */
@@ -67,10 +67,10 @@ uint32_t __add32(volatile uint32_t *a, uint32_t v) {
 	return old;
 }
 
-uint32_t __sub32(volatile uint32_t *a, uint32_t v) { return __add32(a, -v); }
+u32 __sub32(volatile u32 *a, u32 v) { return __add32(a, -v); }
 
-uint32_t __or32(volatile uint32_t *a, uint32_t v) {
-	uint32_t old, tmp;
+u32 __or32(volatile u32 *a, u32 v) {
+	u32 old, tmp;
 	__asm__ volatile(
 	    "1: ldaxr %w0, [%2]\n" /* Load-exclusive 32-bit */
 	    "orr %w1, %w0, %w3\n"  /* Bitwise OR */
@@ -83,8 +83,8 @@ uint32_t __or32(volatile uint32_t *a, uint32_t v) {
 	return old;
 }
 
-uint32_t __and32(volatile uint32_t *a, uint32_t v) {
-	uint32_t old, tmp;
+u32 __and32(volatile u32 *a, u32 v) {
+	u32 old, tmp;
 	__asm__ volatile(
 	    "1: ldaxr %w0, [%2]\n" /* Load-exclusive 32-bit */
 	    "and %w1, %w0, %w3\n"  /* Bitwise AND */
@@ -97,10 +97,10 @@ uint32_t __and32(volatile uint32_t *a, uint32_t v) {
 	return old;
 }
 
-int __cas64(volatile uint64_t *a, uint64_t *expected, uint64_t desired) {
-	uint64_t result;
+int __cas64(volatile u64 *a, u64 *expected, u64 desired) {
+	u64 result;
 	int success;
-	uint64_t orig_expected = *expected;
+	u64 orig_expected = *expected;
 	int retries = 5;
 	while (retries--) {
 		__asm__ volatile(
@@ -123,8 +123,8 @@ int __cas64(volatile uint64_t *a, uint64_t *expected, uint64_t desired) {
 	return success;
 }
 
-uint64_t __add64(volatile uint64_t *a, uint64_t v) {
-	uint64_t old, tmp;
+u64 __add64(volatile u64 *a, u64 v) {
+	u64 old, tmp;
 	__asm__ volatile(
 	    "1: ldaxr %0, [%2]\n" /* Load-exclusive 64-bit */
 	    "add %1, %0, %3\n"	  /* Compute new value */
@@ -137,10 +137,10 @@ uint64_t __add64(volatile uint64_t *a, uint64_t v) {
 	return old;
 }
 
-uint64_t __sub64(volatile uint64_t *a, uint64_t v) { return __add64(a, -v); }
+u64 __sub64(volatile u64 *a, u64 v) { return __add64(a, -v); }
 
-uint64_t __or64(volatile uint64_t *a, uint64_t v) {
-	uint64_t old, tmp;
+u64 __or64(volatile u64 *a, u64 v) {
+	u64 old, tmp;
 	__asm__ volatile(
 	    "1: ldaxr %0, [%2]\n" /* Load-exclusive 64-bit */
 	    "orr %1, %0, %3\n"	  /* Bitwise OR (64-bit) */
@@ -153,8 +153,8 @@ uint64_t __or64(volatile uint64_t *a, uint64_t v) {
 	return old;
 }
 
-uint64_t __and64(volatile uint64_t *a, uint64_t v) {
-	uint64_t old, tmp;
+u64 __and64(volatile u64 *a, u64 v) {
+	u64 old, tmp;
 	__asm__ volatile(
 	    "1: ldaxr %0, [%2]\n" /* Load-exclusive 64-bit */
 	    "and %1, %0, %3\n"	  /* Bitwise AND (64-bit) */

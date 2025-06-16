@@ -28,7 +28,7 @@
 
 #include <types.H>
 
-typedef uint32_t Lock;
+typedef u32 Lock;
 
 #define LOCK_INIT 0
 

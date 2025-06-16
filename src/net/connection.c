@@ -61,7 +61,7 @@ uint16_t evh_acceptor_port(Connection *conn) {
 
 Connection *evh_client(uint8_t addr[4], uint16_t port, OnRecvFn on_recv_fn,
 		       OnCloseFn on_close_fn,
-		       uint64_t connection_alloc_overhead) {
+		       u64 connection_alloc_overhead) {
 	Connection *client =
 	    alloc(sizeof(Connection) + connection_alloc_overhead);
 	if (client == NULL) return NULL;
@@ -96,13 +96,13 @@ int connection_close(Connection *connection) {
 	}
 }
 
-int connection_write(Connection *connection, const void *buf, uint64_t len) {
-	int64_t wlen = 0;
+int connection_write(Connection *connection, const void *buf, u64 len) {
+	i64 wlen = 0;
 	InboundData *ib = &connection->data.inbound;
 	LockGuard lg = wlock(&ib->lock);
 	if (ib->is_closed) return -1;
 	if (!ib->wbuf_offset) {
-		uint64_t offset = 0;
+		u64 offset = 0;
 	write_block:
 		err = 0;
 		if (debug_force_write_buffer)
@@ -121,7 +121,7 @@ int connection_write(Connection *connection, const void *buf, uint64_t len) {
 			return -1;
 		}
 
-		if ((uint64_t)wlen == len) return 0;
+		if ((u64)wlen == len) return 0;
 		if (mregister(ib->mplex, connection->socket,
 			      MULTIPLEX_FLAG_READ | MULTIPLEX_FLAG_WRITE,
 			      connection) == -1) {
@@ -147,7 +147,7 @@ int connection_write(Connection *connection, const void *buf, uint64_t len) {
 	return 0;
 }
 
-void connection_clear_rbuf_through(Connection *conn, uint64_t off) {
+void connection_clear_rbuf_through(Connection *conn, u64 off) {
 	InboundData *ib = &conn->data.inbound;
 	if (off > ib->rbuf_offset) return;
 	memorymove(ib->rbuf, ib->rbuf + off, ib->rbuf_offset - off);

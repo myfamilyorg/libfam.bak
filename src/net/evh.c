@@ -127,7 +127,7 @@ STATIC int proc_close(Connection *conn, void *ctx) {
 STATIC int proc_read(Connection *conn, void *ctx) {
 	while (true) {
 		InboundData *ib;
-		int64_t rlen;
+		i64 rlen;
 
 		if (check_capacity(conn) == -1) {
 			proc_close(conn, ctx);
@@ -152,8 +152,8 @@ STATIC int proc_read(Connection *conn, void *ctx) {
 STATIC int proc_write(Evh *evh, Connection *conn,
 		      void *ctx __attribute__((unused))) {
 	InboundData *ib = &conn->data.inbound;
-	int64_t wlen;
-	uint64_t cur = 0;
+	i64 wlen;
+	u64 cur = 0;
 	int sock = conn->socket;
 	LockGuard lg = wlock(&ib->lock);
 
@@ -219,7 +219,7 @@ end_while:
 
 STATIC int init_event_loop(Evh *evh, void *ctx) {
 	int fds[2];
-	int32_t pid;
+	i32 pid;
 	if (pipe(fds) == -1) {
 		return -1;
 	}
@@ -261,10 +261,10 @@ int evh_register(Evh *evh, Connection *connection) {
 	}
 }
 
-int evh_start(Evh *evh, void *ctx, uint64_t connection_alloc_overhead) {
+int evh_start(Evh *evh, void *ctx, u64 connection_alloc_overhead) {
 	evh->mplex = multiplex();
 	evh->connection_alloc_overhead = connection_alloc_overhead;
-	evh->stopped = alloc(sizeof(uint64_t));
+	evh->stopped = alloc(sizeof(u64));
 	if (evh->stopped == NULL) {
 		close(evh->mplex);
 		return -1;

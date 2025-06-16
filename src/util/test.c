@@ -58,7 +58,7 @@ Test(lock) {
 	ASSERT_EQ(l1, 0, "back to 0");
 	{
 		LockGuard lg1 = wlock(&l1);
-		uint32_t vabc = 0x1 << 31;
+		u32 vabc = 0x1 << 31;
 		ASSERT_EQ(l1, vabc, "vabc");
 	}
 	ASSERT_EQ(l1, 0, "back to 0 2");
@@ -431,14 +431,14 @@ Test(channel_err) {
 
 typedef struct {
 	RbTreeNode _reserved;
-	uint64_t value;
+	u64 value;
 } TestRbTreeNode;
 
 int test_rbsearch(RbTreeNode *cur, const RbTreeNode *value,
 		  RbTreeNodePair *retval) {
 	while (cur) {
-		uint64_t v1 = ((TestRbTreeNode *)cur)->value;
-		uint64_t v2 = ((TestRbTreeNode *)value)->value;
+		u64 v1 = ((TestRbTreeNode *)cur)->value;
+		u64 v2 = ((TestRbTreeNode *)value)->value;
 		if (v1 == v2) {
 			retval->self = cur;
 			break;
@@ -456,11 +456,11 @@ int test_rbsearch(RbTreeNode *cur, const RbTreeNode *value,
 	return 0;
 }
 
-#define PARENT(node) ((RbTreeNode *)((uint64_t)node->parent_color & ~0x1))
+#define PARENT(node) ((RbTreeNode *)((u64)node->parent_color & ~0x1))
 #define RIGHT(node) node->right
 #define LEFT(node) node->left
 #define ROOT(tree) (tree->root)
-#define IS_RED(node) (node && ((uint64_t)node->parent_color & 0x1))
+#define IS_RED(node) (node && ((u64)node->parent_color & 0x1))
 #define IS_BLACK(node) !IS_RED(node)
 #define ROOT(tree) (tree->root)
 
@@ -551,7 +551,7 @@ Test(rbtree1) {
 
 Test(rbtree2) {
 	Rng rng;
-	uint64_t size, i;
+	u64 size, i;
 
 	ASSERT(!rng_init(&rng), "rng_init");
 
@@ -559,7 +559,7 @@ Test(rbtree2) {
 		RbTree tree = INIT_RBTREE;
 		TestRbTreeNode values[SIZE];
 		for (i = 0; i < size; i++) {
-			rng_gen(&rng, &values[i].value, sizeof(uint64_t));
+			rng_gen(&rng, &values[i].value, sizeof(u64));
 			rbtree_put(&tree, (RbTreeNode *)&values[i],
 				   test_rbsearch);
 			validate_rbtree(&tree);
@@ -596,21 +596,21 @@ Test(rbtree3) {
 	RbTree tree = INIT_RBTREE;
 	TestRbTreeNode values[STRESS_SIZE];
 	bool exists[STRESS_SIZE] = {0};
-	uint64_t i, op;
+	u64 i, op;
 
 	ASSERT(!rng_init(&rng), "rng_init");
 
 	for (i = 0; i < STRESS_SIZE; i++) {
-		rng_gen(&rng, &values[i].value, sizeof(uint64_t));
+		rng_gen(&rng, &values[i].value, sizeof(u64));
 	}
 
 	for (op = 0; op < OPERATIONS; op++) {
-		int32_t i;
-		uint64_t idx;
+		i32 i;
+		u64 idx;
 		bool do_insert = false;
-		rng_gen(&rng, &idx, sizeof(uint64_t));
+		rng_gen(&rng, &idx, sizeof(u64));
 		idx %= STRESS_SIZE;
-		rng_gen(&rng, &i, sizeof(int32_t));
+		rng_gen(&rng, &i, sizeof(i32));
 		do_insert = (i % 2) == 0;
 
 		if (do_insert) {

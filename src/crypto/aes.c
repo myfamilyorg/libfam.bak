@@ -232,10 +232,10 @@ static void Cipher(state_t *state, const uint8_t *RoundKey) {
 
 /* Symmetrical operation: same function for encrypting as for decrypting. Note
  * any IV/nonce should never be reused with the same key */
-void aes_ctr_xcrypt_buffer(AesContext *ctx, uint8_t *buf, uint64_t length) {
+void aes_ctr_xcrypt_buffer(AesContext *ctx, uint8_t *buf, u64 length) {
 	uint8_t buffer[AES_BLOCKLEN];
 
-	uint64_t i;
+	u64 i;
 	int bi;
 	for (i = 0, bi = AES_BLOCKLEN; i < length; ++i, ++bi) {
 		if (bi == AES_BLOCKLEN) /* we need to regen xor compliment in

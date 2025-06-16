@@ -35,7 +35,7 @@ typedef struct {
 
 int rng_init(Rng *rng);
 int rng_reseed(Rng *rng);
-void rng_gen(Rng *rng, void *v, uint64_t size);
+void rng_gen(Rng *rng, void *v, u64 size);
 
 #if TEST == 1
 void rng_test_seed(Rng *rng, uint8_t key[32], uint8_t iv[16]);

@@ -141,7 +141,7 @@ Test(socket_fails) {
 	ASSERT(socket_connect(LOCALHOST, port) == -1, "connect");
 }
 
-uint64_t *value;
+u64 *value;
 Evh evh1;
 
 int on_accept(void *ctx __attribute__((unused)),
@@ -151,7 +151,7 @@ int on_accept(void *ctx __attribute__((unused)),
 }
 
 int on_recv(void *ctx __attribute__((unused)), Connection *conn,
-	    uint64_t rlen __attribute__((unused))) {
+	    u64 rlen __attribute__((unused))) {
 	char buf[1024 * 64];
 	InboundData *ib = &conn->data.inbound;
 	memcpy(buf, ib->rbuf, ib->rbuf_offset);
@@ -171,7 +171,7 @@ Test(test_evh1) {
 	char buf[100];
 	Connection *conn;
 	ASSERT_BYTES(0);
-	value = alloc(sizeof(uint64_t));
+	value = alloc(sizeof(u64));
 	*value = 0;
 
 	ASSERT(!evh_start(&evh1, NULL, 0), "evh_start");
@@ -211,7 +211,7 @@ int on_accept2(void *ctx __attribute__((unused)),
 }
 
 int on_recv2(void *ctx __attribute__((unused)), Connection *conn,
-	     uint64_t rlen __attribute__((unused))) {
+	     u64 rlen __attribute__((unused))) {
 	InboundData *ib = &conn->data.inbound;
 	int *v = (int *)(ib->rbuf + ib->rbuf_offset - rlen);
 	int nv = *v + 1;
@@ -346,7 +346,7 @@ Test(test_evh_clear) {
 
 int proc_wakeup(int fd);
 
-uint64_t *confirm = NULL;
+u64 *confirm = NULL;
 
 Test(test_evh_direct) { ASSERT_EQ(proc_wakeup(-1), -1, "proc_wakeup"); }
 
@@ -378,7 +378,7 @@ Test(ws1) {
 	    "dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n";
 
 	ASSERT_BYTES(0);
-	confirm = alloc(sizeof(uint64_t));
+	confirm = alloc(sizeof(u64));
 	*confirm = 0;
 	ws = ws_init(&WS_STD_CFG, ws_on_message, ws_on_open, ws_on_close);
 	ws_start(ws);
@@ -428,7 +428,7 @@ int on_accept3(void *ctx __attribute__((unused)),
 
 int on_recv3(void *ctx __attribute__((unused)),
 	     Connection *conn __attribute__((unused)),
-	     uint64_t rlen __attribute__((unused))) {
+	     u64 rlen __attribute__((unused))) {
 	return 0;
 }
 

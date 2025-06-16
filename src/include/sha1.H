@@ -27,14 +27,14 @@
 #define _SHA1_H
 
 typedef struct {
-	uint32_t state[5];
-	uint64_t count;
+	u32 state[5];
+	u64 count;
 	uint8_t buffer[64];
 } SHA1_CTX;
 
 void sha1_init(SHA1_CTX *ctx);
 
-void sha1_update(SHA1_CTX *ctx, const uint8_t *data, uint64_t len);
+void sha1_update(SHA1_CTX *ctx, const uint8_t *data, u64 len);
 void sha1_final(SHA1_CTX *ctx, uint8_t *digest);
 
 #endif /* _SHA1_H */

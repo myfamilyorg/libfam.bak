@@ -29,11 +29,11 @@
 #include <syscall_const.H>
 #include <types.H>
 
-int32_t two(void) { return two2(true); }
+i32 two(void) { return two2(true); }
 
-int32_t two2(bool share_fds) {
+i32 two2(bool share_fds) {
 	struct clone_args args = {0};
-	int64_t ret;
+	i64 ret;
 	args.flags = share_fds ? CLONE_FILES : 0;
 	args.pidfd = 0;
 	args.child_tid = 0;
@@ -45,5 +45,5 @@ int32_t two2(bool share_fds) {
 
 	ret = clone3(&args, sizeof(args));
 	if (ret == 0) begin();
-	return (int32_t)ret;
+	return (i32)ret;
 }

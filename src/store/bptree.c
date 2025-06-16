@@ -52,34 +52,34 @@ STATIC_ASSERT(sizeof(BpTreeLeafNode) == sizeof(BpTreeInternalNode),
 
 struct BpTree {
 	void *base;
-	uint64_t capacity;
+	u64 capacity;
 	int fd;
 };
 
 struct BpTxn {
 	BpTree *tree;
-	uint64_t txn_id;
-	uint64_t root;
+	u64 txn_id;
+	u64 root;
 };
 
 typedef struct {
-	uint64_t counter;
-	uint64_t root;
+	u64 counter;
+	u64 root;
 } MetadataNode;
 
 typedef struct {
-	uint64_t next_txn_id;
+	u64 next_txn_id;
 } RuntimeNode;
 
 typedef struct {
-	uint64_t head;
-	uint64_t next_file_node;
+	u64 head;
+	u64 next_file_node;
 } FreeList;
 
 STATIC void bptree_ensure_init(BpTree *tree) {
 	MetadataNode *m1 = METADATA1(tree);
 	FreeList *fl = FREE_LIST_NODE(tree);
-	uint64_t expected = 0;
+	u64 expected = 0;
 	__cas64(&m1->root, &expected, FIRST_NODE);
 	expected = 0;
 	__cas64(&m1->counter, &expected, 1);
@@ -104,7 +104,7 @@ STATIC void shift_by_offset(BpTreeNode *node, uint16_t key_index,
 
 STATIC void place_entry(BpTreeNode *node, uint16_t key_index, const void *key,
 			uint16_t key_len, const void *value,
-			uint32_t value_len) {
+			u32 value_len) {
 	uint16_t pos = node->data.leaf.entry_offsets[key_index];
 	BpTreeEntry entry = {0};
 	entry.value_len = value_len;
@@ -120,7 +120,7 @@ STATIC void place_entry(BpTreeNode *node, uint16_t key_index, const void *key,
 
 STATIC BpTreeNode *allocate_node(BpTxn *txn) {
 	FreeList *free_list;
-	uint64_t expected, current;
+	u64 expected, current;
 	if (!txn) return NULL;
 
 	free_list = FREE_LIST_NODE(txn->tree);
@@ -138,7 +138,7 @@ STATIC BpTreeNode *allocate_node(BpTxn *txn) {
 STATIC void insert_entry(BpTreeNode *node, uint16_t key_index,
 			 uint16_t space_needed, const void *key,
 			 uint16_t key_len, const void *value,
-			 uint32_t value_len) {
+			 u32 value_len) {
 	if (node->num_entries > key_index)
 		shift_by_offset(node, key_index, space_needed);
 	else {
@@ -205,7 +205,7 @@ STATIC BpTreeNode *new_node(BpTxn *txn, BpTreeNode *node, uint16_t midpoint) {
 
 STATIC int split_node(BpTxn *txn, BpTreeNode *node, const void *key,
 		      uint16_t key_len, const void *value, uint16_t value_len,
-		      uint16_t key_index, uint64_t space_needed) {
+		      uint16_t key_index, u64 space_needed) {
 	int i;
 	uint16_t midpoint;
 	uint16_t pos;
@@ -237,7 +237,7 @@ STATIC int split_node(BpTxn *txn, BpTreeNode *node, const void *key,
 BpTree *bptree_open(const char *path) {
 	BpTree *ret;
 	int fd = file(path);
-	uint64_t capacity;
+	u64 capacity;
 
 	if (fd < 0) return NULL;
 	if ((capacity = fsize(fd)) < MIN_SIZE) {
@@ -279,7 +279,7 @@ int bptree_close(BpTree *tree) {
 BpTxn *bptxn_start(BpTree *tree) {
 	BpTxn *ret;
 	MetadataNode *m1, *m2;
-	uint64_t m1_counter, m2_counter;
+	u64 m1_counter, m2_counter;
 	if (!tree) {
 		err = EINVAL;
 		return NULL;
@@ -311,10 +311,10 @@ int bptxn_commit(BpTxn *txn);
 int bptxn_abort(BpTxn *txn);
 
 int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
-	       uint32_t value_len, const BpTreeSearch search) {
+	       u32 value_len, const BpTreeSearch search) {
 	BpTreeSearchResult res;
 	BpTreeNode *node, *copy;
-	uint64_t space_needed;
+	u64 space_needed;
 
 	if (key_len == 0 || value_len == 0 || key == NULL || value == NULL ||
 	    txn == NULL) {
@@ -328,7 +328,7 @@ int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
 
 	space_needed = key_len + value_len + sizeof(BpTreeEntry);
 	if (space_needed + node->used_bytes > LEAF_ARRAY_SIZE ||
-	    (uint64_t)(node->num_entries + 1) >= MAX_LEAF_ENTRIES) {
+	    (u64)(node->num_entries + 1) >= MAX_LEAF_ENTRIES) {
 		if (split_node(txn, node, key, key_len, value, value_len,
 			       res.key_index, space_needed) == -1)
 			return -1;
@@ -347,10 +347,10 @@ int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
 }
 
 BpTreeEntry *bptree_remove(BpTxn *txn, const void *key, uint16_t key_len,
-			   const void *value, uint64_t value_len,
+			   const void *value, u64 value_len,
 			   const BpTreeSearch search);
 
-BpTreeNode *bptxn_get_node(BpTxn *txn, uint64_t node_id) {
+BpTreeNode *bptxn_get_node(BpTxn *txn, u64 node_id) {
 	BpTreeNode *ret = NODE(txn, node_id);
 	if ((((uint8_t *)ret) - ((uint8_t *)txn->tree->base)) + NODE_SIZE >
 	    txn->tree->capacity)
@@ -362,6 +362,6 @@ BpTreeNode *bptree_root(BpTxn *txn) {
 	return ret;
 }
 
-uint64_t bptree_node_id(BpTxn *txn, const BpTreeNode *node) {
+u64 bptree_node_id(BpTxn *txn, const BpTreeNode *node) {
 	return ((uint8_t *)node - (uint8_t *)txn->tree->base) / NODE_SIZE;
 }

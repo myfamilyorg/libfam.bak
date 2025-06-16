@@ -29,7 +29,7 @@
 #include <sys.H>
 #include <types.H>
 
-uint64_t strlen(const char *X) {
+u64 strlen(const char *X) {
 	const char *Y;
 	if (X == NULL) return 0;
 	Y = X;
@@ -64,7 +64,7 @@ int strcmp(const char *X, const char *Y) {
 	return 0;
 }
 
-int strcmpn(const char *X, const char *Y, uint64_t n) {
+int strcmpn(const char *X, const char *Y, u64 n) {
 	while (n > 0 && *X == *Y && *X != '\0' && *Y != '\0') {
 		X++;
 		Y++;
@@ -87,14 +87,14 @@ char *substr(const char *s, const char *sub) {
 	return NULL;
 }
 
-char *substrn(const char *s, const char *sub, uint64_t n) {
-	uint64_t i;
+char *substrn(const char *s, const char *sub, u64 n) {
+	u64 i;
 	if (s == NULL || sub == NULL || n == 0) return NULL;
 	if (*sub == '\0') return (char *)s;
 
 	for (i = 0; i < n && s[i]; i++) {
 		const char *tmps = s + i, *tmpsub = sub;
-		uint64_t j = i;
+		u64 j = i;
 		while (j < n && *tmps == *tmpsub && *tmps) {
 			tmps++;
 			tmpsub++;
@@ -113,9 +113,9 @@ char *strchr(const char *s, int c) {
 	return (*s == c) ? (char *)s : 0;
 }
 
-void *memset(void *dest, int c, uint64_t n) {
+void *memset(void *dest, int c, u64 n) {
 	uint8_t *s = (uint8_t *)dest;
-	uint64_t i;
+	u64 i;
 
 	if (dest == NULL || n == 0) {
 		return dest;
@@ -127,11 +127,11 @@ void *memset(void *dest, int c, uint64_t n) {
 	return dest;
 }
 
-int memcmp(const void *s1, const void *s2, uint64_t n) {
+int memcmp(const void *s1, const void *s2, u64 n) {
 	/* Cast pointers to unsigned char for byte-by-byte comparison */
 	const unsigned char *p1 = (const unsigned char *)s1;
 	const unsigned char *p2 = (const unsigned char *)s2;
-	uint64_t i;
+	u64 i;
 
 	/* Compare each byte */
 	for (i = 0; i < n; i++) {
@@ -145,10 +145,10 @@ int memcmp(const void *s1, const void *s2, uint64_t n) {
 	return 0;
 }
 
-void *memcpy(void *dest, const void *src, uint64_t n) {
+void *memcpy(void *dest, const void *src, u64 n) {
 	uint8_t *d = (uint8_t *)dest;
 	const uint8_t *s = (uint8_t *)src;
-	uint64_t i;
+	u64 i;
 
 	if (dest == NULL || src == NULL || n == 0) {
 		return dest;
@@ -160,10 +160,10 @@ void *memcpy(void *dest, const void *src, uint64_t n) {
 	return dest;
 }
 
-void *memorymove(void *dest, const void *src, uint64_t n) {
+void *memorymove(void *dest, const void *src, u64 n) {
 	uint8_t *d = (uint8_t *)dest;
 	const uint8_t *s = (uint8_t *)src;
-	uint64_t i;
+	u64 i;
 
 	if (dest == NULL || src == NULL || n == 0) {
 		return dest;
@@ -182,9 +182,9 @@ void *memorymove(void *dest, const void *src, uint64_t n) {
 	return dest;
 }
 
-void byteszero(void *s, uint64_t len) { memset(s, 0, len); }
+void byteszero(void *s, u64 len) { memset(s, 0, len); }
 
-uint64_t uint128_t_to_string(char *buf, uint128_t v) {
+u64 uint128_t_to_string(char *buf, uint128_t v) {
 	char temp[40];
 	int i = 0, j = 0;
 
@@ -206,8 +206,8 @@ uint64_t uint128_t_to_string(char *buf, uint128_t v) {
 	return j;
 }
 
-uint64_t int128_t_to_string(char *buf, int128_t v) {
-	uint64_t len;
+u64 int128_t_to_string(char *buf, int128_t v) {
+	u64 len;
 	const int128_t int128_min = INT128_MIN;
 	const uint128_t int128_min_abs = (uint128_t)0x8000000000000000UL << 64;
 
@@ -227,9 +227,9 @@ uint64_t int128_t_to_string(char *buf, int128_t v) {
 }
 
 /* Convert string to unsigned 128-bit integer */
-uint128_t string_to_uint128(const char *buf, uint64_t len) {
+uint128_t string_to_uint128(const char *buf, u64 len) {
 	uint128_t result;
-	uint64_t i;
+	u64 i;
 	char c;
 
 	/* Input validation */
@@ -273,8 +273,8 @@ uint128_t string_to_uint128(const char *buf, uint64_t len) {
 }
 
 /* Convert string to signed 128-bit integer using string_to_uint128 */
-int128_t string_to_int128(const char *buf, uint64_t len) {
-	uint64_t i;
+int128_t string_to_int128(const char *buf, u64 len) {
+	u64 i;
 	int sign;
 	uint128_t abs_value;
 	int128_t result;
@@ -328,13 +328,13 @@ int128_t string_to_int128(const char *buf, uint64_t len) {
 	return result;
 }
 
-uint64_t double_to_string(char *buf, double v, int max_decimals) {
+u64 double_to_string(char *buf, double v, int max_decimals) {
 	char temp[41];
-	uint64_t pos = 0;
-	uint64_t len;
+	u64 pos = 0;
+	u64 len;
 	int i;
 	int is_negative;
-	uint64_t int_part;
+	u64 int_part;
 	double frac_part;
 	int int_start;
 
@@ -396,7 +396,7 @@ uint64_t double_to_string(char *buf, double v, int max_decimals) {
 	if (max_decimals > 17) max_decimals = 17;
 
 	/* Integer part */
-	int_part = (uint64_t)v;
+	int_part = (u64)v;
 	frac_part = v - (double)int_part;
 	int_start = pos;
 
@@ -405,7 +405,7 @@ uint64_t double_to_string(char *buf, double v, int max_decimals) {
 		double rounding = 0.5;
 		for (i = 0; i < max_decimals; i++) rounding /= 10.0;
 		v += rounding;
-		int_part = (uint64_t)v;
+		int_part = (u64)v;
 		frac_part = v - (double)int_part;
 	}
 
@@ -424,7 +424,7 @@ uint64_t double_to_string(char *buf, double v, int max_decimals) {
 	/* Decimal point and fractional part */
 	if (frac_part > 0 && max_decimals > 0) {
 		int digits = 0;
-		uint64_t frac_start;
+		u64 frac_start;
 
 		buf[pos++] = '.';
 		frac_start = pos;
@@ -452,9 +452,9 @@ uint64_t double_to_string(char *buf, double v, int max_decimals) {
 }
 
 uint128_t __umodti3(uint128_t a, uint128_t b) {
-	uint64_t b_lo;
-	uint64_t a_hi;
-	uint64_t a_lo;
+	u64 b_lo;
+	u64 a_hi;
+	u64 a_lo;
 	uint128_t remainder;
 	int shift;
 
@@ -470,12 +470,12 @@ uint128_t __umodti3(uint128_t a, uint128_t b) {
 
 	/* If b fits in 64 bits, optimize */
 	if ((b >> 64) == 0) {
-		b_lo = (uint64_t)b;
+		b_lo = (u64)b;
 		if (b_lo == 0) {
 			__builtin_trap();
 		}
-		a_hi = (uint64_t)(a >> 64);
-		a_lo = (uint64_t)a;
+		a_hi = (u64)(a >> 64);
+		a_lo = (u64)a;
 
 		if (a_hi == 0) {
 			return (uint128_t)(a_lo % b_lo);
@@ -516,9 +516,9 @@ uint128_t __umodti3(uint128_t a, uint128_t b) {
 }
 
 uint128_t __udivti3(uint128_t a, uint128_t b) {
-	uint64_t b_lo;
-	uint64_t a_hi;
-	uint64_t a_lo;
+	u64 b_lo;
+	u64 a_hi;
+	u64 a_lo;
 	uint128_t quotient;
 	uint128_t remainder;
 	int shift;
@@ -535,12 +535,12 @@ uint128_t __udivti3(uint128_t a, uint128_t b) {
 
 	/* If b fits in 64 bits, optimize */
 	if ((b >> 64) == 0) {
-		b_lo = (uint64_t)b;
+		b_lo = (u64)b;
 		if (b_lo == 0) {
 			__builtin_trap();
 		}
-		a_hi = (uint64_t)(a >> 64);
-		a_lo = (uint64_t)a;
+		a_hi = (u64)(a >> 64);
+		a_lo = (u64)a;
 
 		if (a_hi == 0) {
 			return (uint128_t)(a_lo / b_lo);
@@ -583,10 +583,10 @@ uint128_t __udivti3(uint128_t a, uint128_t b) {
 }
 int printf(const char *, ...);
 /* Base64 encode */
-uint64_t b64_encode(const uint8_t *in, uint64_t in_len, uint8_t *out,
-		  uint64_t out_max) {
-	uint64_t i;
-	uint64_t j;
+u64 b64_encode(const uint8_t *in, u64 in_len, uint8_t *out,
+		  u64 out_max) {
+	u64 i;
+	u64 j;
 	static const char *b64_table =
 	    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -630,10 +630,10 @@ uint64_t b64_encode(const uint8_t *in, uint64_t in_len, uint8_t *out,
 }
 
 /* Base64 decode */
-uint64_t b64_decode(const uint8_t *in, uint64_t in_len, uint8_t *out,
-		  uint64_t out_max) {
-	uint64_t i;
-	uint64_t j;
+u64 b64_decode(const uint8_t *in, u64 in_len, uint8_t *out,
+		  u64 out_max) {
+	u64 i;
+	u64 j;
 	int b0;
 	int b1;
 	int b2;
@@ -662,7 +662,7 @@ uint64_t b64_decode(const uint8_t *in, uint64_t in_len, uint8_t *out,
 
 	/* Account for padding in output size */
 	{
-		uint64_t expected_out = (in_len / 4) * 3;
+		u64 expected_out = (in_len / 4) * 3;
 		if (in_len >= 4 && in[in_len - 1] == '=') out_max++;
 		if (in_len >= 4 && in[in_len - 2] == '=') out_max++;
 		if (out_max < expected_out) {

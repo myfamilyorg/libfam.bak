@@ -28,27 +28,27 @@
 
 #include <types.H>
 
-uint64_t strlen(const char *S);
+u64 strlen(const char *S);
 char *strcpy(char *dest, const char *src);
 char *strcat(char *dest, const char *src);
 int strcmp(const char *s1, const char *s2);
-int strcmpn(const char *s1, const char *s2, uint64_t n);
+int strcmpn(const char *s1, const char *s2, u64 n);
 char *substr(const char *s, const char *sub);
-char *substrn(const char *s, const char *sub, uint64_t n);
+char *substrn(const char *s, const char *sub, u64 n);
 char *strchr(const char *s, int c);
-void *memset(void *ptr, int x, uint64_t n);
-void *memcpy(void *dst, const void *src, uint64_t n);
-int memcmp(const void *s1, const void *s2, uint64_t n);
-void *memorymove(void *dst, const void *src, uint64_t n);
-void byteszero(void *dst, uint64_t n);
-uint64_t uint128_t_to_string(char *buf, uint128_t v);
-uint64_t int128_t_to_string(char *buf, int128_t v);
-uint64_t double_to_string(char *buf, double v, int max_decimals);
-uint64_t b64_encode(const uint8_t *in, uint64_t in_len, uint8_t *out,
-		  uint64_t out_max);
-uint64_t b64_decode(const uint8_t *in, uint64_t in_len, uint8_t *out,
-		  uint64_t out_max);
-uint128_t string_to_uint128(const char *buf, uint64_t len);
-int128_t string_to_int128(const char *buf, uint64_t len);
+void *memset(void *ptr, int x, u64 n);
+void *memcpy(void *dst, const void *src, u64 n);
+int memcmp(const void *s1, const void *s2, u64 n);
+void *memorymove(void *dst, const void *src, u64 n);
+void byteszero(void *dst, u64 n);
+u64 uint128_t_to_string(char *buf, uint128_t v);
+u64 int128_t_to_string(char *buf, int128_t v);
+u64 double_to_string(char *buf, double v, int max_decimals);
+u64 b64_encode(const uint8_t *in, u64 in_len, uint8_t *out,
+		  u64 out_max);
+u64 b64_decode(const uint8_t *in, u64 in_len, uint8_t *out,
+		  u64 out_max);
+uint128_t string_to_uint128(const char *buf, u64 len);
+int128_t string_to_int128(const char *buf, u64 len);
 
 #endif /* _MISC_H */

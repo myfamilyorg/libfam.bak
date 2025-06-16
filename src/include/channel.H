@@ -35,8 +35,8 @@ typedef struct {
 } Channel;
 
 void channel_destroy(Channel *channel);
-Channel channel(uint64_t element_size);
-Channel channel2(uint64_t element_size, uint64_t capacity);
+Channel channel(u64 element_size);
+Channel channel2(u64 element_size, u64 capacity);
 bool channel_ok(Channel *channel);
 void recv(Channel *channel, void *dst);
 int recv_now(Channel *channel, void *dst);

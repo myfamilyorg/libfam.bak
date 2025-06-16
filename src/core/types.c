@@ -45,13 +45,13 @@ STATIC_ASSERT(sizeof(uint8_t) == 1, u8_sizes_match);
 STATIC_ASSERT(sizeof(int8_t) == 1, i8_sizes_match);
 STATIC_ASSERT(sizeof(uint16_t) == 2, u16_sizes_match);
 STATIC_ASSERT(sizeof(int16_t) == 2, i16_sizes_match);
-STATIC_ASSERT(sizeof(uint32_t) == 4, u32_sizes_match);
-STATIC_ASSERT(sizeof(int32_t) == 4, i32_sizes_match);
-STATIC_ASSERT(sizeof(uint64_t) == 8, u64_sizes_match);
-STATIC_ASSERT(sizeof(int64_t) == 8, i64_sizes_match);
+STATIC_ASSERT(sizeof(u32) == 4, u32_sizes_match);
+STATIC_ASSERT(sizeof(i32) == 4, i32_sizes_match);
+STATIC_ASSERT(sizeof(u64) == 8, u64_sizes_match);
+STATIC_ASSERT(sizeof(i64) == 8, i64_sizes_match);
 STATIC_ASSERT(sizeof(uint128_t) == 16, u128_sizes_match);
 STATIC_ASSERT(sizeof(int128_t) == 16, i128_sizes_match);
-STATIC_ASSERT(sizeof(int64_t) == 8, ssize_sizes_match);
-STATIC_ASSERT(sizeof(uint64_t) == 8, size_sizes_match);
+STATIC_ASSERT(sizeof(i64) == 8, ssize_sizes_match);
+STATIC_ASSERT(sizeof(u64) == 8, size_sizes_match);
 
 static __attribute__((constructor)) void check_sizes(void) { CheckEndian(); }

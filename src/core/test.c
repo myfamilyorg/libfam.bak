@@ -39,8 +39,8 @@ typedef struct {
 	int value3;
 	int value4;
 	int value5;
-	uint32_t uvalue1;
-	uint32_t uvalue2;
+	u32 uvalue1;
+	u32 uvalue2;
 } SharedStateData;
 
 Test(env) {
@@ -76,7 +76,7 @@ Test(futex1) {
 	void *base = smap(sizeof(SharedStateData));
 	int cpid;
 	SharedStateData *state = (SharedStateData *)base;
-	state->uvalue1 = (uint32_t)0;
+	state->uvalue1 = (u32)0;
 	if ((cpid = two())) {
 		while (state->uvalue1 == 0) {
 			futex(&state->uvalue1, FUTEX_WAIT, 0, NULL, NULL, 0);
@@ -93,9 +93,9 @@ Test(futex1) {
 	munmap(base, sizeof(SharedStateData));
 }
 
-uint32_t tfunv1 = 0;
-uint32_t tfunv2 = 0;
-uint32_t tfunv3 = 0;
+u32 tfunv1 = 0;
+u32 tfunv2 = 0;
+u32 tfunv3 = 0;
 
 void tfun1(void) { __add32(&tfunv1, 1); }
 
@@ -247,8 +247,8 @@ Test(resize) {
 }
 
 Test(atomic) {
-	uint32_t x = 2, a = 0, b = 1;
-	uint64_t y = 2;
+	u32 x = 2, a = 0, b = 1;
+	u64 y = 2;
 
 	__or32(&x, 1);
 	ASSERT_EQ(x, 3, "or32");
@@ -429,7 +429,7 @@ Test(umodti3) {
 
 Test(double_to_string) {
 	char buf[64]; /* Ensure sufficient size */
-	uint64_t len;
+	u64 len;
 
 	/* NaN (lines 310–316) */
 	len = double_to_string(buf, 0.0 / 0.0, 6);
@@ -928,7 +928,7 @@ Test(b642) {
 	uint8_t buf[128];
 	uint8_t buf2[128];
 	uint8_t buf3[128];
-	uint64_t len, len2;
+	u64 len, len2;
 
 	/* Test 1: Normal case (10 bytes, exercises main loop) */
 	memcpy(buf, "0123456789", 10);
@@ -1070,7 +1070,7 @@ Test(map_err) {
 	void *v;
 	err = 0;
 	v = mmap(buf, 100, PROT_READ | PROT_WRITE, MAP_SHARED, -1, 0);
-	ASSERT((int64_t)v == -1, "mmap err");
+	ASSERT((i64)v == -1, "mmap err");
 	ASSERT_EQ(err, EBADF, "ebadf");
 	v = map(PAGE_SIZE);
 	ASSERT(v, "v != null");

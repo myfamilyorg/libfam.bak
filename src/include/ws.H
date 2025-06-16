@@ -28,7 +28,7 @@
 
 typedef struct {
 	uint8_t *buffer;
-	uint64_t len;
+	u64 len;
 } WsMessage;
 
 typedef struct {
@@ -51,7 +51,7 @@ Ws *ws_init(WsConfig *config, OnMessage on_message, OnOpen on_open,
 int ws_start(Ws *ws);
 int ws_stop(Ws *ws);
 
-uint64_t ws_connection_id(WsConnection *connection);
+u64 ws_connection_id(WsConnection *connection);
 WsConnection *ws_connect(Ws *ws, const char *url);
 int ws_connection_close(WsConnection *conn, int code, const char *reason);
 const char *ws_connection_uri(WsConnection *conn);

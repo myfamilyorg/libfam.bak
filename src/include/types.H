@@ -32,14 +32,14 @@
 
 typedef signed char int8_t;
 typedef short int int16_t;
-typedef int int32_t;
-typedef long int64_t;
+typedef int i32;
+typedef long i64;
 typedef __int128_t int128_t;
 
 typedef unsigned char uint8_t;
 typedef unsigned short int uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long uint64_t;
+typedef unsigned int u32;
+typedef unsigned long u64;
 typedef __uint128_t uint128_t;
 
 #ifndef bool
@@ -59,12 +59,12 @@ typedef __uint128_t uint128_t;
 typedef union epoll_data {
 	void *ptr;
 	int fd;
-	uint32_t u32;
-	uint64_t u64;
+	u32 u32;
+	u64 u64;
 } epoll_data_t;
 
 struct epoll_event {
-	uint32_t events;
+	u32 events;
 	epoll_data_t data;
 }
 #ifdef __amd64__
@@ -73,23 +73,23 @@ __attribute__((packed))
 ;
 
 struct clone_args {
-	uint64_t flags;
-	uint64_t pidfd;
-	uint64_t child_tid;
-	uint64_t parent_tid;
-	uint64_t exit_signal;
-	uint64_t stack;
-	uint64_t stack_size;
-	uint64_t tls;
-	uint64_t set_tid;
-	uint64_t set_tid_size;
+	u64 flags;
+	u64 pidfd;
+	u64 child_tid;
+	u64 parent_tid;
+	u64 exit_signal;
+	u64 stack;
+	u64 stack_size;
+	u64 tls;
+	u64 set_tid;
+	u64 set_tid_size;
 };
 
 struct rt_sigaction {
 	void (*k_sa_handler)(int);
-	uint64_t k_sa_flags;
+	u64 k_sa_flags;
 	void (*k_sa_restorer)(void);
-	uint64_t k_sa_mask;
+	u64 k_sa_mask;
 };
 
 struct sockaddr {
@@ -104,18 +104,18 @@ struct sockaddr_un {
 	char sun_path[108];
 };
 
-typedef uint32_t socklen_t;
+typedef u32 socklen_t;
 
 struct sockaddr_in {
         unsigned short sin_family;
         unsigned short sin_port;
-        uint32_t sin_addr;
+        u32 sin_addr;
         unsigned char sin_zero[8];
 };
 
 struct timespec {
-	uint64_t tv_sec;
-	uint64_t tv_nsec;
+	u64 tv_sec;
+	u64 tv_nsec;
 };
 
 struct timezone {
@@ -124,8 +124,8 @@ struct timezone {
 };
 
 struct timeval {
-	uint64_t tv_sec;
-	uint64_t tv_usec;
+	u64 tv_sec;
+	u64 tv_usec;
 };
 
 struct itimerval {
@@ -141,7 +141,7 @@ typedef struct {
 } siginfo_t;
 
 typedef struct {
-	uint64_t bits[_NSIG / (8 * sizeof(uint64_t))];
+	u64 bits[_NSIG / (8 * sizeof(u64))];
 } sigset_t;
 
 #endif /* _TYPES_H__ */

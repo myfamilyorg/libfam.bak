@@ -28,9 +28,9 @@
 #include <misc.H>
 #include <syscall.H>
 
-static void reverse(char* str, uint64_t len) {
-	uint64_t i;
-	uint64_t j;
+static void reverse(char* str, u64 len) {
+	u64 i;
+	u64 j;
 	char tmp;
 
 	for (i = 0, j = len - 1; i < j; i++, j--) {
@@ -40,10 +40,10 @@ static void reverse(char* str, uint64_t len) {
 	}
 }
 
-static uint64_t uint_to_str(uint64_t num, char* buf, int base, int upper) {
+static u64 uint_to_str(u64 num, char* buf, int base, int upper) {
 	const char* digits;
-	uint64_t i;
-	uint64_t temp;
+	u64 i;
+	u64 temp;
 
 	digits = upper ? "0123456789ABCDEF" : "0123456789abcdef";
 	i = 0;
@@ -58,9 +58,9 @@ static uint64_t uint_to_str(uint64_t num, char* buf, int base, int upper) {
 	return i;
 }
 
-static uint64_t int_to_str(int64_t num, char* buf, int base, int upper) {
-	uint64_t i;
-	int64_t temp;
+static u64 int_to_str(i64 num, char* buf, int base, int upper) {
+	u64 i;
+	i64 temp;
 
 	i = 0;
 	temp = num;
@@ -70,18 +70,18 @@ static uint64_t int_to_str(int64_t num, char* buf, int base, int upper) {
 		temp = -temp;
 	}
 
-	return i + uint_to_str((uint64_t)temp, buf + i, base, upper);
+	return i + uint_to_str((u64)temp, buf + i, base, upper);
 }
-static int vsnprintf(char* str, uint64_t size, const char* format,
+static int vsnprintf(char* str, u64 size, const char* format,
 		     __builtin_va_list ap) {
 	const char* fmt;
-	uint64_t pos;
-	uint64_t len;
+	u64 pos;
+	u64 len;
 	char buf[1024];
-	uint64_t i;
-	uint64_t j;
+	u64 i;
+	u64 j;
 	int val;
-	uint32_t uval;
+	u32 uval;
 	double dval;
 	const char* s;
 	char c;
@@ -109,7 +109,7 @@ static int vsnprintf(char* str, uint64_t size, const char* format,
 		switch (*fmt) {
 			case 'd':
 			case 'i':
-				val = __builtin_va_arg(ap, int64_t);
+				val = __builtin_va_arg(ap, i64);
 				j = int_to_str(val, buf, 10, 0);
 				len += j;
 				for (i = 0; i < j && str && pos < size; i++) {
@@ -125,7 +125,7 @@ static int vsnprintf(char* str, uint64_t size, const char* format,
 				}
 				break;
 			case 'u':
-				uval = __builtin_va_arg(ap, uint64_t);
+				uval = __builtin_va_arg(ap, u64);
 				j = uint_to_str(uval, buf, 10, 0);
 				len += j;
 				for (i = 0; i < j && str && pos < size; i++) {
@@ -134,7 +134,7 @@ static int vsnprintf(char* str, uint64_t size, const char* format,
 				break;
 
 			case 'x':
-				uval = __builtin_va_arg(ap, uint64_t);
+				uval = __builtin_va_arg(ap, u64);
 				j = uint_to_str(uval, buf, 16, 0);
 				len += j;
 				for (i = 0; i < j && str && pos < size; i++) {
@@ -143,7 +143,7 @@ static int vsnprintf(char* str, uint64_t size, const char* format,
 				break;
 
 			case 'X':
-				uval = __builtin_va_arg(ap, uint64_t);
+				uval = __builtin_va_arg(ap, u64);
 				j = uint_to_str(uval, buf, 16, 1);
 				len += j;
 				for (i = 0; i < j && str && pos < size; i++) {
@@ -200,7 +200,7 @@ static int vsnprintf(char* str, uint64_t size, const char* format,
 }
 
 /* snprintf implementation that takes variable arguments */
-int snprintf(char* str, uint64_t size, const char* format, ...) {
+int snprintf(char* str, u64 size, const char* format, ...) {
 	__builtin_va_list ap;
 	int len;
 

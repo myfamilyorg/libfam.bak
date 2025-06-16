@@ -32,13 +32,13 @@
 #ifndef PAGE_SIZE
 #define PAGE_SIZE (4 * 4096)
 #endif /* PAGE_SIZE */
-#define NODE_SIZE ((uint64_t)PAGE_SIZE)
+#define NODE_SIZE ((u64)PAGE_SIZE)
 #endif /* NODE_SIZE */
 
-#define MAX_LEAF_ENTRIES ((uint64_t)(NODE_SIZE / 32))
+#define MAX_LEAF_ENTRIES ((u64)(NODE_SIZE / 32))
 #define MAX_INTERNAL_ENTRIES (NODE_SIZE / 16)
 #define INTERNAL_ARRAY_SIZE ((28 * NODE_SIZE - 1024) / 32)
-#define LEAF_ARRAY_SIZE ((uint64_t)((30 * NODE_SIZE - 1280) / 32))
+#define LEAF_ARRAY_SIZE ((u64)((30 * NODE_SIZE - 1280) / 32))
 
 /* Main opaque pointers for tree and txn */
 typedef struct BpTree BpTree;
@@ -46,14 +46,14 @@ typedef struct BpTxn BpTxn;
 
 /* The result returned in a search, used by put/remove */
 typedef struct {
-	uint64_t node_id;
+	u64 node_id;
 	uint16_t key_index;
 	bool found;
 } BpTreeSearchResult;
 
 /* BpTree entry */
 typedef struct {
-	uint32_t value_len;
+	u32 value_len;
 	uint16_t key_len;
 	uint8_t flags;
 } BpTreeEntry;
@@ -61,7 +61,7 @@ typedef struct {
 /* BpTree Internal entry */
 typedef struct {
 	uint16_t key_len;
-	uint64_t node_id;
+	u64 node_id;
 } BpTreeInternalEntry;
 
 /* Data specific to an internal node */
@@ -72,16 +72,16 @@ typedef struct {
 
 /* Data specific to a leaf node */
 typedef struct {
-	uint64_t next_leaf;
+	u64 next_leaf;
 	uint16_t entry_offsets[MAX_LEAF_ENTRIES];
 	uint8_t entries[LEAF_ARRAY_SIZE];
 } BpTreeLeafNode;
 
 /* BpTree Node */
 typedef struct {
-	uint64_t node_id;
-	uint64_t parent_id;
-	uint64_t free_list_next;
+	u64 node_id;
+	u64 parent_id;
+	u64 free_list_next;
 	uint16_t num_entries;
 	uint16_t used_bytes;
 	bool is_internal;
@@ -107,14 +107,14 @@ int bptxn_abort(BpTxn *txn);
 
 /* Modification functions */
 int bptree_put(BpTxn *txn, const void *key, uint16_t key_len, const void *value,
-	       uint32_t value_len, const BpTreeSearch search);
+	       u32 value_len, const BpTreeSearch search);
 BpTreeEntry *bptree_remove(BpTxn *txn, const void *key, uint16_t key_len,
-			   const void *value, uint64_t value_len,
+			   const void *value, u64 value_len,
 			   const BpTreeSearch search);
 
 /* Helpers needed for search */
-BpTreeNode *bptxn_get_node(BpTxn *txn, uint64_t node_id);
+BpTreeNode *bptxn_get_node(BpTxn *txn, u64 node_id);
 BpTreeNode *bptree_root(BpTxn *txn);
-uint64_t bptree_node_id(BpTxn *txn, const BpTreeNode *node);
+u64 bptree_node_id(BpTxn *txn, const BpTreeNode *node);
 
 #endif /* _BPTREE_H */
