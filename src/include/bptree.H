@@ -2,14 +2,14 @@
  * MIT License
  *
  * Copyright (c) 2025 Christopher Gilliard
- *
+ *      
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ *              
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  *
@@ -40,6 +40,8 @@
 #define INTERNAL_ARRAY_SIZE ((28 * NODE_SIZE - 1024) / 32)
 #define LEAF_ARRAY_SIZE ((u64)((30 * NODE_SIZE - 1280) / 32))
 
+#define MAX_LEVELS 16
+
 /* Main opaque pointers for tree and txn */
 typedef struct BpTree BpTree;
 typedef struct BpTxn BpTxn;
@@ -47,6 +49,8 @@ typedef struct BpTxn BpTxn;
 /* The result returned in a search, used by put/remove */
 typedef struct {
         u64 node_id;
+	u16 parent_index[MAX_LEVELS];
+	u8 levels;
         u16 key_index;
         bool found;
 } BpTreeSearchResult;
@@ -67,7 +71,7 @@ typedef struct {
 /* Data specific to an internal node */
 typedef struct {
         u16 entry_offsets[MAX_INTERNAL_ENTRIES];
-        u8 key_entries[INTERNAL_ARRAY_SIZE];
+        u8 entries[INTERNAL_ARRAY_SIZE];
 } BpTreeInternalNode;
 
 /* Data specific to a leaf node */
@@ -80,12 +84,12 @@ typedef struct {
 
 /* BpTree Node */
 typedef struct {
-	u64 parent_id;
+        u64 parent_id;
         u16 num_entries;
         u16 used_bytes;
-	bool is_internal;
-	bool is_copy;
-	u8 reserved[18];
+        bool is_internal;
+        bool is_copy;
+        u8 reserved[18];
         union {
                 BpTreeInternalNode internal;
                 BpTreeLeafNode leaf;
