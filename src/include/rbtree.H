@@ -46,6 +46,12 @@ typedef struct {
 
 static const RbTree INIT_RBTREE = {NULL};
 
+static __attribute__((unused)) void rbtree_init_node(RbTreeNode *value) {
+        value->parent_color = value->right = value->left = NULL;
+}
+
+
+
 typedef i32 (*RbTreeSearch)(RbTreeNode *base, const RbTreeNode *value,
 			    RbTreeNodePair *retval);
 

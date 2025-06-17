@@ -78,13 +78,13 @@ extern TestEntry tests[];
 	do {                                                            \
 		u64 _b__ = get_allocated_bytes();                    \
 		if (_b__ != (v))                                        \
-			printf("expected b=%ld. found b=%ld", v, _b__); \
+			printf("expected b=%i. found b=%i", v, _b__); \
 		ASSERT_EQ(_b__, (v), "ASSERT_BYTES");                   \
 	} while (false);
 #define ASSERT_NOT_BYTES_0()                                             \
 	do {                                                             \
 		u64 _b__ = get_allocated_bytes();                     \
-		if (!_b__) printf("expected b!=0, found b=%ld\n", _b__); \
+		if (!_b__) printf("expected b!=0, found b=%i\n", _b__); \
 		ASSERT(_b__, "ASSERT_NOT_BYTES_0");                      \
 	} while (false);
 #else

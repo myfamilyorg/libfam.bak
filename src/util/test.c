@@ -594,7 +594,7 @@ Test(rbtree2) {
 Test(rbtree3) {
 	Rng rng;
 	RbTree tree = INIT_RBTREE;
-	TestRbTreeNode values[STRESS_SIZE];
+	TestRbTreeNode values[STRESS_SIZE] = {0};
 	bool exists[STRESS_SIZE] = {0};
 	u64 i, op;
 

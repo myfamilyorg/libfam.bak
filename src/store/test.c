@@ -29,12 +29,95 @@
 #include <rng.H>
 #include <test.H>
 
+void __attribute__((unused)) print_node(BpTxn *txn, const BpTreeNode *node,
+					u8 *prefix) {
+	u64 node_id = bptree_node_id(txn, node);
+	if (node->is_internal) {
+		u16 i;
+		printf(
+		    "%s\tInternal "
+		    "num_entries=%i,used_bytes=%i,parent=%i,is_copy=%i,node_id="
+		    "%i\n",
+		    prefix, node->num_entries, node->used_bytes,
+		    node->parent_id, node->is_copy, node_id);
+		for (i = 0; i < node->num_entries; i++) {
+			char tmp[NODE_SIZE];
+			u16 offset = node->data.internal.entry_offsets[i];
+			BpTreeInternalEntry *entry =
+			    (BpTreeInternalEntry *)((u8 *)node->data.internal
+							.key_entries +
+						    offset);
+
+			memcpy(tmp,
+			       node->data.internal.key_entries + offset +
+				   sizeof(BpTreeInternalEntry),
+			       entry->key_len);
+			tmp[entry->key_len] = 0;
+			printf("%s\t\tkey[%u(len=%u,off=%u)]='%s',node_id=%u\n",
+			       prefix, i, entry->key_len, offset, tmp,
+			       entry->node_id);
+		}
+		for (i = 0; i < node->num_entries; i++) {
+			u16 offset = node->data.internal.entry_offsets[i];
+			BpTreeInternalEntry *entry =
+			    (BpTreeInternalEntry *)((u8 *)node->data.internal
+							.key_entries +
+						    offset);
+
+			BpTreeNode *next = bptxn_get_node(txn, entry->node_id);
+			printf("\n");
+			print_node(txn, next, "\t");
+		}
+	} else {
+		int i;
+		printf(
+		    "%s\tLeaf "
+		    "num_entries=%i,used_bytes=%i,parent=%i,is_copy=%i,node_id="
+		    "%i\n",
+		    prefix, node->num_entries, node->used_bytes,
+		    node->parent_id, node->is_copy, node_id);
+		for (i = 0; i < node->num_entries; i++) {
+			char tmp[NODE_SIZE];
+			u16 offset = node->data.leaf.entry_offsets[i];
+			BpTreeEntry *entry =
+			    (BpTreeEntry *)((u8 *)node->data.leaf.entries +
+					    offset);
+
+			memcpy(tmp,
+			       node->data.leaf.entries + offset +
+				   sizeof(BpTreeEntry),
+			       entry->key_len);
+			tmp[entry->key_len] = 0;
+			printf(
+			    "%s\t\tkey[%u(len=%u,off=%u)]='%s',value_len=%"
+			    "u\n",
+			    prefix, i, entry->key_len, offset, tmp,
+			    entry->value_len);
+		}
+	}
+}
+
+void __attribute__((unused)) print_tree(BpTxn *txn) {
+	BpTreeNode *root = bptree_root(txn);
+	printf(
+	    "------------------------------------------------------------------"
+	    "--------------------------\n");
+
+	printf("Printing tree\n");
+	printf(
+	    "------------------------------------------------------------------"
+	    "--------------------------\n");
+	print_node(txn, root, "");
+
+	printf(
+	    "------------------------------------------------------------------"
+	    "--------------------------\n");
+}
+
 void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 			const BpTreeNode *node, BpTreeSearchResult *retval) {
 	i32 i;
 	retval->found = false;
-
-	printf("node=%i\n", bptree_node_id(txn, node));
 
 	while (node->is_internal) {
 		u16 offset = node->data.internal.entry_offsets[1];
@@ -47,24 +130,16 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 		u16 len = key_len > entry->key_len ? entry->key_len : key_len;
 		i32 v = strcmpn(key, cmp_key, len);
 
-		printf("offset=%u,v=%i\n", offset, v);
 		if (v >= 0) {
 			node = bptxn_get_node(txn, entry->node_id);
 		} else {
-			printf("1\n");
 			entry =
 			    (BpTreeInternalEntry *)((u8 *)node->data.internal
 							.key_entries);
-			printf("2\n");
-
 			node = bptxn_get_node(txn, entry->node_id);
-			printf("3\n");
 		}
 		break;
 	}
-
-	printf("node used=%i,num=%i,used=%i\n", bptree_node_id(txn, node),
-	       node->num_entries, node->used_bytes);
 
 	for (i = 0; i < node->num_entries; i++) {
 		i32 v;
@@ -82,9 +157,6 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 			/*u64 offsetv = offset;*/
 			memcpy(tmp, cmp_key, entry->key_len);
 			tmp[entry->key_len] = 0;
-
-			printf("offset=%u ", offset);
-			printf("cmp_key='%s'\n", tmp);
 		}
 
 		if (v == 0 && key_len == entry->key_len) {
@@ -98,6 +170,63 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 
 	retval->node_id = bptree_node_id(txn, node);
 	retval->key_index = i;
+}
+
+Test(simple_split) {
+	const u8 *path = "/tmp/store1.dat";
+	i32 fd, i, v;
+	BpTree *tree;
+	BpTxn *txn;
+	u8 key1[16384], key2[16384], key3[16384], key4[16384], key5[16384];
+	u8 value1[16384], value2[16384], value3[16384], value4[16384],
+	    value5[16384];
+
+	unlink(path);
+	fd = file(path);
+
+	fresize(fd, PAGE_SIZE * 16);
+	close(fd);
+	tree = bptree_open(path);
+	ASSERT(tree, "tree");
+	txn = bptxn_start(tree);
+	ASSERT(txn, "txn");
+
+	for (i = 0; i < 16384; i++) {
+		key1[i] = value1[i] = 'a';
+		key2[i] = value2[i] = 'b';
+		key3[i] = value3[i] = 'c';
+		key4[i] = value4[i] = 'd';
+		key5[i] = value5[i] = 'e';
+	}
+
+	/*print_tree(txn);*/
+	v = bptree_put(txn, key1, 16, value1, 13000, test_bptree_search);
+	/*print_tree(txn);*/
+	ASSERT_EQ(v, 0, "v=0");
+	v = bptree_put(txn, key2, 16, value2, 512, test_bptree_search);
+	/*print_tree(txn);*/
+	ASSERT_EQ(v, 0, "v=0");
+	v = bptree_put(txn, key3, 16, value3, 100, test_bptree_search);
+	/* print_tree(txn);*/
+	ASSERT_EQ(v, 0, "v=0");
+	v = bptree_put(txn, key4, 16, value4, 5000, test_bptree_search);
+	ASSERT_EQ(v, 0, "v=0");
+	/* print_tree(txn);*/
+
+	v = bptree_put(txn, key5, 16, value5, 12, test_bptree_search);
+	ASSERT_EQ(v, 0, "v=0");
+	/* print_tree(txn);*/
+
+	key1[1] = 'b';
+	v = bptree_put(txn, key1, 16, value1, 12, test_bptree_search);
+	ASSERT_EQ(v, 0, "v=0");
+	/* print_tree(txn);*/
+
+	bptxn_abort(txn);
+	bptree_close(tree);
+	release(tree);
+	release(txn);
+	unlink(path);
 }
 
 /*

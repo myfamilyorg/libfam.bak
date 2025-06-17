@@ -116,7 +116,7 @@ i32 main(i32 argc __attribute__((unused)), u8 **argv __attribute__((unused)),
 
 	printf(
 	    "------------------------------------------------------------------"
-	    "--------------\n");
+	    "--------------------------\n");
 
 	total = micros();
 
@@ -139,7 +139,7 @@ i32 main(i32 argc __attribute__((unused)), u8 **argv __attribute__((unused)),
 
 	printf(
 	    "------------------------------------------------------------------"
-	    "--------------\n");
+	    "--------------------------\n");
 	printf("%sSuccess%s! %d %stests passed!%s %s[%f ms]%s\n", GREEN, RESET,
 	       test_count, CYAN, RESET, GREEN, ms, RESET);
 

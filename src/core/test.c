@@ -861,6 +861,7 @@ Test(errors) {
 Test(snprintf) {
 	u8 buf[1024];
 	i32 len = snprintf(NULL, 0, "test%i", 1);
+	u16 vu16;
 	ASSERT_EQ(len, 5, "len=5");
 	ASSERT_EQ(snprintf(buf, sizeof(buf), "%i%s%s 3%d", 1, "xyz", "ghi", 4),
 		  10, "len=10");
@@ -895,6 +896,12 @@ Test(snprintf) {
 	len = snprintf(buf, sizeof(buf), "%v");
 	ASSERT_EQ(len, 1, "len=2");
 	ASSERT_EQ(buf[0], 'v', "buf[0]=v");
+
+	vu16 = 10;
+	len = snprintf(buf, sizeof(buf), "%u %s", vu16, "test");
+	buf[len] = 0;
+	ASSERT_EQ(len, 7, "len=7");
+	ASSERT(!strcmp(buf, "10 test"), "10 test");
 }
 
 Test(b64) {
@@ -919,8 +926,7 @@ Test(b64) {
 }
 
 /* Helper function to compare encoded output with expected string */
-static void assert_b64_eq(const u8 *out, const u8 *expected,
-			  const u8 *msg) {
+static void assert_b64_eq(const u8 *out, const u8 *expected, const u8 *msg) {
 	ASSERT(!strcmp((const u8 *)out, expected), msg);
 }
 

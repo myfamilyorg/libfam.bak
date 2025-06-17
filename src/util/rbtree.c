@@ -3,26 +3,23 @@
 
 #define RED 1
 #define BLACK 0
-#define SET_NODE(node, color, parent, rightv, leftv)                           \
-	do {                                                                   \
+#define SET_NODE(node, color, parent, rightv, leftv)                      \
+	do {                                                              \
 		node->parent_color = (RbTreeNode *)((u64)parent | color); \
-		node->right = rightv;                                          \
-		node->left = leftv;                                            \
+		node->right = rightv;                                     \
+		node->left = leftv;                                       \
 	} while (0)
 #define IS_RED(node) (node && ((u64)node->parent_color & 0x1))
 #define IS_BLACK(node) !IS_RED(node)
-#define SET_BLACK(node)       \
-	(node->parent_color = \
-	     (RbTreeNode *)((u64)node->parent_color & ~RED))
-#define SET_RED(node)         \
-	(node->parent_color = \
-	     (RbTreeNode *)((u64)node->parent_color | RED))
+#define SET_BLACK(node) \
+	(node->parent_color = (RbTreeNode *)((u64)node->parent_color & ~RED))
+#define SET_RED(node) \
+	(node->parent_color = (RbTreeNode *)((u64)node->parent_color | RED))
 #define SET_RIGHT(node, rightv) node->right = rightv
 #define SET_LEFT(node, leftv) node->left = leftv
-#define SET_PARENT(node, parentv)               \
-	(node->parent_color =                   \
-	     (RbTreeNode *)((u64)parentv + \
-			    ((u64)node->parent_color & 0x1)))
+#define SET_PARENT(node, parentv) \
+	(node->parent_color =     \
+	     (RbTreeNode *)((u64)parentv + ((u64)node->parent_color & 0x1)))
 #define PARENT(node) ((RbTreeNode *)((u64)node->parent_color & ~0x1))
 #define RIGHT(node) node->right
 #define LEFT(node) node->left
@@ -312,3 +309,4 @@ RbTreeNode *rbtree_remove(RbTree *tree, RbTreeNode *value,
 	if (pair.self) rbtree_remove_impl(tree, &pair);
 	return pair.self;
 }
+
