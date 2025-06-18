@@ -292,14 +292,8 @@ Node *env_alloc(Env *env) {
 }
 
 void env_release(Env *env, Node *node) {
-	u64 bitmap_start;
-	u64 index;
-	u64 word_offset;
-	u64 bit_position;
-	u64 word;
-	u64 new_word;
-	u64 expected;
-	u64 *ptr;
+	u64 bitmap_start, index, word_offset, bit_position, word, new_word,
+	    expected, *ptr;
 
 	if (!env || !env->base || !node) panic("Invalid state!");
 
