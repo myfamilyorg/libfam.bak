@@ -117,7 +117,7 @@ void __attribute__((unused)) print_node(BpTxn *txn, const BpTreeNode *node,
 		    prefix, node->num_entries, node->used_bytes,
 		    node->parent_id, node->is_copy, node_id);
 		for (i = 0; i < node->num_entries; i++) {
-			char tmp[NODE_SIZE];
+			u8 tmp[NODE_SIZE];
 			u16 offset = node->data.internal.entry_offsets[i];
 			BpTreeInternalEntry *entry =
 			    (BpTreeInternalEntry
@@ -143,7 +143,7 @@ void __attribute__((unused)) print_node(BpTxn *txn, const BpTreeNode *node,
 			print_node(txn, next, "\t");
 		}
 	} else {
-		int i;
+		i32 i;
 		printf(
 		    "%s\tLeaf "
 		    "num_entries=%i,used_bytes=%i,parent=%i,is_copy=%i,node_id="
@@ -151,7 +151,7 @@ void __attribute__((unused)) print_node(BpTxn *txn, const BpTreeNode *node,
 		    prefix, node->num_entries, node->used_bytes,
 		    node->parent_id, node->is_copy, node_id);
 		for (i = 0; i < node->num_entries; i++) {
-			char tmp[NODE_SIZE];
+			u8 tmp[NODE_SIZE];
 			u16 offset = node->data.leaf.entry_offsets[i];
 			BpTreeEntry *entry =
 			    (BpTreeEntry *)((u8 *)node->data.leaf.entries +

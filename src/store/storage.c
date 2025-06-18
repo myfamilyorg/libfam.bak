@@ -146,7 +146,7 @@ Env *env_open(const u8 *path) {
 	return ret;
 }
 
-i64 env_register_notification(Env *env, int wakeupfd) {
+i64 env_register_notification(Env *env, i32 wakeupfd) {
 	i64 ret = ALOAD(&env->counter_pre), res;
 	if ((res = send(&env->channel, &wakeupfd) < 0)) return res;
 	return ret;

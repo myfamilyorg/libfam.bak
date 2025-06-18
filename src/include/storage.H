@@ -46,7 +46,7 @@ i32 env_close(Env *);
 
 Node *env_alloc(Env *);
 void env_release(Env *, Node *);
-i64 env_register_notification(Env *, int wakeupfd);
+i64 env_register_notification(Env *, i32 wakeupfd);
 i64 env_counter(Env *);
 i32 env_set_root(Env *, u64 root);
 u64 env_root(Env *);
