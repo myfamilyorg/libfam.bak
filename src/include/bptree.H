@@ -33,7 +33,7 @@
 #define PAGE_SIZE (4 * 4096)
 #endif /* PAGE_SIZE */
 #define NODE_SIZE ((u64)PAGE_SIZE)
-#endif /* NODE_SIZE */
+#endif /* NODE_SIZE */     
 
 #define MAX_LEAF_ENTRIES ((u64)(NODE_SIZE / 32))
 #define MAX_INTERNAL_ENTRIES (NODE_SIZE / 16)
@@ -42,15 +42,16 @@
 
 #define MAX_LEVELS 16
 
-/* Main opaque pointers for tree and txn */
+#include <storage.H>
+
 typedef struct BpTree BpTree;
 typedef struct BpTxn BpTxn;
 
 /* The result returned in a search, used by put/remove */
 typedef struct {
         u64 node_id;
-	u16 parent_index[MAX_LEVELS];
-	u8 levels;
+        u16 parent_index[MAX_LEVELS];
+        u8 levels;
         u16 key_index;
         bool found;
 } BpTreeSearchResult;
@@ -81,15 +82,20 @@ typedef struct {
         u8 entries[LEAF_ARRAY_SIZE];
 } BpTreeLeafNode;
 
+typedef struct {
+        u64 next_bptxn_id;
+        /* Reserved potentiallly for suffix tree / other data */
+} MetaData;
 
 /* BpTree Node */
 typedef struct {
+	MetaData *meta;
         u64 parent_id;
         u16 num_entries;
         u16 used_bytes;
         bool is_internal;
         bool is_copy;
-        u8 reserved[18];
+        u8 reserved[10];
         union {
                 BpTreeInternalNode internal;
                 BpTreeLeafNode leaf;
@@ -101,9 +107,8 @@ typedef void (*BpTreeSearch)(BpTxn *txn, const void *key, u16 key_len,
                              const BpTreeNode *node,
                              BpTreeSearchResult *retval);
 
-/* Opening/Closing */
-BpTree *bptree_open(const u8 *path);
-i32 bptree_close(BpTree *);
+/* Opening */
+BpTree *bptree_open(Env *env);
 
 /* Txn management */
 BpTxn *bptxn_start(BpTree *tree);

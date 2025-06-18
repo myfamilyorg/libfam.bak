@@ -44,11 +44,12 @@ typedef struct {
 Env *env_open(const u8 *path);
 i32 env_close(Env *);
 
-Node *env_alloc(Env *);
-void env_release(Env *, Node *);
+u64 env_alloc(Env *);
+void env_release(Env *, u64 );
 i64 env_register_notification(Env *, i32 wakeupfd);
 i64 env_counter(Env *);
 i32 env_set_root(Env *, u64 root);
 u64 env_root(Env *);
+void *env_base(Env *);
 
 #endif /* _STORAGE_H */

@@ -248,15 +248,14 @@ u64 env_root(Env *env) {
 	}
 }
 
-Node *env_alloc(Env *env) {
+u64 env_alloc(Env *env) {
 	u64 bitmap_start, bitmap_words, i, offset, word, bit_value, index,
 	    new_word;
-	Node *ret = NULL;
 	u64 *ptr;
 
 	if (!env || !env->base || env->capacity < 2 * NODE_SIZE) {
 		err = EINVAL;
-		return NULL;
+		return 0;
 	}
 
 	ptr = (u64 *)env->base;
@@ -278,28 +277,27 @@ Node *env_alloc(Env *env) {
 
 			new_word = word | (1UL << bit_value);
 			if (__cas64(&ptr[offset], &word, new_word)) {
-				ret = (Node *)((2 + env->bitmap_pages + index) *
-						   NODE_SIZE +
-					       (u8 *)env->base);
-				return ret;
+				return index + 2 + env->bitmap_pages;
 			}
 			word = ptr[offset];
 		}
 	}
 
 	err = ENOMEM;
-	return NULL;
+	return 0;
 }
 
-void env_release(Env *env, Node *node) {
-	u64 bitmap_start, index, word_offset, bit_position, word, new_word,
-	    expected, *ptr;
+void env_release(Env *env, u64 index) {
+	u64 bitmap_start, word_offset, bit_position, word, new_word, expected,
+	    *ptr;
 
-	if (!env || !env->base || !node) panic("Invalid state!");
+	if (index < 2 + env->bitmap_pages)
+		panic("Trying to free memory that was not allocated!");
 
-	index = ((u8 *)node - (u8 *)env->base -
-		 (2 + env->bitmap_pages) * NODE_SIZE) /
-		NODE_SIZE;
+	index -= 2 + env->bitmap_pages;
+
+	if (!env || !env->base) panic("Invalid state!");
+
 	if (index >= env->num_nodes)
 		panic("Trying to free memory that was not allocated!");
 
@@ -318,3 +316,5 @@ void env_release(Env *env, Node *node) {
 	if (!__cas64(&ptr[word_offset], &expected, new_word))
 		panic("Double free!");
 }
+
+void *env_base(Env *env) { return env->base; }

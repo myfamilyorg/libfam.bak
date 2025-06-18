@@ -37,7 +37,7 @@ Test(storage1) {
 	i32 fd;
 	i32 wakeups[2];
 	Env *e1;
-	Node *n;
+	u64 n;
 
 	unlink(path);
 	fd = file(path);
@@ -76,7 +76,7 @@ Test(storage1) {
 
 Test(storage2) {
 	const u8 *path = "/tmp/storage2.dat";
-	Node *ptrs[ITT];
+	u64 ptrs[ITT];
 	i32 fd, i;
 	Env *e1;
 
@@ -257,18 +257,23 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 Test(simple_split) {
 	const u8 *path = "/tmp/store1.dat";
 	i32 fd, i, v;
+
 	BpTree *tree;
 	BpTxn *txn;
+
 	u8 key1[16384], key2[16384], key3[16384], key4[16384], key5[16384];
 	u8 value1[16384], value2[16384], value3[16384], value4[16384],
 	    value5[16384];
 
+	Env *env;
+
 	unlink(path);
 	fd = file(path);
-
-	fresize(fd, PAGE_SIZE * 16);
+	fresize(fd, NODE_SIZE * 128);
 	close(fd);
-	tree = bptree_open(path);
+	env = env_open(path);
+
+	tree = bptree_open(env);
 	ASSERT(tree, "tree");
 	txn = bptxn_start(tree);
 	ASSERT(txn, "txn");
@@ -281,7 +286,7 @@ Test(simple_split) {
 		key5[i] = value5[i] = 'e';
 	}
 
-	/*	print_tree(txn);*/
+	/*print_tree(txn);*/
 	v = bptree_put(txn, key1, 16, value1, 7600, test_bptree_search);
 	ASSERT_EQ(v, 0, "v=0");
 	/*print_tree(txn);*/
@@ -320,12 +325,12 @@ Test(simple_split) {
 	key1[1] = 'a';
 	v = bptree_put(txn, key1, 16, value1, 12, test_bptree_search);
 	ASSERT_EQ(v, -1, "v=-1");
-	/*print_tree(txn);*/
 
 	bptxn_abort(txn);
-	bptree_close(tree);
 	release(tree);
 	release(txn);
+	env_close(env);
+	release(env);
 	unlink(path);
 }
 
