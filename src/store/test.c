@@ -72,6 +72,39 @@ Test(storage1) {
 	unlink(path);
 }
 
+#define ITT 5
+
+Test(storage2) {
+	const u8 *path = "/tmp/storage2.dat";
+	Node *ptrs[ITT];
+	i32 fd, i;
+	Env *e1;
+
+	unlink(path);
+	fd = file(path);
+	fresize(fd, NODE_SIZE * 8);
+	close(fd);
+
+	e1 = env_open(path);
+	ASSERT_EQ(env_root(e1), 0, "root=0");
+	env_set_root(e1, 4);
+	ASSERT_EQ(env_root(e1), 4, "root=4");
+
+	for (i = 0; i < ITT; i++) {
+		ptrs[i] = env_alloc(e1);
+		ASSERT(ptrs[i], "ptrs");
+	}
+	ASSERT(!env_alloc(e1), "NULL");
+
+	for (i = 0; i < ITT; i++) {
+		env_release(e1, ptrs[i]);
+	}
+
+	env_close(e1);
+	release(e1);
+	unlink(path);
+}
+
 void __attribute__((unused)) print_node(BpTxn *txn, const BpTreeNode *node,
 					u8 *prefix) {
 	u64 node_id = bptree_node_id(txn, node);

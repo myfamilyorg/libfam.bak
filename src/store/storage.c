@@ -40,6 +40,9 @@
 struct Env {
 	u8 *base;
 	u64 capacity;
+	u64 num_nodes;
+	u64 bitmap_pages;
+	u64 bitmap_bytes;
 	u64 last_freed_word;
 	i32 fd;
 	u64 counter_pre;
@@ -88,7 +91,7 @@ STATIC void proc_sync(Env *ret, i32 fd) {
 Env *env_open(const u8 *path) {
 	Env *ret;
 	i32 fd = file(path), pid;
-	u64 capacity;
+	u64 capacity, num_nodes, bitmap_bytes, bitmap_pages;
 
 	if (fd < 0) return NULL;
 
@@ -97,6 +100,11 @@ Env *env_open(const u8 *path) {
 		close(fd);
 		return NULL;
 	}
+
+	num_nodes = (capacity - 2 * NODE_SIZE) / NODE_SIZE;
+	bitmap_bytes = (num_nodes + 7) / 8;
+	bitmap_pages = (bitmap_bytes + NODE_SIZE - 1) / NODE_SIZE;
+	num_nodes = (capacity - (2 + bitmap_pages) * NODE_SIZE) / NODE_SIZE;
 
 	ret = alloc(sizeof(Env));
 	if (!ret) {
@@ -130,6 +138,9 @@ Env *env_open(const u8 *path) {
 	ret->capacity = capacity;
 	ret->fd = fd;
 	ret->last_freed_word = 0;
+	ret->num_nodes = num_nodes;
+	ret->bitmap_bytes = bitmap_bytes;
+	ret->bitmap_pages = bitmap_pages;
 	ensure_init(ret);
 
 	return ret;
@@ -158,38 +169,8 @@ i32 env_close(Env *env) {
 }
 
 i32 env_set_root(Env *env, u64 root) {
-	/* Declare all variables at start */
-	u64 num_nodes;
-	u64 bitmap_bytes;
-	u64 bitmap_pages;
-
-	/* Validate input */
-	if (!env || !env->base || env->capacity < 2 * NODE_SIZE) {
-		err = EINVAL;
-		return -1;
-	}
-
-	/* Initial estimate of nodes (excluding header) */
-	num_nodes = (env->capacity - 2 * NODE_SIZE) / NODE_SIZE;
-	if (num_nodes == 0) {
-		err = EINVAL;
-		return -1;
-	}
-
-	/* Bitmap size based on nodes */
-	bitmap_bytes = (num_nodes + 7) / 8;
-	bitmap_pages = (bitmap_bytes + NODE_SIZE - 1) / NODE_SIZE;
-
-	/* Adjust num_nodes for bitmap space */
-	if (env->capacity < (2 + bitmap_pages) * NODE_SIZE) {
-		err = EINVAL;
-		return -1;
-	}
-	num_nodes =
-	    (env->capacity - (2 + bitmap_pages) * NODE_SIZE) / NODE_SIZE;
-
-	/* Validate root index */
-	if (root < 2 + bitmap_pages || root >= 2 + bitmap_pages + num_nodes) {
+	if (!env || root < 2 + env->bitmap_pages ||
+	    root >= 2 + env->bitmap_pages + env->num_nodes) {
 		err = EINVAL;
 		return -1;
 	}
@@ -270,101 +251,49 @@ u64 env_root(Env *env) {
 }
 
 Node *env_alloc(Env *env) {
-	u64 num_nodes;
-	u64 bitmap_bytes;
-	u64 bitmap_pages;
-	u64 bitmap_start;
-	u64 bitmap_words;
+	u64 bitmap_start, bitmap_words, i, offset, word, bit_value, index,
+	    new_word;
+	Node *ret = NULL;
 	u64 *ptr;
-	u64 i;
-	u64 offset;
-	u64 word;
-	u64 bit_value;
-	u64 index;
-	u64 new_word;
-	Node *ret;
 
-	ret = NULL;
-
-	/* Validate inputs */
 	if (!env || !env->base || env->capacity < 2 * NODE_SIZE) {
 		err = EINVAL;
 		return NULL;
 	}
 
-	/* Compute number of nodes, accounting for header and bitmap */
-	num_nodes = env->capacity / NODE_SIZE;
-	if (num_nodes < 2) {
-		err = EINVAL;
-		return NULL;
-	}
-
-	bitmap_bytes = (num_nodes + 7) / 8;
-	bitmap_pages = (bitmap_bytes + NODE_SIZE - 1) / NODE_SIZE;
-
-	/* Check for overflow and ensure bitmap fits */
-	if (num_nodes > (UINT64_MAX - 7) / 8 || bitmap_pages >= num_nodes) {
-		err = ENOMEM;
-		return NULL;
-	}
-
-	/* Adjust num_nodes for bitmap space */
-	num_nodes =
-	    (env->capacity - (2 + bitmap_pages) * NODE_SIZE) / NODE_SIZE;
-	if (num_nodes == 0) {
-		err = EINVAL;
-		return NULL;
-	}
-
 	ptr = (u64 *)env->base;
-	bitmap_start = (2 * NODE_SIZE) / 8; /* Start of bitmap in u64 units */
-	bitmap_words =
-	    (bitmap_bytes + 7) / 8; /* Number of u64 words in bitmap */
+	bitmap_start = (2 * NODE_SIZE) / 8;
+	bitmap_words = (env->bitmap_bytes + 7) / 8;
 
-	/* Scan bitmap for free node, starting from last_freed_word */
 	for (i = 0; i < bitmap_words; i++) {
 		offset = bitmap_start + (env->last_freed_word % bitmap_words);
-		/* Reset to start if offset exceeds bounds */
-		if (offset * 8 >= (2 + bitmap_pages) * NODE_SIZE) {
+		if (offset * 8 >= (2 + env->bitmap_pages) * NODE_SIZE) {
 			env->last_freed_word = 0;
 			offset = bitmap_start;
 		}
 
 		word = ptr[offset];
-		if (word != ~0UL) {
-			while (word != ~0UL) { /* Retry on CAS failure */
-				bit_value = __builtin_ctzll(~word);
-				index = (offset - bitmap_start) * 64 +
-					bit_value; /* Node index */
-				if (index >= num_nodes) {
-					break; /* Skip padding bits */
-				}
+		while (word != ~0UL) {
+			bit_value = __builtin_ctzll(~word);
+			index = (offset - bitmap_start) * 64 + bit_value;
+			if (index >= env->num_nodes) break;
 
-				new_word = word | (1UL << bit_value);
-				if (__cas64(&ptr[offset], &word, new_word)) {
-					ret = (Node *)((2 + bitmap_pages +
-							index) *
-							   NODE_SIZE +
-						       (u8 *)env->base);
-					return ret;
-				}
-				word = ptr[offset]; /* Refresh word on CAS
-						       failure */
+			new_word = word | (1UL << bit_value);
+			if (__cas64(&ptr[offset], &word, new_word)) {
+				ret = (Node *)((2 + env->bitmap_pages + index) *
+						   NODE_SIZE +
+					       (u8 *)env->base);
+				return ret;
 			}
+			word = ptr[offset];
 		}
-		env->last_freed_word =
-		    (env->last_freed_word + 1) % bitmap_words;
 	}
 
-	err = ENOMEM; /* No free nodes */
+	err = ENOMEM;
 	return NULL;
 }
 
 void env_release(Env *env, Node *node) {
-	/* Declare all variables at start */
-	u64 num_nodes;
-	u64 bitmap_bytes;
-	u64 bitmap_pages;
 	u64 bitmap_start;
 	u64 index;
 	u64 word_offset;
@@ -374,49 +303,26 @@ void env_release(Env *env, Node *node) {
 	u64 expected;
 	u64 *ptr;
 
-	/* Validate inputs */
-	if (!env || !env->base || !node || env->capacity < 2 * NODE_SIZE)
-		panic("Invalid state!");
+	if (!env || !env->base || !node) panic("Invalid state!");
 
-	/* Compute number of nodes */
-	num_nodes = (env->capacity - 2 * NODE_SIZE) / NODE_SIZE;
-	if (num_nodes == 0) panic("Invalid state!");
-
-	/* Bitmap size */
-	bitmap_bytes = (num_nodes + 7) / 8;
-	bitmap_pages = (bitmap_bytes + NODE_SIZE - 1) / NODE_SIZE;
-
-	/* Adjust num_nodes for bitmap space */
-	if (env->capacity < (2 + bitmap_pages) * NODE_SIZE)
-		panic("Invalid state!");
-
-	num_nodes =
-	    (env->capacity - (2 + bitmap_pages) * NODE_SIZE) / NODE_SIZE;
-
-	/* Compute node index */
-	index =
-	    ((u8 *)node - (u8 *)env->base - (2 + bitmap_pages) * NODE_SIZE) /
-	    NODE_SIZE;
-	if (index >= num_nodes)
+	index = ((u8 *)node - (u8 *)env->base -
+		 (2 + env->bitmap_pages) * NODE_SIZE) /
+		NODE_SIZE;
+	if (index >= env->num_nodes)
 		panic("Trying to free memory that was not allocated!");
 
-	/* Locate bitmap bit */
 	ptr = (u64 *)env->base;
-	bitmap_start = (2 * NODE_SIZE) / 8; /* Start of bitmap in u64 units */
+	bitmap_start = (2 * NODE_SIZE) / 8;
 	env->last_freed_word = index / 64;
 	word_offset = bitmap_start + env->last_freed_word;
 	bit_position = index % 64;
 
-	/* Ensure word_offset is within bitmap */
-	if (word_offset * 8 >= (2 + bitmap_pages) * NODE_SIZE)
+	if (word_offset * 8 >= (2 + env->bitmap_pages) * NODE_SIZE)
 		panic("Trying to free memory that was not allocated!");
 
-	/* Atomically clear the bit */
 	word = ptr[word_offset];
 	expected = word | 1UL << bit_position;
 	new_word = word & ~(1UL << bit_position);
 	if (!__cas64(&ptr[word_offset], &expected, new_word))
 		panic("Double free!");
-
-	err = 0; /* Success */
 }
