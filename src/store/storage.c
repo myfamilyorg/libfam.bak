@@ -169,64 +169,62 @@ i32 env_close(Env *env) {
 }
 
 i32 env_set_root(Env *env, u64 root) {
+	BufferNode *b1, *b2;
+
 	if (!env || root < 2 + env->bitmap_pages ||
 	    root >= 2 + env->bitmap_pages + env->num_nodes) {
 		err = EINVAL;
 		return -1;
 	}
 
+	b1 = BUFFER1(env);
+	b2 = BUFFER2(env);
+
 	do {
-		i64 diff, b1_counter, b2_counter;
+		i64 diff, counter;
 		u64 expected;
-		BufferNode *b1 = BUFFER1(env);
-		BufferNode *b2 = BUFFER2(env);
-		b1_counter = ALOAD(&b1->counter);
-		b2_counter = ALOAD(&b2->counter);
+		BufferNode *target;
+		i64 b1_counter = ALOAD(&b1->counter);
+		i64 b2_counter = ALOAD(&b2->counter);
 
 		diff = b2_counter - b1_counter;
 
 		if (diff < 0) {
+			target = b2;
+			counter = b2_counter;
 			if (diff == -1) {
 				yield();
-				expected = b2_counter;
-				__cas64(&b2->counter, &expected,
-					b2_counter - 1);
+				expected = counter;
+				__cas64(&target->counter, &expected,
+					counter - 1);
 				continue;
 			}
 			if (diff != -2)
-				panic(
-				    "Double buffer is in a corrupted "
-				    "state!");
-			expected = b2_counter;
-			if (!__cas64(&b2->counter, &expected, b2_counter + 1))
-				continue;
-			ASTORE(&b2->root, root);
-			expected = b2_counter + 1;
-			if (__cas64(&b2->counter, &expected, b2_counter + 4))
-				break;
+				panic("Double buffer is in a corrupted state!");
 		} else {
+			target = b1;
+			counter = b1_counter;
 			if (diff == 1) {
 				yield();
-				expected = b1_counter;
-				__cas64(&b1->counter, &expected,
-					b1_counter - 1);
+				expected = counter;
+				__cas64(&target->counter, &expected,
+					counter - 1);
 				continue;
 			}
-
 			if (diff != 2)
-				panic(
-				    "Double buffer is in a corrupted "
-				    "state!");
-
-			expected = b1_counter;
-			if (!__cas64(&b1->counter, &expected, b1_counter + 1))
-				continue;
-			ASTORE(&b1->root, root);
-			expected = b1_counter + 1;
-			if (__cas64(&b1->counter, &expected, b1_counter + 4))
-				break;
+				panic("Double buffer is in a corrupted state!");
 		}
+
+		expected = counter;
+		if (!__cas64(&target->counter, &expected, counter + 1))
+			continue;
+
+		ASTORE(&target->root, root);
+		expected = counter + 1;
+		if (__cas64(&target->counter, &expected, counter + 4)) break;
+
 	} while (true);
+
 	return 0;
 }
 
