@@ -27,7 +27,50 @@
 #include <bptree.H>
 #include <error.H>
 #include <rng.H>
+#include <storage.H>
 #include <test.H>
+
+Test(storage1) {
+	const u8 *path = "/tmp/storage1.dat";
+	u8 buf[100];
+	i64 v;
+	i32 fd;
+	i32 wakeups[2];
+	Env *e1;
+	Node *n;
+
+	unlink(path);
+	fd = file(path);
+	fresize(fd, NODE_SIZE * 16);
+	close(fd);
+
+	e1 = env_open(path);
+	ASSERT_EQ(env_root(e1), 0, "root=0");
+	env_set_root(e1, 10);
+	ASSERT_EQ(env_root(e1), 10, "root=10");
+	env_set_root(e1, 12);
+	ASSERT_EQ(env_root(e1), 12, "root=12");
+	env_set_root(e1, 11);
+	ASSERT_EQ(env_root(e1), 11, "root=11");
+
+	ASSERT(!pipe(wakeups), "pipe");
+
+	v = env_register_notification(e1, wakeups[1]);
+	ASSERT_EQ(read(wakeups[0], buf, 100), 1, "read=1");
+	ASSERT_EQ(v + 1, env_counter(e1), "v+1=env_counter");
+
+	v = env_register_notification(e1, wakeups[1]);
+	ASSERT_EQ(read(wakeups[0], buf, 100), 1, "read=1");
+	ASSERT_EQ(v + 1, env_counter(e1), "v+1=env_counter");
+
+	n = env_alloc(e1);
+	env_release(e1, n);
+	/*env_release(e1, n);*/
+
+	env_close(e1);
+	release(e1);
+	unlink(path);
+}
 
 void __attribute__((unused)) print_node(BpTxn *txn, const BpTreeNode *node,
 					u8 *prefix) {
@@ -118,14 +161,11 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 	retval->found = false;
 	retval->levels = 0;
 
-	printf("search\n");
-
 	while (node->is_internal) {
 		const u8 *cmp_key;
 		BpTreeInternalEntry *entry;
 		u16 match_index = 0, offset, len;
 		i32 v;
-		printf("search internal %i\n", node->num_entries);
 
 		for (i = 1; i < node->num_entries; i++) {
 			offset = node->data.internal.entry_offsets[i];
@@ -208,46 +248,46 @@ Test(simple_split) {
 		key5[i] = value5[i] = 'e';
 	}
 
-	print_tree(txn);
+	/*	print_tree(txn);*/
 	v = bptree_put(txn, key1, 16, value1, 7600, test_bptree_search);
 	ASSERT_EQ(v, 0, "v=0");
-	print_tree(txn);
+	/*print_tree(txn);*/
 
 	v = bptree_put(txn, key2, 16, value2, 512, test_bptree_search);
 	ASSERT_EQ(v, 0, "v=0");
-	print_tree(txn);
+	/*print_tree(txn);*/
 
 	v = bptree_put(txn, key3, 16, value3, 100, test_bptree_search);
 	ASSERT_EQ(v, 0, "v=0");
-	print_tree(txn);
+	/*print_tree(txn);*/
 
 	v = bptree_put(txn, key4, 16, value4, 7600, test_bptree_search);
 	ASSERT_EQ(v, 0, "v=0");
-	print_tree(txn);
+	/*print_tree(txn);*/
 
 	v = bptree_put(txn, key5, 16, value5, 12, test_bptree_search);
 	ASSERT_EQ(v, 0, "v=0");
-	print_tree(txn);
+	/*print_tree(txn);*/
 
 	key1[1] = 'b';
 	v = bptree_put(txn, key1, 16, value1, 12, test_bptree_search);
 	ASSERT_EQ(v, 0, "v=0");
-	print_tree(txn);
+	/*print_tree(txn);*/
 
 	key4[1] = 'x';
 	v = bptree_put(txn, key4, 16, value4, 12, test_bptree_search);
 	ASSERT_EQ(v, 0, "v=0");
-	print_tree(txn);
+	/*print_tree(txn);*/
 
 	key1[1] = 'c';
 	v = bptree_put(txn, key1, 16, value1, 12, test_bptree_search);
 	ASSERT_EQ(v, 0, "v=0");
-	print_tree(txn);
+	/*print_tree(txn);*/
 
 	key1[1] = 'a';
 	v = bptree_put(txn, key1, 16, value1, 12, test_bptree_search);
 	ASSERT_EQ(v, -1, "v=-1");
-	print_tree(txn);
+	/*print_tree(txn);*/
 
 	bptxn_abort(txn);
 	bptree_close(tree);

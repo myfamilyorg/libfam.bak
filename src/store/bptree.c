@@ -214,15 +214,7 @@ STATIC void update_nodes(BpTxn *txn, BpTreeNode *node, BpTreeNode *nparent,
 	BpTreeEntry *ent;
 	BpTreeInternalEntry *internal_ent;
 
-	/* TODO: for now just root, but later add support */
-
-	nparent->is_copy = sibling->is_copy = true;
-	nparent->is_internal = true;
-	nparent->parent_id = 0;
-	nparent->num_entries = 2;
-	sibling->parent_id = bptree_node_id(txn, nparent);
-	sibling->is_internal = false;
-
+	/* Update the sibling */
 	midpoint = node->num_entries / 2; /* TODO: edge cases */
 	pos = node->data.leaf.entry_offsets[midpoint];
 
@@ -238,6 +230,24 @@ STATIC void update_nodes(BpTxn *txn, BpTreeNode *node, BpTreeNode *nparent,
 	node->num_entries = midpoint;
 	sibling->used_bytes = node->used_bytes - pos;
 	node->used_bytes = pos;
+	node->parent_id = bptree_node_id(txn, nparent);
+	sibling->parent_id = bptree_node_id(txn, nparent);
+	sibling->is_internal = false;
+	sibling->is_copy = true;
+
+	if (res->key_index <= midpoint)
+		insert_entry(node, res->key_index, space_needed, key, key_len,
+			     value, value_len);
+	else
+		insert_entry(sibling, res->key_index - midpoint, space_needed,
+			     key, key_len, value, value_len);
+
+	/* TODO: for now just root, but later add support */
+
+	nparent->is_copy = true;
+	nparent->is_internal = true;
+	nparent->parent_id = 0;
+	nparent->num_entries = 2;
 
 	nparent->data.internal.entry_offsets[0] = 0;
 	ent = (BpTreeEntry *)node->data.leaf.entries;
@@ -271,13 +281,6 @@ STATIC void update_nodes(BpTxn *txn, BpTreeNode *node, BpTreeNode *nparent,
 	dnode = rbtree_put(&txn->overrides, (RbTreeNode *)nvalue,
 			   bptree_rbtree_search);
 	if (dnode) release(dnode);
-
-	if (res->key_index <= midpoint)
-		insert_entry(node, res->key_index, space_needed, key, key_len,
-			     value, value_len);
-	else
-		insert_entry(sibling, res->key_index - midpoint, space_needed,
-			     key, key_len, value, value_len);
 }
 
 STATIC i32 split_node(BpTxn *txn, BpTreeNode *node, const void *key,
