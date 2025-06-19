@@ -48,7 +48,8 @@ u64 env_alloc(Env *);
 void env_release(Env *, u64 );
 i64 env_register_notification(Env *, i32 wakeupfd);
 i64 env_counter(Env *);
-i32 env_set_root(Env *, u64 root);
+i32 env_set_root(Env *, u64 seqno, u64 root);
+u64 env_root_seqno(Env *);
 u64 env_root(Env *);
 void *env_base(Env *);
 

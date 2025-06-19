@@ -46,11 +46,11 @@ Test(storage1) {
 
 	e1 = env_open(path);
 	ASSERT_EQ(env_root(e1), 0, "root=0");
-	env_set_root(e1, 10);
+	env_set_root(e1, env_root_seqno(e1), 10);
 	ASSERT_EQ(env_root(e1), 10, "root=10");
-	env_set_root(e1, 12);
+	env_set_root(e1, env_root_seqno(e1), 12);
 	ASSERT_EQ(env_root(e1), 12, "root=12");
-	env_set_root(e1, 11);
+	env_set_root(e1, env_root_seqno(e1), 11);
 	ASSERT_EQ(env_root(e1), 11, "root=11");
 
 	ASSERT(!pipe(wakeups), "pipe");
@@ -87,7 +87,7 @@ Test(storage2) {
 
 	e1 = env_open(path);
 	ASSERT_EQ(env_root(e1), 0, "root=0");
-	env_set_root(e1, 4);
+	env_set_root(e1, env_root_seqno(e1), 4);
 	ASSERT_EQ(env_root(e1), 4, "root=4");
 
 	for (i = 0; i < ITT; i++) {

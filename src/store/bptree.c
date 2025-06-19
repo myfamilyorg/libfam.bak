@@ -50,7 +50,7 @@ struct BpTxn {
 	BpTree *tree;
 	u64 txn_id;
 	u64 root;
-	u64 initial_root;
+	u64 seqno;
 	RbTree overrides;
 };
 
@@ -369,15 +369,17 @@ i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 
 BpTree *bptree_open(Env *env) {
 	BpTreeNode *root;
-	u64 eroot, meta;
+	u64 eroot, meta, seqno;
 	BpTree *ret = alloc(sizeof(BpTree));
 	if (!ret) return NULL;
+
+	seqno = env_root_seqno(env);
 
 	eroot = env_root(env);
 	if (!eroot) {
 		meta = env_alloc(env);
 		eroot = env_alloc(env);
-		if (!eroot || !meta || env_set_root(env, eroot) < 0) {
+		if (!eroot || !meta || env_set_root(env, seqno, eroot) < 0) {
 			if (eroot) env_release(env, eroot);
 			if (meta) env_release(env, meta);
 			release(ret);
@@ -401,7 +403,8 @@ BpTxn *bptxn_start(BpTree *tree) {
 	ret->tree = tree;
 	ret->txn_id = __add64(&tree->meta->next_bptxn_id, 1);
 	ret->overrides = INIT_RBTREE;
-	ret->root = ret->initial_root = env_root(tree->env);
+	ret->seqno = env_root_seqno(tree->env);
+	ret->root = env_root(tree->env);
 	return ret;
 }
 
@@ -409,10 +412,8 @@ i64 bptxn_commit(BpTxn *txn, int wakeupfd) {
 	u64 root = bptree_node_id(txn, bptree_root(txn));
 	u64 envroot = env_root(txn->tree->env);
 
-	if (envroot != txn->initial_root) return -1;
-
 	if (root == envroot) return bptxn_abort(txn);
-	env_set_root(txn->tree->env, root);
+	if (env_set_root(txn->tree->env, txn->seqno, root) < 0) return -1;
 	if (wakeupfd > 0) {
 		bptxn_abort(txn);
 		return env_register_notification(txn->tree->env, wakeupfd);

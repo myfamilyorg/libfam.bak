@@ -45,6 +45,7 @@ struct Env {
 	u64 bitmap_bytes;
 	u64 last_freed_word;
 	i32 fd;
+	u64 seqno;
 	u64 counter_pre;
 	u64 counter;
 	Channel channel;
@@ -168,7 +169,7 @@ i32 env_close(Env *env) {
 	return close(env->fd);
 }
 
-i32 env_set_root(Env *env, u64 root) {
+i32 env_set_root(Env *env, u64 seqno, u64 root) {
 	BufferNode *b1, *b2;
 
 	if (!env || root < 2 + env->bitmap_pages ||
@@ -218,7 +219,7 @@ i32 env_set_root(Env *env, u64 root) {
 		expected = counter;
 		if (!__cas64(&target->counter, &expected, counter + 1))
 			continue;
-
+		if (ALOAD(&env->seqno) != seqno) return -1;
 		ASTORE(&target->root, root);
 		expected = counter + 1;
 		if (__cas64(&target->counter, &expected, counter + 4)) break;
@@ -318,3 +319,4 @@ void env_release(Env *env, u64 index) {
 }
 
 void *env_base(Env *env) { return env->base; }
+u64 env_root_seqno(Env *env) { return ALOAD(&env->seqno); }
