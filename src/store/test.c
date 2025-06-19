@@ -329,8 +329,8 @@ Test(simple_split) {
 	v = bptree_put(txn, key1, 16, value1, 12, test_bptree_search);
 	ASSERT_EQ(v, -1, "v=-1");
 
-	key5[2] = 'x';
-	v = bptree_put(txn, key5, 16, value1, 7500, test_bptree_search);
+	key1[2] = 'x';
+	v = bptree_put(txn, key1, 16, value1, 7610, test_bptree_search);
 	ASSERT_EQ(v, 0, "v=0");
 	print_tree(txn);
 

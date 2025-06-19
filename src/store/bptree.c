@@ -169,7 +169,22 @@ STATIC void insert_entry(BpTreeNode *node, u16 key_index, u16 space_needed,
 	node->num_entries++;
 }
 
-STATIC void update_nodes(BpTxn *txn, BpTreeNode *node, BpTreeNode *nparent,
+STATIC void shift_by_offset_internal(BpTreeNode *node, u16 key_index,
+				     u16 shift) {
+	i32 i;
+	u16 pos = node->data.internal.entry_offsets[key_index];
+	u16 bytes_to_move = node->used_bytes - pos;
+	void *dst = node->data.internal.entries + pos + shift;
+	void *src = node->data.internal.entries + pos;
+
+	memorymove(dst, src, bytes_to_move);
+	for (i = node->num_entries; i > key_index; i--) {
+		node->data.internal.entry_offsets[i] =
+		    node->data.internal.entry_offsets[i - 1] + shift;
+	}
+}
+
+STATIC void update_nodes(BpTxn *txn, BpTreeNode *node, BpTreeNode *parent,
 			 BpTreeNode *sibling, BpRbTreeNode *nvalue,
 			 const void *key, u16 key_len, const void *value,
 			 u32 value_len, BpTreeSearchResult *res,
@@ -195,8 +210,8 @@ STATIC void update_nodes(BpTxn *txn, BpTreeNode *node, BpTreeNode *nparent,
 	node->num_entries = midpoint;
 	sibling->used_bytes = node->used_bytes - pos;
 	node->used_bytes = pos;
-	node->parent_id = bptree_node_id(txn, nparent);
-	sibling->parent_id = bptree_node_id(txn, nparent);
+	node->parent_id = bptree_node_id(txn, parent);
+	sibling->parent_id = bptree_node_id(txn, parent);
 	sibling->is_internal = false;
 	sibling->is_copy = true;
 
@@ -208,34 +223,43 @@ STATIC void update_nodes(BpTxn *txn, BpTreeNode *node, BpTreeNode *nparent,
 			     key, key_len, value, value_len);
 
 	/* TODO: for now just root, but later add support */
-
-	nparent->num_entries++;
-
 	internal_ent =
-	    (BpTreeInternalEntry *)((u8 *)nparent->data.internal.entries);
+	    (BpTreeInternalEntry *)((u8 *)parent->data.internal.entries);
 
 	offset = 1;
 	if (res->levels) offset += res->parent_index[0];
-	nparent->data.internal.entry_offsets[offset] =
-	    nparent->data.internal.entry_offsets[offset - 1] +
+
+	if (offset < parent->num_entries) {
+		BpTreeInternalEntry *partition =
+		    (BpTreeInternalEntry
+			 *)((u8 *)parent->data.internal.entries +
+			    parent->data.internal.entry_offsets[offset]);
+		u16 shift = sizeof(BpTreeInternalEntry) + partition->key_len;
+		shift_by_offset_internal(parent, offset, shift);
+	}
+
+	parent->num_entries++;
+
+	parent->data.internal.entry_offsets[offset] =
+	    parent->data.internal.entry_offsets[offset - 1] +
 	    internal_ent->key_len + sizeof(BpTreeInternalEntry);
 	ent = (BpTreeEntry *)sibling->data.leaf.entries;
 	internal_ent =
-	    (BpTreeInternalEntry *)((u8 *)nparent->data.internal.entries +
-				    nparent->data.internal
+	    (BpTreeInternalEntry *)((u8 *)parent->data.internal.entries +
+				    parent->data.internal
 					.entry_offsets[offset]);
 	internal_ent->node_id = bptree_node_id(txn, sibling);
 	internal_ent->key_len = ent->key_len;
-	memcpy((u8 *)nparent->data.internal.entries +
-		   nparent->data.internal.entry_offsets[offset] +
+	memcpy((u8 *)parent->data.internal.entries +
+		   parent->data.internal.entry_offsets[offset] +
 		   sizeof(BpTreeInternalEntry),
 	       sibling->data.leaf.entries + sizeof(BpTreeEntry), ent->key_len);
 
-	nparent->used_bytes = nparent->data.internal.entry_offsets[offset] +
-			      ent->key_len + sizeof(BpTreeInternalEntry);
+	parent->used_bytes = parent->data.internal.entry_offsets[offset] +
+			     ent->key_len + sizeof(BpTreeInternalEntry);
 
 	nvalue->node_id = txn->root;
-	nvalue->override = bptree_node_id(txn, nparent);
+	nvalue->override = bptree_node_id(txn, parent);
 	rbtree_init_node((RbTreeNode *)nvalue);
 
 	dnode = rbtree_put(&txn->overrides, (RbTreeNode *)nvalue,
