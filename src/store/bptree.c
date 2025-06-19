@@ -174,7 +174,7 @@ STATIC void update_nodes(BpTxn *txn, BpTreeNode *node, BpTreeNode *nparent,
 			 const void *key, u16 key_len, const void *value,
 			 u32 value_len, BpTreeSearchResult *res,
 			 u64 space_needed) {
-	u16 midpoint, pos, i;
+	u16 midpoint, pos, i, offset;
 	RbTreeNode *dnode;
 	BpTreeEntry *ent;
 	BpTreeInternalEntry *internal_ent;
@@ -209,34 +209,29 @@ STATIC void update_nodes(BpTxn *txn, BpTreeNode *node, BpTreeNode *nparent,
 
 	/* TODO: for now just root, but later add support */
 
-	nparent->is_copy = true;
-	nparent->is_internal = true;
-	nparent->parent_id = 0;
-	nparent->num_entries = 2;
+	nparent->num_entries++;
 
-	nparent->data.internal.entry_offsets[0] = 0;
-	ent = (BpTreeEntry *)node->data.leaf.entries;
-	internal_ent = (BpTreeInternalEntry *)nparent->data.internal.entries;
-	internal_ent->node_id = bptree_node_id(txn, node);
-	internal_ent->key_len = ent->key_len;
+	internal_ent =
+	    (BpTreeInternalEntry *)((u8 *)nparent->data.internal.entries);
 
-	memcpy(
-	    (u8 *)nparent->data.internal.entries + sizeof(BpTreeInternalEntry),
-	    node->data.leaf.entries + sizeof(BpTreeEntry), ent->key_len);
-	nparent->data.internal.entry_offsets[1] =
-	    ent->key_len + sizeof(BpTreeInternalEntry);
+	offset = 1;
+	if (res->levels) offset += res->parent_index[0];
+	nparent->data.internal.entry_offsets[offset] =
+	    nparent->data.internal.entry_offsets[offset - 1] +
+	    internal_ent->key_len + sizeof(BpTreeInternalEntry);
 	ent = (BpTreeEntry *)sibling->data.leaf.entries;
 	internal_ent =
 	    (BpTreeInternalEntry *)((u8 *)nparent->data.internal.entries +
-				    nparent->data.internal.entry_offsets[1]);
+				    nparent->data.internal
+					.entry_offsets[offset]);
 	internal_ent->node_id = bptree_node_id(txn, sibling);
 	internal_ent->key_len = ent->key_len;
 	memcpy((u8 *)nparent->data.internal.entries +
-		   nparent->data.internal.entry_offsets[1] +
+		   nparent->data.internal.entry_offsets[offset] +
 		   sizeof(BpTreeInternalEntry),
 	       sibling->data.leaf.entries + sizeof(BpTreeEntry), ent->key_len);
 
-	nparent->used_bytes = nparent->data.internal.entry_offsets[1] +
+	nparent->used_bytes = nparent->data.internal.entry_offsets[offset] +
 			      ent->key_len + sizeof(BpTreeInternalEntry);
 
 	nvalue->node_id = txn->root;
@@ -251,7 +246,7 @@ STATIC void update_nodes(BpTxn *txn, BpTreeNode *node, BpTreeNode *nparent,
 STATIC i32 split_node(BpTxn *txn, BpTreeNode *node, const void *key,
 		      u16 key_len, const void *value, u16 value_len,
 		      BpTreeSearchResult *res, u64 space_needed) {
-	BpTreeNode *nparent, *sibling;
+	BpTreeNode *parent, *sibling;
 	BpRbTreeNode *nvalue;
 
 	if (!txn || !node || !key || key_len == 0 || !value || value_len == 0 ||
@@ -267,17 +262,39 @@ STATIC i32 split_node(BpTxn *txn, BpTreeNode *node, const void *key,
 	nvalue = alloc(sizeof(BpRbTreeNode));
 	if (!nvalue) return -1;
 
-	nparent = allocate_node(txn);
+	if (node->parent_id) {
+		parent = bptxn_get_node(txn, node->parent_id);
+	} else {
+		BpTreeEntry *ent = (BpTreeEntry *)node->data.leaf.entries;
+		BpTreeInternalEntry ient;
+		parent = allocate_node(txn);
+		if (!parent) return -1;
+
+		parent->meta = txn->tree->meta;
+		parent->is_copy = true;
+		parent->is_internal = true;
+		parent->parent_id = 0;
+		parent->num_entries = 1;
+		parent->used_bytes = ent->key_len + sizeof(BpTreeInternalEntry);
+		parent->data.internal.entry_offsets[0] = 0;
+		ient.key_len = ent->key_len;
+		ient.node_id = bptree_node_id(txn, node);
+		memcpy((u8 *)parent->data.internal.entries, (u8 *)&ient,
+		       sizeof(BpTreeInternalEntry));
+		memcpy((u8 *)parent->data.internal.entries +
+			   sizeof(BpTreeInternalEntry),
+		       (u8 *)node->data.leaf.entries + sizeof(BpTreeEntry),
+		       ient.key_len);
+	}
 	sibling = allocate_node(txn);
 
-	if (!nparent || !sibling) {
-		if (nparent) release_node(txn, nparent);
-		if (sibling) release_node(txn, sibling);
+	if (!sibling) {
+		if (!node->parent_id) release_node(txn, parent);
 		release(nvalue);
 		return -1;
 	}
 
-	update_nodes(txn, node, nparent, sibling, nvalue, key, key_len, value,
+	update_nodes(txn, node, parent, sibling, nvalue, key, key_len, value,
 		     value_len, res, space_needed);
 
 	return 0;
@@ -297,6 +314,14 @@ i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 	node = bptree_root(txn);
 	search(txn, key, key_len, node, &res);
 	if (res.found) return -1;
+
+	{
+		char tmp[NODE_SIZE];
+		memcpy(tmp, key, key_len);
+		tmp[key_len] = 0;
+		/*printf("put '%s'\n", tmp);*/
+	}
+
 	node = bptxn_get_node(txn, res.node_id);
 	space_needed = key_len + value_len + sizeof(BpTreeEntry);
 
