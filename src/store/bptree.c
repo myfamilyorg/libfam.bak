@@ -343,7 +343,7 @@ i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 		char tmp[NODE_SIZE];
 		memcpy(tmp, key, key_len);
 		tmp[key_len] = 0;
-		/*printf("put '%s'\n", tmp);*/
+		/*printf("key=%s\n", tmp);*/
 	}
 
 	node = bptxn_get_node(txn, res.node_id);
@@ -402,6 +402,19 @@ BpTxn *bptxn_start(BpTree *tree) {
 	ret->overrides = INIT_RBTREE;
 	ret->root = env_root(tree->env);
 	return ret;
+}
+
+i64 bptxn_commit(BpTxn *txn, int wakeupfd) {
+	u64 root = bptree_node_id(txn, bptree_root(txn));
+	u64 envroot = env_root(txn->tree->env);
+
+	if (root == envroot) return bptxn_abort(txn);
+	env_set_root(txn->tree->env, root);
+	if (wakeupfd > 0) {
+		bptxn_abort(txn);
+		return env_register_notification(txn->tree->env, wakeupfd);
+	} else
+		return 0;
 }
 
 i32 bptxn_abort(BpTxn *txn) {

@@ -112,7 +112,7 @@ BpTree *bptree_open(Env *env);
 
 /* Txn management */
 BpTxn *bptxn_start(BpTree *tree);
-i32 bptxn_commit(BpTxn *txn);
+i64 bptxn_commit(BpTxn *txn, int wakeupfd);
 i32 bptxn_abort(BpTxn *txn);
 
 /* Modification functions */

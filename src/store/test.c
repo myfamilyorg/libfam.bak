@@ -259,8 +259,10 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 
 Test(simple_split) {
 	const u8 *path = "/tmp/store1.dat";
-	i32 fd, i, v;
-
+	u64 node_id;
+	i64 num;
+	i32 fd, i, v, wakeups[2];
+	u8 buf[100];
 	BpTree *tree;
 	BpTxn *txn;
 
@@ -333,6 +335,30 @@ Test(simple_split) {
 	v = bptree_put(txn, key1, 16, value1, 7610, test_bptree_search);
 	ASSERT_EQ(v, 0, "v=0");
 	print_tree(txn);
+
+	pipe(wakeups);
+	node_id = bptree_node_id(txn, bptree_root(txn));
+	ASSERT(node_id != env_root(env), "envroot != txnroot");
+	num = bptxn_commit(txn, wakeups[1]);
+	ASSERT_EQ(read(wakeups[0], buf, 100), 1, "read=1");
+	ASSERT_EQ(node_id, env_root(env), "updated root");
+	ASSERT(num < env_counter(env), "num<env_counter");
+
+	release(tree);
+	release(txn);
+	env_close(env);
+	release(env);
+
+	env = env_open(path);
+
+	tree = bptree_open(env);
+	ASSERT(tree, "tree");
+	txn = bptxn_start(tree);
+	ASSERT(txn, "txn");
+
+	/* Ensure this key exists */
+	v = bptree_put(txn, key1, 16, value1, 10, test_bptree_search);
+	ASSERT_EQ(v, -1, "v=-1");
 
 	bptxn_abort(txn);
 	release(tree);
