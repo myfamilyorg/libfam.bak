@@ -269,7 +269,7 @@ Test(bptree_prim1) {
 	ASSERT(!bptree_prim_init_node(&node4, 1, false), "node4_init");
 	ASSERT_EQ(bptree_prim_num_entries(&node4), 0, "nument");
 
-	ASSERT(!bptree_prim_move_node_entries(&node4, 0, &node3, 2, 2),
+	ASSERT(!bptree_prim_move_leaf_node_entries(&node4, 0, &node3, 2, 2),
 	       "move_node");
 
 	ASSERT_EQ(bptree_prim_num_entries(&node3), 2, "nument");
@@ -297,10 +297,7 @@ Test(bptree_prim1) {
 }
 
 Test(bptree_prim2) {
-	/*BpTreeNode node1 = {0}, node2 = {0}*/
-	/*, node3 = {0}, node4 = {0}*/ /*;*/
-	BpTreeNode node1, node2, __attribute__((unused)) node3,
-	    __attribute__((unused)) node4;
+	BpTreeNode node1, node2, node3, node4;
 	BpTreeItem item1;
 
 	/* Initialize node1 (source node) with parent_id=5, leaf node */
@@ -353,7 +350,7 @@ Test(bptree_prim2) {
 
 	/* Move two entries from start of node1 (indices 0,1: "aaa", "bbb") to
 	 * node2 */
-	ASSERT(!bptree_prim_move_node_entries(&node2, 0, &node1, 0, 2),
+	ASSERT(!bptree_prim_move_leaf_node_entries(&node2, 0, &node1, 0, 2),
 	       "move_start");
 
 	/* Verify node1: should have "ccc", "dddd" (3+3+8 + 4+4+8 = 30 bytes) */
@@ -388,22 +385,22 @@ Test(bptree_prim2) {
 	ASSERT(!strcmpn(bptree_prim_value(&node2, 1), "uvw", 3),
 	       "node2_value1=uvw");
 
-	ASSERT(!bptree_prim_move_node_entries(&node2, 2, &node1, 0, 0),
+	ASSERT(!bptree_prim_move_leaf_node_entries(&node2, 2, &node1, 0, 0),
 	       "move_zero");
 	ASSERT_EQ(bptree_prim_num_entries(&node2), 2, "node2_num_entries=2");
 	ASSERT_EQ(bptree_prim_num_entries(&node1), 2, "node1_num_entries=2");
 
-	ASSERT(bptree_prim_move_node_entries(&node2, 2, &node1, 2, 1),
+	ASSERT(bptree_prim_move_leaf_node_entries(&node2, 2, &node1, 2, 1),
 	       "move_invalid_src");
 
 	ASSERT_EQ(bptree_prim_num_entries(&node2), 2, "node2_num_entries=2");
 
-	ASSERT(bptree_prim_move_node_entries(&node2, 3, &node1, 0, 1),
+	ASSERT(bptree_prim_move_leaf_node_entries(&node2, 3, &node1, 0, 1),
 	       "move_invalid_dst");
 
 	ASSERT_EQ(bptree_prim_num_entries(&node2), 2, "node2_num_entries=2");
 
-	ASSERT(!bptree_prim_move_node_entries(&node2, 2, &node1, 0, 2),
+	ASSERT(!bptree_prim_move_leaf_node_entries(&node2, 2, &node1, 0, 2),
 	       "move_all");
 
 	ASSERT_EQ(bptree_prim_num_entries(&node1), 0, "node1_num_entries=0");
@@ -428,7 +425,7 @@ Test(bptree_prim2) {
 	       "insert_node3");
 	bptree_prim_unset_copy(&node3);
 	ASSERT(!bptree_prim_is_copy(&node3), "node3_not_copy");
-	ASSERT(bptree_prim_move_node_entries(&node1, 0, &node3, 0, 1),
+	ASSERT(bptree_prim_move_leaf_node_entries(&node1, 0, &node3, 0, 1),
 	       "move_non_copy_src");
 	ASSERT_EQ(bptree_prim_num_entries(&node1), 0, "node1_num_entries=0");
 	ASSERT_EQ(bptree_prim_num_entries(&node3), 1, "node3_num_entries=1");
@@ -452,7 +449,7 @@ Test(bptree_prim2) {
 	ASSERT(!bptree_prim_insert_leaf_entry(&node3, 0, &item1),
 	       "insert_node3");
 
-	ASSERT(!bptree_prim_move_node_entries(&node4, 2, &node3, 0, 1),
+	ASSERT(!bptree_prim_move_leaf_node_entries(&node4, 2, &node3, 0, 1),
 	       "move_to_full");
 	ASSERT_EQ(bptree_prim_num_entries(&node4), 3, "node4_num_entries=3");
 	ASSERT_EQ(bptree_prim_used_bytes(&node4), 90, "node4_used_bytes=90");
@@ -471,7 +468,7 @@ Test(bptree_prim2) {
 }
 
 Test(bptree_prim3) {
-	BpTreeNode node1 = {0}, node2 = {0};
+	BpTreeNode node1, node2;
 	BpTreeItem item1;
 	u32 i, large_size, entry_size, num_entries;
 	u8 key_buf[PAGE_SIZE / 8], val_buf[PAGE_SIZE / 8];
@@ -512,8 +509,8 @@ Test(bptree_prim3) {
 	       "insert_node2");
 
 	/* Attempt overflow */
-	ASSERT(bptree_prim_move_node_entries(&node1, num_entries - 1, &node2, 0,
-					     1),
+	ASSERT(bptree_prim_move_leaf_node_entries(&node1, num_entries - 1,
+						  &node2, 0, 1),
 	       "move_overflow");
 	ASSERT_EQ(bptree_prim_num_entries(&node1), num_entries - 1,
 		  "node1_num_entries_unchanged");
