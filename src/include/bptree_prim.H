@@ -46,12 +46,17 @@ typedef struct {
 } BpKeyValue;
 
 typedef struct {
+	const void *key;
+	u64 overflow_page;
+} BpOverflow;
+
+typedef struct {
 	u32 value_len;
 	u16 key_len;
 	bool is_overflow;
 	union {
 		BpKeyValue kv;
-		u64 overflow;
+		BpOverflow overflow;
 	} vardata;
 } BpTreeItem;
 
@@ -74,6 +79,7 @@ u16 bptree_prim_num_entries(BpTreeNode *node);
 u16 bptree_prim_used_bytes(BpTreeNode *node);
 u16 bptree_prim_key_len(BpTreeNode *node, u16 index);
 u32 bptree_prim_value_len(BpTreeNode *node, u16 index);
+u64 bptree_prim_overflow_page(BpTreeNode *node, u16 index);
 const void *bptree_prim_key(BpTreeNode *node, u16 index);
 const void *bptree_prim_value(BpTreeNode *node, u16 index);
 bool bptree_prim_is_copy(BpTreeNode *node);

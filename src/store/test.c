@@ -25,6 +25,7 @@
 
 #include <alloc.H>
 #include <bptree_prim.H>
+#include <error.H>
 #include <storage.H>
 #include <test.H>
 
@@ -644,14 +645,6 @@ Test(bptree_prim4) {
 	ASSERT_EQ(bptree_prim_num_entries(&node), 3, "num_entries=3");
 	ASSERT(!strcmpn(bptree_prim_key(&node, 1), "xyz", 3), "4key1=xyz");
 
-	/* Test 8: Invalid item (is_overflow = true) */
-	item1.key_len = 3;
-	item1.value_len = 3;
-	item1.is_overflow = true;
-	item1.vardata.kv.key = "fff";
-	item1.vardata.kv.value = "ghi";
-	ASSERT(bptree_prim_set_leaf_entry(&node, 0, &item1),
-	       "set_overflow_item");
 	ASSERT(!strcmpn(bptree_prim_key(&node, 0), "aaaaa", 5), "key0=aaaaa");
 
 	/* Test 9: Invalid item (zero key_len) */
@@ -662,3 +655,61 @@ Test(bptree_prim4) {
 	       "set_zero_key_len");
 	ASSERT(!strcmpn(bptree_prim_key(&node, 0), "aaaaa", 5), "key0=aaaaa");
 }
+
+Test(bptree_prim5) {
+	BpTreeNode node1;
+	BpTreeItem item1;
+
+	ASSERT(!bptree_prim_init_node(&node1, 1, false), "node_init");
+
+	item1.key_len = 3;
+	item1.value_len = 120000;
+	item1.is_overflow = true;
+	item1.vardata.overflow.overflow_page = 100;
+	item1.vardata.overflow.key = "abc";
+	ASSERT(!bptree_prim_insert_leaf_entry(&node1, 0, &item1),
+	       "node1_insert");
+
+	err = 0;
+	ASSERT(!bptree_prim_value(&node1, 0), "overflow_err");
+	ASSERT_EQ(err, EINVAL, "err=EINVAL");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 3, "keylen=3");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "abc", 3), "key=abc");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 120000, "valuelen=120000");
+
+	item1.key_len = 4;
+	item1.value_len = 17000;
+	item1.is_overflow = true;
+	item1.vardata.overflow.overflow_page = 102;
+	item1.vardata.overflow.key = "def1";
+	ASSERT(!bptree_prim_insert_leaf_entry(&node1, 0, &item1),
+	       "node1_insert");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 4, "keylen=4");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "def1", 4), "key=def1");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 17000, "valuelen=17000");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 1), 3, "keylen=3");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 1), "abc", 3), "key=abc");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 1), 120000, "valuelen=120000");
+
+	item1.key_len = 5;
+	item1.value_len = 18000;
+	item1.is_overflow = true;
+	item1.vardata.overflow.overflow_page = 101;
+	item1.vardata.overflow.key = "01234";
+	ASSERT(!bptree_prim_set_leaf_entry(&node1, 0, &item1),
+	       "set_leaf_entry");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 5, "keylen=5");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "01234", 5), "key=01234");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 18000, "valuelen=18000");
+	ASSERT_EQ(bptree_prim_overflow_page(&node1, 0), 101, "overflow=101");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 1), 3, "keylen=3");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 1), "abc", 3), "key=abc");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 1), 120000, "valuelen=120000");
+	ASSERT_EQ(bptree_prim_overflow_page(&node1, 1), 100, "overflow=100");
+}
+
