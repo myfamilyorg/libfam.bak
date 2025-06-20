@@ -469,3 +469,54 @@ Test(bptree_prim2) {
 	ASSERT(!bptree_prim_insert_leaf_entry(&node3, 0, &item1),
 	       "insert_node3_large");
 }
+
+Test(bptree_prim3) {
+	BpTreeNode node1 = {0}, node2 = {0};
+	BpTreeItem item1;
+	u32 i, large_size, entry_size, num_entries;
+	u8 key_buf[PAGE_SIZE / 8], val_buf[PAGE_SIZE / 8];
+
+	/* Calculate large entry size */
+	large_size = PAGE_SIZE / 8; /* e.g., 2048 for 16384, 512 for 4096 */
+	entry_size = 2 * large_size + 8; /* key_len + value_len + BpTreeEntry */
+	num_entries = ((30 * PAGE_SIZE - 1280) / 32) / entry_size +
+		      1; /* Approach LEAF_ARRAY_SIZE */
+
+	/* Initialize node1 (destination) */
+	ASSERT(!bptree_prim_init_node(&node1, 1, false), "node1_init");
+	ASSERT_EQ(bptree_prim_num_entries(&node1), 0, "num_entries=0");
+
+	/* Fill node1 close to LEAF_ARRAY_SIZE */
+	item1.is_overflow = false;
+	item1.key_len = large_size;
+	item1.value_len = large_size;
+	memset(key_buf, 'k', large_size);
+	memset(val_buf, 'v', large_size);
+	item1.vardata.kv.key = key_buf;
+	item1.vardata.kv.value = val_buf;
+
+	for (i = 0; i < num_entries - 1; i++) {
+		ASSERT(!bptree_prim_insert_leaf_entry(&node1, i, &item1),
+		       "insert_large");
+	}
+
+	/* Verify node1 */
+	ASSERT_EQ(bptree_prim_num_entries(&node1), num_entries - 1,
+		  "node1_num_entries");
+	ASSERT(bptree_prim_used_bytes(&node1) <= (30 * PAGE_SIZE - 1280) / 32,
+	       "node1_used_bytes");
+
+	/* Initialize node2 with one large entry */
+	ASSERT(!bptree_prim_init_node(&node2, 2, false), "node2_init");
+	ASSERT(!bptree_prim_insert_leaf_entry(&node2, 0, &item1),
+	       "insert_node2");
+
+	/* Attempt overflow */
+	ASSERT(bptree_prim_move_node_entries(&node1, num_entries - 1, &node2, 0,
+					     1),
+	       "move_overflow");
+	ASSERT_EQ(bptree_prim_num_entries(&node1), num_entries - 1,
+		  "node1_num_entries_unchanged");
+	ASSERT_EQ(bptree_prim_num_entries(&node2), 1,
+		  "node2_num_entries_unchanged");
+}
