@@ -243,7 +243,7 @@ i32 bptree_prim_set_leaf_entry(BpTreeNode *node, u16 index, BpTreeItem *item) {
 	old_size = entry->key_len + entry->value_len + sizeof(BpTreeEntry);
 
 	/* Calculate new entry size */
-	new_size = item->key_len + item->value_len + sizeof(BpTreeEntry);
+	new_size = space_needed(item, false);
 	if (new_size > LEAF_ARRAY_SIZE ||
 	    old_pos + new_size > LEAF_ARRAY_SIZE) {
 		err = EOVERFLOW;
