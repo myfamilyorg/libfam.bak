@@ -51,12 +51,19 @@ typedef struct {
 } BpOverflow;
 
 typedef struct {
+	const void *key;
+	u64 node_id;
+} BpInternal;
+
+typedef struct {
 	u32 value_len;
 	u16 key_len;
 	bool is_overflow;
+	bool is_internal;
 	union {
 		BpKeyValue kv;
 		BpOverflow overflow;
+		BpInternal internal;
 	} vardata;
 } BpTreeItem;
 
@@ -66,13 +73,16 @@ i32 bptree_prim_unset_copy(BpTreeNode *node);
 i32 bptree_prim_set_leaf_entry(BpTreeNode *node, u16 index, BpTreeItem *item);
 i32 bptree_prim_insert_leaf_entry(BpTreeNode *node, u16 index,
 				  BpTreeItem *item);
+i32 bptree_prim_move_leaf_node_entries(BpTreeNode *dst, u16 dst_start_index,
+				       BpTreeNode *src, u16 src_start_index,
+				       u16 num_entries);
 i32 bptree_prim_set_internal_entry(BpTreeNode *node, u16 index,
 				   BpTreeItem *item);
 i32 bptree_prim_insert_internal_entry(BpTreeNode *node, u16 index,
 				      BpTreeItem *item);
-i32 bptree_prim_move_leaf_node_entries(BpTreeNode *dst, u16 dst_start_index,
-				       BpTreeNode *src, u16 src_start_index,
-				       u16 num_entries);
+i32 bptree_prim_move_internal_node_entries(BpTreeNode *dst, u16 dst_start_index,
+					   BpTreeNode *src, u16 src_start_index,
+					   u16 num_entries);
 i32 bptree_prim_copy(BpTreeNode *dst, BpTreeNode *src);
 u64 bptree_prim_get_parent_id(BpTreeNode *node);
 u16 bptree_prim_num_entries(BpTreeNode *node);

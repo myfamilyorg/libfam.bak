@@ -81,6 +81,34 @@ STATIC_ASSERT(sizeof(BpTreeNodeImpl) == NODE_SIZE, bptreeimpl_node_size);
 STATIC_ASSERT(sizeof(BpTreeLeafNode) == sizeof(BpTreeInternalNode),
 	      bptree_nodes_equal);
 
+STATIC void shift_internal_by_offset(BpTreeNodeImpl *node, u16 key_index,
+				     i32 shift) {
+	i32 i;
+	u16 pos = node->data.internal.entry_offsets[key_index];
+	u16 bytes_to_move = node->used_bytes - pos;
+	void *dst = node->data.internal.entries + pos + shift;
+	void *src = node->data.internal.entries + pos;
+
+	memorymove(dst, src, bytes_to_move);
+	for (i = node->num_entries; i > key_index; i--) {
+		node->data.internal.entry_offsets[i] =
+		    node->data.internal.entry_offsets[i - 1] + shift;
+	}
+}
+
+STATIC void place_internal_entry(BpTreeNodeImpl *node, u16 key_index,
+				 const void *key, u16 key_len, u64 node_id) {
+	u16 pos = node->data.internal.entry_offsets[key_index];
+	BpTreeInternalEntry entry = {0};
+	entry.key_len = key_len;
+	entry.node_id = node_id;
+	memcpy((u8 *)node->data.internal.entries + pos, &entry,
+	       sizeof(BpTreeInternalEntry));
+	memcpy((u8 *)node->data.internal.entries + pos +
+		   sizeof(BpTreeInternalEntry),
+	       key, key_len);
+}
+
 STATIC void shift_leaf_by_offset(BpTreeNodeImpl *node, u16 key_index,
 				 i32 shift) {
 	i32 i;
@@ -323,6 +351,55 @@ i32 bptree_prim_set_leaf_entry(BpTreeNode *node, u16 index, BpTreeItem *item) {
 	/* Update used_bytes */
 	impl->used_bytes += size_diff;
 
+	return 0;
+}
+
+i32 bptree_prim_set_internal_entry(BpTreeNode *node, u16 index,
+				   BpTreeItem *item) {
+	if (!node || index >= MAX_INTERNAL_ENTRIES || !item) {
+		err = EINVAL;
+		return -1;
+	}
+	return 0;
+}
+
+i32 bptree_prim_insert_internal_entry(BpTreeNode *node, u16 index,
+				      BpTreeItem *item) {
+	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
+	u64 needed;
+	if (!impl || !item || index > impl->num_entries ||
+	    impl->num_entries >= MAX_LEAF_ENTRIES || !impl->is_copy ||
+	    !impl->is_internal) {
+		err = EINVAL;
+		return -1;
+	}
+
+	needed = space_needed(item, true);
+
+	if (impl->num_entries > index) {
+		shift_internal_by_offset(impl, index, needed);
+	} else {
+		impl->data.internal.entry_offsets[impl->num_entries] =
+		    impl->used_bytes;
+	}
+	place_internal_entry(impl, index, item->vardata.internal.key,
+			     item->key_len, item->vardata.internal.node_id);
+
+	impl->used_bytes += needed;
+	impl->num_entries++;
+
+	return 0;
+}
+
+i32 bptree_prim_move_internal_node_entries(BpTreeNode *dst, u16 dst_start_index,
+					   BpTreeNode *src, u16 src_start_index,
+					   u16 num_entries) {
+	if (!dst || !src || dst_start_index >= MAX_INTERNAL_ENTRIES ||
+	    src_start_index >= MAX_INTERNAL_ENTRIES ||
+	    num_entries > MAX_INTERNAL_ENTRIES) {
+		err = EINVAL;
+		return -1;
+	}
 	return 0;
 }
 
