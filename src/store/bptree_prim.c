@@ -82,7 +82,7 @@ STATIC_ASSERT(sizeof(BpTreeLeafNode) == sizeof(BpTreeInternalNode),
 	      bptree_nodes_equal);
 
 STATIC void shift_leaf_by_offset(BpTreeNodeImpl *node, u16 key_index,
-				 u16 shift) {
+				 i32 shift) {
 	i32 i;
 	u16 pos = node->data.leaf.entry_offsets[key_index];
 	u16 bytes_to_move = node->used_bytes - pos;
@@ -214,6 +214,82 @@ i32 bptree_prim_move_leaf_node_entries(BpTreeNode *dst, u16 dst_start_index,
 	return 0;
 }
 
+i32 bptree_prim_set_leaf_entry(BpTreeNode *node, u16 index, BpTreeItem *item) {
+	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
+	u32 old_pos, old_size, new_size;
+	i32 size_diff;
+	BpTreeEntry *entry;
+
+	if (!node || !item || !impl->is_copy || index >= impl->num_entries ||
+	    index >= MAX_LEAF_ENTRIES || item->is_overflow ||
+	    item->key_len == 0 || item->value_len == 0 ||
+	    !item->vardata.kv.key || !item->vardata.kv.value) {
+		err = EINVAL;
+		return -1;
+	}
+
+	/* Get old entry details */
+	old_pos = impl->data.leaf.entry_offsets[index];
+	if (old_pos >= LEAF_ARRAY_SIZE) {
+		err = EINVAL;
+		return -1;
+	}
+	entry = (BpTreeEntry *)((u8 *)impl->data.leaf.entries + old_pos);
+	if (entry->key_len > LEAF_ARRAY_SIZE ||
+	    entry->value_len > LEAF_ARRAY_SIZE) {
+		err = EINVAL;
+		return -1;
+	}
+	old_size = entry->key_len + entry->value_len + sizeof(BpTreeEntry);
+
+	/* Calculate new entry size */
+	new_size = item->key_len + item->value_len + sizeof(BpTreeEntry);
+	if (new_size > LEAF_ARRAY_SIZE ||
+	    old_pos + new_size > LEAF_ARRAY_SIZE) {
+		err = EOVERFLOW;
+		return -1;
+	}
+
+	/* Calculate size difference */
+	size_diff = (i32)new_size - (i32)old_size;
+	if (impl->used_bytes + size_diff > (i32)LEAF_ARRAY_SIZE ||
+	    (size_diff < 0 && impl->used_bytes < (u32)-size_diff)) {
+		err = EOVERFLOW;
+		return -1;
+	}
+
+	/* Shift subsequent entries if size changes and not last entry */
+	if (size_diff != 0 && index + 1 < impl->num_entries) {
+		u16 i;
+		u16 pos = impl->data.leaf.entry_offsets[index + 1];
+		void *dst = impl->data.leaf.entries + pos + size_diff;
+		void *src = impl->data.leaf.entries + pos;
+		u16 bytes_to_move = impl->used_bytes - pos;
+
+		/*shift_leaf_by_offset(impl, index + 1, size_diff);*/
+		memorymove(dst, src, bytes_to_move);
+		for (i = impl->num_entries; i > index; i--) {
+			impl->data.leaf.entry_offsets[i] =
+			    impl->data.leaf.entry_offsets[i] + size_diff;
+		}
+	}
+
+	/* Write new entry */
+	entry = (BpTreeEntry *)((u8 *)impl->data.leaf.entries + old_pos);
+	entry->key_len = item->key_len;
+	entry->value_len = item->value_len;
+	entry->overflow = item->is_overflow;
+	memorymove((u8 *)entry + sizeof(BpTreeEntry), item->vardata.kv.key,
+		   item->key_len);
+	memorymove((u8 *)entry + sizeof(BpTreeEntry) + item->key_len,
+		   item->vardata.kv.value, item->value_len);
+
+	/* Update used_bytes */
+	impl->used_bytes += size_diff;
+
+	return 0;
+}
+
 i32 bptree_prim_init_node(BpTreeNode *node, u64 parent_id, bool is_internal) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 
@@ -255,15 +331,6 @@ i32 bptree_prim_unset_copy(BpTreeNode *node) {
 	}
 
 	impl->is_copy = false;
-	return 0;
-}
-
-i32 bptree_prim_set_leaf_entry(BpTreeNode *node, u16 index, BpTreeItem *item) {
-	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
-	if (!impl || !item || index >= impl->num_entries) {
-		err = EINVAL;
-		return -1;
-	}
 	return 0;
 }
 
