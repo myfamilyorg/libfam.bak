@@ -219,12 +219,17 @@ i32 env_set_root(Env *env, u64 seqno, u64 root) {
 		expected = counter;
 		if (!__cas64(&target->counter, &expected, counter + 1))
 			continue;
-		if (ALOAD(&env->seqno) != seqno) return -1;
+		if (ALOAD(&env->seqno) != seqno) {
+			err = EAGAIN;
+			return -1;
+		}
 		ASTORE(&target->root, root);
 		expected = counter + 1;
 		if (__cas64(&target->counter, &expected, counter + 4)) break;
 
 	} while (true);
+
+	__add64(&env->seqno, 1);
 
 	return 0;
 }

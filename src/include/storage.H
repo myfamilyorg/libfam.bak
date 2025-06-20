@@ -37,10 +37,6 @@
 
 typedef struct Env Env;
 
-typedef struct {
-	u8 data[NODE_SIZE];
-} Node;
-
 Env *env_open(const u8 *path);
 i32 env_close(Env *);
 

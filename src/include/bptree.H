@@ -27,6 +27,7 @@
 #define _BPTREE_H
 
 #include <types.H>
+#include <storage.H>
 
 #ifndef NODE_SIZE
 #ifndef PAGE_SIZE
@@ -40,9 +41,7 @@
 #define INTERNAL_ARRAY_SIZE ((28 * NODE_SIZE - 1024) / 32)
 #define LEAF_ARRAY_SIZE ((u64)((30 * NODE_SIZE - 1280) / 32))
 
-#define MAX_LEVELS 16
-
-#include <storage.H>
+#define MAX_LEVELS 32
 
 typedef struct BpTree BpTree;
 typedef struct BpTxn BpTxn;
@@ -91,11 +90,11 @@ typedef struct {
 typedef struct {
 	MetaData *meta;
         u64 parent_id;
+	u64 next_ptr;
         u16 num_entries;
         u16 used_bytes;
         bool is_internal;
         bool is_copy;
-        u8 reserved[10];
         union {
                 BpTreeInternalNode internal;
                 BpTreeLeafNode leaf;
