@@ -247,3 +247,58 @@ Test(bptree_prim1) {
 
 	ASSERT_EQ(bptree_prim_num_entries(&node1), 5, "num_entries=5");
 }
+
+Test(bptree_prim2) {
+	BpTreeNode node1;
+	BpTreeItem item1;
+
+	ASSERT(!bptree_prim_init_node(&node1, 7, true), "node1_init");
+
+	item1.key_len = 3;
+	item1.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+	item1.vardata.internal.node_id = 777;
+	item1.key = "a77";
+
+	ASSERT(!bptree_prim_insert_entry(&node1, 0, &item1),
+	       "insert internal1");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 3, "key_len=3");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "a77", 3), "key=a77");
+	ASSERT_EQ(bptree_prim_node_id(&node1, 0), 777, "node_id=777");
+
+	item1.key_len = 4;
+	item1.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+	item1.vardata.internal.node_id = 776;
+	item1.key = "a760";
+
+	ASSERT(!bptree_prim_insert_entry(&node1, 0, &item1),
+	       "insert internal1");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 4, "key_len=4");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "a760", 4), "key=a760");
+	ASSERT_EQ(bptree_prim_node_id(&node1, 0), 776, "node_id=776");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 1), 3, "key_len=3");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 1), "a77", 3), "key=a77");
+	ASSERT_EQ(bptree_prim_node_id(&node1, 1), 777, "node_id=777");
+
+	item1.key_len = 2;
+	item1.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+	item1.vardata.internal.node_id = 775;
+	item1.key = "a9";
+
+	ASSERT(!bptree_prim_insert_entry(&node1, 1, &item1),
+	       "insert internal1");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 4, "key_len=4");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "a760", 4), "key=a760");
+	ASSERT_EQ(bptree_prim_node_id(&node1, 0), 776, "node_id=776");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 1), 2, "key_len=2");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 1), "a9", 2), "key=a9");
+	ASSERT_EQ(bptree_prim_node_id(&node1, 1), 775, "node_id=775");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 2), 3, "key_len=3");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 2), "a77", 3), "key=a77");
+	ASSERT_EQ(bptree_prim_node_id(&node1, 2), 777, "node_id=777");
+}

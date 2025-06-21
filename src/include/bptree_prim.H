@@ -105,5 +105,6 @@ u64 bptree_prim_overflow_end(BpTreeNode *node, u16 index);
 const void *bptree_prim_key(BpTreeNode *node, u16 index);
 const void *bptree_prim_value(BpTreeNode *node, u16 index);
 u64 bptree_prim_next_leaf(BpTreeNode *node);
+u64 bptree_prim_node_id(BpTreeNode *node, u16 index);
 
 #endif /* _BPTREE_PRIM_H */

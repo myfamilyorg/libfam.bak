@@ -433,3 +433,16 @@ u64 bptree_prim_overflow_end(BpTreeNode *node, u16 index) {
 	return 0;
 }
 
+u64 bptree_prim_node_id(BpTreeNode *node, u16 index) {
+	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
+	u16 pos;
+	BpTreeInternalEntry *entry;
+
+	if (!impl->is_internal) return 0;
+
+	pos = impl->data.internal.entry_offsets[index];
+	entry =
+	    (BpTreeInternalEntry *)((u8 *)impl->data.internal.entries + pos);
+
+	return entry->node_id;
+}
