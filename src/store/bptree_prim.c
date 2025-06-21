@@ -240,6 +240,11 @@ i32 bptree_prim_set_next_leaf(BpTreeNode *node, u64 next_leaf) {
 	return 0;
 }
 
+i32 bptree_prim_set_entry(BpTreeNode *node, u16 index, BpTreeItem *item) {
+	if (bptree_prim_delete_entry(node, index) < 0) return -1;
+	return bptree_prim_insert_entry(node, index, item);
+}
+
 i32 bptree_prim_move_entries(BpTreeNode *dst, u16 dst_start_index,
 			     BpTreeNode *src, u16 src_start_index,
 			     u16 num_entries) {
