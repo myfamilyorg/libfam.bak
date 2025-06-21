@@ -302,3 +302,92 @@ Test(bptree_prim2) {
 	ASSERT(!strcmpn(bptree_prim_key(&node1, 2), "a77", 3), "key=a77");
 	ASSERT_EQ(bptree_prim_node_id(&node1, 2), 777, "node_id=777");
 }
+
+Test(bptree_prim3) {
+	BpTreeNode node1, node2;
+	BpTreeItem item1;
+
+	ASSERT(!bptree_prim_init_node(&node1, 7, false), "node1_init");
+
+	item1.key_len = 2;
+	item1.item_type = BPTREE_ITEM_TYPE_LEAF;
+	item1.vardata.kv.value_len = 1;
+	item1.key = "aa";
+	item1.vardata.kv.value = "z";
+
+	ASSERT(!bptree_prim_insert_entry(&node1, 0, &item1), "insert kv0");
+
+	item1.key_len = 3;
+	item1.item_type = BPTREE_ITEM_TYPE_LEAF;
+	item1.vardata.kv.value_len = 2;
+	item1.key = "bbb";
+	item1.vardata.kv.value = "zx";
+
+	ASSERT(!bptree_prim_insert_entry(&node1, 0, &item1), "insert kv1");
+
+	item1.key_len = 4;
+	item1.item_type = BPTREE_ITEM_TYPE_LEAF;
+	item1.vardata.kv.value_len = 3;
+	item1.key = "cccc";
+	item1.vardata.kv.value = "9xa";
+
+	ASSERT(!bptree_prim_insert_entry(&node1, 0, &item1), "insert kv1");
+
+	item1.key_len = 1;
+	item1.item_type = BPTREE_ITEM_TYPE_LEAF;
+	item1.vardata.kv.value_len = 5;
+	item1.key = "d";
+	item1.vardata.kv.value = "xxxxx";
+
+	ASSERT(!bptree_prim_insert_entry(&node1, 0, &item1), "insert kv1");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 1, "key_len");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 5, "value_len");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "d", 1), "key");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 0), "xxxxx", 5), "value");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 1), 4, "key_len");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 1), 3, "value_len");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 1), "cccc", 4), "key");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 1), "9xa", 3), "value");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 2), 3, "key_len");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 2), 2, "value_len");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 2), "bbb", 3), "key");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 2), "zx", 2), "value");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 3), 2, "key_len");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 3), 1, "value_len");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 3), "aa", 2), "key");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 3), "z", 1), "value");
+
+	ASSERT_EQ(bptree_prim_num_entries(&node1), 4, "num_entries");
+
+	ASSERT(!bptree_prim_init_node(&node2, 0, false), "node2_init");
+	ASSERT_EQ(bptree_prim_num_entries(&node2), 0, "num_entries");
+
+	ASSERT(!bptree_prim_move_entries(&node2, 0, &node1, 1, 2), "move");
+
+	ASSERT_EQ(bptree_prim_num_entries(&node1), 2, "num1");
+	ASSERT_EQ(bptree_prim_num_entries(&node2), 2, "num2");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 1, "key_len");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 5, "value_len");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "d", 1), "key");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 0), "xxxxx", 5), "value");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 1), 2, "key_len");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 1), 1, "value_len");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 1), "aa", 2), "key");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 1), "z", 1), "value");
+
+	ASSERT_EQ(bptree_prim_key_len(&node2, 0), 4, "key_len");
+	ASSERT_EQ(bptree_prim_value_len(&node2, 0), 3, "value_len");
+	ASSERT(!strcmpn(bptree_prim_key(&node2, 0), "cccc", 4), "key");
+	ASSERT(!strcmpn(bptree_prim_value(&node2, 0), "9xa", 3), "value");
+
+	ASSERT_EQ(bptree_prim_key_len(&node2, 1), 3, "key_len");
+	ASSERT_EQ(bptree_prim_value_len(&node2, 1), 2, "value_len");
+	ASSERT(!strcmpn(bptree_prim_key(&node2, 1), "bbb", 3), "key");
+	ASSERT(!strcmpn(bptree_prim_value(&node2, 1), "zx", 2), "value");
+}

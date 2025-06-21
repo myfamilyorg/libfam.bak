@@ -240,6 +240,79 @@ i32 bptree_prim_set_next_leaf(BpTreeNode *node, u64 next_leaf) {
 	return 0;
 }
 
+i32 bptree_prim_move_entries(BpTreeNode *dst, u16 dst_start_index,
+			     BpTreeNode *src, u16 src_start_index,
+			     u16 num_entries) {
+	BpTreeNodeImpl *src_impl = (BpTreeNodeImpl *)src;
+	BpTreeNodeImpl *dst_impl = (BpTreeNodeImpl *)dst;
+	u32 dst_start_pos, src_start_pos, bytes_to_copy, i;
+	u16 compact_bytes;
+	/*
+	u8 *dst_entries, *src_entries;
+	u16 *dst_entry_offsets, *src_entry_offsets;
+	*/
+
+	if (!dst || !src || num_entries == 0) {
+		err = EINVAL;
+		return -1;
+	}
+
+	/*
+	if (dst_impl->is_internal) {
+		dst_entries = dst_impl->data.internal.entries;
+		src_entries = dst_impl->data.internal.entries;
+		dst_entry_offsets = dst_impl->data.internal.entry_offsets;
+		src_entry_offsets = src_impl->data.internal.entry_offsets;
+	} else {
+		dst_entries = dst_impl->data.leaf.entries;
+		src_entries = dst_impl->data.leaf.entries;
+		dst_entry_offsets = dst_impl->data.leaf.entry_offsets;
+		src_entry_offsets = src_impl->data.leaf.entry_offsets;
+	}
+	*/
+
+	dst_start_pos = dst_impl->data.leaf.entry_offsets[dst_start_index];
+	src_start_pos = src_impl->data.leaf.entry_offsets[src_start_index];
+
+	if (src_start_index + num_entries < src_impl->num_entries) {
+		bytes_to_copy =
+		    src_impl->data.leaf
+			.entry_offsets[src_start_index + num_entries] -
+		    src_start_pos;
+	} else
+		bytes_to_copy = src_impl->used_bytes - src_start_pos;
+
+	if (dst_start_index < dst_impl->num_entries) {
+		shift_by_offset(dst_impl, dst_start_index, bytes_to_copy);
+	}
+
+	memorymove((u8 *)dst_impl->data.leaf.entries + dst_start_pos,
+		   (u8 *)src_impl->data.leaf.entries + src_start_pos,
+		   bytes_to_copy);
+
+	compact_bytes =
+	    src_impl->used_bytes - (src_start_index + bytes_to_copy);
+	dst_impl->num_entries += num_entries;
+	src_impl->num_entries -= num_entries;
+	dst_impl->used_bytes += bytes_to_copy;
+	src_impl->used_bytes -= bytes_to_copy;
+
+	for (i = 0; i < num_entries; i++) {
+		dst_impl->data.leaf.entry_offsets[dst_start_index + i] =
+		    src_impl->data.leaf.entry_offsets[src_start_index + i] -
+		    src_start_pos + dst_start_pos;
+	}
+
+	if (src_start_index < num_entries) {
+		memorymove((u8 *)src_impl->data.leaf.entries + src_start_pos,
+			   (u8 *)src_impl->data.leaf.entries + src_start_pos +
+			       bytes_to_copy,
+			   compact_bytes);
+	}
+
+	return 0;
+}
+
 i32 bptree_prim_insert_entry(BpTreeNode *node, u16 index, BpTreeItem *item) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	i32 needed;

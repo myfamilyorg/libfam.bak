@@ -86,9 +86,9 @@ i32 bptree_prim_set_entry(BpTreeNode *node, u16 index, BpTreeItem *item);
 /* Delete */
 i32 bptree_prim_delete_entry(BpTreeNode *node, u16 index);
 /* Move */
-i32 bptree_prim_move_node_entries(BpTreeNode *dst, u16 dst_start_index,
-				  BpTreeNode *src, u16 src_start_index,
-				  u16 num_entries);
+i32 bptree_prim_move_entries(BpTreeNode *dst, u16 dst_start_index,
+			     BpTreeNode *src, u16 src_start_index,
+			     u16 num_entries);
 /* Accessors */
 u64 bptree_prim_parent_id(BpTreeNode *node);
 u16 bptree_prim_num_entries(BpTreeNode *node);
