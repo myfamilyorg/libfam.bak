@@ -310,11 +310,17 @@ i32 bptree_prim_move_entries(BpTreeNode *dst, u16 dst_start_index,
 i32 bptree_prim_insert_entry(BpTreeNode *node, u16 index, BpTreeItem *item) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	i32 needed;
+	u16 *entry_offsets;
 
 	if (!node || !item || index > impl->num_entries) {
 		err = EINVAL;
 		return -1;
 	}
+
+	if (impl->is_internal)
+		entry_offsets = impl->data.internal.entry_offsets;
+	else
+		entry_offsets = impl->data.leaf.entry_offsets;
 
 	needed = calculate_needed(impl, item);
 	if (needed < 0) {
@@ -322,17 +328,10 @@ i32 bptree_prim_insert_entry(BpTreeNode *node, u16 index, BpTreeItem *item) {
 		return -1;
 	}
 
-	if (impl->num_entries > index) {
+	if (impl->num_entries > index)
 		shift_by_offset(impl, index, needed);
-	} else {
-		if (impl->is_internal)
-			impl->data.internal.entry_offsets[impl->num_entries] =
-			    impl->used_bytes;
-
-		else
-			impl->data.leaf.entry_offsets[impl->num_entries] =
-			    impl->used_bytes;
-	}
+	else
+		entry_offsets[impl->num_entries] = impl->used_bytes;
 
 	place_item(impl, index, item);
 	impl->used_bytes += needed;
@@ -345,27 +344,34 @@ i32 bptree_prim_delete_entry(BpTreeNode *node, u16 index) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	i32 width;
 	u16 pos, i;
+	u8 *entries;
+	u16 *entry_offsets;
 
-	if (!node || index >= impl->num_entries || impl->num_entries == 0) {
+	if (!node || index >= impl->num_entries) {
 		err = EINVAL;
 		return -1;
 	}
 
-	pos = impl->data.leaf.entry_offsets[index];
-	if (index < (impl->num_entries - 1)) {
-		width = impl->data.leaf.entry_offsets[index + 1] -
-			impl->data.leaf.entry_offsets[index];
+	if (impl->is_internal) {
+		entry_offsets = impl->data.internal.entry_offsets;
+		entries = impl->data.internal.entries;
 	} else {
-		width = impl->used_bytes - impl->data.leaf.entry_offsets[index];
+		entry_offsets = impl->data.leaf.entry_offsets;
+		entries = impl->data.leaf.entries;
 	}
 
-	memorymove(impl->data.leaf.entries + pos,
-		   impl->data.leaf.entries + pos + width,
+	pos = entry_offsets[index];
+	if (index < (impl->num_entries - 1)) {
+		width = entry_offsets[index + 1] - entry_offsets[index];
+	} else {
+		width = impl->used_bytes - entry_offsets[index];
+	}
+
+	memorymove(entries + pos, entries + pos + width,
 		   impl->used_bytes - (pos + width));
 
 	for (i = index; i < impl->num_entries - 1; i++) {
-		impl->data.leaf.entry_offsets[i] =
-		    impl->data.leaf.entry_offsets[i + 1] - width;
+		entry_offsets[i] = entry_offsets[i + 1] - width;
 	}
 
 	impl->num_entries--;
