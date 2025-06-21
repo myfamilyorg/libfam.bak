@@ -247,37 +247,33 @@ i32 bptree_prim_move_entries(BpTreeNode *dst, u16 dst_start_index,
 	BpTreeNodeImpl *dst_impl = (BpTreeNodeImpl *)dst;
 	u32 dst_start_pos, src_start_pos, bytes_to_copy, i;
 	u16 compact_bytes;
-	/*
+
 	u8 *dst_entries, *src_entries;
 	u16 *dst_entry_offsets, *src_entry_offsets;
-	*/
 
 	if (!dst || !src || num_entries == 0) {
 		err = EINVAL;
 		return -1;
 	}
 
-	/*
 	if (dst_impl->is_internal) {
 		dst_entries = dst_impl->data.internal.entries;
-		src_entries = dst_impl->data.internal.entries;
+		src_entries = src_impl->data.internal.entries;
 		dst_entry_offsets = dst_impl->data.internal.entry_offsets;
 		src_entry_offsets = src_impl->data.internal.entry_offsets;
 	} else {
 		dst_entries = dst_impl->data.leaf.entries;
-		src_entries = dst_impl->data.leaf.entries;
+		src_entries = src_impl->data.leaf.entries;
 		dst_entry_offsets = dst_impl->data.leaf.entry_offsets;
 		src_entry_offsets = src_impl->data.leaf.entry_offsets;
 	}
-	*/
 
-	dst_start_pos = dst_impl->data.leaf.entry_offsets[dst_start_index];
-	src_start_pos = src_impl->data.leaf.entry_offsets[src_start_index];
+	dst_start_pos = dst_entry_offsets[dst_start_index];
+	src_start_pos = src_entry_offsets[src_start_index];
 
 	if (src_start_index + num_entries < src_impl->num_entries) {
 		bytes_to_copy =
-		    src_impl->data.leaf
-			.entry_offsets[src_start_index + num_entries] -
+		    src_entry_offsets[src_start_index + num_entries] -
 		    src_start_pos;
 	} else
 		bytes_to_copy = src_impl->used_bytes - src_start_pos;
@@ -286,9 +282,8 @@ i32 bptree_prim_move_entries(BpTreeNode *dst, u16 dst_start_index,
 		shift_by_offset(dst_impl, dst_start_index, bytes_to_copy);
 	}
 
-	memorymove((u8 *)dst_impl->data.leaf.entries + dst_start_pos,
-		   (u8 *)src_impl->data.leaf.entries + src_start_pos,
-		   bytes_to_copy);
+	memorymove((u8 *)dst_entries + dst_start_pos,
+		   (u8 *)src_entries + src_start_pos, bytes_to_copy);
 
 	compact_bytes =
 	    src_impl->used_bytes - (src_start_index + bytes_to_copy);
@@ -298,15 +293,14 @@ i32 bptree_prim_move_entries(BpTreeNode *dst, u16 dst_start_index,
 	src_impl->used_bytes -= bytes_to_copy;
 
 	for (i = 0; i < num_entries; i++) {
-		dst_impl->data.leaf.entry_offsets[dst_start_index + i] =
-		    src_impl->data.leaf.entry_offsets[src_start_index + i] -
-		    src_start_pos + dst_start_pos;
+		dst_entry_offsets[dst_start_index + i] =
+		    src_entry_offsets[src_start_index + i] - src_start_pos +
+		    dst_start_pos;
 	}
 
 	if (src_start_index < num_entries) {
-		memorymove((u8 *)src_impl->data.leaf.entries + src_start_pos,
-			   (u8 *)src_impl->data.leaf.entries + src_start_pos +
-			       bytes_to_copy,
+		memorymove((u8 *)src_entries + src_start_pos,
+			   (u8 *)src_entries + src_start_pos + bytes_to_copy,
 			   compact_bytes);
 	}
 
@@ -331,14 +325,51 @@ i32 bptree_prim_insert_entry(BpTreeNode *node, u16 index, BpTreeItem *item) {
 	if (impl->num_entries > index) {
 		shift_by_offset(impl, index, needed);
 	} else {
-		impl->data.leaf.entry_offsets[impl->num_entries] =
-		    impl->used_bytes;
+		if (impl->is_internal)
+			impl->data.internal.entry_offsets[impl->num_entries] =
+			    impl->used_bytes;
+
+		else
+			impl->data.leaf.entry_offsets[impl->num_entries] =
+			    impl->used_bytes;
 	}
 
 	place_item(impl, index, item);
 	impl->used_bytes += needed;
 	impl->num_entries++;
 
+	return 0;
+}
+
+i32 bptree_prim_delete_entry(BpTreeNode *node, u16 index) {
+	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
+	i32 width;
+	u16 pos, i;
+
+	if (!node || index >= impl->num_entries || impl->num_entries == 0) {
+		err = EINVAL;
+		return -1;
+	}
+
+	pos = impl->data.leaf.entry_offsets[index];
+	if (index < (impl->num_entries - 1)) {
+		width = impl->data.leaf.entry_offsets[index + 1] -
+			impl->data.leaf.entry_offsets[index];
+	} else {
+		width = impl->used_bytes - impl->data.leaf.entry_offsets[index];
+	}
+
+	memorymove(impl->data.leaf.entries + pos,
+		   impl->data.leaf.entries + pos + width,
+		   impl->used_bytes - (pos + width));
+
+	for (i = index; i < impl->num_entries - 1; i++) {
+		impl->data.leaf.entry_offsets[i] =
+		    impl->data.leaf.entry_offsets[i + 1] - width;
+	}
+
+	impl->num_entries--;
+	impl->used_bytes -= width;
 	return 0;
 }
 
