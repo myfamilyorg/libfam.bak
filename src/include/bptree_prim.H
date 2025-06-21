@@ -41,25 +41,30 @@ typedef struct {
 } BpTreeNode;
 
 typedef struct {
-	const void *key;
 	const void *value;
+	u32 value_len;
 } BpKeyValue;
 
 typedef struct {
-	const void *key;
-	u64 overflow_page;
+	u64 overflow_start;
+	u64 overflow_end;
+	u32 value_len;
 } BpOverflow;
 
 typedef struct {
-	const void *key;
 	u64 node_id;
 } BpInternal;
 
+typedef enum {
+	BPTREE_ITEM_TYPE_LEAF,
+	BPTREE_ITEM_TYPE_OVERFLOW,
+	BPTREE_ITEM_TYPE_INTERNAL
+} BpTreeItemType;
+
 typedef struct {
-	u32 value_len;
 	u16 key_len;
-	bool is_overflow;
-	bool is_internal;
+	const void *key;
+	BpTreeItemType item_type;
 	union {
 		BpKeyValue kv;
 		BpOverflow overflow;
@@ -67,35 +72,38 @@ typedef struct {
 	} vardata;
 } BpTreeItem;
 
+/* Create/Modify node */
 i32 bptree_prim_init_node(BpTreeNode *node, u64 parent_id, bool is_internal);
 i32 bptree_prim_set_aux(BpTreeNode *node, u64 aux);
 i32 bptree_prim_unset_copy(BpTreeNode *node);
-i32 bptree_prim_set_leaf_entry(BpTreeNode *node, u16 index, BpTreeItem *item);
-i32 bptree_prim_insert_leaf_entry(BpTreeNode *node, u16 index,
-				  BpTreeItem *item);
-i32 bptree_prim_move_leaf_node_entries(BpTreeNode *dst, u16 dst_start_index,
-				       BpTreeNode *src, u16 src_start_index,
-				       u16 num_entries);
-i32 bptree_prim_set_internal_entry(BpTreeNode *node, u16 index,
-				   BpTreeItem *item);
-i32 bptree_prim_insert_internal_entry(BpTreeNode *node, u16 index,
-				      BpTreeItem *item);
-i32 bptree_prim_move_internal_node_entries(BpTreeNode *dst, u16 dst_start_index,
-					   BpTreeNode *src, u16 src_start_index,
-					   u16 num_entries);
 i32 bptree_prim_copy(BpTreeNode *dst, BpTreeNode *src);
-u64 bptree_prim_get_parent_id(BpTreeNode *node);
+i32 bptree_prim_set_next_leaf(BpTreeNode *node, u64 next_leaf);
+
+/* Insert */
+i32 bptree_prim_insert_entry(BpTreeNode *node, u16 index, BpTreeItem *item);
+/* Update */
+i32 bptree_prim_set_entry(BpTreeNode *node, u16 index, BpTreeItem *item);
+/* Delete */
+i32 bptree_prim_delete_entry(BpTreeNode *node, u16 index);
+/* Move */
+i32 bptree_prim_move_node_entries(BpTreeNode *dst, u16 dst_start_index,
+				  BpTreeNode *src, u16 src_start_index,
+				  u16 num_entries);
+/* Accessors */
+u64 bptree_prim_parent_id(BpTreeNode *node);
 u16 bptree_prim_num_entries(BpTreeNode *node);
 u16 bptree_prim_used_bytes(BpTreeNode *node);
+bool bptree_prim_is_copy(BpTreeNode *node);
+bool bptree_prim_is_internal(BpTreeNode *node);
+u64 bptree_prim_aux(BpTreeNode *node);
+
+int bptree_prim_is_overflow(BpTreeNode *node, u16 index);
 u16 bptree_prim_key_len(BpTreeNode *node, u16 index);
 u32 bptree_prim_value_len(BpTreeNode *node, u16 index);
-u64 bptree_prim_overflow_page(BpTreeNode *node, u16 index);
+u64 bptree_prim_overflow_start(BpTreeNode *node, u16 index);
+u64 bptree_prim_overflow_end(BpTreeNode *node, u16 index);
 const void *bptree_prim_key(BpTreeNode *node, u16 index);
 const void *bptree_prim_value(BpTreeNode *node, u16 index);
-bool bptree_prim_is_copy(BpTreeNode *node);
-bool bptree_prim_is_internal(BpTreeNode *node);
-bool bptree_prim_is_copy(BpTreeNode *node);
-bool bptree_prim_is_internal(BpTreeNode *node);
-u64 bptree_prim_get_aux(BpTreeNode *node);
+u64 bptree_prim_next_leaf(BpTreeNode *node);
 
 #endif /* _BPTREE_PRIM_H */

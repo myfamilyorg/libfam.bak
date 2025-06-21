@@ -112,604 +112,138 @@ Test(storage2) {
 }
 
 Test(bptree_prim1) {
-	BpTreeNode node1, node2, node3, node4;
-	BpTreeItem item1;
-	const u8 *tmp;
-	ASSERT(!bptree_prim_init_node(&node1, 4, false), "node1_init");
-	ASSERT_EQ(bptree_prim_get_parent_id(&node1), 4, "parent");
-	ASSERT_EQ(bptree_prim_num_entries(&node1), 0, "num_entries=0");
-
-	item1.key_len = 2;
-	item1.value_len = 1;
-	item1.is_overflow = false;
-	item1.vardata.kv.key = "ab";
-	item1.vardata.kv.value = "z";
-
-	ASSERT_EQ(bptree_prim_num_entries(&node1), 0, "num_entries=0");
-	ASSERT_EQ(bptree_prim_used_bytes(&node1), 0, "used_bytes=0");
-
-	ASSERT(!bptree_prim_insert_leaf_entry(&node1, 0, &item1),
-	       "bptree_prim");
-	ASSERT_EQ(bptree_prim_num_entries(&node1), 1, "num_entries=1");
-	ASSERT_EQ(bptree_prim_used_bytes(&node1), 11,
-		  "used_bytes=2+1+8(SizeofDataStructure)");
-	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 2, "key_len=2");
-	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 1, "value_len=1");
-	tmp = bptree_prim_key(&node1, 0);
-	ASSERT_EQ(tmp[0], 'a', "a");
-	ASSERT_EQ(tmp[1], 'b', "b");
-	tmp = bptree_prim_value(&node1, 0);
-	ASSERT_EQ(tmp[0], 'z', "z");
-
-	ASSERT(bptree_prim_is_copy(&node1), "is_copy");
-	ASSERT(!bptree_prim_is_internal(&node1), "is_internal");
-
-	bptree_prim_unset_copy(&node1);
-	ASSERT(!bptree_prim_is_copy(&node1), "is_copy");
-	bptree_prim_set_aux(&node1, 1234);
-	ASSERT_EQ(bptree_prim_get_aux(&node1), 1234, "aux=1234");
-
-	item1.key_len = 4;
-	item1.value_len = 3;
-	item1.is_overflow = false;
-	item1.vardata.kv.key = "xxxx";
-	item1.vardata.kv.value = "zab";
-
-	/* Can't inseert to a non copy */
-	ASSERT(bptree_prim_insert_leaf_entry(&node1, 0, &item1), "insert2");
-
-	ASSERT(!bptree_prim_init_node(&node2, 1, false), "node2_init");
-	ASSERT(!bptree_prim_insert_leaf_entry(&node2, 0, &item1),
-	       "insert2_success");
-
-	item1.key_len = 3;
-	item1.value_len = 2;
-	item1.is_overflow = false;
-	item1.vardata.kv.key = "xyz";
-	item1.vardata.kv.value = "aa";
-
-	ASSERT(!bptree_prim_insert_leaf_entry(&node2, 0, &item1),
-	       "insert2_success");
-
-	item1.key_len = 3;
-	item1.value_len = 1;
-	item1.is_overflow = false;
-	item1.vardata.kv.key = "aaa";
-	item1.vardata.kv.value = "v";
-
-	ASSERT(!bptree_prim_insert_leaf_entry(&node2, 1, &item1),
-	       "insert3_success");
-
-	ASSERT_EQ(bptree_prim_num_entries(&node2), 3, "ent=3");
-	ASSERT_EQ(bptree_prim_key_len(&node2, 0), 3, "0key_len=3");
-	ASSERT_EQ(bptree_prim_key_len(&node2, 1), 3, "1key_len=3");
-	ASSERT_EQ(bptree_prim_key_len(&node2, 2), 4, "2key_len=4");
-	ASSERT_EQ(bptree_prim_value_len(&node2, 0), 2, "0v_len=2");
-	ASSERT_EQ(bptree_prim_value_len(&node2, 1), 1, "1v_len=1");
-	ASSERT_EQ(bptree_prim_value_len(&node2, 2), 3, "2v_len=3");
-	ASSERT(!strcmpn(bptree_prim_key(&node2, 0), "xyz", 3), "key0");
-	ASSERT(!strcmpn(bptree_prim_key(&node2, 1), "aaa", 3), "key1");
-	ASSERT(!strcmpn(bptree_prim_key(&node2, 2), "xxxx", 4), "key2");
-	ASSERT(!strcmpn(bptree_prim_value(&node2, 0), "aa", 2), "value0");
-	ASSERT(!strcmpn(bptree_prim_value(&node2, 1), "v", 1), "value1");
-	ASSERT(!strcmpn(bptree_prim_value(&node2, 2), "zab", 3), "value2");
-
-	item1.key_len = 10;
-	item1.value_len = 10;
-	item1.is_overflow = false;
-	item1.vardata.kv.key = "0123456789";
-	item1.vardata.kv.value = "abcdefghij";
-
-	ASSERT(!bptree_prim_insert_leaf_entry(&node2, 1, &item1),
-	       "insert4_success");
-
-	ASSERT_EQ(bptree_prim_num_entries(&node2), 4, "ent=3");
-	ASSERT_EQ(bptree_prim_key_len(&node2, 0), 3, "0key_len=3");
-	ASSERT_EQ(bptree_prim_key_len(&node2, 2), 3, "2key_len=3");
-	ASSERT_EQ(bptree_prim_key_len(&node2, 3), 4, "3key_len=4");
-	ASSERT_EQ(bptree_prim_value_len(&node2, 0), 2, "0v_len=2");
-	ASSERT_EQ(bptree_prim_value_len(&node2, 2), 1, "2v_len=1");
-	ASSERT_EQ(bptree_prim_value_len(&node2, 3), 3, "3v_len=3");
-	ASSERT(!strcmpn(bptree_prim_key(&node2, 0), "xyz", 3), "key0");
-	ASSERT(!strcmpn(bptree_prim_key(&node2, 2), "aaa", 3), "key2");
-	ASSERT(!strcmpn(bptree_prim_key(&node2, 3), "xxxx", 4), "key3");
-	ASSERT(!strcmpn(bptree_prim_value(&node2, 0), "aa", 2), "value0");
-	ASSERT(!strcmpn(bptree_prim_value(&node2, 2), "v", 1), "value2");
-	ASSERT(!strcmpn(bptree_prim_value(&node2, 3), "zab", 3), "value3");
-
-	/* Check new '1' */
-	ASSERT_EQ(bptree_prim_key_len(&node2, 1), 10, "1key_len=10");
-	ASSERT_EQ(bptree_prim_value_len(&node2, 1), 10, "1value_len=10");
-	ASSERT(!strcmpn(bptree_prim_key(&node2, 1), "0123456789", 10), "key1");
-	ASSERT(!strcmpn(bptree_prim_value(&node2, 1), "abcdefghij", 10),
-	       "value1");
-
-	ASSERT(!bptree_prim_init_node(&node3, 1, false), "node3_init");
-	item1.key_len = 3;
-	item1.value_len = 3;
-	item1.is_overflow = false;
-	item1.vardata.kv.key = "111";
-	item1.vardata.kv.value = "abc";
-
-	ASSERT(!bptree_prim_insert_leaf_entry(&node3, 0, &item1),
-	       "insert0_success");
-
-	item1.key_len = 4;
-	item1.value_len = 4;
-	item1.is_overflow = false;
-	item1.vardata.kv.key = "2222";
-	item1.vardata.kv.value = "abcd";
-
-	ASSERT(!bptree_prim_insert_leaf_entry(&node3, 1, &item1),
-	       "insert1_success");
-
-	item1.key_len = 5;
-	item1.value_len = 5;
-	item1.is_overflow = false;
-	item1.vardata.kv.key = "33333";
-	item1.vardata.kv.value = "abcde";
-
-	ASSERT(!bptree_prim_insert_leaf_entry(&node3, 2, &item1),
-	       "insert1_success");
-
-	item1.key_len = 6;
-	item1.value_len = 6;
-	item1.is_overflow = false;
-	item1.vardata.kv.key = "444444";
-	item1.vardata.kv.value = "abcdef";
-
-	ASSERT(!bptree_prim_insert_leaf_entry(&node3, 3, &item1),
-	       "insert1_success");
-
-	ASSERT_EQ(bptree_prim_key_len(&node3, 0), 3, "0key_len=3");
-	ASSERT_EQ(bptree_prim_key_len(&node3, 1), 4, "1key_len=4");
-	ASSERT_EQ(bptree_prim_key_len(&node3, 2), 5, "2key_len=5");
-	ASSERT_EQ(bptree_prim_key_len(&node3, 3), 6, "3key_len=6");
-	ASSERT_EQ(bptree_prim_num_entries(&node3), 4, "nument");
-
-	ASSERT(!bptree_prim_init_node(&node4, 1, false), "node4_init");
-	ASSERT_EQ(bptree_prim_num_entries(&node4), 0, "nument");
-
-	ASSERT(!bptree_prim_move_leaf_node_entries(&node4, 0, &node3, 2, 2),
-	       "move_node");
-
-	ASSERT_EQ(bptree_prim_num_entries(&node3), 2, "nument");
-	ASSERT_EQ(bptree_prim_num_entries(&node4), 2, "nument");
-
-	ASSERT_EQ(bptree_prim_key_len(&node3, 0), 3, "0key_len=3");
-	ASSERT_EQ(bptree_prim_key_len(&node3, 1), 4, "1key_len=4");
-	ASSERT_EQ(bptree_prim_value_len(&node3, 0), 3, "0value_len=3");
-	ASSERT_EQ(bptree_prim_value_len(&node3, 1), 4, "1value_len=4");
-	ASSERT(!strcmpn(bptree_prim_key(&node3, 0), "111", 3), "key0");
-	ASSERT(!strcmpn(bptree_prim_key(&node3, 1), "2222", 4), "key1");
-	ASSERT(!strcmpn(bptree_prim_value(&node3, 0), "abc", 3), "value0");
-	ASSERT(!strcmpn(bptree_prim_value(&node3, 1), "abcd", 4), "value1");
-
-	ASSERT_EQ(bptree_prim_key_len(&node4, 0), 5, "0key_len=5");
-	ASSERT_EQ(bptree_prim_key_len(&node4, 1), 6, "1key_len=6");
-	ASSERT_EQ(bptree_prim_value_len(&node4, 0), 5, "0value_len=5");
-	ASSERT_EQ(bptree_prim_value_len(&node4, 1), 6, "1value_len=6");
-	ASSERT(!strcmpn(bptree_prim_key(&node4, 0), "33333", 5), "key0");
-	ASSERT(!strcmpn(bptree_prim_key(&node4, 1), "444444", 6), "key1");
-	ASSERT(!strcmpn(bptree_prim_value(&node4, 0), "abcde", 5), "value0");
-	ASSERT(!strcmpn(bptree_prim_value(&node4, 1), "abcdef", 6), "value1");
-	ASSERT_EQ(bptree_prim_used_bytes(&node3), 30, "used_bytes=30");
-	ASSERT_EQ(bptree_prim_used_bytes(&node4), 38, "used_bytes=38");
-}
-
-Test(bptree_prim2) {
-	BpTreeNode node1, node2, node3, node4;
-	BpTreeItem item1;
-
-	/* Initialize node1 (source node) with parent_id=5, leaf node */
-	ASSERT(!bptree_prim_init_node(&node1, 5, false), "node1_init");
-	ASSERT_EQ(bptree_prim_get_parent_id(&node1), 5, "parent=5");
-	ASSERT_EQ(bptree_prim_num_entries(&node1), 0, "num_entries=0");
-	ASSERT_EQ(bptree_prim_used_bytes(&node1), 0, "used_bytes=0");
-	ASSERT(bptree_prim_is_copy(&node1), "is_copy");
-	ASSERT(!bptree_prim_is_internal(&node1), "is_internal");
-
-	/* Insert entries into node1: ("aaa", "xyz"), ("bbb", "uvw"), ("ccc",
-	 * "rst"), ("dddd", "pqrs") */
-	item1.is_overflow = false;
-	item1.key_len = 3;
-	item1.value_len = 3;
-	item1.vardata.kv.key = "aaa";
-	item1.vardata.kv.value = "xyz";
-	ASSERT(!bptree_prim_insert_leaf_entry(&node1, 0, &item1), "insert1");
-
-	item1.vardata.kv.key = "bbb";
-	item1.vardata.kv.value = "uvw";
-	ASSERT(!bptree_prim_insert_leaf_entry(&node1, 1, &item1), "insert2");
-
-	item1.vardata.kv.key = "ccc";
-	item1.vardata.kv.value = "rst";
-	ASSERT(!bptree_prim_insert_leaf_entry(&node1, 2, &item1), "insert3");
-
-	item1.key_len = 4;
-	item1.value_len = 4;
-	item1.vardata.kv.key = "dddd";
-	item1.vardata.kv.value = "pqrs";
-	ASSERT(!bptree_prim_insert_leaf_entry(&node1, 3, &item1), "insert4");
-
-	/* Verify node1 state: 3*(3+3+8) + (4+4+8) = 58 bytes */
-	ASSERT_EQ(bptree_prim_num_entries(&node1), 4, "node1_num_entries=4");
-	ASSERT_EQ(bptree_prim_used_bytes(&node1), 58, "node1_used_bytes=58");
-	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 3, "key0_len=3");
-	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 3, "value0_len=3");
-	ASSERT_EQ(bptree_prim_key_len(&node1, 3), 4, "key3_len=4");
-	ASSERT_EQ(bptree_prim_value_len(&node1, 3), 4, "value3_len=4");
-	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "aaa", 3), "key0=aaa");
-	ASSERT(!strcmpn(bptree_prim_value(&node1, 0), "xyz", 3), "value0=xyz");
-	ASSERT(!strcmpn(bptree_prim_key(&node1, 3), "dddd", 4), "key3=dddd");
-	ASSERT(!strcmpn(bptree_prim_value(&node1, 3), "pqrs", 4),
-	       "value3=pqrs");
-
-	/* Initialize node2 (destination node) */
-	ASSERT(!bptree_prim_init_node(&node2, 6, false), "node2_init");
-	ASSERT_EQ(bptree_prim_num_entries(&node2), 0, "node2_num_entries=0");
-
-	/* Move two entries from start of node1 (indices 0,1: "aaa", "bbb") to
-	 * node2 */
-	ASSERT(!bptree_prim_move_leaf_node_entries(&node2, 0, &node1, 0, 2),
-	       "move_start");
-
-	/* Verify node1: should have "ccc", "dddd" (3+3+8 + 4+4+8 = 30 bytes) */
-	ASSERT_EQ(bptree_prim_num_entries(&node1), 2, "node1_num_entries=2");
-	ASSERT_EQ(bptree_prim_used_bytes(&node1), 30, "node1_used_bytes=30");
-	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 3, "node1_key0_len=3");
-	ASSERT_EQ(bptree_prim_key_len(&node1, 1), 4, "node1_key1_len=4");
-
-	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 3, "node1_value0_len=3");
-	ASSERT_EQ(bptree_prim_value_len(&node1, 1), 4, "node1_value1_len=4");
-	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "ccc", 3),
-	       "node1_key0=ccc");
-	ASSERT(!strcmpn(bptree_prim_key(&node1, 1), "dddd", 4),
-	       "node1_key1=dddd");
-	ASSERT(!strcmpn(bptree_prim_value(&node1, 0), "rst", 3),
-	       "node1_value0=rst");
-	ASSERT(!strcmpn(bptree_prim_value(&node1, 1), "pqrs", 4),
-	       "node1_value1=pqrs");
-
-	ASSERT_EQ(bptree_prim_num_entries(&node2), 2, "node2_num_entries=2");
-	ASSERT_EQ(bptree_prim_used_bytes(&node2), 28, "node2_used_bytes=28");
-	ASSERT_EQ(bptree_prim_key_len(&node2, 0), 3, "node2_key0_len=3");
-	ASSERT_EQ(bptree_prim_key_len(&node2, 1), 3, "node2_key1_len=3");
-	ASSERT_EQ(bptree_prim_value_len(&node2, 0), 3, "node2_value0_len=3");
-	ASSERT_EQ(bptree_prim_value_len(&node2, 1), 3, "node2_value1_len=3");
-	ASSERT(!strcmpn(bptree_prim_key(&node2, 0), "aaa", 3),
-	       "node2_key0=aaa");
-	ASSERT(!strcmpn(bptree_prim_key(&node2, 1), "bbb", 3),
-	       "node2_key1=bbb");
-	ASSERT(!strcmpn(bptree_prim_value(&node2, 0), "xyz", 3),
-	       "node2_value0=xyz");
-	ASSERT(!strcmpn(bptree_prim_value(&node2, 1), "uvw", 3),
-	       "node2_value1=uvw");
-
-	ASSERT(!bptree_prim_move_leaf_node_entries(&node2, 2, &node1, 0, 0),
-	       "move_zero");
-	ASSERT_EQ(bptree_prim_num_entries(&node2), 2, "node2_num_entries=2");
-	ASSERT_EQ(bptree_prim_num_entries(&node1), 2, "node1_num_entries=2");
-
-	ASSERT(bptree_prim_move_leaf_node_entries(&node2, 2, &node1, 2, 1),
-	       "move_invalid_src");
-
-	ASSERT_EQ(bptree_prim_num_entries(&node2), 2, "node2_num_entries=2");
-
-	ASSERT(bptree_prim_move_leaf_node_entries(&node2, 3, &node1, 0, 1),
-	       "move_invalid_dst");
-
-	ASSERT_EQ(bptree_prim_num_entries(&node2), 2, "node2_num_entries=2");
-
-	ASSERT(!bptree_prim_move_leaf_node_entries(&node2, 2, &node1, 0, 2),
-	       "move_all");
-
-	ASSERT_EQ(bptree_prim_num_entries(&node1), 0, "node1_num_entries=0");
-	ASSERT_EQ(bptree_prim_used_bytes(&node1), 0, "node1_used_bytes=0");
-	ASSERT_EQ(bptree_prim_num_entries(&node2), 4, "node2_num_entries=4");
-	ASSERT_EQ(bptree_prim_used_bytes(&node2), 58, "node2_used_bytes=58");
-	ASSERT(!strcmpn(bptree_prim_key(&node2, 2), "ccc", 3),
-	       "node2_key2=ccc");
-	ASSERT(!strcmpn(bptree_prim_key(&node2, 3), "dddd", 4),
-	       "node2_key3=dddd");
-	ASSERT(!strcmpn(bptree_prim_value(&node2, 2), "rst", 3),
-	       "node2_value2=rst");
-	ASSERT(!strcmpn(bptree_prim_value(&node2, 3), "pqrs", 4),
-	       "node2_value3=pqrs");
-
-	ASSERT(!bptree_prim_init_node(&node3, 7, false), "node3_init");
-	item1.key_len = 3;
-	item1.value_len = 3;
-	item1.vardata.kv.key = "eee";
-	item1.vardata.kv.value = "fgh";
-	ASSERT(!bptree_prim_insert_leaf_entry(&node3, 0, &item1),
-	       "insert_node3");
-	bptree_prim_unset_copy(&node3);
-	ASSERT(!bptree_prim_is_copy(&node3), "node3_not_copy");
-	ASSERT(bptree_prim_move_leaf_node_entries(&node1, 0, &node3, 0, 1),
-	       "move_non_copy_src");
-	ASSERT_EQ(bptree_prim_num_entries(&node1), 0, "node1_num_entries=0");
-	ASSERT_EQ(bptree_prim_num_entries(&node3), 1, "node3_num_entries=1");
-
-	ASSERT(!bptree_prim_init_node(&node4, 8, false), "node4_init");
-	item1.key_len = 15;
-	item1.value_len = 15;
-	item1.vardata.kv.key = "large_key_123456";
-	item1.vardata.kv.value = "large_val_abcdef";
-	ASSERT(!bptree_prim_insert_leaf_entry(&node4, 0, &item1),
-	       "insert_large1");
-	ASSERT(!bptree_prim_insert_leaf_entry(&node4, 1, &item1),
-	       "insert_large2");
-	ASSERT_EQ(bptree_prim_used_bytes(&node4), 76, "node4_used_bytes=76");
-
-	ASSERT(!bptree_prim_init_node(&node3, 7, false), "node3_reinit");
-	item1.key_len = 3;
-	item1.value_len = 3;
-	item1.vardata.kv.key = "eee";
-	item1.vardata.kv.value = "fgh";
-	ASSERT(!bptree_prim_insert_leaf_entry(&node3, 0, &item1),
-	       "insert_node3");
-
-	ASSERT(!bptree_prim_move_leaf_node_entries(&node4, 2, &node3, 0, 1),
-	       "move_to_full");
-	ASSERT_EQ(bptree_prim_num_entries(&node4), 3, "node4_num_entries=3");
-	ASSERT_EQ(bptree_prim_used_bytes(&node4), 90, "node4_used_bytes=90");
-	ASSERT(!strcmpn(bptree_prim_key(&node4, 2), "eee", 3),
-	       "node4_key2=eee");
-	ASSERT(!strcmpn(bptree_prim_value(&node4, 2), "fgh", 3),
-	       "node4_value2=fgh");
-	ASSERT_EQ(bptree_prim_num_entries(&node3), 0, "node3_num_entries=0");
-
-	item1.key_len = 20;
-	item1.value_len = 20;
-	item1.vardata.kv.key = "too_large_key_12345678";
-	item1.vardata.kv.value = "too_large_val_abcdefgh";
-	ASSERT(!bptree_prim_insert_leaf_entry(&node3, 0, &item1),
-	       "insert_node3_large");
-}
-
-Test(bptree_prim3) {
-	BpTreeNode node1, node2;
-	BpTreeItem item1;
-	u32 i, large_size, entry_size, num_entries;
-	u8 key_buf[PAGE_SIZE / 8], val_buf[PAGE_SIZE / 8];
-
-	/* Calculate large entry size */
-	large_size = PAGE_SIZE / 8; /* e.g., 2048 for 16384, 512 for 4096 */
-	entry_size = 2 * large_size + 8; /* key_len + value_len + BpTreeEntry */
-	num_entries = ((30 * PAGE_SIZE - 1280) / 32) / entry_size +
-		      1; /* Approach LEAF_ARRAY_SIZE */
-
-	/* Initialize node1 (destination) */
-	ASSERT(!bptree_prim_init_node(&node1, 1, false), "node1_init");
-	ASSERT_EQ(bptree_prim_num_entries(&node1), 0, "num_entries=0");
-
-	/* Fill node1 close to LEAF_ARRAY_SIZE */
-	item1.is_overflow = false;
-	item1.key_len = large_size;
-	item1.value_len = large_size;
-	memset(key_buf, 'k', large_size);
-	memset(val_buf, 'v', large_size);
-	item1.vardata.kv.key = key_buf;
-	item1.vardata.kv.value = val_buf;
-
-	for (i = 0; i < num_entries - 1; i++) {
-		ASSERT(!bptree_prim_insert_leaf_entry(&node1, i, &item1),
-		       "insert_large");
-	}
-
-	/* Verify node1 */
-	ASSERT_EQ(bptree_prim_num_entries(&node1), num_entries - 1,
-		  "node1_num_entries");
-	ASSERT(bptree_prim_used_bytes(&node1) <= (30 * PAGE_SIZE - 1280) / 32,
-	       "node1_used_bytes");
-
-	/* Initialize node2 with one large entry */
-	ASSERT(!bptree_prim_init_node(&node2, 2, false), "node2_init");
-	ASSERT(!bptree_prim_insert_leaf_entry(&node2, 0, &item1),
-	       "insert_node2");
-
-	/* Attempt overflow */
-	ASSERT(bptree_prim_move_leaf_node_entries(&node1, num_entries - 1,
-						  &node2, 0, 1),
-	       "move_overflow");
-	ASSERT_EQ(bptree_prim_num_entries(&node1), num_entries - 1,
-		  "node1_num_entries_unchanged");
-	ASSERT_EQ(bptree_prim_num_entries(&node2), 1,
-		  "node2_num_entries_unchanged");
-}
-
-Test(bptree_prim4) {
-	BpTreeNode node, node2;
-	BpTreeItem item1;
-	u8 key_buf[PAGE_SIZE / 2], val_buf[PAGE_SIZE / 2];
-
-	/* Initialize node (leaf node, parent_id=1) */
-	ASSERT(!bptree_prim_init_node(&node, 1, false), "node_init");
-	ASSERT_EQ(bptree_prim_get_parent_id(&node), 1, "parent=1");
-	ASSERT_EQ(bptree_prim_num_entries(&node), 0, "num_entries=0");
-	ASSERT_EQ(bptree_prim_used_bytes(&node), 0, "used_bytes=0");
-	ASSERT(bptree_prim_is_copy(&node), "is_copy");
-	ASSERT(!bptree_prim_is_internal(&node), "is_internal");
-
-	/* Insert entries: ("aaa", "xyz"), ("bbb", "uvw"), ("cccc", "pqrs") */
-	item1.is_overflow = false;
-	item1.key_len = 3;
-	item1.value_len = 3;
-	item1.vardata.kv.key = "aaa";
-	item1.vardata.kv.value = "xyz";
-	ASSERT(!bptree_prim_insert_leaf_entry(&node, 0, &item1), "insert1");
-
-	item1.vardata.kv.key = "bbb";
-	item1.vardata.kv.value = "uvw";
-	ASSERT(!bptree_prim_insert_leaf_entry(&node, 1, &item1), "insert2");
-
-	item1.key_len = 4;
-	item1.value_len = 4;
-	item1.vardata.kv.key = "cccc";
-	item1.vardata.kv.value = "pqrs";
-	ASSERT(!bptree_prim_insert_leaf_entry(&node, 2, &item1), "insert3");
-
-	/* Verify initial state: 2*(3+3+8) + (4+4+8) = 44 bytes */
-	ASSERT_EQ(bptree_prim_num_entries(&node), 3, "num_entries=3");
-	ASSERT_EQ(bptree_prim_used_bytes(&node), 44, "used_bytes=44");
-	ASSERT_EQ(bptree_prim_key_len(&node, 0), 3, "key0_len=3");
-	ASSERT_EQ(bptree_prim_key_len(&node, 2), 4, "key2_len=4");
-	ASSERT(!strcmpn(bptree_prim_key(&node, 0), "aaa", 3), "key0=aaa");
-	ASSERT(!strcmpn(bptree_prim_key(&node, 2), "cccc", 4), "key2=cccc");
-
-	/* Test 1: Same size overwrite at index 1 ("bbb", "uvw") → ("xyz",
-	 * "abc") */
-	item1.key_len = 3;
-	item1.value_len = 3;
-	item1.vardata.kv.key = "xyz";
-	item1.vardata.kv.value = "abc";
-	ASSERT(!bptree_prim_set_leaf_entry(&node, 1, &item1), "set_same_size");
-
-	/* Verify: ("aaa", "xyz"), ("xyz", "abc"), ("cccc", "pqrs") */
-	ASSERT_EQ(bptree_prim_num_entries(&node), 3, "num_entries=3");
-	ASSERT_EQ(bptree_prim_used_bytes(&node), 44, "used_bytes=44");
-	ASSERT_EQ(bptree_prim_key_len(&node, 0), 3, "key0_len=3");
-	ASSERT_EQ(bptree_prim_key_len(&node, 1), 3, "key1_len=3");
-	ASSERT_EQ(bptree_prim_key_len(&node, 2), 4, "key2_len=4");
-	ASSERT(!strcmpn(bptree_prim_key(&node, 0), "aaa", 3), "key0=aaa");
-	ASSERT(!strcmpn(bptree_prim_key(&node, 1), "xyz", 3), "1key1=xyz");
-	ASSERT(!strcmpn(bptree_prim_value(&node, 1), "abc", 3), "value1=abc");
-	ASSERT(!strcmpn(bptree_prim_key(&node, 2), "cccc", 4), "key2=cccc");
-
-	/* Test 2: Larger size overwrite at index 0 ("aaa", "xyz") → ("aaaaa",
-	 * "vwxyz") */
-	item1.key_len = 5;
-	item1.value_len = 5;
-	item1.vardata.kv.key = "aaaaa";
-	item1.vardata.kv.value = "vwxyz";
-	ASSERT(!bptree_prim_set_leaf_entry(&node, 0, &item1),
-	       "set_larger_size");
-
-	/* Verify: ("aaaaa", "vwxyz"), ("xyz", "abc"), ("cccc", "pqrs") */
-	ASSERT_EQ(bptree_prim_num_entries(&node), 3, "num_entries=3");
-	ASSERT_EQ(bptree_prim_used_bytes(&node), 48,
-		  "used_bytes=48"); /* (5+5+8) + (3+3+8) + (4+4+8) */
-	ASSERT_EQ(bptree_prim_key_len(&node, 0), 5, "key0_len=5");
-	ASSERT_EQ(bptree_prim_key_len(&node, 1), 3, "key1_len=3");
-	ASSERT(!strcmpn(bptree_prim_key(&node, 0), "aaaaa", 5), "key0=aaaaa");
-	ASSERT(!strcmpn(bptree_prim_value(&node, 0), "vwxyz", 5),
-	       "value0=vwxyz");
-	ASSERT(!strcmpn(bptree_prim_key(&node, 1), "xyz", 3), "2key1=xyz");
-
-	/* Test 3: Smaller size overwrite at index 2 ("cccc", "pqrs") → ("zz",
-	 * "yy") */
-	item1.key_len = 2;
-	item1.value_len = 2;
-	item1.vardata.kv.key = "zz";
-	item1.vardata.kv.value = "yy";
-	ASSERT(!bptree_prim_set_leaf_entry(&node, 2, &item1),
-	       "set_smaller_size");
-
-	/* Verify: ("aaaaa", "vwxyz"), ("xyz", "abc"), ("zz", "yy") */
-	ASSERT_EQ(bptree_prim_num_entries(&node), 3, "num_entries=3");
-	ASSERT_EQ(bptree_prim_used_bytes(&node), 44,
-		  "1used_bytes=44"); /* (5+5+8) + (3+3+8) + (2+2+8) */
-	ASSERT_EQ(bptree_prim_key_len(&node, 2), 2, "key2_len=2");
-	ASSERT(!strcmpn(bptree_prim_key(&node, 2), "zz", 2), "key2=zz");
-	ASSERT(!strcmpn(bptree_prim_value(&node, 2), "yy", 2), "value2=yy");
-	ASSERT(!strcmpn(bptree_prim_key(&node, 1), "xyz", 3), "3key1=xyz");
-
-	/* Test 4: Invalid index (num_entries=3) */
-	ASSERT(bptree_prim_set_leaf_entry(&node, 3, &item1),
-	       "set_invalid_index");
-	ASSERT_EQ(bptree_prim_num_entries(&node), 3, "num_entries=3");
-	ASSERT_EQ(bptree_prim_used_bytes(&node), 44, "2used_bytes=44");
-
-	/* Test 5: Non-copy node */
-	ASSERT(!bptree_prim_init_node(&node2, 2, false), "node2_init");
-	ASSERT(!bptree_prim_insert_leaf_entry(&node2, 0, &item1),
-	       "node2_insert");
-	bptree_prim_unset_copy(&node2);
-	ASSERT(bptree_prim_set_leaf_entry(&node2, 0, &item1), "set_non_copy");
-	ASSERT_EQ(bptree_prim_num_entries(&node2), 1, "node2_num_entries=1");
-	ASSERT(!strcmpn(bptree_prim_key(&node2, 0), "zz", 2), "node2_key0=zz");
-
-	/* Test 6: Null inputs */
-	ASSERT(bptree_prim_set_leaf_entry(NULL, 0, &item1), "set_null_node");
-	ASSERT(bptree_prim_set_leaf_entry(&node, 0, NULL), "set_null_item");
-
-	/* Test 7: Overflow attempt at index 1 */
-	item1.key_len = PAGE_SIZE / 2; /* e.g., 8192 for 16384 */
-	item1.value_len = PAGE_SIZE / 2;
-	memset(key_buf, 'k', item1.key_len);
-	memset(val_buf, 'v', item1.value_len);
-	item1.vardata.kv.key = key_buf;
-	item1.vardata.kv.value = val_buf;
-	ASSERT(bptree_prim_set_leaf_entry(&node, 1, &item1), "set_overflow");
-	ASSERT_EQ(bptree_prim_num_entries(&node), 3, "num_entries=3");
-	ASSERT(!strcmpn(bptree_prim_key(&node, 1), "xyz", 3), "4key1=xyz");
-
-	ASSERT(!strcmpn(bptree_prim_key(&node, 0), "aaaaa", 5), "key0=aaaaa");
-
-	/* Test 9: Invalid item (zero key_len) */
-	item1.is_overflow = false;
-	item1.key_len = 0;
-	item1.value_len = 3;
-	ASSERT(bptree_prim_set_leaf_entry(&node, 0, &item1),
-	       "set_zero_key_len");
-	ASSERT(!strcmpn(bptree_prim_key(&node, 0), "aaaaa", 5), "key0=aaaaa");
-}
-
-Test(bptree_prim5) {
 	BpTreeNode node1;
 	BpTreeItem item1;
 
-	ASSERT(!bptree_prim_init_node(&node1, 1, false), "node_init");
+	ASSERT(!bptree_prim_init_node(&node1, 4, false), "node1_init");
+	ASSERT_EQ(bptree_prim_parent_id(&node1), 4, "parent");
+	ASSERT_EQ(bptree_prim_num_entries(&node1), 0, "num_entries=0");
+
+	item1.key_len = 2;
+	item1.item_type = BPTREE_ITEM_TYPE_LEAF;
+	item1.vardata.kv.value_len = 1;
+	item1.key = "ab";
+	item1.vardata.kv.value = "z";
+
+	ASSERT(!bptree_prim_insert_entry(&node1, 0, &item1), "insert ab");
+	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 2, "key_len=2");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 1, "value_len=1");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "ab", 2), "key=ab");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 0), "z", 1), "value=z");
 
 	item1.key_len = 3;
-	item1.value_len = 120000;
-	item1.is_overflow = true;
-	item1.vardata.overflow.overflow_page = 100;
-	item1.vardata.overflow.key = "abc";
-	ASSERT(!bptree_prim_insert_leaf_entry(&node1, 0, &item1),
-	       "node1_insert");
+	item1.item_type = BPTREE_ITEM_TYPE_LEAF;
+	item1.vardata.kv.value_len = 3;
+	item1.key = "def";
+	item1.vardata.kv.value = "xab";
 
-	err = 0;
-	ASSERT(!bptree_prim_value(&node1, 0), "overflow_err");
-	ASSERT_EQ(err, EINVAL, "err=EINVAL");
+	ASSERT(!bptree_prim_insert_entry(&node1, 0, &item1), "insert def");
+	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 3, "key_len=3");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 3, "value_len=3");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "def", 3), "key=def");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 0), "xab", 3), "value=xab");
 
-	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 3, "keylen=3");
-	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "abc", 3), "key=abc");
-	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 120000, "valuelen=120000");
+	ASSERT_EQ(bptree_prim_key_len(&node1, 1), 2, "key_len=2");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 1), 1, "value_len=1");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 1), "ab", 2), "key=ab");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 1), "z", 1), "value=z");
 
 	item1.key_len = 4;
-	item1.value_len = 17000;
-	item1.is_overflow = true;
-	item1.vardata.overflow.overflow_page = 102;
-	item1.vardata.overflow.key = "def1";
-	ASSERT(!bptree_prim_insert_leaf_entry(&node1, 0, &item1),
-	       "node1_insert");
+	item1.item_type = BPTREE_ITEM_TYPE_LEAF;
+	item1.vardata.kv.value_len = 5;
+	item1.key = "ghij";
+	item1.vardata.kv.value = "ddddd";
+	ASSERT(!bptree_prim_insert_entry(&node1, 1, &item1), "insert def");
 
-	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 4, "keylen=4");
-	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "def1", 4), "key=def1");
-	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 17000, "valuelen=17000");
+	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 3, "key_len=3");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 3, "value_len=3");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "def", 3), "key=def");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 0), "xab", 3), "value=xab");
 
-	ASSERT_EQ(bptree_prim_key_len(&node1, 1), 3, "keylen=3");
-	ASSERT(!strcmpn(bptree_prim_key(&node1, 1), "abc", 3), "key=abc");
-	ASSERT_EQ(bptree_prim_value_len(&node1, 1), 120000, "valuelen=120000");
+	ASSERT_EQ(bptree_prim_key_len(&node1, 1), 4, "key_len=4");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 1), 5, "value_len=5");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 1), "ghij", 4), "key=ghij");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 1), "ddddd", 5),
+	       "value=ddddd");
 
-	item1.key_len = 5;
-	item1.value_len = 18000;
-	item1.is_overflow = true;
-	item1.vardata.overflow.overflow_page = 101;
-	item1.vardata.overflow.key = "01234";
-	ASSERT(!bptree_prim_set_leaf_entry(&node1, 0, &item1),
-	       "set_leaf_entry");
+	ASSERT_EQ(bptree_prim_key_len(&node1, 2), 2, "key_len=2");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 2), 1, "value_len=1");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 2), "ab", 2), "key=ab");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 2), "z", 1), "value=z");
 
-	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 5, "keylen=5");
-	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "01234", 5), "key=01234");
-	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 18000, "valuelen=18000");
-	ASSERT_EQ(bptree_prim_overflow_page(&node1, 0), 101, "overflow=101");
+	item1.key_len = 2;
+	item1.item_type = BPTREE_ITEM_TYPE_OVERFLOW;
+	item1.vardata.overflow.value_len = 4;
+	item1.vardata.overflow.overflow_start = 123;
+	item1.vardata.overflow.overflow_end = 456;
+	item1.key = "x1";
 
-	ASSERT_EQ(bptree_prim_key_len(&node1, 1), 3, "keylen=3");
-	ASSERT(!strcmpn(bptree_prim_key(&node1, 1), "abc", 3), "key=abc");
-	ASSERT_EQ(bptree_prim_value_len(&node1, 1), 120000, "valuelen=120000");
-	ASSERT_EQ(bptree_prim_overflow_page(&node1, 1), 100, "overflow=100");
+	ASSERT(!bptree_prim_insert_entry(&node1, 1, &item1), "insert overflow");
+	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 3, "key_len=3");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 3, "value_len=3");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "def", 3), "key=def");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 0), "xab", 3), "value=xab");
+	ASSERT_EQ(bptree_prim_is_overflow(&node1, 0), false, "is overflow");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 1), 2, "key_len=2");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 1), 4, "value_len=4");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 1), "x1", 2), "key=x1");
+	ASSERT_EQ(bptree_prim_is_overflow(&node1, 1), true, "is overflow");
+	ASSERT_EQ(bptree_prim_overflow_start(&node1, 1), 123, "start=123");
+	ASSERT_EQ(bptree_prim_overflow_end(&node1, 1), 456, "end=456");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 2), 4, "key_len=4");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 2), 5, "value_len=5");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 2), "ghij", 4), "key=ghij");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 2), "ddddd", 5),
+	       "value=ddddd");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 3), 2, "key_len=2");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 3), 1, "value_len=1");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 3), "ab", 2), "key=ab");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 3), "z", 1), "value=z");
+
+	item1.key_len = 3;
+	item1.item_type = BPTREE_ITEM_TYPE_OVERFLOW;
+	item1.vardata.overflow.value_len = 3939392;
+	item1.vardata.overflow.overflow_start = 999;
+	item1.vardata.overflow.overflow_end = 888;
+	item1.key = "a99";
+
+	ASSERT(!bptree_prim_insert_entry(&node1, 0, &item1),
+	       "insert overflow2");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 0), 3, "key_len=3");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 0), 3939392,
+		  "value_len=3939392");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 0), "a99", 3), "key=a99");
+	ASSERT_EQ(bptree_prim_is_overflow(&node1, 0), true, "is overflow");
+	ASSERT_EQ(bptree_prim_overflow_start(&node1, 0), 999, "start=999");
+	ASSERT_EQ(bptree_prim_overflow_end(&node1, 0), 888, "end=888");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 1), 3, "key_len=3");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 1), 3, "value_len=3");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 1), "def", 3), "key=def");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 1), "xab", 3), "value=xab");
+	ASSERT_EQ(bptree_prim_is_overflow(&node1, 1), false, "is overflow");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 2), 2, "key_len=2");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 2), 4, "value_len=4");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 2), "x1", 2), "key=x1");
+	ASSERT_EQ(bptree_prim_is_overflow(&node1, 2), true, "is overflow");
+	ASSERT_EQ(bptree_prim_overflow_start(&node1, 2), 123, "start=123");
+	ASSERT_EQ(bptree_prim_overflow_end(&node1, 2), 456, "end=456");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 3), 4, "key_len=4");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 3), 5, "value_len=5");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 3), "ghij", 4), "key=ghij");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 3), "ddddd", 5),
+	       "value=ddddd");
+
+	ASSERT_EQ(bptree_prim_key_len(&node1, 4), 2, "key_len=2");
+	ASSERT_EQ(bptree_prim_value_len(&node1, 4), 1, "value_len=1");
+	ASSERT(!strcmpn(bptree_prim_key(&node1, 4), "ab", 2), "key=ab");
+	ASSERT(!strcmpn(bptree_prim_value(&node1, 4), "z", 1), "value=z");
+
+	ASSERT_EQ(bptree_prim_num_entries(&node1), 5, "num_entries=5");
 }
-
