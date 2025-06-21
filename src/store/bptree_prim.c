@@ -256,17 +256,30 @@ i32 bptree_prim_move_entries(BpTreeNode *dst, u16 dst_start_index,
 	u8 *dst_entries, *src_entries;
 	u16 *dst_entry_offsets, *src_entry_offsets;
 
-	if (!dst || !src || num_entries == 0) {
+	if (!dst || !src || num_entries == 0 ||
+	    (u32)num_entries + (u32)src_start_index >= src_impl->num_entries) {
 		err = EINVAL;
 		return -1;
 	}
 
 	if (dst_impl->is_internal) {
+		if (!src_impl->is_internal ||
+		    (u32)num_entries + (u32)dst_start_index >=
+			MAX_INTERNAL_ENTRIES) {
+			err = EOVERFLOW;
+			return -1;
+		}
 		dst_entries = dst_impl->data.internal.entries;
 		src_entries = src_impl->data.internal.entries;
 		dst_entry_offsets = dst_impl->data.internal.entry_offsets;
 		src_entry_offsets = src_impl->data.internal.entry_offsets;
 	} else {
+		if (src_impl->is_internal ||
+		    (u32)num_entries + (u32)dst_start_index >=
+			MAX_LEAF_ENTRIES) {
+			err = EOVERFLOW;
+			return -1;
+		}
 		dst_entries = dst_impl->data.leaf.entries;
 		src_entries = src_impl->data.leaf.entries;
 		dst_entry_offsets = dst_impl->data.leaf.entry_offsets;
@@ -282,6 +295,18 @@ i32 bptree_prim_move_entries(BpTreeNode *dst, u16 dst_start_index,
 		    src_start_pos;
 	} else
 		bytes_to_copy = src_impl->used_bytes - src_start_pos;
+
+	if (!dst_impl->is_internal &&
+	    (u32)bytes_to_copy + (u32)dst_impl->used_bytes > LEAF_ARRAY_SIZE) {
+		err = EOVERFLOW;
+		return -1;
+	}
+	if (dst_impl->is_internal &&
+	    (u32)bytes_to_copy + (u32)dst_impl->used_bytes >
+		INTERNAL_ARRAY_SIZE) {
+		err = EOVERFLOW;
+		return -1;
+	}
 
 	if (dst_start_index < dst_impl->num_entries) {
 		shift_by_offset(dst_impl, dst_start_index, bytes_to_copy);
@@ -318,7 +343,17 @@ i32 bptree_prim_insert_entry(BpTreeNode *node, u16 index, BpTreeItem *item) {
 	u16 *entry_offsets;
 
 	if (!node || !item || index > impl->num_entries) {
-		err = EINVAL;
+		err = EOVERFLOW;
+		return -1;
+	}
+
+	if (!impl->is_internal && impl->num_entries == MAX_LEAF_ENTRIES) {
+		err = EOVERFLOW;
+		return -1;
+	}
+
+	if (impl->is_internal && impl->num_entries == MAX_INTERNAL_ENTRIES) {
+		err = EOVERFLOW;
 		return -1;
 	}
 
@@ -330,6 +365,16 @@ i32 bptree_prim_insert_entry(BpTreeNode *node, u16 index, BpTreeItem *item) {
 	needed = calculate_needed(impl, item);
 	if (needed < 0) {
 		err = EINVAL;
+		return -1;
+	}
+	if (!impl->is_internal &&
+	    (u32)needed + (u32)impl->used_bytes > LEAF_ARRAY_SIZE) {
+		err = EOVERFLOW;
+		return -1;
+	}
+	if (impl->is_internal &&
+	    (u32)needed + (u32)impl->used_bytes > INTERNAL_ARRAY_SIZE) {
+		err = EOVERFLOW;
 		return -1;
 	}
 
@@ -424,6 +469,11 @@ u16 bptree_prim_key_len(BpTreeNode *node, u16 index) {
 	u16 pos;
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 
+	if (!impl || index >= impl->num_entries) {
+		err = EINVAL;
+		return 0;
+	}
+
 	if (impl->is_internal) {
 		BpTreeInternalEntry *entry;
 		pos = impl->data.internal.entry_offsets[index];
@@ -444,7 +494,7 @@ u32 bptree_prim_value_len(BpTreeNode *node, u16 index) {
 	BpTreeLeafEntry *entry;
 	u16 pos;
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
-	if (impl->is_internal) return 0;
+	if (!impl || impl->is_internal || index >= impl->num_entries) return 0;
 	pos = impl->data.leaf.entry_offsets[index];
 	entry = (BpTreeLeafEntry *)((u8 *)impl->data.leaf.entries + pos);
 	return entry->value_len;
@@ -453,6 +503,11 @@ u32 bptree_prim_value_len(BpTreeNode *node, u16 index) {
 const void *bptree_prim_key(BpTreeNode *node, u16 index) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	u16 pos;
+
+	if (!impl || index >= impl->num_entries) {
+		err = EINVAL;
+		return NULL;
+	}
 
 	if (impl->is_internal) {
 		pos = impl->data.internal.entry_offsets[index];
@@ -467,11 +522,18 @@ const void *bptree_prim_key(BpTreeNode *node, u16 index) {
 
 const void *bptree_prim_value(BpTreeNode *node, u16 index) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
-	u16 pos = impl->data.leaf.entry_offsets[index];
-	BpTreeLeafEntry *entry =
-	    (BpTreeLeafEntry *)((u8 *)impl->data.leaf.entries + pos);
+	u16 pos;
+	BpTreeLeafEntry *entry;
 
-	if (impl->is_internal || entry->overflow) {
+	if (!impl || impl->is_internal || index >= impl->num_entries) {
+		err = EINVAL;
+		return NULL;
+	}
+
+	pos = impl->data.leaf.entry_offsets[index];
+	entry = (BpTreeLeafEntry *)((u8 *)impl->data.leaf.entries + pos);
+
+	if (entry->overflow) {
 		err = EINVAL;
 		return NULL;
 	}
@@ -485,7 +547,7 @@ int bptree_prim_is_overflow(BpTreeNode *node, u16 index) {
 	u16 pos;
 	BpTreeLeafEntry *entry;
 
-	if (index >= impl->num_entries) {
+	if (!impl || index >= impl->num_entries) {
 		err = EINVAL;
 		return -1;
 	}
@@ -499,10 +561,11 @@ int bptree_prim_is_overflow(BpTreeNode *node, u16 index) {
 
 u64 bptree_prim_overflow_start(BpTreeNode *node, u16 index) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
+	u64 ret;
 	u16 pos;
 	BpTreeLeafEntry *entry;
 
-	if (index >= impl->num_entries) {
+	if (!impl || index >= impl->num_entries) {
 		err = EINVAL;
 		return -1;
 	}
@@ -510,24 +573,25 @@ u64 bptree_prim_overflow_start(BpTreeNode *node, u16 index) {
 	pos = impl->data.leaf.entry_offsets[index];
 	entry = (BpTreeLeafEntry *)((u8 *)impl->data.leaf.entries + pos);
 
-	if (entry->overflow) {
-		u64 start;
-		memcpy(&start,
-		       (u8 *)impl->data.leaf.entries + pos +
-			   sizeof(BpTreeLeafEntry) + entry->key_len,
-		       sizeof(u64));
-		return start;
+	if (!entry->overflow) {
+		err = EINVAL;
+		return 0;
 	}
-	err = EINVAL;
-	return 0;
+
+	memcpy(&ret,
+	       (u8 *)impl->data.leaf.entries + pos + sizeof(BpTreeLeafEntry) +
+		   entry->key_len,
+	       sizeof(u64));
+	return ret;
 }
 
 u64 bptree_prim_overflow_end(BpTreeNode *node, u16 index) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	u16 pos;
+	u64 ret;
 	BpTreeLeafEntry *entry;
 
-	if (index >= impl->num_entries) {
+	if (!impl || index >= impl->num_entries) {
 		err = EINVAL;
 		return -1;
 	}
@@ -535,17 +599,16 @@ u64 bptree_prim_overflow_end(BpTreeNode *node, u16 index) {
 	pos = impl->data.leaf.entry_offsets[index];
 	entry = (BpTreeLeafEntry *)((u8 *)impl->data.leaf.entries + pos);
 
-	if (entry->overflow) {
-		u64 end;
-		memcpy(&end,
-		       (u8 *)impl->data.leaf.entries + pos +
-			   sizeof(BpTreeLeafEntry) + entry->key_len +
-			   sizeof(u64),
-		       sizeof(u64));
-		return end;
+	if (!entry->overflow) {
+		err = EINVAL;
+		return 0;
 	}
-	err = EINVAL;
-	return 0;
+
+	memcpy(&ret,
+	       (u8 *)impl->data.leaf.entries + pos + sizeof(BpTreeLeafEntry) +
+		   entry->key_len + sizeof(u64),
+	       sizeof(u64));
+	return ret;
 }
 
 u64 bptree_prim_node_id(BpTreeNode *node, u16 index) {
@@ -553,7 +616,7 @@ u64 bptree_prim_node_id(BpTreeNode *node, u16 index) {
 	u16 pos;
 	BpTreeInternalEntry *entry;
 
-	if (!impl->is_internal) return 0;
+	if (!impl || !impl->is_internal || index >= impl->num_entries) return 0;
 
 	pos = impl->data.internal.entry_offsets[index];
 	entry =

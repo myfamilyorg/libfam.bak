@@ -626,3 +626,55 @@ Test(bptree_prim6) {
 	ASSERT(!strcmpn(bptree_prim_key(&node1, 3), "aa", 2), "key");
 	ASSERT(!strcmpn(bptree_prim_value(&node1, 3), "z", 1), "value");
 }
+
+#define MAX_LEAF_ENTRIES ((u64)(NODE_SIZE / 32))
+#define MAX_INTERNAL_ENTRIES (NODE_SIZE / 16)
+#define INTERNAL_ARRAY_SIZE ((28 * NODE_SIZE - 1024) / 32)
+#define LEAF_ARRAY_SIZE ((u64)((30 * NODE_SIZE - 1280) / 32))
+
+Test(bptree_prim7) {
+	BpTreeNode node1, node2;
+	BpTreeItem item1;
+	u8 buf[NODE_SIZE];
+	u64 i;
+
+	ASSERT(!bptree_prim_init_node(&node1, 7, false), "node1_init");
+	item1.key_len = 3;
+	item1.item_type = BPTREE_ITEM_TYPE_LEAF;
+	item1.vardata.kv.value_len = 5;
+	item1.key = "abc";
+	item1.vardata.kv.value = "xxxxx";
+	ASSERT(!bptree_prim_insert_entry(&node1, 0, &item1), "insert kv1");
+
+	item1.key_len = 3;
+	item1.item_type = BPTREE_ITEM_TYPE_LEAF;
+	item1.vardata.kv.value_len = LEAF_ARRAY_SIZE;
+	item1.key = "def";
+	item1.vardata.kv.value = buf;
+
+	/* overflow */
+	ASSERT(bptree_prim_insert_entry(&node1, 0, &item1), "insert kv2");
+
+	ASSERT(!bptree_prim_init_node(&node2, 7, false), "node2_init");
+
+	for (i = 0; i < MAX_LEAF_ENTRIES; i++) {
+		u8 key_buf[128] = {0};
+		i32 len = u128_to_string(key_buf, i);
+		key_buf[len] = 0;
+		item1.key_len = 3;
+		item1.item_type = BPTREE_ITEM_TYPE_LEAF;
+		item1.vardata.kv.value_len = 1;
+		item1.key = key_buf;
+		item1.vardata.kv.value = buf;
+
+		ASSERT(!bptree_prim_insert_entry(&node2, i, &item1), "insertx");
+	}
+
+	item1.key_len = 3;
+	item1.item_type = BPTREE_ITEM_TYPE_LEAF;
+	item1.vardata.kv.value_len = LEAF_ARRAY_SIZE;
+	item1.key = "def";
+	item1.vardata.kv.value = buf;
+
+	ASSERT(bptree_prim_insert_entry(&node2, i, &item1), "insertx");
+}
