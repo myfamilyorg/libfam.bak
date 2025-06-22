@@ -429,43 +429,43 @@ i32 bptree_prim_delete_entry(BpTreeNode *node, u16 index) {
 	return 0;
 }
 
-u64 bptree_prim_parent_id(BpTreeNode *node) {
+u64 bptree_prim_parent_id(const BpTreeNode *node) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	return impl->parent_id;
 }
 
-u16 bptree_prim_num_entries(BpTreeNode *node) {
+u16 bptree_prim_num_entries(const BpTreeNode *node) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	return impl->num_entries;
 }
 
-u16 bptree_prim_used_bytes(BpTreeNode *node) {
+u16 bptree_prim_used_bytes(const BpTreeNode *node) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	return impl->used_bytes;
 }
 
-bool bptree_prim_is_copy(BpTreeNode *node) {
+bool bptree_prim_is_copy(const BpTreeNode *node) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	return impl->is_copy;
 }
 
-bool bptree_prim_is_internal(BpTreeNode *node) {
+bool bptree_prim_is_internal(const BpTreeNode *node) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	return impl->is_internal;
 }
 
-u64 bptree_prim_aux(BpTreeNode *node) {
+u64 bptree_prim_aux(const BpTreeNode *node) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	return impl->aux;
 }
 
-u64 bptree_prim_next_leaf(BpTreeNode *node) {
+u64 bptree_prim_next_leaf(const BpTreeNode *node) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	if (!impl || !impl->is_internal) return 0;
 	return impl->data.leaf.next_leaf;
 }
 
-u16 bptree_prim_key_len(BpTreeNode *node, u16 index) {
+u16 bptree_prim_key_len(const BpTreeNode *node, u16 index) {
 	u16 pos;
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 
@@ -490,7 +490,7 @@ u16 bptree_prim_key_len(BpTreeNode *node, u16 index) {
 	}
 }
 
-u32 bptree_prim_value_len(BpTreeNode *node, u16 index) {
+u32 bptree_prim_value_len(const BpTreeNode *node, u16 index) {
 	BpTreeLeafEntry *entry;
 	u16 pos;
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
@@ -500,7 +500,7 @@ u32 bptree_prim_value_len(BpTreeNode *node, u16 index) {
 	return entry->value_len;
 }
 
-const void *bptree_prim_key(BpTreeNode *node, u16 index) {
+const void *bptree_prim_key(const BpTreeNode *node, u16 index) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	u16 pos;
 
@@ -520,7 +520,7 @@ const void *bptree_prim_key(BpTreeNode *node, u16 index) {
 	}
 }
 
-const void *bptree_prim_value(BpTreeNode *node, u16 index) {
+const void *bptree_prim_value(const BpTreeNode *node, u16 index) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	u16 pos;
 	BpTreeLeafEntry *entry;
@@ -542,7 +542,7 @@ const void *bptree_prim_value(BpTreeNode *node, u16 index) {
 			      sizeof(BpTreeLeafEntry) + entry->key_len);
 }
 
-int bptree_prim_is_overflow(BpTreeNode *node, u16 index) {
+i32 bptree_prim_is_overflow(const BpTreeNode *node, u16 index) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	u16 pos;
 	BpTreeLeafEntry *entry;
@@ -559,7 +559,7 @@ int bptree_prim_is_overflow(BpTreeNode *node, u16 index) {
 	return 0;
 }
 
-u64 bptree_prim_overflow_start(BpTreeNode *node, u16 index) {
+u64 bptree_prim_overflow_start(const BpTreeNode *node, u16 index) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	u64 ret;
 	u16 pos;
@@ -585,7 +585,7 @@ u64 bptree_prim_overflow_start(BpTreeNode *node, u16 index) {
 	return ret;
 }
 
-u64 bptree_prim_overflow_end(BpTreeNode *node, u16 index) {
+u64 bptree_prim_overflow_end(const BpTreeNode *node, u16 index) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	u16 pos;
 	u64 ret;
@@ -611,7 +611,7 @@ u64 bptree_prim_overflow_end(BpTreeNode *node, u16 index) {
 	return ret;
 }
 
-u64 bptree_prim_node_id(BpTreeNode *node, u16 index) {
+u64 bptree_prim_node_id(const BpTreeNode *node, u16 index) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 	u16 pos;
 	BpTreeInternalEntry *entry;

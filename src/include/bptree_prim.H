@@ -90,21 +90,21 @@ i32 bptree_prim_move_entries(BpTreeNode *dst, u16 dst_start_index,
 			     BpTreeNode *src, u16 src_start_index,
 			     u16 num_entries);
 /* Accessors */
-u64 bptree_prim_parent_id(BpTreeNode *node);
-u16 bptree_prim_num_entries(BpTreeNode *node);
-u16 bptree_prim_used_bytes(BpTreeNode *node);
-bool bptree_prim_is_copy(BpTreeNode *node);
-bool bptree_prim_is_internal(BpTreeNode *node);
-u64 bptree_prim_aux(BpTreeNode *node);
+u64 bptree_prim_parent_id(const BpTreeNode *node);
+u16 bptree_prim_num_entries(const BpTreeNode *node);
+u16 bptree_prim_used_bytes(const BpTreeNode *node);
+bool bptree_prim_is_copy(const BpTreeNode *node);
+bool bptree_prim_is_internal(const BpTreeNode *node);
+u64 bptree_prim_aux(const BpTreeNode *node);
 
-int bptree_prim_is_overflow(BpTreeNode *node, u16 index);
-u16 bptree_prim_key_len(BpTreeNode *node, u16 index);
-u32 bptree_prim_value_len(BpTreeNode *node, u16 index);
-u64 bptree_prim_overflow_start(BpTreeNode *node, u16 index);
-u64 bptree_prim_overflow_end(BpTreeNode *node, u16 index);
-const void *bptree_prim_key(BpTreeNode *node, u16 index);
-const void *bptree_prim_value(BpTreeNode *node, u16 index);
-u64 bptree_prim_next_leaf(BpTreeNode *node);
-u64 bptree_prim_node_id(BpTreeNode *node, u16 index);
+i32 bptree_prim_is_overflow(const BpTreeNode *node, u16 index);
+u16 bptree_prim_key_len(const BpTreeNode *node, u16 index);
+u32 bptree_prim_value_len(const BpTreeNode *node, u16 index);
+u64 bptree_prim_overflow_start(const BpTreeNode *node, u16 index);
+u64 bptree_prim_overflow_end(const BpTreeNode *node, u16 index);
+const void *bptree_prim_key(const BpTreeNode *node, u16 index);
+const void *bptree_prim_value(const BpTreeNode *node, u16 index);
+u64 bptree_prim_next_leaf(const BpTreeNode *node);
+u64 bptree_prim_node_id(const BpTreeNode *node, u16 index);
 
 #endif /* _BPTREE_PRIM_H */
