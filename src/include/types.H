@@ -23,8 +23,8 @@
  *
  *******************************************************************************/
 
-#ifndef _TYPES_H__
-#define _TYPES_H__
+#ifndef _TYPES_H
+#define _TYPES_H
 
 #ifndef NULL
 #define NULL ((void *)0)
@@ -107,10 +107,10 @@ struct sockaddr_un {
 typedef u32 socklen_t;
 
 struct sockaddr_in {
-        unsigned short sin_family;
-        unsigned short sin_port;
-        u32 sin_addr;
-        u8 sin_zero[8];
+	unsigned short sin_family;
+	unsigned short sin_port;
+	u32 sin_addr;
+	u8 sin_zero[8];
 };
 
 struct timespec {
@@ -144,4 +144,4 @@ typedef struct {
 	u64 bits[_NSIG / (8 * sizeof(u64))];
 } sigset_t;
 
-#endif /* _TYPES_H__ */
+#endif /* _TYPES_H */

@@ -208,7 +208,7 @@ u64 u128_to_string(u8 *buf, u128 v) {
 
 u64 i128_to_string(u8 *buf, i128 v) {
 	u64 len;
-	const i128 int128_min = INT128_MIN;
+	const i128 int128_min = I128_MIN;
 	const u128 int128_min_abs = (u128)0x8000000000000000UL << 64;
 
 	i32 is_negative = v < 0;
@@ -260,7 +260,7 @@ u128 string_to_uint128(const u8 *buf, u64 len) {
 		}
 
 		/* Check for overflow */
-		if (result > UINT128_MAX / 10) {
+		if (result > U128_MAX / 10) {
 			err = EINVAL;
 			return (u128)0;
 		}
@@ -319,7 +319,7 @@ i128 string_to_int128(const u8 *buf, u64 len) {
 	}
 
 	/* Check for overflow */
-	if (abs_value > (u128)INT128_MAX + (sign == -1 ? 1 : 0)) {
+	if (abs_value > (u128)I128_MAX + (sign == -1 ? 1 : 0)) {
 		err = EINVAL;
 		return (i128)0;
 	}

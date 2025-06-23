@@ -23,8 +23,8 @@
  *
  *******************************************************************************/
 
-#ifndef _ALLOC_H__
-#define _ALLOC_H__
+#ifndef _ALLOC_H
+#define _ALLOC_H
 
 #ifndef MEMSAN
 #define MEMSAN 0 /* Disabled by default */
@@ -42,4 +42,4 @@ u64 get_allocated_bytes(void);
 void reset_allocated_bytes(void);
 #endif /* MEMSAN */
 
-#endif /* _ALLOC_H__ */
+#endif /* _ALLOC_H */

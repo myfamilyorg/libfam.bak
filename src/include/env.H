@@ -23,8 +23,8 @@
  *
  *******************************************************************************/
 
-#ifndef _ENV_H__
-#define _ENV_H__
+#ifndef _ENV_H
+#define _ENV_H
 
 #include <types.H>
 
@@ -33,4 +33,4 @@ i32 unsetenv(const u8 *name);
 i32 setenv(const u8 *name, const u8 *value, i32 overwrite);
 void init_environ(void);
 
-#endif /* _ENV_H__ */
+#endif /* _ENV_H */

@@ -32,7 +32,6 @@
 /* system calls applied */
 i32 unlink(const u8 *path);
 i32 open(const u8 *pathname, i32 flags, u32 mode);
-i32 pipe(i32 fds[2]);
 i32 getentropy(void *buffer, u64 length);
 i32 yield(void);
 i32 timeout(void (*task)(void), u64 milliseconds);

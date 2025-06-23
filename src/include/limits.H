@@ -26,93 +26,93 @@
 #ifndef _LIMITS_H
 #define _LIMITS_H
 
-#ifndef UINT8_MIN
-#define UINT8_MIN 0x0
+#ifndef U8_MIN
+#define U8_MIN 0x0
 #endif
 
-#ifndef UINT16_MIN
-#define UINT16_MIN 0x0
+#ifndef U16_MIN
+#define U16_MIN 0x0
 #endif
 
-#ifndef UINT32_MIN
-#define UINT32_MIN 0x0
+#ifndef U32_MIN
+#define U32_MIN 0x0
 #endif
 
-#ifndef UINT64_MIN
-#define UINT64_MIN 0x0
+#ifndef U64_MIN
+#define U64_MIN 0x0
 #endif
 
-#ifndef UINT128_MIN
-#define UINT128_MIN 0x0
+#ifndef U128_MIN
+#define U128_MIN 0x0
 #endif
 
-#ifndef UINT8_MAX
-#define UINT8_MAX 0xFF
+#ifndef U8_MAX
+#define U8_MAX 0xFF
 #endif
 
-#ifndef UINT16_MAX
-#define UINT16_MAX 0xFFFF
+#ifndef U16_MAX
+#define U16_MAX 0xFFFF
 #endif
 
-#ifndef UINT32_MAX
-#define UINT32_MAX 0xFFFFFFFF
+#ifndef U32_MAX
+#define U32_MAX 0xFFFFFFFF
 #endif
 
-#ifndef UINT64_MAX
-#define UINT64_MAX 0xFFFFFFFFFFFFFFFF
+#ifndef U64_MAX
+#define U64_MAX 0xFFFFFFFFFFFFFFFF
 #endif
 
-#ifndef UINT128_MAX
-#define UINT128_MAX \
+#ifndef U128_MAX
+#define U128_MAX \
 	(((u128)0xFFFFFFFFFFFFFFFFUL << 64) | 0xFFFFFFFFFFFFFFFFUL)
 #endif
 
-#ifndef INT8_MIN
-#define INT8_MIN (-0x7F - 1)
+#ifndef I8_MIN
+#define I8_MIN (-0x7F - 1)
 #endif
 
-#ifndef INT16_MIN
-#define INT16_MIN (-0x7FFF - 1)
+#ifndef I16_MIN
+#define I16_MIN (-0x7FFF - 1)
 #endif
 
-#ifndef INT32_MIN
-#define INT32_MIN (-0x7FFFFFFF - 1)
+#ifndef I32_MIN
+#define I32_MIN (-0x7FFFFFFF - 1)
 #endif
 
-#ifndef INT64_MIN
-#define INT64_MIN (-0x7FFFFFFFFFFFFFFF - 1)
+#ifndef I64_MIN
+#define I64_MIN (-0x7FFFFFFFFFFFFFFF - 1)
 #endif
 
-#define INT128_MIN (((i128)0x80000000UL << 96))
+#define I128_MIN (((i128)0x80000000UL << 96))
 
-#ifndef INT8_MAX
-#define INT8_MAX 0x7F
+#ifndef I8_MAX
+#define I8_MAX 0x7F
 #endif
 
-#ifndef INT16_MAX
-#define INT16_MAX 0x7FFF
+#ifndef I16_MAX
+#define I16_MAX 0x7FFF
 #endif
 
-#ifndef INT32_MAX
-#define INT32_MAX 0x7FFFFFFF
+#ifndef I32_MAX
+#define I32_MAX 0x7FFFFFFF
 #endif
 
-#ifndef INT64_MAX
-#define INT64_MAX 0x7FFFFFFFFFFFFFFF
+#ifndef I64_MAX
+#define I64_MAX 0x7FFFFFFFFFFFFFFF
 #endif
 
-#ifndef INT128_MAX
-#define INT128_MAX                                                         \
+#ifndef I128_MAX
+#define I128_MAX                                                         \
 	(((i128)0x7FFFFFFFUL << 96) | ((i128)0xFFFFFFFFUL << 64) | \
 	 0xFFFFFFFFUL)
 #endif
 
-#ifndef INT_MAX
-#define INT_MAX __INT_MAX__
+#ifndef I_MAX
+#define I_MAX __I_MAX__
 #endif
 
 #ifndef SIZE_MAX
-#define SIZE_MAX UINT64_MAX
+#define SIZE_MAX U64_MAX
 #endif
 
 #endif /* _LIMITS_H */
