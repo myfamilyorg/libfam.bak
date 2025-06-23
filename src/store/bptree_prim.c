@@ -238,7 +238,7 @@ i32 bptree_prim_set_copy(BpTreeNode *node) {
 i32 bptree_prim_unset_copy(BpTreeNode *node) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 
-	if (!impl || impl->is_copy) {
+	if (!impl || !impl->is_copy) {
 		err = EINVAL;
 		return -1;
 	}
@@ -271,6 +271,7 @@ i32 bptree_prim_set_next_leaf(BpTreeNode *node, u64 next_leaf) {
 }
 
 i32 bptree_prim_set_entry(BpTreeNode *node, u16 index, BpTreeItem *item) {
+	/* TODO: handle length differences out of space error */
 	if (bptree_prim_delete_entry(node, index) < 0) return -1;
 	return bptree_prim_insert_entry(node, index, item);
 }

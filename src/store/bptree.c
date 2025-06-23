@@ -113,9 +113,12 @@ STATIC BpTreeNode *allocate_node(BpTxn *txn) {
 			      index * NODE_SIZE);
 }
 
-STATIC BpTreeNode *copy_node(BpTxn *txn, BpTreeNode *node) {
-	BpTreeNode *ret = NULL;
+STATIC BpTreeNode *copy_node(BpTxn *txn, BpTreeNode *node,
+			     BpTreeSearchResult *res) {
+	BpTreeNode *ret = NULL, *next = NULL;
 	BpRbTreeNode *value;
+	u64 parent_id;
+	u16 level;
 
 	ret = allocate_node(txn);
 	if (!ret) return NULL;
@@ -132,6 +135,45 @@ STATIC BpTreeNode *copy_node(BpTxn *txn, BpTreeNode *node) {
 	value->node_id = bptree_node_id(txn, node);
 	value->override = bptree_node_id(txn, ret);
 	rbtree_put(&txn->overrides, (RbTreeNode *)value, bptree_rbtree_search);
+
+	next = ret;
+	level = 0;
+	while ((parent_id = bptree_prim_parent_id(next))) {
+		u8 buf[NODE_SIZE];
+		BpTreeItem item;
+		u16 index;
+		u64 copy_id = bptree_node_id(txn, next);
+		BpTreeNode *nnode;
+		level++;
+		next = bptxn_get_node(txn, parent_id);
+		index = res->parent_index[res->levels - level];
+		value = alloc(sizeof(BpRbTreeNode));
+		if (!value) {
+			/* TODO: cleanup */
+			return NULL;
+		}
+
+		nnode = allocate_node(txn);
+		if (!nnode) {
+			/* TODO: cleanup */
+			return NULL;
+		}
+		bptree_prim_copy(nnode, next);
+
+		item.key_len = bptree_prim_key_len(nnode, index);
+		item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+		item.key = buf;
+		memcpy(buf, bptree_prim_key(nnode, index), item.key_len);
+		item.vardata.internal.node_id = copy_id;
+
+		bptree_prim_set_entry(nnode, index, &item);
+
+		rbtree_init_node((RbTreeNode *)value);
+		value->node_id = bptree_node_id(txn, next);
+		value->override = bptree_node_id(txn, nnode);
+		rbtree_put(&txn->overrides, (RbTreeNode *)value,
+			   bptree_rbtree_search);
+	}
 
 	return ret;
 }
@@ -295,7 +337,7 @@ i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 		return -1;
 	}
 	node = bptxn_get_node(txn, res.node_id);
-	if (!bptree_prim_is_copy(node)) node = copy_node(txn, node);
+	if (!bptree_prim_is_copy(node)) node = copy_node(txn, node, &res);
 
 	item.key_len = key_len;
 	item.item_type = BPTREE_ITEM_TYPE_LEAF;
@@ -345,20 +387,17 @@ BpTxn *bptxn_start(BpTree *tree) {
 	return ret;
 }
 
-void do_callback(BpRbTreeNode *node, void *user_data) {
-	if (node || user_data) {
-	}
-	/*
-	printf("node_id=%i,override=%i, user_data=%x\n", node->node_id,
-	       node->override, user_data);
-	       */
+STATIC void do_callback(BpRbTreeNode *rbnode, void *user_data) {
+	BpTxn *txn = user_data;
+	BpTreeNode *node = bptxn_get_node(txn, rbnode->node_id);
+	bptree_prim_unset_copy(node);
 }
 
 i64 bptxn_commit(BpTxn *txn, i32 wakeupfd) {
 	u64 root = bptree_node_id(txn, bptree_root(txn));
 	u64 envroot = env_root(txn->tree->env);
 
-	bptree_rbtree_dfs(txn->overrides.root, do_callback, NULL);
+	bptree_rbtree_dfs(txn->overrides.root, do_callback, txn);
 
 	if (root == envroot) {
 		bptxn_abort(txn);
