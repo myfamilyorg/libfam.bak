@@ -733,9 +733,9 @@ void __attribute__((unused)) print_node(BpTxn *txn, const BpTreeNode *node,
 		printf(
 		    "%s\tInternal "
 		    "num_entries=%i,used_bytes=%i,parent=%i,is_copy=%i,node_id="
-		    "%i,is_copy=%i\n",
+		    "%i\n",
 		    prefix, num_entries, bptree_prim_used_bytes(node),
-		    bptree_prim_parent_id(node), node_id, is_copy);
+		    bptree_prim_parent_id(node), is_copy, node_id);
 		for (i = 0; i < num_entries; i++) {
 			u8 tmp[NODE_SIZE];
 			u16 key_len = bptree_prim_key_len(node, i);
@@ -877,6 +877,11 @@ Test(simple_split) {
 
 	key1[2] = 'x';
 	v = bptree_put(txn, key1, 16, value1, 7610, test_bptree_search);
+	ASSERT_EQ(v, 0, "v=0");
+	print_tree(txn);
+
+	key4[2] = 'y';
+	v = bptree_put(txn, key4, 16, value1, 7610, test_bptree_search);
 	ASSERT_EQ(v, 0, "v=0");
 	print_tree(txn);
 

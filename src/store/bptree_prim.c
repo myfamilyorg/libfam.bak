@@ -28,11 +28,6 @@
 #include <format.H>
 #include <misc.H>
 
-#define MAX_LEAF_ENTRIES ((u64)(NODE_SIZE / 32))
-#define MAX_INTERNAL_ENTRIES (NODE_SIZE / 16)
-#define INTERNAL_ARRAY_SIZE ((28 * NODE_SIZE - 1024) / 32)
-#define LEAF_ARRAY_SIZE ((u64)((30 * NODE_SIZE - 1280) / 32))
-
 /* Data specific to an internal node */
 typedef struct {
 	u16 entry_offsets[MAX_INTERNAL_ENTRIES];
@@ -210,6 +205,23 @@ i32 bptree_prim_set_aux(BpTreeNode *node, u64 aux) {
 	return 0;
 }
 
+i32 bptree_set_parent(BpTreeNode *node, u64 parent_id) {
+	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
+
+	if (!impl) {
+		err = EINVAL;
+		return -1;
+	}
+
+	if (!impl->is_copy) {
+		err = EACCES;
+		return -1;
+	}
+
+	impl->parent_id = parent_id;
+	return 0;
+}
+
 i32 bptree_prim_set_copy(BpTreeNode *node) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 
@@ -274,7 +286,7 @@ i32 bptree_prim_move_entries(BpTreeNode *dst, u16 dst_start_index,
 	u16 *dst_entry_offsets, *src_entry_offsets;
 
 	if (!dst || !src || num_entries == 0 ||
-	    (u32)num_entries + (u32)src_start_index >= src_impl->num_entries) {
+	    (u32)num_entries + (u32)src_start_index > src_impl->num_entries) {
 		err = EINVAL;
 		return -1;
 	}

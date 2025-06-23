@@ -35,6 +35,11 @@
 #define NODE_SIZE ((u64)PAGE_SIZE)
 #endif /* NODE_SIZE */
 
+#define MAX_LEAF_ENTRIES ((u64)(NODE_SIZE / 32))
+#define MAX_INTERNAL_ENTRIES (NODE_SIZE / 16)
+#define INTERNAL_ARRAY_SIZE ((28 * NODE_SIZE - 1024) / 32)
+#define LEAF_ARRAY_SIZE ((u64)((30 * NODE_SIZE - 1280) / 32))
+
 /* BpTree Node */
 typedef struct {
 	u8 data[NODE_SIZE];
@@ -79,6 +84,7 @@ i32 bptree_prim_set_copy(BpTreeNode *node);
 i32 bptree_prim_unset_copy(BpTreeNode *node);
 void bptree_prim_copy(BpTreeNode *dst, BpTreeNode *src);
 i32 bptree_prim_set_next_leaf(BpTreeNode *node, u64 next_leaf);
+i32 bptree_set_parent(BpTreeNode *node, u64 parent_id);
 
 /* Insert */
 i32 bptree_prim_insert_entry(BpTreeNode *node, u16 index, BpTreeItem *item);
