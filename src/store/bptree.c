@@ -38,6 +38,8 @@
 
 struct BpTree {
 	Env *env;
+	u64 meta;
+	MetaData *meta_ptr;
 };
 
 struct BpTxn {
@@ -72,6 +74,8 @@ STATIC i32 bptree_rbtree_dfs(RbTreeNode *cur, RbTreeNodeCallback callback,
 	callback((BpRbTreeNode *)cur, user_data);
 
 	status = bptree_rbtree_dfs(cur->right, callback, user_data);
+
+	release(cur);
 	if (status != 0) {
 		return status;
 	}
@@ -115,7 +119,7 @@ STATIC BpTreeNode *allocate_node(BpTxn *txn) {
 
 STATIC BpTreeNode *copy_node(BpTxn *txn, BpTreeNode *node,
 			     BpTreeSearchResult *res) {
-	BpTreeNode *ret = NULL, *next = NULL;
+	BpTreeNode *ret = NULL, *next = NULL, *last = NULL;
 	BpRbTreeNode *value;
 	u64 parent_id;
 	u16 level;
@@ -136,7 +140,7 @@ STATIC BpTreeNode *copy_node(BpTxn *txn, BpTreeNode *node,
 	value->override = bptree_node_id(txn, ret);
 	rbtree_put(&txn->overrides, (RbTreeNode *)value, bptree_rbtree_search);
 
-	next = ret;
+	last = next = ret;
 	level = 0;
 	while ((parent_id = bptree_prim_parent_id(next))) {
 		u8 buf[NODE_SIZE];
@@ -173,6 +177,8 @@ STATIC BpTreeNode *copy_node(BpTxn *txn, BpTreeNode *node,
 		value->override = bptree_node_id(txn, nnode);
 		rbtree_put(&txn->overrides, (RbTreeNode *)value,
 			   bptree_rbtree_search);
+		bptree_prim_set_parent(last, parent_id);
+		last = next;
 	}
 
 	return ret;
@@ -219,9 +225,10 @@ STATIC i32 bptree_split(BpTxn *txn, BpTreeSearchResult *res, BpTreeNode *node,
 			release(rbvalue);
 			return -1;
 		}
+		bptree_prim_set_aux(parent, bptree_prim_aux(bptree_root(txn)));
 		parent_id = bptree_node_id(txn, parent);
 		bptree_prim_init_node(parent, 0, true);
-		bptree_set_parent(node, parent_id);
+		bptree_prim_set_parent(node, parent_id);
 		rbtree_init_node((RbTreeNode *)rbvalue);
 		rbvalue->override = bptree_node_id(txn, parent);
 		rbvalue->node_id = txn->root;
@@ -309,6 +316,12 @@ STATIC i32 bptree_split(BpTxn *txn, BpTreeSearchResult *res, BpTreeNode *node,
 	return 0;
 }
 
+STATIC void do_callback(BpRbTreeNode *rbnode, void *user_data) {
+	BpTxn *txn = user_data;
+	BpTreeNode *node = bptxn_get_node(txn, rbnode->node_id);
+	bptree_prim_unset_copy(node);
+}
+
 i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 	       u32 value_len, const BpTreeSearch search) {
 	BpTreeSearchResult res;
@@ -351,7 +364,7 @@ i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 }
 
 BpTree *bptree_open(Env *env) {
-	u64 eroot, seqno;
+	u64 eroot, meta, seqno;
 	BpTree *ret = alloc(sizeof(BpTree));
 	if (!ret) return NULL;
 
@@ -361,16 +374,25 @@ BpTree *bptree_open(Env *env) {
 	if (!eroot) {
 		BpTreeNode *node;
 		eroot = env_alloc(env);
-		if (!eroot || env_set_root(env, seqno, eroot) < 0) {
+		meta = env_alloc(env);
+		if (!eroot || !meta || env_set_root(env, seqno, eroot) < 0) {
 			if (eroot) env_release(env, eroot);
+			if (meta) env_release(env, meta);
 			release(ret);
 			return NULL;
 		}
 		node =
 		    (BpTreeNode *)(((u8 *)env_base(env)) + eroot * NODE_SIZE);
+		bptree_prim_set_aux(node, meta);
 		bptree_prim_unset_copy(node);
+	} else {
+		BpTreeNode *node =
+		    (BpTreeNode *)((u8 *)env_base(env) + NODE_SIZE * eroot);
+		meta = bptree_prim_aux(node);
 	}
 
+	ret->meta = meta;
+	ret->meta_ptr = (MetaData *)((u8 *)env_base(env) + NODE_SIZE * meta);
 	ret->env = env;
 	return ret;
 }
@@ -379,18 +401,12 @@ BpTxn *bptxn_start(BpTree *tree) {
 	BpTxn *ret = alloc(sizeof(BpTxn));
 	if (ret == NULL) return NULL;
 	ret->tree = tree;
-	/*ret->txn_id = __add64(&tree->meta->next_bptxn_id, 1);*/
+	ret->txn_id = __add64(&tree->meta_ptr->next_bptxn_id, 1);
 	ret->overrides = INIT_RBTREE;
 	ret->seqno = env_root_seqno(tree->env);
 	ret->counter = UINT64_MAX;
 	ret->root = env_root(tree->env);
 	return ret;
-}
-
-STATIC void do_callback(BpRbTreeNode *rbnode, void *user_data) {
-	BpTxn *txn = user_data;
-	BpTreeNode *node = bptxn_get_node(txn, rbnode->node_id);
-	bptree_prim_unset_copy(node);
 }
 
 i64 bptxn_commit(BpTxn *txn, i32 wakeupfd) {
@@ -399,15 +415,10 @@ i64 bptxn_commit(BpTxn *txn, i32 wakeupfd) {
 
 	bptree_rbtree_dfs(txn->overrides.root, do_callback, txn);
 
-	if (root == envroot) {
-		bptxn_abort(txn);
-		return 0;
-	}
+	if (root == envroot) return 0;
 	if (env_set_root(txn->tree->env, txn->seqno, root) < 0) return -1;
-	if (wakeupfd > 0) {
-		bptxn_abort(txn);
+	if (wakeupfd >= 0)
 		return env_register_notification(txn->tree->env, wakeupfd);
-	}
 	return 0;
 }
 
@@ -417,9 +428,14 @@ void bptxn_abort(BpTxn *txn) {
 	while ((node = (BpRbTreeNode *)txn->overrides.root)) {
 		BpRbTreeNode *to_del = (BpRbTreeNode *)rbtree_remove(
 		    &txn->overrides, (RbTreeNode *)node, bptree_rbtree_search);
+		if (to_del) {
+		}
+		/*env_release(txn->tree->env, id);*/
 		release(to_del);
 	}
 }
+
+u64 bptxn_id(BpTxn *txn) { return txn->txn_id; }
 
 BpTreeNode *bptxn_get_node(BpTxn *txn, u64 node_id) {
 	RbTreeNodePair retval = {0};

@@ -45,6 +45,11 @@ typedef struct {
 	bool found;
 } BpTreeSearchResult;
 
+typedef struct {
+	u64 next_bptxn_id;
+	/* Reserved potentiallly for suffix tree / other data */
+} MetaData;
+
 /* User defined search */
 typedef void (*BpTreeSearch)(BpTxn *txn, const void *key, u16 key_len,
 			     const BpTreeNode *node,
@@ -57,6 +62,7 @@ BpTree *bptree_open(Env *env);
 BpTxn *bptxn_start(BpTree *tree);
 i64 bptxn_commit(BpTxn *txn, i32 wakeupfd);
 void bptxn_abort(BpTxn *txn);
+u64 bptxn_id(BpTxn *txn);
 
 /* Modification functions */
 i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,

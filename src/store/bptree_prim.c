@@ -197,16 +197,11 @@ i32 bptree_prim_set_aux(BpTreeNode *node, u64 aux) {
 		return -1;
 	}
 
-	if (!impl->is_copy) {
-		err = EACCES;
-		return -1;
-	}
-
 	impl->aux = aux;
 	return 0;
 }
 
-i32 bptree_set_parent(BpTreeNode *node, u64 parent_id) {
+i32 bptree_prim_set_parent(BpTreeNode *node, u64 parent_id) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 
 	if (!impl) {

@@ -84,7 +84,7 @@ i32 bptree_prim_set_copy(BpTreeNode *node);
 i32 bptree_prim_unset_copy(BpTreeNode *node);
 void bptree_prim_copy(BpTreeNode *dst, BpTreeNode *src);
 i32 bptree_prim_set_next_leaf(BpTreeNode *node, u64 next_leaf);
-i32 bptree_set_parent(BpTreeNode *node, u64 parent_id);
+i32 bptree_prim_set_parent(BpTreeNode *node, u64 parent_id);
 
 /* Insert */
 i32 bptree_prim_insert_entry(BpTreeNode *node, u16 index, BpTreeItem *item);

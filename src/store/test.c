@@ -787,7 +787,8 @@ void __attribute__((unused)) print_tree(BpTxn *txn) {
 	    "------------------------------------------------------------------"
 	    "--------------------------\n");
 
-	printf("Printing tree\n");
+	printf("Printing tree aux=%i,txn_id=%i\n", bptree_prim_aux(root),
+	       bptxn_id(txn));
 	printf(
 	    "------------------------------------------------------------------"
 	    "--------------------------\n");
@@ -890,16 +891,6 @@ Test(simple_split) {
 	ASSERT_EQ(v, 0, "v=0");
 	print_tree(txn);
 
-	/*
-	pipe(wakeups);
-	node_id = bptree_node_id(txn, bptree_root(txn));
-	ASSERT(node_id != env_root(env), "envroot != txnroot");
-	num = bptxn_commit(txn, wakeups[1]);
-	ASSERT_EQ(read(wakeups[0], buf, 100), 1, "read=1");
-	ASSERT_EQ(node_id, env_root(env), "updated root");
-	ASSERT(num < env_counter(env), "num<env_counter");
-	*/
-
 	pipe(wakeups);
 	node_id = bptree_node_id(txn, bptree_root(txn));
 	ASSERT(node_id != env_root(env), "envroot != txnroot");
@@ -953,6 +944,11 @@ Test(simple_split) {
 	print_tree(txn);
 	v = bptree_put(txn, key3, 16, value1, 10, test_bptree_search);
 	ASSERT_EQ(v, -1, "v=-1");
+	print_tree(txn);
+
+	key3[0] = 'z';
+	v = bptree_put(txn, key3, 16, value1, 10, test_bptree_search);
+	ASSERT_EQ(v, 0, "v=0");
 	print_tree(txn);
 
 	bptxn_abort(txn);
