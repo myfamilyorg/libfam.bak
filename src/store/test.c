@@ -884,6 +884,11 @@ Test(simple_split) {
 	ASSERT_EQ(v, 0, "v=0");
 	print_tree(txn);
 
+	key5[2] = 'y';
+	v = bptree_put(txn, key5, 16, value1, 7610, test_bptree_search);
+	ASSERT_EQ(v, 0, "v=0");
+	print_tree(txn);
+
 	/*
 	pipe(wakeups);
 	node_id = bptree_node_id(txn, bptree_root(txn));

@@ -195,16 +195,26 @@ STATIC i32 bptree_split(BpTxn *txn, BpTreeSearchResult *res, BpTreeNode *node,
 	bptree_prim_move_entries(sibling, 0, node, partition_point,
 				 num_entries - partition_point);
 
-	item.key_len = bptree_prim_key_len(node, 0);
-	item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
-	item.key = bptree_prim_key(node, 0);
-	item.vardata.internal.node_id = bptree_node_id(txn, node);
-	bptree_prim_insert_entry(parent, 0, &item);
-	item.key_len = bptree_prim_key_len(sibling, 0);
-	item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
-	item.key = bptree_prim_key(sibling, 0);
-	item.vardata.internal.node_id = bptree_node_id(txn, sibling);
-	bptree_prim_insert_entry(parent, 1, &item);
+	if (res->levels == 0) {
+		item.key_len = bptree_prim_key_len(node, 0);
+		item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+		item.key = bptree_prim_key(node, 0);
+		item.vardata.internal.node_id = bptree_node_id(txn, node);
+		bptree_prim_insert_entry(parent, 0, &item);
+
+		item.key_len = bptree_prim_key_len(sibling, 0);
+		item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+		item.key = bptree_prim_key(sibling, 0);
+		item.vardata.internal.node_id = bptree_node_id(txn, sibling);
+		bptree_prim_insert_entry(parent, 1, &item);
+	} else {
+		u16 index = res->parent_index[res->levels - 1] + 1;
+		item.key_len = bptree_prim_key_len(sibling, 0);
+		item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+		item.key = bptree_prim_key(sibling, 0);
+		item.vardata.internal.node_id = bptree_node_id(txn, sibling);
+		bptree_prim_insert_entry(parent, index, &item);
+	}
 
 	if (res->key_index > partition_point) {
 		bptree_prim_insert_entry(
