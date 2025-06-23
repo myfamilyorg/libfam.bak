@@ -781,8 +781,6 @@ void __attribute__((unused)) print_node(BpTxn *txn, const BpTreeNode *node,
 	}
 }
 
-/*#define DEBUG1*/
-
 void __attribute__((unused)) print_tree(BpTxn *txn) {
 	BpTreeNode __attribute__((unused)) *root = bptree_root(txn);
 #ifdef DEBUG1
@@ -880,8 +878,9 @@ Test(simple_split) {
 	ASSERT_EQ(v, 0, "v=0");
 	print_tree(txn);
 
-	key4[2] = 'y';
-	v = bptree_put(txn, key4, 16, value1, 7610, test_bptree_search);
+	key1[1] = 'a';
+	key1[2] = 'y';
+	v = bptree_put(txn, key1, 16, value1, 7610, test_bptree_search);
 	ASSERT_EQ(v, 0, "v=0");
 	print_tree(txn);
 

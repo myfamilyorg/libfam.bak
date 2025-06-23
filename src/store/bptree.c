@@ -126,9 +126,9 @@ STATIC i32 bptree_split(BpTxn *txn, BpTreeSearchResult *res, BpTreeNode *node,
 			const void *key, u16 key_len, const void *value,
 			u32 value_len) {
 	BpTreeNode *parent = NULL, *sibling = NULL;
-	BpTreeItem item;
+	BpTreeItem item, to_insert;
 	u64 parent_id;
-	u16 partition_point, num_entries;
+	u16 partition_point, num_entries, used_left, used_right;
 
 	if (!txn || !res || !key || !value || key_len == 0 || value_len == 0) {
 		err = EINVAL;
@@ -169,6 +169,29 @@ STATIC i32 bptree_split(BpTxn *txn, BpTreeSearchResult *res, BpTreeNode *node,
 	bptree_prim_init_node(sibling, parent_id, false);
 	num_entries = bptree_prim_num_entries(node);
 	partition_point = (num_entries + 1) / 2;
+	to_insert.key_len = key_len;
+	to_insert.item_type = BPTREE_ITEM_TYPE_LEAF;
+	to_insert.vardata.kv.value_len = value_len;
+	to_insert.key = key;
+	to_insert.vardata.kv.value = value;
+
+	do {
+		u16 needed = calculate_needed(node, &to_insert);
+		used_left = bptree_prim_offset(node, partition_point);
+		used_right = bptree_prim_used_bytes(node) - used_left;
+		if (res->key_index > partition_point)
+			used_right += needed;
+		else
+			used_left += needed;
+
+		if (used_right > LEAF_ARRAY_SIZE) {
+			partition_point++;
+		}
+		if (used_left > LEAF_ARRAY_SIZE) {
+			partition_point--;
+		}
+	} while (used_right > LEAF_ARRAY_SIZE || used_left > LEAF_ARRAY_SIZE);
+
 	bptree_prim_move_entries(sibling, 0, node, partition_point,
 				 num_entries - partition_point);
 
@@ -182,17 +205,13 @@ STATIC i32 bptree_split(BpTxn *txn, BpTreeSearchResult *res, BpTreeNode *node,
 	item.key = bptree_prim_key(sibling, 0);
 	item.vardata.internal.node_id = bptree_node_id(txn, sibling);
 	bptree_prim_insert_entry(parent, 1, &item);
-	item.key_len = key_len;
-	item.item_type = BPTREE_ITEM_TYPE_LEAF;
-	item.vardata.kv.value_len = value_len;
-	item.key = key;
-	item.vardata.kv.value = value;
-	err = 0;
-	if (res->key_index > partition_point)
+
+	if (res->key_index > partition_point) {
 		bptree_prim_insert_entry(
-		    sibling, res->key_index - partition_point, &item);
-	else
-		bptree_prim_insert_entry(node, res->key_index, &item);
+		    sibling, res->key_index - partition_point, &to_insert);
+	} else {
+		bptree_prim_insert_entry(node, res->key_index, &to_insert);
+	}
 
 	return 0;
 }
@@ -209,12 +228,14 @@ i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 		return -1;
 	}
 
+#ifdef DEBUG1
 	{
 		u8 tmp[NODE_SIZE];
 		memcpy(tmp, key, key_len);
 		tmp[key_len] = 0;
-		/*printf("put '%s'\n", tmp);*/
+		printf("put '%s'\n", tmp);
 	}
+#endif /* DEBUG1 */
 
 	node = bptree_root(txn);
 	search(txn, key, key_len, node, &res);

@@ -96,7 +96,8 @@ i32 bptree_prim_delete_entry(BpTreeNode *node, u16 index);
 i32 bptree_prim_move_entries(BpTreeNode *dst, u16 dst_start_index,
 			     BpTreeNode *src, u16 src_start_index,
 			     u16 num_entries);
-/* Accessors */
+/* Accessors/Helpers */
+i32 calculate_needed(BpTreeNode *node, BpTreeItem *item);
 u64 bptree_prim_parent_id(const BpTreeNode *node);
 u16 bptree_prim_num_entries(const BpTreeNode *node);
 u16 bptree_prim_used_bytes(const BpTreeNode *node);
@@ -106,6 +107,7 @@ u64 bptree_prim_aux(const BpTreeNode *node);
 
 i32 bptree_prim_is_overflow(const BpTreeNode *node, u16 index);
 u16 bptree_prim_key_len(const BpTreeNode *node, u16 index);
+u16 bptree_prim_offset(const BpTreeNode *node, u16 index);
 u32 bptree_prim_value_len(const BpTreeNode *node, u16 index);
 u64 bptree_prim_overflow_start(const BpTreeNode *node, u16 index);
 u64 bptree_prim_overflow_end(const BpTreeNode *node, u16 index);

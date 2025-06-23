@@ -31,6 +31,7 @@
 #include <types.H>
 
 #define MAX_LEVELS 128
+/*#define DEBUG1*/
 
 typedef struct BpTree BpTree;
 typedef struct BpTxn BpTxn;
