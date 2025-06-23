@@ -726,15 +726,16 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 void __attribute__((unused)) print_node(BpTxn *txn, const BpTreeNode *node,
 					u8 *prefix) {
 	u64 node_id = bptree_node_id(txn, node);
+	bool is_copy = bptree_prim_is_copy(node);
 	if (bptree_prim_is_internal(node)) {
 		u16 i;
 		u16 num_entries = bptree_prim_num_entries(node);
 		printf(
 		    "%s\tInternal "
 		    "num_entries=%i,used_bytes=%i,parent=%i,is_copy=%i,node_id="
-		    "%i\n",
+		    "%i,is_copy=%i\n",
 		    prefix, num_entries, bptree_prim_used_bytes(node),
-		    bptree_prim_parent_id(node), node_id);
+		    bptree_prim_parent_id(node), node_id, is_copy);
 		for (i = 0; i < num_entries; i++) {
 			u8 tmp[NODE_SIZE];
 			u16 key_len = bptree_prim_key_len(node, i);
@@ -742,8 +743,9 @@ void __attribute__((unused)) print_node(BpTxn *txn, const BpTreeNode *node,
 			u64 node_id = bptree_prim_node_id(node, i);
 			memcpy(tmp, key, key_len);
 			tmp[key_len] = 0;
-			printf("%s\t\tkey[%u(len=%u]='%s',node_id=%u\n", prefix,
-			       i, key_len, tmp, node_id);
+			printf(
+			    "%s\t\tkey[%u(len=%u]='%s',node_id=%u,is_copy=%i\n",
+			    prefix, i, key_len, tmp, node_id, is_copy);
 		}
 		for (i = 0; i < num_entries; i++) {
 			u64 node_id = bptree_prim_node_id(node, i);
@@ -760,8 +762,9 @@ void __attribute__((unused)) print_node(BpTxn *txn, const BpTreeNode *node,
 		printf(
 		    "%s\tLeaf "
 		    "num_entries=%i,used_bytes=%i,parent=%i,node_id="
-		    "%i\n",
-		    prefix, num_entries, used_bytes, parent_id, node_id);
+		    "%i,is_copy=%i\n",
+		    prefix, num_entries, used_bytes, parent_id, node_id,
+		    is_copy);
 		for (i = 0; i < num_entries; i++) {
 			u8 tmp[NODE_SIZE];
 			u16 key_len = bptree_prim_key_len(node, i);
@@ -887,6 +890,7 @@ Test(simple_split) {
 	ASSERT(num < env_counter(env), "num<env_counter");
 	*/
 
+	bptxn_abort(txn);
 	release(tree);
 	release(txn);
 	env_close(env);

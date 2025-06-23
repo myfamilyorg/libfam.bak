@@ -196,12 +196,29 @@ i32 bptree_prim_init_node(BpTreeNode *node, u64 parent_id, bool is_internal) {
 i32 bptree_prim_set_aux(BpTreeNode *node, u64 aux) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
 
-	if (!impl || !impl->is_copy) {
+	if (!impl) {
 		err = EINVAL;
 		return -1;
 	}
 
+	if (!impl->is_copy) {
+		err = EACCES;
+		return -1;
+	}
+
 	impl->aux = aux;
+	return 0;
+}
+
+i32 bptree_prim_set_copy(BpTreeNode *node) {
+	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
+
+	if (!impl || impl->is_copy) {
+		err = EINVAL;
+		return -1;
+	}
+
+	impl->is_copy = true;
 	return 0;
 }
 
@@ -217,15 +234,10 @@ i32 bptree_prim_unset_copy(BpTreeNode *node) {
 	return 0;
 }
 
-i32 bptree_prim_copy(BpTreeNode *dst, BpTreeNode *src) {
+void bptree_prim_copy(BpTreeNode *dst, BpTreeNode *src) {
 	BpTreeNodeImpl *dst_impl = (BpTreeNodeImpl *)dst;
-	if (!dst_impl->is_copy) {
-		err = EINVAL;
-		return -1;
-	}
 	memcpy((u8 *)dst_impl, (u8 *)src, NODE_SIZE);
 	dst_impl->is_copy = true;
-	return 0;
 }
 
 i32 bptree_prim_set_next_leaf(BpTreeNode *node, u64 next_leaf) {
@@ -233,6 +245,11 @@ i32 bptree_prim_set_next_leaf(BpTreeNode *node, u64 next_leaf) {
 
 	if (!impl || impl->is_internal || !impl->is_copy) {
 		err = EINVAL;
+		return -1;
+	}
+
+	if (!impl->is_copy) {
+		err = EACCES;
 		return -1;
 	}
 
@@ -259,6 +276,11 @@ i32 bptree_prim_move_entries(BpTreeNode *dst, u16 dst_start_index,
 	if (!dst || !src || num_entries == 0 ||
 	    (u32)num_entries + (u32)src_start_index >= src_impl->num_entries) {
 		err = EINVAL;
+		return -1;
+	}
+
+	if (!dst_impl->is_copy) {
+		err = EACCES;
 		return -1;
 	}
 
@@ -357,6 +379,11 @@ i32 bptree_prim_insert_entry(BpTreeNode *node, u16 index, BpTreeItem *item) {
 		return -1;
 	}
 
+	if (!impl->is_copy) {
+		err = EACCES;
+		return -1;
+	}
+
 	if (impl->is_internal)
 		entry_offsets = impl->data.internal.entry_offsets;
 	else
@@ -399,6 +426,11 @@ i32 bptree_prim_delete_entry(BpTreeNode *node, u16 index) {
 
 	if (!node || index >= impl->num_entries) {
 		err = EINVAL;
+		return -1;
+	}
+
+	if (!impl->is_copy) {
+		err = EACCES;
 		return -1;
 	}
 

@@ -75,8 +75,9 @@ typedef struct {
 /* Create/Modify node */
 i32 bptree_prim_init_node(BpTreeNode *node, u64 parent_id, bool is_internal);
 i32 bptree_prim_set_aux(BpTreeNode *node, u64 aux);
+i32 bptree_prim_set_copy(BpTreeNode *node);
 i32 bptree_prim_unset_copy(BpTreeNode *node);
-i32 bptree_prim_copy(BpTreeNode *dst, BpTreeNode *src);
+void bptree_prim_copy(BpTreeNode *dst, BpTreeNode *src);
 i32 bptree_prim_set_next_leaf(BpTreeNode *node, u64 next_leaf);
 
 /* Insert */

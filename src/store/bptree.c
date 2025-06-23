@@ -27,7 +27,10 @@
 #include <atomic.H>
 #include <bptree.H>
 #include <error.H>
+#include <format.H>
+#include <misc.H>
 #include <rbtree.H>
+#include <storage.H>
 
 #define NODE(txn, index) \
 	((BpTreeNode *)(((u8 *)env_base(txn->tree->env)) + NODE_SIZE * index))
@@ -72,6 +75,41 @@ STATIC i32 bptree_rbtree_search(RbTreeNode *cur, const RbTreeNode *value,
 	return 0;
 }
 
+STATIC void release_node(BpTxn *txn, BpTreeNode *node) {
+	u64 node_id = bptree_node_id(txn, node);
+	env_release(txn->tree->env, node_id);
+}
+
+STATIC BpTreeNode *allocate_node(BpTxn *txn) {
+	u64 index = env_alloc(txn->tree->env);
+	if (index == 0) return NULL;
+	return (BpTreeNode *)((u8 *)env_base(txn->tree->env) +
+			      index * NODE_SIZE);
+}
+
+STATIC BpTreeNode *copy_node(BpTxn *txn, BpTreeNode *node) {
+	BpTreeNode *ret = NULL;
+	BpRbTreeNode *value;
+
+	ret = allocate_node(txn);
+	if (!ret) return NULL;
+
+	value = alloc(sizeof(BpRbTreeNode));
+	if (!value) {
+		release_node(txn, ret);
+		return NULL;
+	}
+
+	bptree_prim_copy(ret, node);
+
+	rbtree_init_node((RbTreeNode *)value);
+	value->node_id = bptree_node_id(txn, node);
+	value->override = bptree_node_id(txn, ret);
+	rbtree_put(&txn->overrides, (RbTreeNode *)value, bptree_rbtree_search);
+
+	return ret;
+}
+
 i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 	       u32 value_len, const BpTreeSearch search) {
 	BpTreeSearchResult res;
@@ -86,6 +124,9 @@ i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 	node = bptree_root(txn);
 	search(txn, key, key_len, node, &res);
 	node = bptxn_get_node(txn, res.node_id);
+	if (!bptree_prim_is_copy(node)) {
+		node = copy_node(txn, node);
+	}
 
 	item.key_len = key_len;
 	item.item_type = BPTREE_ITEM_TYPE_LEAF;
@@ -132,6 +173,16 @@ BpTxn *bptxn_start(BpTree *tree) {
 	ret->seqno = env_root_seqno(tree->env);
 	ret->root = env_root(tree->env);
 	return ret;
+}
+
+void bptxn_abort(BpTxn *txn) {
+	BpRbTreeNode *node;
+
+	while ((node = (BpRbTreeNode *)txn->overrides.root)) {
+		BpRbTreeNode *to_del = (BpRbTreeNode *)rbtree_remove(
+		    &txn->overrides, (RbTreeNode *)node, bptree_rbtree_search);
+		release(to_del);
+	}
 }
 
 BpTreeNode *bptxn_get_node(BpTxn *txn, u64 node_id) {

@@ -55,7 +55,7 @@ BpTree *bptree_open(Env *env);
 /* Txn management */
 BpTxn *bptxn_start(BpTree *tree);
 i64 bptxn_commit(BpTxn *txn, i32 wakeupfd);
-i32 bptxn_abort(BpTxn *txn);
+void bptxn_abort(BpTxn *txn);
 
 /* Modification functions */
 i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
