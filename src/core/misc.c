@@ -581,7 +581,7 @@ u128 __udivti3(u128 a, u128 b) {
 
 	return quotient;
 }
-i32 printf(const u8 *, ...);
+
 /* Base64 encode */
 u64 b64_encode(const u8 *in, u64 in_len, u8 *out, u64 out_max) {
 	u64 i;
