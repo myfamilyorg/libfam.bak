@@ -28,6 +28,7 @@
 #include <bptree.H>
 #include <error.H>
 #include <format.H>
+#include <limits.H>
 #include <misc.H>
 #include <rbtree.H>
 #include <storage.H>
@@ -44,6 +45,7 @@ struct BpTxn {
 	u64 txn_id;
 	u64 root;
 	u64 seqno;
+	u64 counter;
 	RbTree overrides;
 };
 
@@ -52,6 +54,30 @@ typedef struct {
 	u64 node_id;
 	u64 override;
 } BpRbTreeNode;
+
+typedef void (*RbTreeNodeCallback)(BpRbTreeNode *node, void *user_data);
+
+STATIC i32 bptree_rbtree_dfs(RbTreeNode *cur, RbTreeNodeCallback callback,
+			     void *user_data) {
+	i32 status;
+	if (!cur) {
+		return 0;
+	}
+
+	status = bptree_rbtree_dfs(cur->left, callback, user_data);
+	if (status != 0) {
+		return status;
+	}
+
+	callback((BpRbTreeNode *)cur, user_data);
+
+	status = bptree_rbtree_dfs(cur->right, callback, user_data);
+	if (status != 0) {
+		return status;
+	}
+
+	return 0;
+}
 
 STATIC i32 bptree_rbtree_search(RbTreeNode *cur, const RbTreeNode *value,
 				RbTreeNodePair *retval) {
@@ -129,6 +155,7 @@ STATIC i32 bptree_split(BpTxn *txn, BpTreeSearchResult *res, BpTreeNode *node,
 	BpTreeItem item, to_insert;
 	u64 parent_id;
 	u16 partition_point, num_entries, used_left, used_right;
+	BpRbTreeNode *rbvalue;
 
 	if (!txn || !res || !key || !value || key_len == 0 || value_len == 0) {
 		err = EINVAL;
@@ -142,29 +169,43 @@ STATIC i32 bptree_split(BpTxn *txn, BpTreeSearchResult *res, BpTreeNode *node,
 	if ((parent_id = bptree_prim_parent_id(node))) {
 		parent = bptxn_get_node(txn, parent_id);
 	} else {
-		BpRbTreeNode *value = alloc(sizeof(BpRbTreeNode));
 		BpRbTreeNode *overwrite;
-		if (!value) return -1;
+		rbvalue = alloc(sizeof(BpRbTreeNode));
+		if (!rbvalue) return -1;
 		parent = allocate_node(txn);
 		if (!parent) {
-			release(value);
+			release(rbvalue);
 			return -1;
 		}
 		parent_id = bptree_node_id(txn, parent);
 		bptree_prim_init_node(parent, 0, true);
 		bptree_set_parent(node, parent_id);
-		rbtree_init_node((RbTreeNode *)value);
-		value->override = bptree_node_id(txn, parent);
-		value->node_id = txn->root;
-		overwrite = (BpRbTreeNode *)rbtree_put(
-		    &txn->overrides, (RbTreeNode *)value, bptree_rbtree_search);
-		if (overwrite) release(overwrite);
+		rbtree_init_node((RbTreeNode *)rbvalue);
+		rbvalue->override = bptree_node_id(txn, parent);
+		rbvalue->node_id = txn->root;
+		overwrite = (BpRbTreeNode *)rbtree_put(&txn->overrides,
+						       (RbTreeNode *)rbvalue,
+						       bptree_rbtree_search);
+		if (overwrite) {
+			overwrite->node_id = txn->counter--;
+			rbtree_put(&txn->overrides, (RbTreeNode *)overwrite,
+				   bptree_rbtree_search);
+		}
 	}
 
 	sibling = allocate_node(txn);
 	if (!sibling || !parent) {
+		/* TODO: memory cleanup */
 		return -1;
 	}
+
+	rbvalue = alloc(sizeof(BpRbTreeNode));
+	if (!rbvalue) return -1; /* TODO: memory cleanup */
+
+	rbvalue->override = bptree_node_id(txn, sibling);
+	rbvalue->node_id = txn->counter--;
+	rbtree_put(&txn->overrides, (RbTreeNode *)rbvalue,
+		   bptree_rbtree_search);
 
 	bptree_prim_init_node(sibling, parent_id, false);
 	num_entries = bptree_prim_num_entries(node);
@@ -249,6 +290,10 @@ i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 
 	node = bptree_root(txn);
 	search(txn, key, key_len, node, &res);
+	if (res.found) {
+		err = EKEYREJECTED;
+		return -1;
+	}
 	node = bptxn_get_node(txn, res.node_id);
 	if (!bptree_prim_is_copy(node)) node = copy_node(txn, node);
 
@@ -295,8 +340,36 @@ BpTxn *bptxn_start(BpTree *tree) {
 	/*ret->txn_id = __add64(&tree->meta->next_bptxn_id, 1);*/
 	ret->overrides = INIT_RBTREE;
 	ret->seqno = env_root_seqno(tree->env);
+	ret->counter = UINT64_MAX;
 	ret->root = env_root(tree->env);
 	return ret;
+}
+
+void do_callback(BpRbTreeNode *node, void *user_data) {
+	if (node || user_data) {
+	}
+	/*
+	printf("node_id=%i,override=%i, user_data=%x\n", node->node_id,
+	       node->override, user_data);
+	       */
+}
+
+i64 bptxn_commit(BpTxn *txn, i32 wakeupfd) {
+	u64 root = bptree_node_id(txn, bptree_root(txn));
+	u64 envroot = env_root(txn->tree->env);
+
+	bptree_rbtree_dfs(txn->overrides.root, do_callback, NULL);
+
+	if (root == envroot) {
+		bptxn_abort(txn);
+		return 0;
+	}
+	if (env_set_root(txn->tree->env, txn->seqno, root) < 0) return -1;
+	if (wakeupfd > 0) {
+		bptxn_abort(txn);
+		return env_register_notification(txn->tree->env, wakeupfd);
+	}
+	return 0;
 }
 
 void bptxn_abort(BpTxn *txn) {

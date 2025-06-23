@@ -705,7 +705,6 @@ void test_bptree_search(BpTxn *txn, const void *key, u16 key_len,
 		node = bptxn_get_node(txn, node_id);
 		retval->parent_index[retval->levels++] = match_index;
 	}
-
 	num_entries = bptree_prim_num_entries(node);
 	for (i = 0; i < num_entries; i++) {
 		const u8 *cmp_key = bptree_prim_key(node, i);
@@ -801,8 +800,10 @@ void __attribute__((unused)) print_tree(BpTxn *txn) {
 
 Test(simple_split) {
 	const u8 *path = "/tmp/store1.dat";
-	i32 fd, i, v;
-	/*u8 buf[100];*/
+	i32 fd, i, v, wakeups[2];
+	u64 node_id;
+	i64 num;
+	u8 buf[100];
 	BpTree *tree;
 	BpTxn *txn;
 
@@ -899,11 +900,43 @@ Test(simple_split) {
 	ASSERT(num < env_counter(env), "num<env_counter");
 	*/
 
-	bptxn_abort(txn);
+	pipe(wakeups);
+	node_id = bptree_node_id(txn, bptree_root(txn));
+	ASSERT(node_id != env_root(env), "envroot != txnroot");
+
+	num = bptxn_commit(txn, wakeups[1]);
+	ASSERT_EQ(read(wakeups[0], buf, 100), 1, "read=1");
+	ASSERT_EQ(node_id, env_root(env), "updated root");
+	ASSERT(num < env_counter(env), "num<env_counter");
+
+	/*bptxn_abort(txn);*/
 	release(tree);
 	release(txn);
 	env_close(env);
 	release(env);
+
+	env = env_open(path);
+
+	tree = bptree_open(env);
+	ASSERT(tree, "tree");
+	txn = bptxn_start(tree);
+	ASSERT(txn, "txn");
+
+	v = bptree_put(txn, key3, 16, value1, 10, test_bptree_search);
+	ASSERT_EQ(v, -1, "v=-1");
+	print_tree(txn);
+
+	key3[1] = 'x';
+	v = bptree_put(txn, key3, 16, value1, 10, test_bptree_search);
+	ASSERT_EQ(v, 0, "v=0");
+	print_tree(txn);
+
+	release(tree);
+	release(txn);
+	env_close(env);
+	release(env);
+
+	unlink(path);
 	/*
 
 	env = env_open(path);
