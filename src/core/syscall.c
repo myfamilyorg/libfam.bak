@@ -32,11 +32,21 @@
 bool _debug_no_write = false;
 bool _debug_no_exit = false;
 
-#define SET_ERR             \
+#define SET_ERR_VALUE       \
 	if (ret < 0) {      \
 		err = -ret; \
 		return -1;  \
-	}                   \
+	}
+
+#define SET_ERR       \
+	SET_ERR_VALUE \
+	return ret;
+
+#define SET_ERR_I64_VOID_PTR       \
+	if ((i64)ret < 0) {        \
+		err = -(i64)ret;   \
+		return (void *)-1; \
+	}                          \
 	return ret;
 
 #ifdef __aarch64__
@@ -620,11 +630,7 @@ i32 getrandom(void *buf, u64 len, u32 flags) {
 	total = 0;
 	while (total < len) {
 		i64 ret = syscall_getrandom(buf, len, flags);
-
-		if (ret < 0) {
-			err = -ret;
-			return -1;
-		}
+		SET_ERR_VALUE
 		total += ret;
 	}
 	return 0;
@@ -633,12 +639,7 @@ i32 getrandom(void *buf, u64 len, u32 flags) {
 void *mmap(void *addr, u64 length, i32 prot, i32 flags, i32 fd, i64 offset) {
 	void *ret;
 	ret = syscall_mmap(addr, length, prot, flags, fd, offset);
-
-	if ((i64)ret < 0) {
-		err = -(i64)ret;
-		return (void *)-1;
-	}
-	return ret;
+	SET_ERR_I64_VOID_PTR
 }
 
 i32 nanosleep(const struct timespec *req, struct timespec *rem) {

@@ -1208,3 +1208,39 @@ Test(b642) {
 	ASSERT(!memcmp(buf3, "abcde", 5), "five_byte_decode");
 }
 
+Test(sys) {
+	i32 fd, fd2;
+	i32 pid = getpid();
+	i32 ret = kill(pid, 0);
+	i32 ret2 = kill(I32_MAX, 0);
+	const u8 *path = "/tmp/systest.dat";
+	ASSERT(!ret, "our pid");
+	ASSERT(ret2, "invalid pid");
+	err = 0;
+	ASSERT(getrandom(NULL, 512, 0), "len>256");
+	ASSERT_EQ(err, EIO, "eio");
+	ASSERT(getrandom(NULL, 128, 0), "null buf");
+	ASSERT_EQ(err, EFAULT, "efault");
+	err = 0;
+	settimeofday(NULL, NULL);
+	ASSERT_EQ(err, EPERM, "eperm");
+
+	unlink(path);
+	fd = file(path);
+	fd2 = fcntl(fd, F_DUPFD);
+	ASSERT(fd != fd2, "ne");
+	ASSERT(fd > 0, "fd>0");
+	ASSERT(fd2 > 0, "fd2>0");
+	close(fd);
+	close(fd2);
+	unlink(path);
+
+	fd = epoll_create1(0);
+	ASSERT(fd > 0, "epfd>0");
+	ASSERT_EQ(epoll_ctl(fd, EPOLL_CTL_ADD, -1, NULL), -1, "epoll_ctl");
+	ASSERT_EQ(err, EFAULT, "efault");
+	err = 0;
+	ASSERT_EQ(epoll_pwait(fd, NULL, 0, 1, NULL, 0), -1, "epoll_pwait");
+	ASSERT_EQ(err, EINVAL, "einval");
+	close(fd);
+}
