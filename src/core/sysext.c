@@ -26,7 +26,6 @@
 #include <error.H>
 #include <init.H>
 #include <sys.H>
-#include <sys.H>
 #include <syscall_const.H>
 
 i32 file(const u8 *path) {
@@ -76,26 +75,20 @@ i32 fresize(i32 fd, i64 length) {
 void *map(u64 length) {
 	void *v = mmap(NULL, length, PROT_READ | PROT_WRITE,
 		       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-	if (v == MAP_FAILED) {
-		return NULL;
-	}
+	if (v == MAP_FAILED) return NULL;
 	return v;
 }
 void *fmap(i32 fd, i64 size, i64 offset) {
 	void *v =
 	    mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, offset);
-	if (v == MAP_FAILED) {
-		return NULL;
-	}
+	if (v == MAP_FAILED) return NULL;
 	return v;
 }
 
 void *smap(u64 length) {
 	void *v = mmap(NULL, length, PROT_READ | PROT_WRITE,
 		       MAP_ANONYMOUS | MAP_SHARED, -1, 0);
-	if (v == MAP_FAILED) {
-		return NULL;
-	}
+	if (v == MAP_FAILED) return NULL;
 	return v;
 }
 

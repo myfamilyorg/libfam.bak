@@ -1021,6 +1021,24 @@ Test(umodti3) {
 	ASSERT_EQ(r, 0, "large_a_small_b_mod");
 }
 
+Test(sysext) {
+	const u8 *path = "/tmp/01234567789abc.txt";
+	i32 fd;
+	u128 v1, v2;
+
+	getentropy(&v1, sizeof(u128));
+	getentropy(&v2, sizeof(u128));
+	ASSERT(v1 != v2, "getentropy");
+
+	unlink(path);
+	ASSERT(!exists(path), "!exists");
+	fd = file(path);
+	flush(fd);
+	ASSERT(exists(path), "exists");
+	close(fd);
+	unlink(path);
+}
+
 Test(double_to_string) {
 	u8 buf[64]; /* Ensure sufficient size */
 	u64 len;
