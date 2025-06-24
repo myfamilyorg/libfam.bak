@@ -1243,4 +1243,16 @@ Test(sys) {
 	ASSERT_EQ(epoll_pwait(fd, NULL, 0, 1, NULL, 0), -1, "epoll_pwait");
 	ASSERT_EQ(err, EINVAL, "einval");
 	close(fd);
+
+	fd = socket(AF_INET, SOCK_STREAM, 0);
+	ASSERT(fd > 0, "fd>0");
+	ASSERT(shutdown(fd, 0), "shutdown");
+	ASSERT(accept(fd, NULL, NULL), "accept");
+	ASSERT(bind(fd, NULL, 0), "bind");
+	ASSERT(connect(fd, NULL, 0), "connect");
+	ASSERT(setsockopt(fd, 0, 0, NULL, 0), "setsockopt");
+	ASSERT(getsockname(fd, NULL, NULL), "getsockname");
+	ASSERT(!listen(fd, 0), "listen");
+
+	close(fd);
 }
