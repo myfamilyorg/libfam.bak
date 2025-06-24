@@ -43,6 +43,7 @@ COMMON_FLAGS =             -Wall \
 			   -Wno-int-to-pointer-cast \
 			   -Wno-incompatible-pointer-types-discards-qualifiers \
 			   -Wno-discarded-qualifiers \
+			   -Wno-unknown-warning-option \
                            -Wno-int-conversion \
 			   -Wno-pointer-sign \
 			   -DPAGE_SIZE=$(PAGE_SIZE) \

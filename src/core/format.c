@@ -24,7 +24,7 @@
  *******************************************************************************/
 
 #include <alloc.H>
-#include <format2.H>
+#include <format.H>
 #include <misc.H>
 
 i32 format_check_resize(Formatter *f, u64 size) {
