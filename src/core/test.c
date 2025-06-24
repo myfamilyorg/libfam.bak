@@ -26,6 +26,7 @@
 #include <alloc.H>
 #include <env.H>
 #include <error.H>
+#include <format2.H>
 #include <test.H>
 
 Test(alloc1) {
@@ -214,6 +215,19 @@ Test(cas_loop) {
 	_debug_cas_loop = 1;
 	t1 = alloc_impl(a, 1024);
 	ASSERT(t1, "t1 != NULL");
-
-	_debug_cas_loop = 0;
+	ASSERT_EQ(_debug_cas_loop, 0, "_debug_cas_loop");
 }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
+#pragma GCC diagnostic ignored "-Wint-conversion"
+
+Test(format1) {
+	Formatter f = {0};
+	format(&f, "test1={},test2={},test3={}", 1, "abc", -100);
+	ASSERT(!strcmp(format_to_string(&f), "test1=1,test2=abc,test3=-100"),
+	       "strcmp");
+}
+
+#pragma GCC diagnostic pop
