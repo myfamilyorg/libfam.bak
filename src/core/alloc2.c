@@ -245,7 +245,7 @@ void alloc_destroy(Alloc *a) {
 	munmap(a, a->size + sizeof(Alloc) + a->bitmap_pages * PAGE_SIZE);
 }
 
-u64 allocated_bytes_impl(Alloc *a) {
+u64 allocated_bytes_impl(Alloc *a __attribute__((unused))) {
 	u64 ret = 0;
 #if MEMSAN == 1
 	ret = a->allocated_bytes;
@@ -253,7 +253,7 @@ u64 allocated_bytes_impl(Alloc *a) {
 	return ret;
 }
 
-void reset_allocated_bytes_impl(Alloc *a) {
+void reset_allocated_bytes_impl(Alloc *a __attribute__((unused))) {
 #if MEMSAN == 1
 	a->allocated_bytes = 0;
 #endif /* MEMSAN */
