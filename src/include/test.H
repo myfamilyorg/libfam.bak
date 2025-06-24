@@ -35,7 +35,8 @@
 #define MAX_TEST_NAME 128
 
 void add_test_fn(void (*test_fn)(void), const u8 *name);
-static __attribute__ ((unused)) const u8 *__assertion_msg = "\nassertion failed in test";
+static __attribute__((unused)) const u8 *__assertion_msg =
+    "\nassertion failed in test";
 
 extern i32 exe_test;
 typedef struct {
@@ -74,18 +75,17 @@ extern TestEntry tests[];
 	}
 
 #if MEMSAN == 1
-#define ASSERT_BYTES(v)                                                 \
-	do {                                                            \
-		u64 _b__ = get_allocated_bytes();                    \
-		if (_b__ != (v))                                        \
-			printf("expected b=%i. found b=%i", v, _b__); \
-		ASSERT_EQ(_b__, (v), "ASSERT_BYTES");                   \
+#define ASSERT_BYTES(v)                                                       \
+	do {                                                                  \
+		u64 _b__ = get_allocated_bytes();                             \
+		if (_b__ != (v)) print("expected b={}. found b={}", v, _b__); \
+		ASSERT_EQ(_b__, (v), "ASSERT_BYTES");                         \
 	} while (false);
-#define ASSERT_NOT_BYTES_0()                                             \
-	do {                                                             \
-		u64 _b__ = get_allocated_bytes();                     \
-		if (!_b__) printf("expected b!=0, found b=%i\n", _b__); \
-		ASSERT(_b__, "ASSERT_NOT_BYTES_0");                      \
+#define ASSERT_NOT_BYTES_0()                                           \
+	do {                                                           \
+		u64 _b__ = get_allocated_bytes();                      \
+		if (!_b__) println("expected b!=0, found b={}", _b__); \
+		ASSERT(_b__, "ASSERT_NOT_BYTES_0");                    \
 	} while (false);
 #else
 #define ASSERT_BYTES(v)

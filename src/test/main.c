@@ -97,9 +97,10 @@ __asm__(
 
 i32 main(i32 argc __attribute__((unused)), u8 **argv __attribute__((unused)),
 	 u8 **envp) {
-	i32 test_count = 0;
+	i32 test_count = 0, len;
 	u8 *tp;
 	u64 total;
+	u8 buf[128];
 	double ms;
 
 	reset_allocated_bytes();
@@ -112,14 +113,14 @@ i32 main(i32 argc __attribute__((unused)), u8 **argv __attribute__((unused)),
 
 	tp = getenv("TEST_PATTERN");
 	if (!tp || !strcmp(tp, "*")) {
-		printf("%sRunning %d tests%s ...", CYAN, cur_tests, RESET);
+		println("{}Running {} tests{} ...", CYAN, cur_tests, RESET);
 	} else {
-		printf("%sRunning test%s: '%s' ...\n", CYAN, RESET, tp);
+		println("{}Running test{}: '{}' ...", CYAN, RESET, tp);
 	}
 
-	printf(
+	println(
 	    "------------------------------------------------------------------"
-	    "--------------------------\n");
+	    "--------------------------");
 
 	total = micros();
 
@@ -127,24 +128,26 @@ i32 main(i32 argc __attribute__((unused)), u8 **argv __attribute__((unused)),
 		if (!tp || !strcmp(tp, "*") ||
 		    !strcmp(tests[exe_test].name, tp)) {
 			u64 start;
-			printf("%sRunning test%s %d [%s%s%s]", YELLOW, RESET,
-			       1 + test_count, DIMMED, tests[exe_test].name,
-			       RESET);
+			print("{}Running test{} {} [{}{}{}]", YELLOW, RESET,
+			      1 + test_count, DIMMED, tests[exe_test].name,
+			      RESET);
 			start = micros();
 			tests[exe_test].test_fn();
-			printf(" %s[%i %ss]%s \n", GREEN,
-			       (i32)(micros() - start), "µ", RESET);
+			println(" {}[{} {}s]{}", GREEN, (i32)(micros() - start),
+				"µ", RESET);
 			test_count++;
 		}
 	}
 
 	ms = (double)(micros() - total) / (double)1000;
 
-	printf(
+	println(
 	    "------------------------------------------------------------------"
-	    "--------------------------\n");
-	printf("%sSuccess%s! %d %stests passed!%s %s[%f ms]%s\n", GREEN, RESET,
-	       test_count, CYAN, RESET, GREEN, ms, RESET);
+	    "--------------------------");
+	len = double_to_string(buf, ms, 3);
+	buf[len] = 0;
+	println("{}Success{}! {} {}tests passed!{} {}[{} ms]{}", GREEN, RESET,
+		test_count, CYAN, RESET, GREEN, buf, RESET);
 
 	return 0;
 }
