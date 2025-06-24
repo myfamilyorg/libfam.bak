@@ -56,29 +56,34 @@ i32 format_append(Formatter *f, const char *fmt, ...);
 void format_clear(Formatter *f);
 const u8 *format_to_string(Formatter *f);
 
-#define FORMAT_ITEM(arg, value)                                            \
-	_Generic((value),                                                  \
-	    i128: ((Printable){.t = I128_T, .data.ivalue = (value)}),      \
-	    i64: ((Printable){.t = I128_T, .data.ivalue = (i128)(value)}), \
-	    i32: ((Printable){.t = I128_T, .data.ivalue = (i128)(value)}), \
-	    i16: ((Printable){.t = I128_T, .data.ivalue = (i128)(value)}), \
-	    i8: ((Printable){.t = I128_T, .data.ivalue = (i128)(value)}),  \
-	    u128: ((Printable){.t = U128_T, .data.uvalue = (value)}),      \
-	    u64: ((Printable){.t = U128_T, .data.uvalue = (u128)(value)}), \
-	    u32: ((Printable){.t = U128_T, .data.uvalue = (u128)(value)}), \
-	    u16: ((Printable){.t = U128_T, .data.uvalue = (u128)(value)}), \
-	    u8: ((Printable){.t = U128_T, .data.uvalue = (u128)(value)}),  \
-	    u8 *: ((Printable){.t = STRING_T, .data.svalue = (value)}),    \
-	    char *: ((Printable){.t = STRING_T,                            \
-				 .data.svalue = (u8 *)(value)}),           \
-	    const char *: ((Printable){.t = STRING_T,                      \
-				       .data.svalue = (u8 *)(value)}),     \
-	    const u8 *: ((Printable){.t = STRING_T,                        \
-				     .data.svalue = (u8 *)(value)}),       \
-	    default: ((Printable){.t = STRING_T,                           \
+#define FORMAT_ITEM(arg, value)                                               \
+	_Generic((value),                                                     \
+	    i128: ((Printable){.t = I128_T, .data.ivalue = (value)}),         \
+	    i64: ((Printable){.t = I128_T, .data.ivalue = (i128)(value)}),    \
+	    i32: ((Printable){.t = I128_T, .data.ivalue = (i128)(value)}),    \
+	    i16: ((Printable){.t = I128_T, .data.ivalue = (i128)(value)}),    \
+	    i8: ((Printable){.t = I128_T, .data.ivalue = (i128)(value)}),     \
+	    u128: ((Printable){.t = U128_T, .data.uvalue = (value)}),         \
+	    u64: ((Printable){.t = U128_T, .data.uvalue = (u128)(value)}),    \
+	    u32: ((Printable){.t = U128_T, .data.uvalue = (u128)(value)}),    \
+	    u16: ((Printable){.t = U128_T, .data.uvalue = (u128)(value)}),    \
+	    u8: ((Printable){.t = U128_T, .data.uvalue = (u128)(value)}),     \
+	    u8 *: ((Printable){.t = STRING_T, .data.svalue = (value)}),       \
+	    const u8 *: ((Printable){.t = STRING_T,                           \
+				     .data.svalue = (u8 *)(value)}),          \
+	    char *: ((Printable){.t = STRING_T,                               \
+				 .data.svalue = (u8 *)(value)}),              \
+	    const char *: ((Printable){.t = STRING_T,                         \
+				       .data.svalue = (u8 *)(value)}),        \
+	    i8 *: ((Printable){.t = STRING_T, .data.svalue = (u8 *)(value)}), \
+	    const i8 *: ((Printable){.t = STRING_T,                           \
+				     .data.svalue = (u8 *)(value)}),          \
+	    default: ((Printable){.t = STRING_T,                              \
 				  .data.svalue = (u8 *)"unsupported"}))
+
 #define format(f, fmt, ...) \
-	format_append(f, fmt, FOR_EACH(FORMAT_ITEM, _, (, ), __VA_ARGS__))
+	format_append(      \
+	    f, fmt __VA_OPT__(, FOR_EACH(FORMAT_ITEM, _, (, ), __VA_ARGS__)))
 
 #define println(fmt, ...)                        \
 	do {                                     \

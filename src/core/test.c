@@ -228,6 +228,15 @@ Test(format1) {
 	format(&f, "test1={},test2={},test3={}", 1, "abc", -100);
 	ASSERT(!strcmp(format_to_string(&f), "test1=1,test2=abc,test3=-100"),
 	       "strcmp");
+	format_clear(&f);
+
+	format(&f, "test1={},test2={},test3={}x", 1, "abc", -100);
+	ASSERT(!strcmp(format_to_string(&f), "test1=1,test2=abc,test3=-100x"),
+	       "strcmp2");
+
+	format_clear(&f);
+	format(&f, "abc");
+	ASSERT(!strcmp(format_to_string(&f), "abc"), "strcmp2");
 }
 
 #pragma GCC diagnostic pop
