@@ -82,9 +82,22 @@ const u8 *format_to_string(Formatter *f);
 	    default: ((Printable){.t = STRING_T,                              \
 				  .data.svalue = (u8 *)"unsupported"}))
 
-#define format(f, fmt, ...) \
-	format_append(      \
-	    f, fmt __VA_OPT__(, FOR_EACH(FORMAT_ITEM, _, (, ), __VA_ARGS__)));
+/* clang-format off */
+#define format(f, fmt, ...)                                                    \
+	_Pragma("GCC diagnostic push");                                        \
+	_Pragma("GCC diagnostic ignored \"-Wpragmas\"");                       \
+	_Pragma("GCC diagnostic ignored \"-Wunknown-warning-option\"");        \
+	_Pragma("GCC diagnostic ignored \"-Wdiscarded-qualifiers\"");          \
+	_Pragma("GCC diagnostic ignored \"-Wpointer-to-int-cast\"");           \
+	_Pragma("GCC diagnostic ignored \"-Wint-to-pointer-cast\"");           \
+        _Pragma("GCC diagnostic ignored \"-Wint-conversion\"");                \
+	_Pragma("GCC diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\""); \
+	format_append(                                                         \
+	    f, fmt __VA_OPT__(, FOR_EACH(FORMAT_ITEM, _, (, ), __VA_ARGS__))); \
+	_Pragma("GCC diagnostic pop");
+/* clang-format on */
+
+#define RESTORE_DIAGNOSTICS _Pragma("GCC diagnostic pop")
 
 #define println(fmt, ...)                        \
 	do {                                     \
