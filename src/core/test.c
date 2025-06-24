@@ -218,12 +218,8 @@ Test(cas_loop) {
 	ASSERT_EQ(_debug_cas_loop, 0, "_debug_cas_loop");
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
-#pragma GCC diagnostic ignored "-Wint-conversion"
-
 Test(format1) {
+	i32 x = 101;
 	Formatter f = {0};
 	format(&f, "test1={},test2={},test3={}", 1, "abc", -100);
 	ASSERT(!strcmp(format_to_string(&f), "test1=1,test2=abc,test3=-100"),
@@ -237,6 +233,11 @@ Test(format1) {
 	format_clear(&f);
 	format(&f, "abc");
 	ASSERT(!strcmp(format_to_string(&f), "abc"), "strcmp2");
+
+	format_clear(&f);
+	format(&f, "abc={}", x);
+	ASSERT(!strcmp(format_to_string(&f), "abc=101"), "strcmp3");
+
+	format_clear(&f);
 }
 
-#pragma GCC diagnostic pop

@@ -83,7 +83,7 @@ const u8 *format_to_string(Formatter *f);
 
 #define format(f, fmt, ...) \
 	format_append(      \
-	    f, fmt __VA_OPT__(, FOR_EACH(FORMAT_ITEM, _, (, ), __VA_ARGS__)))
+	    f, fmt __VA_OPT__(, FOR_EACH(FORMAT_ITEM, _, (, ), __VA_ARGS__)));
 
 #define println(fmt, ...)                        \
 	do {                                     \

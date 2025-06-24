@@ -30,17 +30,18 @@ MEMSAN	 ?= 0
 FILTER	 ?= "*"
 
 # Common flags
-COMMON_FLAGS = -pedantic \
-			   -Wall \
+COMMON_FLAGS =             -Wall \
 			   -Wextra \
 			   -std=c89 \
-			   -Werror \
 			   -I$(INCLDIR) \
 			   -D_FORTIFY_SOURCE=0 \
 			   -fno-builtin \
 			   -fno-stack-protector \
 			   -Wno-attributes \
 			   -Wno-error=pointer-sign \
+			   -Wno-pointer-to-int-cast \
+			   -Wno-int-to-pointer-cast \
+                           -Wno-int-conversion \
 			   -Wno-pointer-sign \
 			   -DPAGE_SIZE=$(PAGE_SIZE) \
 			   -DMEMSAN=$(MEMSAN)

@@ -26,6 +26,7 @@
 #include <alloc.H>
 #include <env.H>
 #include <format.H>
+#include <format2.H>
 #include <misc.H>
 #include <sys.H>
 #include <test.H>
@@ -111,7 +112,7 @@ i32 main(i32 argc __attribute__((unused)), u8 **argv __attribute__((unused)),
 
 	tp = getenv("TEST_PATTERN");
 	if (!tp || !strcmp(tp, "*")) {
-		printf("%sRunning %d tests%s ...\n", CYAN, cur_tests, RESET);
+		printf("%sRunning %d tests%s ...", CYAN, cur_tests, RESET);
 	} else {
 		printf("%sRunning test%s: '%s' ...\n", CYAN, RESET, tp);
 	}
