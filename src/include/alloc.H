@@ -51,8 +51,6 @@ typedef enum { ALLOC_TYPE_MAP, ALLOC_TYPE_SMAP, ALLOC_TYPE_FMAP } AllocType;
 
 Alloc *alloc_init(AllocType t, u64 size, ...);
 void alloc_destroy(Alloc *a);
-u64 allocated_bytes_impl(Alloc *a);
-void reset_allocated_bytes_impl(Alloc *a);
 void *alloc_impl(Alloc *a, u64 size);
 void release_impl(Alloc *a, void *ptr);
 void *resize_impl(Alloc *a, void *ptr, u64 size);
@@ -61,9 +59,11 @@ void *alloc(u64 size);
 void release(void *ptr);
 void *resize(void *ptr, u64 size);
 
-#if MEMSAN == 1
+#ifdef TEST
+u64 allocated_bytes_impl(Alloc *a);
+void reset_allocated_bytes_impl(Alloc *a);
 u64 get_allocated_bytes(void);
 void reset_allocated_bytes(void);
-#endif /* MEMSAN */
+#endif /* TEST */
 
 #endif /* _ALLOC_H */
