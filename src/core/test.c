@@ -80,3 +80,22 @@ Test(alloc2) {
 	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
 	alloc_destroy(a);
 }
+
+Test(resize1) {
+	Alloc *a;
+	u8 *t1 = NULL, *t2 = NULL, *t3 = NULL;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
+
+	t1 = resize_impl(a, t1, 8);
+	t2 = resize_impl(a, t2, 8);
+	t3 = resize_impl(a, t3, 14);
+
+	ASSERT_EQ((u64)t2 - (u64)t1, 8, "8 byte slabs");
+
+	release_impl(a, t1);
+	resize_impl(a, t2, 0);
+	resize_impl(a, t3, 0);
+
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}

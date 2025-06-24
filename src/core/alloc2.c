@@ -312,5 +312,90 @@ void release_impl(Alloc *a, void *ptr) {
 #endif
 	}
 }
-void *resize_impl(Alloc *a, void *ptr, u64 size);
+void *resize_impl(Alloc *a, void *ptr, u64 new_size) {
+	u64 base_offset;
+	u64 offset;
+	void *new_ptr;
+	u64 old_size;
+
+	/* Handle null pointer or zero size */
+	if (ptr == NULL) {
+		return alloc_impl(a, new_size);
+	}
+	if (new_size == 0) {
+		release_impl(a, ptr);
+		return NULL;
+	}
+
+	/* Validate new size */
+	if (new_size > CHUNK_SIZE) {
+		err = EINVAL;
+		return NULL;
+	}
+
+	/* Validate pointer */
+	base_offset = (u64)a + sizeof(Alloc) + a->bitmap_pages * PAGE_SIZE;
+	if ((u64)ptr < base_offset || (u64)ptr >= base_offset + a->size) {
+		panic("Invalid pointer resized!\n");
+	}
+
+	offset = (u64)ptr - base_offset;
+
+	if (offset % CHUNK_SIZE == 0) {
+		/* Chunk-sized allocation (> MAX_SLAB_SIZE) */
+		if (new_size > MAX_SLAB_SIZE) {
+			/* New size still requires a chunk, no need to resize */
+			return ptr;
+		}
+		/* Resize to a slab */
+		new_ptr = allocate_slab_impl(a, new_size);
+		if (new_ptr == NULL) {
+			return NULL;
+		}
+		/* Copy data (up to new_size, as chunk is larger) */
+		memcpy(new_ptr, ptr, new_size);
+
+		RELEASE_BIT((void *)((u64)a + sizeof(Alloc)),
+			    offset / CHUNK_SIZE, &a->last_free);
+#if MEMSAN == 1
+		__sub64(&a->allocated_bytes, CHUNK_SIZE);
+#endif /* MEMSAN */
+		return new_ptr;
+	} else {
+		/* Slab allocation (<= MAX_SLAB_SIZE) */
+		Chunk *chunk = (Chunk *)(CHUNK_OFFSET(a) +
+					 (offset / CHUNK_SIZE) * CHUNK_SIZE);
+		void *base = (void *)((u64)chunk + sizeof(Chunk));
+		u64 old_slab_size = chunk->slab_size;
+		u64 bitmap_size = BITMAP_SIZE(old_slab_size);
+		u64 index =
+		    ((u64)ptr - ((u64)base + bitmap_size)) / old_slab_size;
+		u64 new_slab_size = calculate_slab_size_impl(new_size);
+
+		if (old_slab_size == new_slab_size) {
+			/* Same slab size, keep in-place */
+			return ptr;
+		}
+
+		/* Allocate new slab or chunk */
+		new_ptr = alloc_impl(a, new_size);
+		if (new_ptr == NULL) {
+			return NULL;
+		}
+
+		/* Copy data (up to smaller of old/new size) */
+		old_size = old_slab_size;
+		if (new_size < old_size) {
+			old_size = new_size;
+		}
+		memcpy(new_ptr, ptr, old_size);
+
+		/* Release old slab */
+		RELEASE_BIT(base, index, &chunk->last_free);
+#if MEMSAN == 1
+		__sub64(&a->allocated_bytes, old_slab_size);
+#endif /* MEMSAN */
+		return new_ptr;
+	}
+}
 
