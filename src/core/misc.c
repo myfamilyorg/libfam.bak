@@ -24,6 +24,7 @@
  *******************************************************************************/
 
 #include <error.H>
+#include <format.H>
 #include <limits.H>
 #include <misc.H>
 #include <sys.H>
@@ -135,10 +136,7 @@ i32 memcmp(const void *s1, const void *s2, u64 n) {
 
 	/* Compare each byte */
 	for (i = 0; i < n; i++) {
-		if (p1[i] != p2[i]) {
-			/* Return difference as u8 values */
-			return (i32)(p1[i] - p2[i]);
-		}
+		if (p1[i] != p2[i]) return (i32)(p1[i] - p2[i]);
 	}
 
 	/* No differences found */
@@ -378,9 +376,7 @@ u64 double_to_string(u8 *buf, double v, i32 max_decimals) {
 
 	/* Check for overflow in integer part */
 	if (v >= 18446744073709551616.0) { /* 2^64 */
-		if (is_negative) {
-			buf[pos++] = '-';
-		}
+		if (is_negative) buf[pos++] = '-';
 		temp[0] = 'i';
 		temp[1] = 'n';
 		temp[2] = 'f';
@@ -459,9 +455,7 @@ u128 __umodti3(u128 a, u128 b) {
 	i32 shift;
 
 	/* Handle division by zero */
-	if (b == 0) {
-		__builtin_trap();
-	}
+	if (b == 0) __builtin_trap();
 
 	/* Early return if a < b */
 	if (a < b) {
@@ -471,9 +465,8 @@ u128 __umodti3(u128 a, u128 b) {
 	/* If b fits in 64 bits, optimize */
 	if ((b >> 64) == 0) {
 		b_lo = (u64)b;
-		if (b_lo == 0) {
-			__builtin_trap();
-		}
+		if (b_lo == 0) __builtin_trap();
+
 		a_hi = (u64)(a >> 64);
 		a_lo = (u64)a;
 
@@ -524,9 +517,7 @@ u128 __udivti3(u128 a, u128 b) {
 	i32 shift;
 
 	/* Handle division by zero */
-	if (b == 0) {
-		__builtin_trap();
-	}
+	if (b == 0) __builtin_trap();
 
 	/* Early return if a < b */
 	if (a < b) {
@@ -536,9 +527,8 @@ u128 __udivti3(u128 a, u128 b) {
 	/* If b fits in 64 bits, optimize */
 	if ((b >> 64) == 0) {
 		b_lo = (u64)b;
-		if (b_lo == 0) {
-			__builtin_trap();
-		}
+		if (b_lo == 0) __builtin_trap();
+
 		a_hi = (u64)(a >> 64);
 		a_lo = (u64)a;
 

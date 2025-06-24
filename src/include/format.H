@@ -27,6 +27,8 @@
 #define _FORMMAT2_H
 
 #include <macro_util.H>
+#include <misc.H>
+#include <sys.H>
 #include <types.H>
 
 extern bool _debug_no_exit;
@@ -41,7 +43,7 @@ typedef struct {
 	u64 pos;
 } Formatter;
 
-typedef enum { I128_T, U128_T, STRING_T, DOUBLE_T } PrintableType;
+typedef enum { I128_T, U128_T, STRING_T } PrintableType;
 
 typedef struct {
 	PrintableType t;
@@ -49,7 +51,6 @@ typedef struct {
 		i128 ivalue;
 		u128 uvalue;
 		u8 *svalue;
-		double dvalue;
 	} data;
 } Printable;
 
@@ -97,27 +98,25 @@ const u8 *format_to_string(Formatter *f);
 	_Pragma("GCC diagnostic pop");
 /* clang-format on */
 
-#define RESTORE_DIAGNOSTICS _Pragma("GCC diagnostic pop")
-
-#define println(fmt, ...)                        \
-	do {                                     \
-		const u8 *ret;                   \
-		Formatter _f__ = {0};            \
-		format(&_f__, fmt, __VA_ARGS__); \
-		ret = format_to_string(&_f__);   \
-		write(2, ret, strlen(ret));      \
-		write(2, "\n", 1);               \
-		format_clear(&_f__);             \
+#define println(fmt, ...)                         \
+	do {                                      \
+		const u8 *_ret__;                 \
+		Formatter _f__ = {0};             \
+		format(&_f__, fmt, __VA_ARGS__);  \
+		_ret__ = format_to_string(&_f__); \
+		write(2, _ret__, strlen(_ret__)); \
+		write(2, "\n", 1);                \
+		format_clear(&_f__);              \
 	} while (false);
 
-#define print(fmt, ...)                          \
-	do {                                     \
-		const u8 *ret;                   \
-		Formatter _f__ = {0};            \
-		format(&_f__, fmt, __VA_ARGS__); \
-		ret = format_to_string(&_f__);   \
-		write(2, ret, strlen(ret));      \
-		format_clear(&_f__);             \
+#define print(fmt, ...)                           \
+	do {                                      \
+		const u8 *_ret__;                 \
+		Formatter _f__ = {0};             \
+		format(&_f__, fmt, __VA_ARGS__);  \
+		_ret__ = format_to_string(&_f__); \
+		write(2, _ret__, strlen(_ret__)); \
+		format_clear(&_f__);              \
 	} while (false);
 
 #define panic(fmt, ...)                          \

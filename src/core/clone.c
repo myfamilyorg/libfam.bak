@@ -23,6 +23,7 @@
  *
  *******************************************************************************/
 
+#include <format.H>
 #include <init.H>
 #include <sys.H>
 #include <syscall.H>

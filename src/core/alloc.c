@@ -31,6 +31,8 @@
 #include <misc.H>
 
 u64 _debug_cas_loop = 0;
+u64 _debug_alloc_failure = 0;
+u64 _debug_alloc_failure_bypass_count = 0;
 
 #define SHM_SIZE_DEFAULT (CHUNK_SIZE * 64)
 #define MAX_SLAB_SIZES 32
@@ -301,6 +303,21 @@ void reset_allocated_bytes_impl(Alloc *a __attribute__((unused))) {
 
 void *alloc_impl(Alloc *a, u64 size) {
 	void *ret = NULL;
+
+#if TEST == 1
+	u64 cur, bypass;
+	if ((bypass = ALOAD(&_debug_alloc_failure_bypass_count)) == 0) {
+		while ((cur = ALOAD(&_debug_alloc_failure))) {
+			u64 exp = cur;
+			if (__cas64(&_debug_alloc_failure, &exp, cur - 1))
+				return NULL;
+		}
+	} else {
+		u64 exp = bypass;
+		__cas64(&_debug_alloc_failure_bypass_count, &exp, bypass - 1);
+	}
+#endif
+
 	if (size > CHUNK_SIZE) {
 		err = EINVAL;
 		return NULL;

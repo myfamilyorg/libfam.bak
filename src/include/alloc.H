@@ -66,6 +66,8 @@ void reset_allocated_bytes(void);
 
 #if TEST == 1
 extern u64 _debug_cas_loop;
+extern u64 _debug_alloc_failure;
+extern u64 _debug_alloc_failure_bypass_count;
 #endif /* TEST */
 
 #endif /* _ALLOC_H */

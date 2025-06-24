@@ -48,4 +48,8 @@ i32 sleepm(u64 millis);
 i32 two(void);
 i32 two2(bool share_fds);
 
+#if TEST == 1
+extern bool _debug_set_timeout_fail;
+#endif /* TEST */
+
 #endif /* _SYS_H */

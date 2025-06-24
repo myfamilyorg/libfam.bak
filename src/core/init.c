@@ -24,12 +24,13 @@
  *******************************************************************************/
 
 #include <error.H>
+#include <format.H>
 #include <init.H>
 #include <types.H>
 
 #define MAX_EXIT 64
 
-static i32 has_begun = 0;
+STATIC i32 has_begun = 0;
 
 void begin(void) {
 	if (!has_begun) {

@@ -24,12 +24,15 @@
  *******************************************************************************/
 
 #include <error.H>
+#include <format.H>
 #include <limits.H>
 #include <misc.H>
 #include <sys.H>
 #include <syscall_const.H>
 
-static void sig_ign(i32 __attribute((unused)) sig) {}
+bool _debug_set_timeout_fail = false;
+
+STATIC void sig_ign(i32 __attribute((unused)) sig) {}
 
 typedef struct {
 	void (*task)(void);
@@ -43,6 +46,10 @@ STATIC i32 cur_tasks = 0;
 STATIC i32 set_next_timer(u64 now) {
 	i32 i;
 	u64 next_task_time = SIZE_MAX;
+
+#if TEST == 1
+	if (_debug_set_timeout_fail) return -1;
+#endif /* TEST */
 
 	for (i = 0; i < cur_tasks; i++) {
 		if (pending_tasks[i].exec_millis < next_task_time)
@@ -84,7 +91,8 @@ void __attribute__((constructor)) signals_init(void) {
 	act.k_sa_handler = sig_ign;
 	act.k_sa_flags = SA_RESTORER;
 	act.k_sa_restorer = restorer;
-	if (rt_sigaction(SIGPIPE, &act, NULL, 8) < 0) {
+	if (rt_sigaction(SIGPIPE, &act, NULL, 8) < 0 ||
+	    _debug_set_timeout_fail) {
 		const u8 *msg = "WARN: could not register SIGPIPE handler\n";
 		i32 __attribute__((unused)) v = write(2, msg, strlen(msg));
 	}

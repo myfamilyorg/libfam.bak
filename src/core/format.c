@@ -87,7 +87,6 @@ int format_append(Formatter *f, const char *fmt, ...) {
 			if (format_check_resize(f, len) < 0) return -1;
 			memcpy(f->buf + f->pos, next.data.svalue, len);
 			f->pos += len;
-		} else {
 		}
 
 		/* Move past {} */
