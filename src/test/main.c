@@ -23,6 +23,7 @@
  *
  *******************************************************************************/
 
+#include <alloc.H>
 #include <env.H>
 #include <format.H>
 #include <misc.H>
@@ -100,6 +101,7 @@ i32 main(i32 argc __attribute__((unused)), u8 **argv __attribute__((unused)),
 	u64 total;
 	double ms;
 
+	reset_allocated_bytes();
 #ifndef COVERAGE
 	call_constructors();
 #endif

@@ -59,11 +59,13 @@ void *alloc(u64 size);
 void release(void *ptr);
 void *resize(void *ptr, u64 size);
 
-#ifdef TEST
 u64 allocated_bytes_impl(Alloc *a);
 void reset_allocated_bytes_impl(Alloc *a);
 u64 get_allocated_bytes(void);
 void reset_allocated_bytes(void);
+
+#if TEST == 1
+extern bool _debug_no_warn_smem_bytes;
 #endif /* TEST */
 
 #endif /* _ALLOC_H */

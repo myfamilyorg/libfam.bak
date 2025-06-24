@@ -25,10 +25,12 @@
 
 #include <alloc.H>
 #include <atomic.H>
+#include <env.H>
 #include <error.H>
 #include <format.H>
 #include <misc.H>
 
+#define SHM_SIZE_DEFAULT (CHUNK_SIZE * 64)
 #define MAX_SLAB_SIZES 32
 #define NEXT_FREE_BIT(base, max, result, last_free_ptr)                        \
 	do {                                                                   \
@@ -123,10 +125,34 @@ typedef struct {
 	u8 padding[12];
 } Chunk;
 
+bool _debug_no_warn_smem_bytes = false;
 STATIC Alloc *_alloc_ptr__ = NULL;
 
+STATIC u64 get_memory_bytes(void) {
+	u64 shm_size = SHM_SIZE_DEFAULT;
+	u8 *smembytes;
+	smembytes = getenv("SHARED_MEMORY_BYTES");
+	if (smembytes) {
+		u64 bytes = string_to_uint128(smembytes, strlen(smembytes));
+		if (bytes < CHUNK_SIZE * 4 || bytes % CHUNK_SIZE != 0) {
+			const u8 *msg =
+			    "WARN: SHARED_MEMORY_BYTES must be "
+			    "divisible by "
+			    "CHUNK_SIZE and greater than or equal "
+			    "CHUNK_SIZE * "
+			    "4. Using default.\n";
+			if (!_debug_no_warn_smem_bytes) {
+				write(2, msg, strlen(msg));
+			}
+		} else {
+			shm_size = bytes;
+		}
+	}
+	return shm_size;
+}
+
 STATIC __attribute__((constructor)) void __init_alloc(void) {
-	u64 size = CHUNK_SIZE * 64;
+	u64 size = get_memory_bytes();
 	_alloc_ptr__ = alloc_init(ALLOC_TYPE_SMAP, size);
 }
 
@@ -407,6 +433,7 @@ void *resize_impl(Alloc *a, void *ptr, u64 new_size) {
 }
 
 void reset_allocated_bytes(void) { reset_allocated_bytes_impl(_alloc_ptr__); }
+u64 get_allocated_bytes(void) { return allocated_bytes_impl(_alloc_ptr__); }
 void *alloc(u64 size) { return alloc_impl(_alloc_ptr__, size); }
 void release(void *ptr) { release_impl(_alloc_ptr__, ptr); }
 void *resize(void *ptr, u64 size) {

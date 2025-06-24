@@ -1,4 +1,31 @@
+/********************************************************************************
+ * MIT License
+ *
+ * Copyright (c) 2025 Christopher Gilliard
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
 #include <alloc.H>
+#include <env.H>
+#include <error.H>
 #include <test.H>
 
 Test(alloc1) {
@@ -98,4 +125,69 @@ Test(resize1) {
 
 	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
 	alloc_destroy(a);
+}
+
+Test(enomem) {
+	Alloc *a;
+	u8 *t1 = NULL;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE);
+	t1 = alloc_impl(a, CHUNK_SIZE);
+	ASSERT(t1, "t1 != NULL");
+	err = 0;
+	ASSERT(!alloc_impl(a, CHUNK_SIZE), "enomem");
+	ASSERT_EQ(err, ENOMEM, "err");
+	release_impl(a, t1);
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}
+
+u64 get_memory_bytes(void);
+
+Test(get_memory_bytes) {
+	void *ptr;
+	setenv("SHARED_MEMORY_BYTES", "10", true);
+	_debug_no_warn_smem_bytes = true;
+	ASSERT(get_memory_bytes() != 10, "invalid env value");
+	_debug_no_warn_smem_bytes = false;
+	unsetenv("SHARED_MEMORY_BYTES");
+	err = 0;
+	ASSERT_EQ(alloc_init(100, CHUNK_SIZE * 16), NULL, "invalid type");
+	ASSERT_EQ(err, EINVAL, "err");
+	ASSERT_EQ(alloc(CHUNK_SIZE + 1), NULL, "too big");
+	ptr = alloc(8);
+	ASSERT_EQ(resize(ptr, CHUNK_SIZE + 1), NULL, "too big");
+	release(ptr);
+}
+
+Test(fmap) {
+	const u8 *path = "/tmp/fmap.dat";
+	i32 fd;
+	Alloc *a;
+
+	unlink(path);
+	fd = file(path);
+	fresize(fd, CHUNK_SIZE * 17);
+	a = alloc_init(ALLOC_TYPE_FMAP, CHUNK_SIZE * 16, fd);
+	ASSERT(a, "a!=NULL");
+
+	alloc_destroy(a);
+	close(fd);
+	unlink(path);
+}
+
+Test(resize2) {
+	void *t1 = alloc(CHUNK_SIZE);
+	ASSERT(t1, "t1!=NULL");
+	t1 = resize(t1, CHUNK_SIZE - 1);
+	ASSERT(t1, "t1!=NULL");
+	t1 = resize(t1, 8);
+	ASSERT(t1, "t1!=NULL");
+	t1 = resize(t1, 16);
+	ASSERT(t1, "t1!=NULL");
+	t1 = resize(t1, CHUNK_SIZE);
+	ASSERT(t1, "t1!=NULL");
+
+	release(t1);
+
+	ASSERT_BYTES(0);
 }
