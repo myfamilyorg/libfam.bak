@@ -49,6 +49,10 @@ bool _debug_no_exit = false;
 	}                          \
 	return ret;
 
+#define SYSCALL_EXIT_COV \
+	__gcov_dump();   \
+	SYSCALL_EXIT
+
 #ifdef __aarch64__
 #define DEFINE_SYSCALL0(sysno, ret_type, name) \
 	static ret_type syscall_##name(void) { \
@@ -174,22 +178,22 @@ bool _debug_no_exit = false;
 		return (ret_type)result;                                     \
 	}
 
-static void syscall_exit(i32 status) {
-	__asm__ volatile(
-	    "mov x8, #93\n" /* exit syscall number (ARM64) */
-	    "mov x0, %0\n"  /* status */
-	    "svc #0\n"
-	    :
-	    : "r"((i64)status)
-	    : "x8", "x0", "memory");
-}
+#define SYSCALL_EXIT                 \
+	__asm__ volatile(            \
+	    "mov x8, #93\n"          \
+	    "mov x0, %0\n"           \
+	    "svc #0\n"               \
+	    :                        \
+	    : "r"((i64)status)       \
+	    : "x8", "x0", "memory"); \
+	while (true) {               \
+	}
 
-static void syscall_restorer(void) {
-	__asm__ volatile(
-	    "mov x8, #139\n"
-	    "svc #0\n" ::
+#define SYSCALL_RESTORER     \
+	__asm__ volatile(    \
+	    "mov x8, #139\n" \
+	    "svc #0\n" ::    \
 		: "x8", "memory");
-}
 
 static i32 syscall_waitid(i32 idtype, i32 id, siginfo_t *infop, i32 options) {
 	i64 result;
@@ -339,25 +343,24 @@ static i32 syscall_waitid(i32 idtype, i32 id, siginfo_t *infop, i32 options) {
 		return (ret_type)result;                                     \
 	}
 
-static void syscall_exit(i32 status) {
-	__asm__ volatile(
-	    "movq $60, %%rax\n" /* exit syscall number (Linux) */
-	    "movq %0, %%rdi\n"	/* status */
-	    "syscall\n"
-	    :
-	    : "r"((i64)status)			       /* Input */
-	    : "%rax", "%rdi", "%rcx", "%r11", "memory" /* Clobbered */
-	);
-}
+#define SYSCALL_EXIT                                     \
+	__asm__ volatile(                                \
+	    "movq $60, %%rax\n"                          \
+	    "movq %0, %%rdi\n"                           \
+	    "syscall\n"                                  \
+	    :                                            \
+	    : "r"((i64)status)                           \
+	    : "%rax", "%rdi", "%rcx", "%r11", "memory"); \
+	while (true) {                                   \
+	}
 
-static void syscall_restorer(void) {
-	__asm__ volatile(
-	    "movq $15, %%rax\n" /* rt_sigreturn (x86-64) */
-	    "syscall\n"
-	    :
-	    :
+#define SYSCALL_RESTORER        \
+	__asm__ volatile(       \
+	    "movq $15, %%rax\n" \
+	    "syscall\n"         \
+	    :                   \
+	    :                   \
 	    : "%rax", "%rcx", "%r11", "memory");
-}
 
 static i32 syscall_waitid(i32 idtype, i32 id, siginfo_t *infop, i32 options) {
 	i64 result;
@@ -516,10 +519,10 @@ void __gcov_dump(void);
 void exit(i32 status) {
 	execute_exits();
 #ifdef COVERAGE
-	__gcov_dump();
-#endif
-	syscall_exit(status);
-	while (true);
+	SYSCALL_EXIT_COV
+#else
+	SYSCALL_EXIT
+#endif /* COVERAGE */
 }
 i32 munmap(void *addr, u64 len) {
 	i32 ret = syscall_munmap(addr, len);
@@ -694,7 +697,7 @@ i32 rt_sigaction(i32 signum, const struct rt_sigaction *act,
 	SET_ERR
 }
 
-void restorer(void) { syscall_restorer(); }
+void restorer(void){SYSCALL_RESTORER}
 
 i32 waitid(i32 i32ype, i32 id, siginfo_t *sigs, i32 options) {
 	i32 ret = syscall_waitid(i32ype, id, sigs, options);
