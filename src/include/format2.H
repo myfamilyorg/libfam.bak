@@ -29,10 +29,11 @@
 #include <macro_util.H>
 #include <types.H>
 
+extern bool _debug_no_exit;
+extern bool _debug_no_write;
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wvariadic-macros"
-#pragma GCC diagnostic ignored "-Wpedantic"
-#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
 
 typedef struct {
 	u8 *buf;
@@ -104,6 +105,18 @@ const u8 *format_to_string(Formatter *f);
 		ret = format_to_string(&_f__);   \
 		write(2, ret, strlen(ret));      \
 		format_clear(&_f__);             \
+	} while (false);
+
+#define panic(fmt, ...)                          \
+	do {                                     \
+		const u8 *ret;                   \
+		Formatter _f__ = {0};            \
+		format(&_f__, fmt, __VA_ARGS__); \
+		ret = format_to_string(&_f__);   \
+		write(2, ret, strlen(ret));      \
+		write(2, "\n", 1);               \
+		format_clear(&_f__);             \
+		if (!_debug_no_exit) exit(-1);   \
 	} while (false);
 
 #pragma GCC diagnostic pop

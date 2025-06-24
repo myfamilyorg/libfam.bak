@@ -27,7 +27,7 @@
 #define _TEST_H
 
 #include <colors.H>
-#include <format.H>
+#include <format2.H>
 #include <misc.H>
 #include <sys.H>
 

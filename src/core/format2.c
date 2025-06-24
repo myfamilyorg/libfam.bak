@@ -27,8 +27,6 @@
 #include <format2.H>
 #include <misc.H>
 
-int printf(const char *, ...);
-
 i32 format_check_resize(Formatter *f, u64 size) {
 	void *tmp;
 	if (f->pos + size > f->capacity) {

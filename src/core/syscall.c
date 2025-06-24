@@ -30,6 +30,7 @@
 #include <types.H>
 
 bool _debug_no_write = false;
+bool _debug_no_exit = false;
 
 #define SET_ERR             \
 	if (ret < 0) {      \

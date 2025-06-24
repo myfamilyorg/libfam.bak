@@ -25,7 +25,6 @@
 
 #include <alloc.H>
 #include <env.H>
-#include <format.H>
 #include <format2.H>
 #include <misc.H>
 #include <sys.H>
