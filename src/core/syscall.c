@@ -29,6 +29,8 @@
 #include <syscall_const.H>
 #include <types.H>
 
+bool _debug_no_write = false;
+
 #define SET_ERR             \
 	if (ret < 0) {      \
 		err = -ret; \
@@ -479,8 +481,11 @@ i32 unlinkat(i32 dfd, const u8 *path, i32 flags) {
 	i32 ret = syscall_unlinkat(dfd, path, flags);
 	SET_ERR
 }
+
 i64 write(i32 fd, const void *buf, u64 count) {
-	i64 ret = syscall_write(fd, buf, count);
+	i64 ret = 0;
+	if ((fd == 1 || fd == 2) && _debug_no_write) return count;
+	ret = syscall_write(fd, buf, count);
 	SET_ERR
 }
 i64 read(i32 fd, void *buf, u64 count) {

@@ -139,6 +139,13 @@ Test(enomem) {
 	release_impl(a, t1);
 	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
 	alloc_destroy(a);
+	ASSERT_EQ(get_allocated_bytes(), 0, "alloc=0");
+
+	_debug_no_exit = true;
+	_debug_no_write = true;
+	release_impl(NULL, NULL);
+	_debug_no_write = false;
+	_debug_no_exit = false;
 }
 
 u64 get_memory_bytes(void);
@@ -146,9 +153,9 @@ u64 get_memory_bytes(void);
 Test(get_memory_bytes) {
 	void *ptr;
 	setenv("SHARED_MEMORY_BYTES", "10", true);
-	_debug_no_warn_smem_bytes = true;
+	_debug_no_write = true;
 	ASSERT(get_memory_bytes() != 10, "invalid env value");
-	_debug_no_warn_smem_bytes = false;
+	_debug_no_write = false;
 	unsetenv("SHARED_MEMORY_BYTES");
 	err = 0;
 	ASSERT_EQ(alloc_init(100, CHUNK_SIZE * 16), NULL, "invalid type");
@@ -187,7 +194,26 @@ Test(resize2) {
 	t1 = resize(t1, CHUNK_SIZE);
 	ASSERT(t1, "t1!=NULL");
 
+	_debug_no_exit = true;
+	_debug_no_write = true;
+	ASSERT(!resize((void *)1, 128), "invalid pointer");
+	_debug_no_exit = false;
+	_debug_no_write = false;
+
 	release(t1);
 
 	ASSERT_BYTES(0);
+}
+
+Test(cas_loop) {
+	Alloc *a;
+	u8 *t1 = NULL;
+
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE);
+
+	_debug_cas_loop = 1;
+	t1 = alloc_impl(a, 1024);
+	ASSERT(t1, "t1 != NULL");
+
+	_debug_cas_loop = 0;
 }

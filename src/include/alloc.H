@@ -65,7 +65,7 @@ u64 get_allocated_bytes(void);
 void reset_allocated_bytes(void);
 
 #if TEST == 1
-extern bool _debug_no_warn_smem_bytes;
+extern u64 _debug_cas_loop;
 #endif /* TEST */
 
 #endif /* _ALLOC_H */

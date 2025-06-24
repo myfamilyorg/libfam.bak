@@ -169,11 +169,4 @@ extern i32 err;
 const u8 *error_string(i32 err_code);
 void perror(const u8 *);
 
-#if TEST == 1
-extern bool _debug_no_write;
-static void __attribute__((unused)) perror_set_no_write(bool value) {
-	_debug_no_write = value;
-}
-#endif /* TEST == 1 */
-
 #endif /* _ERROR_H */

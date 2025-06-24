@@ -30,6 +30,8 @@
 #include <format.H>
 #include <misc.H>
 
+u64 _debug_cas_loop = 0;
+
 #define SHM_SIZE_DEFAULT (CHUNK_SIZE * 64)
 #define MAX_SLAB_SIZES 32
 #define NEXT_FREE_BIT(base, max, result, last_free_ptr)                        \
@@ -125,7 +127,6 @@ typedef struct {
 	u8 padding[12];
 } Chunk;
 
-bool _debug_no_warn_smem_bytes = false;
 STATIC Alloc *_alloc_ptr__ = NULL;
 
 STATIC u64 get_memory_bytes(void) {
@@ -141,9 +142,7 @@ STATIC u64 get_memory_bytes(void) {
 			    "CHUNK_SIZE and greater than or equal "
 			    "CHUNK_SIZE * "
 			    "4. Using default.\n";
-			if (!_debug_no_warn_smem_bytes) {
-				write(2, msg, strlen(msg));
-			}
+			write(2, msg, strlen(msg));
 		} else {
 			shm_size = bytes;
 		}
@@ -182,7 +181,9 @@ STATIC u64 atomic_load_or_allocate_impl(Alloc *a, u64 *ptr, u32 slab_size) {
 
 	do {
 		cur = ALOAD(ptr);
+
 		if (cur != (u64)-1) break;
+
 		new_value = allocate_chunk_impl(a);
 		if (new_value == ((u64)-1)) break;
 		chunk = (void *)(new_value * CHUNK_SIZE + CHUNK_OFFSET(a));
@@ -193,7 +194,13 @@ STATIC u64 atomic_load_or_allocate_impl(Alloc *a, u64 *ptr, u32 slab_size) {
 
 		if (__cas64(ptr, &expected, new_value)) {
 			cur = new_value;
-			break;
+#if TEST == 1
+			if (!ALOAD(&_debug_cas_loop))
+#endif /* TEST */
+				break;
+#if TEST == 1
+			__sub64(&_debug_cas_loop, 1);
+#endif /* TEST */
 		}
 
 		RELEASE_BIT((void *)((u64)a + sizeof(Alloc)), new_value,
@@ -321,6 +328,7 @@ void release_impl(Alloc *a, void *ptr) {
 	    (u64)ptr >= ((u64)a + a->size + sizeof(Alloc) +
 			 a->bitmap_pages * PAGE_SIZE)) {
 		panic("Invalid memory release!");
+		return;
 	}
 
 	offset =
@@ -370,6 +378,7 @@ void *resize_impl(Alloc *a, void *ptr, u64 new_size) {
 	base_offset = (u64)a + sizeof(Alloc) + a->bitmap_pages * PAGE_SIZE;
 	if ((u64)ptr < base_offset || (u64)ptr >= base_offset + a->size) {
 		panic("Invalid pointer resized!\n");
+		return NULL;
 	}
 
 	offset = (u64)ptr - base_offset;

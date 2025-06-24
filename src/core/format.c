@@ -28,6 +28,8 @@
 #include <misc.H>
 #include <syscall.H>
 
+bool _debug_no_exit = false;
+
 static void reverse(u8* str, u64 len) {
 	u64 i;
 	u64 j;
@@ -264,5 +266,5 @@ void panic(const u8* format, ...) {
 
 	__builtin_va_end(ap_copy);
 	__builtin_va_end(ap);
-	exit(-1);
+	if (!_debug_no_exit) exit(-1);
 }

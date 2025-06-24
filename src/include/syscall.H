@@ -53,8 +53,7 @@ i32 accept(i32 sockfd, struct sockaddr *addr, u32 *addrlen);
 i32 shutdown(i32 sockfd, i32 how);
 i32 socket(i32 domain, i32 type, i32 protocol);
 i32 getrandom(void *buf, u64 len, u32 flags);
-void *mmap(void *addr, u64 length, i32 prot, i32 flags, i32 fd,
-	   i64 offset);
+void *mmap(void *addr, u64 length, i32 prot, i32 flags, i32 fd, i64 offset);
 i32 nanosleep(const struct timespec *req, struct timespec *rem);
 i32 gettimeofday(struct timeval *tv, void *tz);
 i32 settimeofday(const struct timeval *tv, const struct timezone *tz);
@@ -69,8 +68,12 @@ i32 setitimer(i32 which, const struct itimerval *new_value,
 i32 rt_sigaction(i32 signum, const struct rt_sigaction *act,
 		 struct rt_sigaction *oldact, u64 sigsetsize);
 void restorer(void);
-i64 futex(u32 *uaddr, i32 futex_op, u32 val,
-	   const struct timespec *timeout, u32 *uaddr2, u32 val3);
+i64 futex(u32 *uaddr, i32 futex_op, u32 val, const struct timespec *timeout,
+	  u32 *uaddr2, u32 val3);
 i32 waitid(i32 i32ype, i32 id, siginfo_t *sigs, i32 options);
+
+#if TEST == 1
+extern bool _debug_no_write;
+#endif /* TEST */
 
 #endif /* _SYSCALL_H */

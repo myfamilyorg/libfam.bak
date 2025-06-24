@@ -28,6 +28,10 @@
 
 #include <types.H>
 
+#if TEST == 1
+extern bool _debug_no_exit;
+#endif /* TEST */
+
 i32 snprintf(u8 *buf, u64 size, const u8 *fmt, ...);
 i32 printf(const u8 *fmt, ...);
 void panic(const u8 *fmt, ...);
