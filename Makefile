@@ -33,6 +33,7 @@ FILTER	 ?= "*"
 COMMON_FLAGS =             -Wall \
 			   -Wextra \
 			   -std=c89 \
+			   -Werror \
 			   -I$(INCLDIR) \
 			   -D_FORTIFY_SOURCE=0 \
 			   -fno-builtin \

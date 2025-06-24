@@ -31,7 +31,7 @@ COVDIR=".cov"
 
 # Compiler and flags
 CC="gcc"
-CFLAGS="-DPAGE_SIZE=16384 -I${INCLDIR} -O0 -Wno-builtin-declaration-mismatch -Wno-pointer-sign -Wno-error=pointer-sign -Wno-attributes -DMEMSAN=0 -DSTATIC= -g -Wno-format-truncation -Wno-format -D_FORTIFY_SOURCE=0"
+CFLAGS="-DPAGE_SIZE=16384 -I${INCLDIR} -O0 -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -Wno-int-conversion -Wno-discarded-qualifiers -Wno-builtin-declaration-mismatch -Wno-pointer-sign -Wno-error=pointer-sign -Wno-attributes -DMEMSAN=0 -DSTATIC= -g -Wno-format-truncation -Wno-format -D_FORTIFY_SOURCE=0"
 COVFLAGS="--coverage -O1 -DTEST=1 -DCOVERAGE"
 LDFLAGS="--coverage -Wno-builtin-declaration-mismatch"
 LIBCGCOV=""
@@ -74,7 +74,7 @@ for src in ${CORE_SRC}; do
 done
 
 # Link test binary
-COMMAND="${CC} ${LDFLAGS} ${TEST_OBJS} ${LIB_OBJS} -I${INCLDIR} src/test/main.c ${LIBGCOV} -lc -lgcc -o ${COV_BIN} -DCOVERAGE"
+COMMAND="${CC} ${LDFLAGS} ${TEST_OBJS} ${LIB_OBJS} -I${INCLDIR} -Wno-int-to-pointer-cast -Wno-discarded-qualifiers -Wno-pointer-to-int-cast -Wno-int-conversion src/test/main.c ${LIBGCOV} -lc -lgcc -o ${COV_BIN} -DCOVERAGE"
 echo ${COMMAND}
 ${COMMAND}
 
