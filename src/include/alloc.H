@@ -30,8 +30,32 @@
 #define MEMSAN 0 /* Disabled by default */
 #endif
 
+#ifndef PAGE_SIZE
+#define PAGE_SIZE (4 * 4096)
+#endif /* PAGE_SIZE */
+
+#ifndef CHUNK_SIZE
+#define CHUNK_SIZE (0x1 << 24) /* 16mb */
+#endif
+
+#ifndef MAX_SLAB_SIZE
+#define MAX_SLAB_SIZE (CHUNK_SIZE >> 2) /* 4mb */
+#endif
+
 #include <sys.H>
 #include <types.H>
+
+typedef struct Alloc Alloc;
+
+typedef enum { ALLOC_TYPE_MAP, ALLOC_TYPE_SMAP, ALLOC_TYPE_FMAP } AllocType;
+
+Alloc *alloc_init(AllocType t, u64 size, ...);
+void alloc_destroy(Alloc *a);
+u64 allocated_bytes_impl(Alloc *a);
+void reset_allocated_bytes_impl(Alloc *a);
+void *alloc_impl(Alloc *a, u64 size);
+void release_impl(Alloc *a, void *ptr);
+void *resize_impl(Alloc *a, void *ptr, u64 size);
 
 void *alloc(u64 size);
 void release(void *ptr);
