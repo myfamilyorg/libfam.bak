@@ -353,7 +353,6 @@ Test(channel3) {
 }
 
 Test(channel_notify) {
-	siginfo_t info = {0};
 	Channel ch1 = channel(sizeof(TestMessage));
 	Channel ch2 = channel(sizeof(TestMessage));
 
@@ -380,7 +379,7 @@ Test(channel_notify) {
 		send(&ch1, &msg);
 		exit(0);
 	}
-	waitid(P_PID, pid, &info, WEXITED);
+	waitid(P_PID, pid, NULL, WEXITED);
 
 	channel_destroy(&ch1);
 	channel_destroy(&ch2);
