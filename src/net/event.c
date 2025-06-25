@@ -37,37 +37,25 @@ STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), event_match);
 i32 multiplex(void) { return epoll_create1(0); }
 
 i32 mregister(i32 multiplex, i32 fd, i32 flags, void *attach) {
-	struct epoll_event ev;
+	struct epoll_event ev = {0};
 	i32 event_flags = 0;
 	i32 ret = 0;
 
-	if (flags & MULTIPLEX_FLAG_READ) {
+	if (flags & MULTIPLEX_FLAG_READ)
 		event_flags |= (EPOLLIN | EPOLLET | EPOLLRDHUP);
-	}
-
-	if (flags & MULTIPLEX_FLAG_ACCEPT) {
-		event_flags |= (EPOLLIN | EPOLLET);
-	}
-
-	if (flags & MULTIPLEX_FLAG_WRITE) {
-		event_flags |= (EPOLLOUT | EPOLLET);
-	}
+	if (flags & MULTIPLEX_FLAG_ACCEPT) event_flags |= (EPOLLIN | EPOLLET);
+	if (flags & MULTIPLEX_FLAG_WRITE) event_flags |= (EPOLLOUT | EPOLLET);
 
 	ev.events = event_flags;
-	if (attach == NULL)
-		ev.data.fd = fd;
-	else
-		ev.data.ptr = attach;
+	ev.data.ptr = attach;
 
-	if ((ret = epoll_ctl(multiplex, EPOLL_CTL_ADD, fd, &ev)) < 0) {
-		if (err == EEXIST)
-			ret = epoll_ctl(multiplex, EPOLL_CTL_MOD, fd, &ev);
-	}
+	ret = epoll_ctl(multiplex, EPOLL_CTL_ADD, fd, &ev);
+	if (ret < 0 && err == EEXIST)
+		ret = epoll_ctl(multiplex, EPOLL_CTL_MOD, fd, &ev);
 
 	return ret;
 }
-i32 mwait(i32 multiplex, Event *events, i32 max_events, i64 timeout_millis) {
-	i32 timeout = (timeout_millis >= 0) ? (i32)timeout_millis : -1;
+i32 mwait(i32 multiplex, Event *events, i32 max_events, i32 timeout) {
 	return epoll_pwait(multiplex, (struct epoll_event *)events, max_events,
 			   timeout, NULL, 0);
 }

@@ -42,7 +42,7 @@ typedef struct {
 
 i32 multiplex(void);
 i32 mregister(i32 multiplex, i32 fd, i32 flags, void *attach);
-i32 mwait(i32 multiplex, Event events[], i32 max_events, i64 timeout);
+i32 mwait(i32 multiplex, Event events[], i32 max_events, i32 timeout);
 i32 event_is_read(Event event);
 i32 event_is_write(Event event);
 void *event_attachment(Event event);
