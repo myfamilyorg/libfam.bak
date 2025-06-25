@@ -83,6 +83,14 @@ Test(sha1) {
 	sha1_init(&ctx);
 	sha1_update(&ctx, &v, sizeof(u64));
 	sha1_final(&ctx, digest);
+	println("preout={}", out);
+	{
+		i32 i;
+		for (i = 0; i < 24; i++) {
+			println("{}={}", i, digest[i]);
+		}
+	}
+
 	b64_encode(digest, 24, out, 33);
 	println("out={}", out);
 	{
