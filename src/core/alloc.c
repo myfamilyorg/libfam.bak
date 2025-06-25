@@ -34,7 +34,7 @@ u64 _debug_cas_loop = 0;
 u64 _debug_alloc_failure = 0;
 u64 _debug_alloc_failure_bypass_count = 0;
 
-#define SHM_SIZE_DEFAULT (CHUNK_SIZE * 64)
+#define SHM_SIZE_DEFAULT (CHUNK_SIZE * 32)
 #define MAX_SLAB_SIZES 32
 #define NEXT_FREE_BIT(base, max, result, last_free_ptr)                        \
 	do {                                                                   \
