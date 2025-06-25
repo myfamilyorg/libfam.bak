@@ -34,6 +34,7 @@ bool _debug_no_exit = false;
 bool _debug_fail_getsockbyname = false;
 bool _debug_fail_listen = false;
 bool _debug_fail_setsockopt = false;
+bool _debug_fail_fcntl = false;
 
 #define SET_ERR_VALUE       \
 	if (ret < 0) {      \
@@ -395,6 +396,9 @@ DEFINE_SYSCALL3(203, i32, connect, i32, sockfd, const struct sockaddr *, addr,
 		u32, addrlen)
 DEFINE_SYSCALL5(208, i32, setsockopt, i32, sockfd, i32, level, i32, optname,
 		const void *, optval, u32, optlen)
+DEFINE_SYSCALL5(209, i32, getsockopt, i32, sockfd, i32, level, i32, optname,
+		void *, optval, u32 *, optlen)
+
 DEFINE_SYSCALL3(200, i32, bind, i32, sockfd, const struct sockaddr *, addr, u32,
 		addrlen)
 DEFINE_SYSCALL2(201, i32, listen, i32, sockfd, i32, backlog)
@@ -446,6 +450,8 @@ DEFINE_SYSCALL3(42, i32, connect, i32, sockfd, const struct sockaddr *, addr,
 		u32, addrlen)
 DEFINE_SYSCALL5(54, i32, setsockopt, i32, sockfd, i32, level, i32, optname,
 		const void *, optval, u32, optlen)
+DEFINE_SYSCALL5(55, i32, getsockopt, i32, sockfd, i32, level, i32, optname,
+		void *, optval, u32 *, optlen)
 DEFINE_SYSCALL3(49, i32, bind, i32, sockfd, const struct sockaddr *, addr, u32,
 		addrlen)
 DEFINE_SYSCALL2(50, i32, listen, i32, sockfd, i32, backlog)
@@ -542,6 +548,10 @@ i32 fcntl(i32 fd, i32 op, ...) {
 	i64 arg;
 	i32 ret;
 
+#if TEST == 1
+	if (_debug_fail_fcntl) return -1;
+#endif /* TEST */
+
 	__builtin_va_start(ap, op);
 
 	switch (op) {
@@ -592,6 +602,11 @@ i32 setsockopt(i32 sockfd, i32 level, i32 optname, const void *optval,
 #endif /* TEST */
 
 	i32 ret = syscall_setsockopt(sockfd, level, optname, optval, optlen);
+	SET_ERR
+}
+
+i32 getsockopt(i32 sockfd, i32 level, i32 optname, void *optval, u32 *optlen) {
+	i32 ret = syscall_getsockopt(sockfd, level, optname, optval, optlen);
 	SET_ERR
 }
 

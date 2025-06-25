@@ -23,6 +23,7 @@
  *
  *******************************************************************************/
 
+#include <error.H>
 #include <misc.H>
 #include <socket.H>
 #include <syscall.H>
@@ -39,20 +40,32 @@ i32 set_nonblocking(i32 socket) {
 	return 0;
 }
 
-i32 socket_connect(const u8 addr[4], u16 port) {
+i32 socket_connect(int *fd, const u8 addr[4], u16 port) {
 	struct sockaddr_in address = {0};
-	i32 ret = socket(AF_INET, SOCK_STREAM, 0);
-	if (ret < 0) return ret;
+
+	if (!fd || !addr) {
+		err = EINVAL;
+		return -1;
+	}
+
+	*fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (*fd < 0) return -1;
+
+	if (set_nonblocking(*fd) == -1) {
+		close(*fd);
+		return -1;
+	}
 
 	address.sin_family = AF_INET;
 	memcpy(&address.sin_addr, addr, 4);
 	address.sin_port = htons(port);
 
-	if (connect(ret, (struct sockaddr *)&address, sizeof(address)) < 0)
+	if (connect(*fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+		if (err != EINPROGRESS) close(*fd);
 		return -1;
+	}
 
-	if (set_nonblocking(ret) == -1) return -1;
-	return ret;
+	return 0;
 }
 
 i32 socket_listen(i32 *fd, const u8 addr[4], u16 port, u16 backlog) {

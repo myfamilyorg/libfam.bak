@@ -46,6 +46,7 @@ i32 ftruncate(i32 fd, i64 length);
 i32 connect(i32 sockfd, const struct sockaddr *addr, u32 addrlen);
 i32 setsockopt(i32 sockfd, i32 level, i32 optname, const void *optval,
 	       u32 optlen);
+i32 getsockopt(i32 sockfd, i32 level, i32 optname, void *optval, u32 *optlen);
 i32 bind(i32 sockfd, const struct sockaddr *addr, u32 addrlen);
 i32 listen(i32 sockfd, i32 backlog);
 i32 getsockname(i32 sockfd, struct sockaddr *addr, u32 *addrlen);
@@ -77,6 +78,7 @@ extern bool _debug_no_write;
 extern bool _debug_fail_getsockbyname;
 extern bool _debug_fail_listen;
 extern bool _debug_fail_setsockopt;
+extern bool _debug_fail_fcntl;
 #endif /* TEST */
 
 #endif /* _SYSCALL_H */

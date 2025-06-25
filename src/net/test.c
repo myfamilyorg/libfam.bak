@@ -32,12 +32,53 @@
 
 u8 LOCALHOST[4] = {127, 0, 0, 1};
 
+i32 check_connect(i32 sock) {
+	i32 error = 0;
+	i32 len = sizeof(error);
+	if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) < 0) {
+		return -1;
+	}
+	return error;
+}
+
+i32 test_connect(const u8 addr[4], u16 port) {
+	i32 conn;
+	i32 res = socket_connect(&conn, addr, port);
+	if (res == 0) {
+		return conn;
+	}
+	if (res == -1 && err != EINPROGRESS) {
+		return -1;
+	}
+
+	i32 max_attempts = 500;
+	i32 attempt = 0;
+	while (attempt < max_attempts) {
+		i32 error = check_connect(conn);
+		if (error == 0) {
+			return conn;
+		}
+		if (error != 0 && error != EINPROGRESS) {
+			close(conn);
+			return -1;
+		}
+
+		sleepm(10);
+		attempt++;
+	}
+
+	close(conn);
+	return -1;
+}
+
 Test(socket_connect) {
 	u8 buf[10] = {0};
 	i32 server = -1, inbound;
 	i32 port = socket_listen(&server, LOCALHOST, 0, 10);
-	i32 conn = socket_connect(LOCALHOST, port);
+	i32 conn;
+	err = SUCCESS;
 
+	conn = test_connect(LOCALHOST, port);
 	write(conn, "test", 4);
 	inbound = socket_accept(server);
 	ASSERT_EQ(read(inbound, buf, 10), 4, "read");
@@ -64,7 +105,7 @@ Test(multi_socket) {
 
 	mplex = multiplex();
 	port = socket_listen(&server, LOCALHOST, 0, 10);
-	client = socket_connect(LOCALHOST, port);
+	client = test_connect(LOCALHOST, port);
 	mregister(mplex, server, MULTIPLEX_FLAG_ACCEPT, &server);
 
 	if ((cpid = two())) {
@@ -115,7 +156,7 @@ Test(socket_fails) {
 	ASSERT((port = socket_listen(&fd1, LOCALHOST, 0, 1)) > 0, "listen");
 	ASSERT(socket_listen(&fd2, LOCALHOST, port, 1) == -1, "listen2");
 	close(fd1);
-	ASSERT(socket_connect(LOCALHOST, port) == -1, "connect");
+	ASSERT(test_connect(LOCALHOST, port) == -1, "connect");
 
 	_debug_fail_setsockopt = true;
 	ASSERT(socket_listen(&fd2, LOCALHOST, 0, 1) == -1, "fail setsockopt");
@@ -128,5 +169,11 @@ Test(socket_fails) {
 	_debug_fail_getsockbyname = true;
 	ASSERT(socket_listen(&fd2, LOCALHOST, 0, 1) == -1, "fail setsockopt");
 	_debug_fail_getsockbyname = false;
+
+	ASSERT(socket_connect(NULL, LOCALHOST, 1234) == -1, "null input");
+
+	_debug_fail_fcntl = true;
+	ASSERT(socket_connect(&fd2, LOCALHOST, 1234) == -1, "fcntl fail");
+	_debug_fail_fcntl = false;
 }
 

@@ -161,5 +161,6 @@
 #define SOCK_STREAM 1
 #define SOL_SOCKET 1
 #define SO_REUSEADDR 2
+#define SO_ERROR 4
 
 #endif /* _SYSCALL_CONST_H */
