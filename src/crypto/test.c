@@ -75,8 +75,8 @@ Test(rng) {
 
 Test(sha1) {
 	u64 v = 123;
-	u8 digest[24];
-	u8 out[33];
+	u8 digest[24] = {0};
+	u8 out[33] = {0};
 	u8 buf4[64] = {4};
 	u8 buflong[256] = {5};
 	SHA1_CTX ctx = {0};
