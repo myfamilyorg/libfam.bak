@@ -381,6 +381,7 @@ Test(channel_notify) {
 		exit(0);
 	}
 	waitid(P_PID, pid, &info, WEXITED);
+	sleepm(300);
 
 	channel_destroy(&ch1);
 	channel_destroy(&ch2);
