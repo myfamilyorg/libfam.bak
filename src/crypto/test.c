@@ -85,6 +85,12 @@ Test(sha1) {
 	sha1_final(&ctx, digest);
 	b64_encode(digest, 24, out, 33);
 	println("out={}", out);
+	{
+		i32 i;
+		for (i = 0; i < 24; i++) {
+			println("{}={}", i, digest[i]);
+		}
+	}
 	ASSERT(!strcmp(out, "bdYNn8pZRfNzUKFV3N4reh2uX2YAAAAA"),
 	       "bdYNn8pZRfNzUKFV3N4reh2uX2YAAAAA");
 	sha1_init(&ctx);
