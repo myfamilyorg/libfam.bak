@@ -23,8 +23,10 @@
  *
  *******************************************************************************/
 
+#include <atomic.H>
 #include <error.H>
 #include <event.H>
+#include <evh.H>
 #include <socket.H>
 #include <sys.H>
 #include <syscall_const.H>
@@ -177,3 +179,45 @@ Test(socket_fails) {
 	_debug_fail_fcntl = false;
 }
 
+u64 *evh1_complete = NULL;
+
+i32 evh1_on_accept(void *ctx __attribute__((unused)),
+		   Connection *conn __attribute__((unused))) {
+	connection_close(conn);
+	return 0;
+}
+
+i32 evh1_on_recv(void *ctx __attribute__((unused)),
+		 Connection *conn __attribute__((unused)),
+		 u64 rlen __attribute__((unused))) {
+	return 0;
+}
+
+i32 evh1_on_close(void *ctx __attribute__((unused)),
+		  Connection *conn __attribute__((unused))) {
+	__add64(evh1_complete, 1);
+	return 0;
+}
+
+Test(evh1) {
+	i32 ctx = 101, client;
+	Evh *evh1;
+	Connection *acceptor;
+
+	evh1_complete = alloc(sizeof(u64));
+	ASSERT(evh1_complete, "evh1_complete");
+	*evh1_complete = 0;
+
+	acceptor = evh_acceptor(LOCALHOST, 9091, 10, evh1_on_recv,
+				evh1_on_accept, evh1_on_close, 0);
+	evh1 = evh_start(&ctx);
+	evh_register(evh1, acceptor);
+	client = test_connect(LOCALHOST, 9091);
+	ASSERT(client > 0, "client>0");
+	while (!ALOAD(evh1_complete));
+	release(evh1_complete);
+	evh_stop(evh1);
+	connection_release(acceptor);
+
+	ASSERT_BYTES(0);
+}
