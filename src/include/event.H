@@ -23,6 +23,28 @@
  *
  *******************************************************************************/
 
-#include <test.H>
+#ifndef _EVENT_H
+#define _EVENT_H
 
-Test(store1) {}
+#include <types.H>
+
+#define MULTIPLEX_FLAG_NONE 0
+#define MULTIPLEX_FLAG_READ 0x1
+#define MULTIPLEX_FLAG_ACCEPT (0x1 << 1)
+#define MULTIPLEX_FLAG_WRITE (0x1 << 2)
+
+typedef struct {
+	u8 opaque[12];
+#ifdef __aarch64__
+	u8 opaque2[4]; /* to account for non packing */
+#endif
+} Event;
+
+i32 multiplex(void);
+i32 mregister(i32 multiplex, i32 fd, i32 flags, void *attach);
+i32 mwait(i32 multiplex, Event events[], i32 max_events, i64 timeout);
+i32 event_is_read(Event event);
+i32 event_is_write(Event event);
+void *event_attachment(Event event);
+
+#endif /* _EVENT_H */

@@ -23,6 +23,17 @@
  *
  *******************************************************************************/
 
-#include <test.H>
+#ifndef _SOCKET_H
+#define _SOCKET_H
 
-Test(store1) {}
+#include <types.H>
+
+i32 set_nonblocking(i32 socket);
+i32 socket_connect(const u8 addr[4], u16 port);
+i32 socket_listen(i32 *fd, const u8 addr[4], u16 port, u16 backlog);
+i32 socket_accept(i32 fd);
+
+u16 htons(u16 host);
+u16 ntohs(u16 net);
+
+#endif /* _SOCKET_H */

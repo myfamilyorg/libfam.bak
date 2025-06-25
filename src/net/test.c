@@ -1,3 +1,112 @@
+/********************************************************************************
+ * MIT License
+ *
+ * Copyright (c) 2025 Christopher Gilliard
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
+#include <error.H>
+#include <event.H>
+#include <socket.H>
+#include <sys.H>
+#include <syscall_const.H>
 #include <test.H>
 
-Test(net1) {}
+u8 LOCALHOST[4] = {127, 0, 0, 1};
+
+Test(socket_connect) {
+	u8 buf[10] = {0};
+	i32 server = -1, inbound;
+	i32 port = socket_listen(&server, LOCALHOST, 0, 10);
+	i32 conn = socket_connect(LOCALHOST, port);
+
+	write(conn, "test", 4);
+	inbound = socket_accept(server);
+	ASSERT_EQ(read(inbound, buf, 10), 4, "read");
+	ASSERT_EQ(buf[0], 't', "t");
+	ASSERT_EQ(buf[1], 'e', "e");
+	ASSERT_EQ(buf[2], 's', "s");
+	ASSERT_EQ(buf[3], 't', "t");
+
+	shutdown(inbound, SHUT_RDWR);
+	close(inbound);
+	close(server);
+	close(conn);
+}
+
+typedef struct {
+	i32 fd;
+	i32 v;
+} ConnectionInfo;
+
+Test(multi_socket) {
+	u8 buf[10];
+	i32 server, inbound, client, mplex, port, cpid;
+	Event events[10];
+
+	mplex = multiplex();
+	port = socket_listen(&server, LOCALHOST, 0, 10);
+	client = socket_connect(LOCALHOST, port);
+	mregister(mplex, server, MULTIPLEX_FLAG_ACCEPT, &server);
+
+	if ((cpid = two())) {
+		bool do_exit = false;
+		while (!do_exit) {
+			i32 v, i;
+			err = 0;
+			v = mwait(mplex, events, 10, -1);
+			for (i = 0; i < v; i++) {
+				if (event_attachment(events[i]) == &server) {
+					inbound = socket_accept(server);
+					mregister(mplex, inbound,
+						  MULTIPLEX_FLAG_READ,
+						  &inbound);
+				} else if (event_attachment(events[i]) ==
+					   &inbound) {
+					ASSERT_EQ(read(inbound, buf, 10), 1,
+						  "inb read");
+					ASSERT_EQ(buf[0], 'h', "h");
+					ASSERT(event_is_read(events[i]),
+					       "is_read");
+					ASSERT(!event_is_write(events[i]),
+					       "is_write");
+					ASSERT(!mregister(mplex, inbound,
+							  MULTIPLEX_FLAG_WRITE,
+							  NULL),
+					       "write reg");
+					do_exit = true;
+					break;
+				}
+			}
+		}
+
+		close(client);
+		close(mplex);
+		close(inbound);
+		close(server);
+	} else {
+		while (write(client, "h", 1) != 1);
+		exit(0);
+	}
+
+	waitid(P_PID, cpid, NULL, WEXITED);
+}
+
