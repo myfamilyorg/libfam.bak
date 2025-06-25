@@ -361,23 +361,32 @@ Test(channel_notify) {
 	ASSERT(pid >= 0, "pid>=0");
 	if (pid) {
 		TestMessage msg = {0}, msg2 = {0};
+		println("1");
 		msg.x = 100;
+		println("2");
 		sleepm(10);
+		println("3");
 		send(&ch2, &msg);
+		println("4");
 
 		recv(&ch1, &msg2);
+		println("5");
 		ASSERT_EQ(msg2.x, 1, "msg.x");
 		ASSERT_EQ(msg2.y, 2, "msg.y");
 		ASSERT_EQ(recv_now(&ch1, &msg), -1, "recv_now");
+		println("6");
 
 	} else {
 		TestMessage msg = {0};
+		println("a");
 		recv(&ch2, &msg);
+		println("b");
 
 		ASSERT_EQ(msg.x, 100, "x=100");
 		msg.x = 1;
 		msg.y = 2;
 		send(&ch1, &msg);
+		println("c");
 		exit(0);
 	}
 	waitid(P_PID, pid, &info, WEXITED);
