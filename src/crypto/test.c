@@ -75,7 +75,7 @@ Test(rng) {
 
 Test(sha1) {
 	u64 v = 123;
-	u8 digest[24] = {0};
+	u8 digest[20] = {0};
 	u8 out[33] = {0};
 	u8 buf4[64] = {4};
 	u8 buflong[256] = {5};
@@ -83,20 +83,20 @@ Test(sha1) {
 	sha1_init(&ctx);
 	sha1_update(&ctx, &v, sizeof(u64));
 	sha1_final(&ctx, digest);
-	b64_encode(digest, 24, out, 33);
-	ASSERT(!strcmp(out, "bdYNn8pZRfNzUKFV3N4reh2uX2YAAAAA"),
-	       "bdYNn8pZRfNzUKFV3N4reh2uX2YAAAAA");
+	b64_encode(digest, 20, out, 33);
+	ASSERT(!strcmp(out, "bdYNn8pZRfNzUKFV3N4reh2uX2Y="),
+	       "bdYNn8pZRfNzUKFV3N4reh2uX2Y=");
 	sha1_init(&ctx);
 	sha1_update(&ctx, buf4, 60);
 	sha1_final(&ctx, digest);
-	b64_encode(digest, 24, out, 33);
-	ASSERT(!strcmp(out, "pxH2MkE8YEMdKFrJl1vWVxsVRzAAAAAA"),
-	       "pxH2MkE8YEMdKFrJl1vWVxsVRzAAAAAA");
+	b64_encode(digest, 20, out, 33);
+	ASSERT(!strcmp(out, "pxH2MkE8YEMdKFrJl1vWVxsVRzA="),
+	       "pxH2MkE8YEMdKFrJl1vWVxsVRzA=");
 	sha1_init(&ctx);
 	sha1_update(&ctx, buflong, 252);
 	sha1_update(&ctx, buflong, 150);
 	sha1_final(&ctx, digest);
-	b64_encode(digest, 24, out, 33);
-	ASSERT(!strcmp(out, "UPbAbd1BjBI1Q+p8zMFyP2vVIjwAAAAA"),
-	       "UPbAbd1BjBI1Q+p8zMFyP2vVIjwAAAAA");
+	b64_encode(digest, 20, out, 33);
+	ASSERT(!strcmp(out, "UPbAbd1BjBI1Q+p8zMFyP2vVIjw="),
+	       "UPbAbd1BjBI1Q+p8zMFyP2vVIjw=");
 }
