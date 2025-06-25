@@ -31,6 +31,9 @@
 
 bool _debug_no_write = false;
 bool _debug_no_exit = false;
+bool _debug_fail_getsockbyname = false;
+bool _debug_fail_listen = false;
+bool _debug_fail_setsockopt = false;
 
 #define SET_ERR_VALUE       \
 	if (ret < 0) {      \
@@ -584,6 +587,10 @@ i32 connect(i32 sockfd, const struct sockaddr *addr, u32 addrlen) {
 
 i32 setsockopt(i32 sockfd, i32 level, i32 optname, const void *optval,
 	       u32 optlen) {
+#if TEST == 1
+	if (_debug_fail_setsockopt) return -1;
+#endif /* TEST */
+
 	i32 ret = syscall_setsockopt(sockfd, level, optname, optval, optlen);
 	SET_ERR
 }
@@ -593,10 +600,18 @@ i32 bind(i32 sockfd, const struct sockaddr *addr, u32 addrlen) {
 	SET_ERR
 }
 i32 listen(i32 sockfd, i32 backlog) {
+#if TEST == 1
+	if (_debug_fail_listen) return -1;
+#endif /* TEST */
+
 	i32 ret = syscall_listen(sockfd, backlog);
 	SET_ERR
 }
 i32 getsockname(i32 sockfd, struct sockaddr *addr, u32 *addrlen) {
+#if TEST == 1
+	if (_debug_fail_getsockbyname) return -1;
+#endif /* TEST */
+
 	i32 ret = syscall_getsockname(sockfd, addr, addrlen);
 	SET_ERR
 }

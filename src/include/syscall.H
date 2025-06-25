@@ -74,6 +74,9 @@ i32 waitid(i32 i32ype, i32 id, siginfo_t *sigs, i32 options);
 
 #if TEST == 1
 extern bool _debug_no_write;
+extern bool _debug_fail_getsockbyname;
+extern bool _debug_fail_listen;
+extern bool _debug_fail_setsockopt;
 #endif /* TEST */
 
 #endif /* _SYSCALL_H */

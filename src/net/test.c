@@ -110,3 +110,23 @@ Test(multi_socket) {
 	waitid(P_PID, cpid, NULL, WEXITED);
 }
 
+Test(socket_fails) {
+	i32 fd1, fd2, port;
+	ASSERT((port = socket_listen(&fd1, LOCALHOST, 0, 1)) > 0, "listen");
+	ASSERT(socket_listen(&fd2, LOCALHOST, port, 1) == -1, "listen2");
+	close(fd1);
+	ASSERT(socket_connect(LOCALHOST, port) == -1, "connect");
+
+	_debug_fail_setsockopt = true;
+	ASSERT(socket_listen(&fd2, LOCALHOST, 0, 1) == -1, "fail setsockopt");
+	_debug_fail_setsockopt = false;
+
+	_debug_fail_listen = true;
+	ASSERT(socket_listen(&fd2, LOCALHOST, 0, 1) == -1, "fail setsockopt");
+	_debug_fail_listen = false;
+
+	_debug_fail_getsockbyname = true;
+	ASSERT(socket_listen(&fd2, LOCALHOST, 0, 1) == -1, "fail setsockopt");
+	_debug_fail_getsockbyname = false;
+}
+

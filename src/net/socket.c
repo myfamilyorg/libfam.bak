@@ -34,15 +34,8 @@ u16 ntohs(u16 net) { return ((net & 0xFF) << 8) | ((net >> 8) & 0xFF); }
 
 i32 set_nonblocking(i32 socket) {
 	i32 flags;
-	if ((flags = fcntl(socket, F_GETFL, 0)) == -1) {
-		close(socket);
-		return -1;
-	}
-	if (fcntl(socket, F_SETFL, flags | O_NONBLOCK) == -1) {
-		close(socket);
-		return -1;
-	}
-
+	if ((flags = fcntl(socket, F_GETFL, 0)) == -1) return -1;
+	if (fcntl(socket, F_SETFL, flags | O_NONBLOCK) == -1) return -1;
 	return 0;
 }
 
@@ -55,10 +48,8 @@ i32 socket_connect(const u8 addr[4], u16 port) {
 	memcpy(&address.sin_addr, addr, 4);
 	address.sin_port = htons(port);
 
-	if (connect(ret, (struct sockaddr *)&address, sizeof(address)) < 0) {
-		close(ret);
+	if (connect(ret, (struct sockaddr *)&address, sizeof(address)) < 0)
 		return -1;
-	}
 
 	if (set_nonblocking(ret) == -1) return -1;
 	return ret;

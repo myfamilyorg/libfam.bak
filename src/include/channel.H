@@ -23,8 +23,8 @@
  *
  *******************************************************************************/
 
-#ifndef _CHANNEL_H__
-#define _CHANNEL_H__
+#ifndef _CHANNEL_H
+#define _CHANNEL_H
 
 #include <types.H>
 
@@ -42,4 +42,4 @@ void recv(Channel *channel, void *dst);
 i32 recv_now(Channel *channel, void *dst);
 i32 send(Channel *channel, const void *src);
 
-#endif /* _CHANNEL_H__ */
+#endif /* _CHANNEL_H */

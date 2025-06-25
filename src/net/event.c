@@ -39,6 +39,7 @@ i32 multiplex(void) { return epoll_create1(0); }
 i32 mregister(i32 multiplex, i32 fd, i32 flags, void *attach) {
 	struct epoll_event ev;
 	i32 event_flags = 0;
+	i32 ret = 0;
 
 	if (flags & MULTIPLEX_FLAG_READ) {
 		event_flags |= (EPOLLIN | EPOLLET | EPOLLRDHUP);
@@ -58,17 +59,12 @@ i32 mregister(i32 multiplex, i32 fd, i32 flags, void *attach) {
 	else
 		ev.data.ptr = attach;
 
-	if (epoll_ctl(multiplex, EPOLL_CTL_ADD, fd, &ev) < 0) {
-		if (err == EEXIST) {
-			if (epoll_ctl(multiplex, EPOLL_CTL_MOD, fd, &ev) < 0)
-				return -1;
-
-		} else {
-			return -1;
-		}
+	if ((ret = epoll_ctl(multiplex, EPOLL_CTL_ADD, fd, &ev)) < 0) {
+		if (err == EEXIST)
+			ret = epoll_ctl(multiplex, EPOLL_CTL_MOD, fd, &ev);
 	}
 
-	return 0;
+	return ret;
 }
 i32 mwait(i32 multiplex, Event *events, i32 max_events, i64 timeout_millis) {
 	i32 timeout = (timeout_millis >= 0) ? (i32)timeout_millis : -1;
