@@ -231,6 +231,51 @@ i32 connection_write(Connection *conn, const void *buf, u64 len) {
 	return 0;
 }
 
+i32 connection_write_complete(Connection *connection) {
+	ConnectionCommon *common = connection_common(connection);
+	i64 wlen;
+	u64 cur = 0;
+	i32 sock;
+
+	if (!common) {
+		err = EINVAL;
+		return -1;
+	}
+	sock = connection->socket;
+	{
+		LockGuard lg = wlock(&common->lock);
+		if (common->is_closed) return -1;
+
+		while (cur < common->wbuf_offset) {
+			wlen = write(sock, common->wbuf + cur,
+				     common->wbuf_offset - cur);
+			if (wlen < 0) {
+				shutdown(sock, SHUT_RDWR);
+				return -1;
+			}
+			cur += wlen;
+		}
+
+		if (cur == common->wbuf_offset) {
+			if (mregister(common->mplex, sock, MULTIPLEX_FLAG_READ,
+				      connection) == -1) {
+				shutdown(sock, SHUT_RDWR);
+				return -1;
+			}
+			if (common->wbuf_capacity) {
+				release(common->wbuf);
+				common->wbuf_offset = 0;
+				common->wbuf_capacity = 0;
+			}
+		} else {
+			memorymove(common->wbuf, common->wbuf + cur,
+				   common->wbuf_offset - cur);
+			common->wbuf_offset -= cur;
+		}
+	}
+	return 0;
+}
+
 i32 connection_close(Connection *connection) {
 	if (connection->conn_type == Acceptor) {
 		return close(connection->socket);

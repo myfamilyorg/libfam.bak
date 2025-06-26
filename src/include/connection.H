@@ -50,6 +50,7 @@ Connection *evh_accepted(i32 fd, OnRecvFn on_recv, OnCloseFn on_close,
 u16 evh_acceptor_port(const Connection *conn);
 i32 connection_close(Connection *connection);
 i32 connection_write(Connection *connection, const void *buf, u64 len);
+i32 connection_write_complete(Connection *connection);
 u8 *connection_rbuf(Connection *conn);
 u64 connection_rbuf_offset(Connection *conn);
 i32 connection_set_rbuf_offset(Connection *conn, u64 noffset);

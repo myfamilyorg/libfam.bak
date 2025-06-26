@@ -231,3 +231,73 @@ Test(evh1) {
 
 	ASSERT_BYTES(0);
 }
+
+u64 *evh2_complete = NULL;
+
+i32 evh2_on_accept(void *ctx, Connection *conn) {
+	ASSERT(conn, "conn!=NULL");
+	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
+	/*connection_close(conn);*/
+	return 0;
+}
+
+i32 evh2_on_recv(void *ctx, Connection *conn, u64 rlen) {
+	u8 *rbuf = connection_rbuf(conn);
+	u64 offset = connection_rbuf_offset(conn);
+	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
+	ASSERT_EQ(rlen, 1, "rlen=1");
+	ASSERT_EQ(offset, 1, "offset=1");
+	ASSERT_EQ(rbuf[0], 'Z', "rbuf[0]='X'");
+	connection_close(conn);
+
+	return 0;
+}
+
+i32 evh2_on_close(void *ctx, Connection *conn) {
+	ASSERT(conn, "conn!=NULL");
+	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
+	ASSERT(ALOAD(evh2_complete) <= 2, "evh2_complete <= 2");
+	__add64(evh2_complete, 1);
+	return 0;
+}
+
+i32 evh2_on_connect(void *ctx, Connection *conn) {
+	if (ctx || conn) {
+	}
+	return 0;
+}
+
+i32 evh2_on_connect_error(void *ctx, Connection *conn) {
+	if (ctx || conn) {
+	}
+	return 0;
+}
+
+Test(evh2) {
+	i32 ctx = 102;
+	u16 port = 0;
+	Evh *evh2;
+	Connection *acceptor, *conn;
+
+	evh2_complete = alloc(sizeof(u64));
+	ASSERT(evh2_complete, "evh2_complete");
+	*evh2_complete = 0;
+
+	acceptor = evh_acceptor(LOCALHOST, port, 10, evh2_on_recv,
+				evh2_on_accept, evh2_on_close, 0);
+	port = evh_acceptor_port(acceptor);
+	conn = evh_client(LOCALHOST, port, evh2_on_recv, evh2_on_connect,
+			  evh2_on_connect_error, evh2_on_close, 0);
+	evh2 = evh_start(&ctx);
+	evh_register(evh2, acceptor);
+	evh_register(evh2, conn);
+	connection_write(conn, "Z", 1);
+	while (ALOAD(evh2_complete) < 2);
+	ASSERT_EQ(ALOAD(evh2_complete), 2, "2 closed conns");
+	release(evh2_complete);
+	evh_stop(evh2);
+
+	connection_release(acceptor);
+
+	ASSERT_BYTES(0);
+}

@@ -111,43 +111,8 @@ STATIC void proc_read(Connection *conn, void *ctx) {
 	}
 }
 
-STATIC i32 proc_write(Evh *evh, Connection *conn) {
-	if (evh || conn) {
-	}
-	/*
-	InboundData *ib = &conn->data.inbound;
-	i64 wlen;
-	u64 cur = 0;
-	i32 sock = conn->socket;
-	LockGuard lg = wlock(&ib->lock);
-
-	while (cur < ib->wbuf_offset) {
-		wlen = write(sock, ib->wbuf + cur, ib->wbuf_offset - cur);
-		if (wlen < 0) {
-			shutdown(sock, SHUT_RDWR);
-			return -1;
-		}
-		cur += wlen;
-	}
-
-	if (cur == ib->wbuf_offset) {
-		if (mregister(evh->mplex, sock, MULTIPLEX_FLAG_READ, conn) ==
-		    -1) {
-			shutdown(sock, SHUT_RDWR);
-			return -1;
-		}
-		if (ib->wbuf_capacity) {
-			release(ib->wbuf);
-			ib->wbuf_offset = 0;
-			ib->wbuf_capacity = 0;
-		}
-	} else {
-		memorymove(ib->wbuf, ib->wbuf + cur, ib->wbuf_offset - cur);
-		ib->wbuf_offset -= cur;
-	}
-	*/
-
-	return 0;
+STATIC i32 proc_write(Connection *conn) {
+	return connection_write_complete(conn);
 }
 
 STATIC void event_loop(Evh *evh, void *ctx, i32 wakeup) {
@@ -165,7 +130,7 @@ STATIC void event_loop(Evh *evh, void *ctx, i32 wakeup) {
 					proc_acceptor(evh, conn, ctx);
 				} else {
 					if (event_is_write(events[i]))
-						proc_write(evh, conn);
+						proc_write(conn);
 					if (event_is_read(events[i]))
 						proc_read(conn, ctx);
 				}
@@ -185,12 +150,9 @@ end_while:
 STATIC i32 init_event_loop(Evh *evh, void *ctx) {
 	i32 fds[2];
 	i32 pid;
-	if (pipe(fds) == -1) {
-		return -1;
-	}
 
+	if (pipe(fds) == -1) return -1;
 	evh->wakeup = fds[1];
-
 	set_nonblocking(fds[0]);
 
 	if (mregister(evh->mplex, fds[0], MULTIPLEX_FLAG_READ,

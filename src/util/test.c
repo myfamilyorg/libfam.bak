@@ -524,7 +524,7 @@ Test(rbtree1) {
 	TestRbTreeNode vx = {{0}, 3};
 	TestRbTreeNode vy = {{0}, 0};
 	TestRbTreeNode *out, *out2;
-	RbTreeNodePair retval;
+	RbTreeNodePair retval = {0};
 
 	rbtree_put(&tree, (RbTreeNode *)&v1, test_rbsearch);
 	validate_rbtree(&tree);
@@ -579,7 +579,7 @@ Test(rbtree2) {
 		}
 
 		for (i = 0; i < size; i++) {
-			RbTreeNodePair retval;
+			RbTreeNodePair retval = {0};
 			TestRbTreeNode v = {{0}, 0};
 			v.value = values[i].value;
 
