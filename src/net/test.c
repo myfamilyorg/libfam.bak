@@ -181,26 +181,34 @@ Test(socket_fails) {
 
 u64 *evh1_complete = NULL;
 
-i32 evh1_on_accept(void *ctx __attribute__((unused)),
-		   Connection *conn __attribute__((unused))) {
+i32 evh1_on_accept(void *ctx, Connection *conn) {
+	ASSERT_EQ(*((i32 *)ctx), 101, "ctx==101");
 	connection_close(conn);
 	return 0;
 }
 
-i32 evh1_on_recv(void *ctx __attribute__((unused)),
-		 Connection *conn __attribute__((unused)),
-		 u64 rlen __attribute__((unused))) {
+i32 evh1_on_recv(void *ctx, Connection *conn, u64 rlen) {
+	u8 *rbuf = connection_rbuf(conn);
+	u64 offset = connection_rbuf_offset(conn);
+	ASSERT_EQ(*((i32 *)ctx), 101, "ctx==101");
+	ASSERT_EQ(rlen, 1, "rlen=1");
+	ASSERT_EQ(offset, 1, "offset=1");
+	ASSERT_EQ(rbuf[0], 'X', "rbuf[0]='X'");
+	__add64(evh1_complete, 1);
 	return 0;
 }
 
-i32 evh1_on_close(void *ctx __attribute__((unused)),
-		  Connection *conn __attribute__((unused))) {
+i32 evh1_on_close(void *ctx, Connection *conn) {
+	ASSERT(conn, "conn!=NULL");
+	ASSERT_EQ(*((i32 *)ctx), 101, "ctx==101");
+	ASSERT_EQ(ALOAD(evh1_complete), 1, "evh1_complete==1");
 	__add64(evh1_complete, 1);
 	return 0;
 }
 
 Test(evh1) {
 	i32 ctx = 101, client;
+	u16 port = 0;
 	Evh *evh1;
 	Connection *acceptor;
 
@@ -208,13 +216,15 @@ Test(evh1) {
 	ASSERT(evh1_complete, "evh1_complete");
 	*evh1_complete = 0;
 
-	acceptor = evh_acceptor(LOCALHOST, 9091, 10, evh1_on_recv,
+	acceptor = evh_acceptor(LOCALHOST, port, 10, evh1_on_recv,
 				evh1_on_accept, evh1_on_close, 0);
+	port = evh_acceptor_port(acceptor);
 	evh1 = evh_start(&ctx);
 	evh_register(evh1, acceptor);
-	client = test_connect(LOCALHOST, 9091);
+	client = test_connect(LOCALHOST, port);
 	ASSERT(client > 0, "client>0");
-	while (!ALOAD(evh1_complete));
+	while (write(client, "X", 1) != 1);
+	while (ALOAD(evh1_complete) != 2);
 	release(evh1_complete);
 	evh_stop(evh1);
 	connection_release(acceptor);

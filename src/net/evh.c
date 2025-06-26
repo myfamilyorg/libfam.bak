@@ -78,7 +78,7 @@ STATIC void proc_acceptor(Evh *evh, Connection *acceptor, void *ctx) {
 }
 
 STATIC void proc_close(Connection *conn, void *ctx) {
-	connection_on_close(conn)(conn, ctx);
+	connection_on_close(conn)(ctx, conn);
 	connection_release(conn);
 }
 
