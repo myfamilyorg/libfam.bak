@@ -36,7 +36,7 @@
 #define MIN_EXCESS 1024
 #define MIN_RESIZE (MIN_EXCESS * 2)
 
-bool debug_force_write_buffer = false;
+bool _debug_force_write_buffer = false;
 
 typedef struct {
 	OnRecvFn on_recv;
@@ -185,7 +185,7 @@ i32 connection_write(Connection *conn, const void *buf, u64 len) {
 		if (!common->wbuf_offset) {
 			u64 offset = 0;
 		write_block:
-			if (debug_force_write_buffer)
+			if (_debug_force_write_buffer)
 				wlen = 0;
 			else
 				wlen = write(conn->socket, (u8 *)buf + offset,

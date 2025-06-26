@@ -71,4 +71,8 @@ void connection_release(Connection *conn);
 bool connection_is_connected(Connection *conn);
 void connection_set_is_connected(Connection *conn);
 
+#if TEST == 1
+extern bool _debug_force_write_buffer;
+#endif /* TEST */
+
 #endif /* _CONNECTION_H */

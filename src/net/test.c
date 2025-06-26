@@ -195,6 +195,8 @@ i32 evh1_on_recv(void *ctx, Connection *conn, u64 rlen) {
 	ASSERT_EQ(offset, 1, "offset=1");
 	ASSERT_EQ(rbuf[0], 'X', "rbuf[0]='X'");
 	__add64(evh1_complete, 1);
+	connection_clear_rbuf_through(conn, offset);
+	connection_clear_rbuf(conn);
 	return 0;
 }
 
@@ -307,6 +309,89 @@ Test(evh2) {
 	evh_stop(evh2);
 
 	connection_release(acceptor);
+
+	ASSERT_BYTES(0);
+}
+
+Test(evh3) {
+	i32 ctx = 102;
+	u16 port = 0;
+	Evh *evh2;
+	Connection *acceptor, *conn;
+
+	_debug_force_write_buffer = true;
+
+	evh2_complete = alloc(sizeof(u64));
+	ASSERT(evh2_complete, "evh2_complete");
+	*evh2_complete = 0;
+
+	evh2_on_connect_val = alloc(sizeof(u64));
+	ASSERT(evh2_on_connect_val, "evh2_on_connect_val");
+	*evh2_on_connect_val = 0;
+
+	acceptor = evh_acceptor(LOCALHOST, port, 10, evh2_on_recv,
+				evh2_on_accept, evh2_on_close, 0);
+	port = evh_acceptor_port(acceptor);
+	conn = evh_client(LOCALHOST, port, evh2_on_recv, evh2_on_connect,
+			  evh2_on_connect_error, evh2_on_close, 0);
+	evh2 = evh_start(&ctx);
+	evh_register(evh2, acceptor);
+	evh_register(evh2, conn);
+	connection_write(conn, "Z", 1);
+	while (ALOAD(evh2_complete) < 2);
+	ASSERT_EQ(ALOAD(evh2_on_connect_val), 1, "connect success");
+	ASSERT_EQ(ALOAD(evh2_complete), 2, "2 closed conns");
+	release(evh2_complete);
+	release(evh2_on_connect_val);
+	evh_stop(evh2);
+
+	connection_release(acceptor);
+
+	ASSERT_BYTES(0);
+
+	_debug_force_write_buffer = false;
+}
+
+u8 BAD_ADDR[4] = {255, 255, 255, 255};
+
+Test(connection_err) {
+	u16 port;
+	Connection *c2;
+	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, evh1_on_recv,
+				      evh1_on_accept, evh1_on_close, 0);
+	ASSERT(c1, "c1");
+	port = evh_acceptor_port(c1);
+	ASSERT(!evh_acceptor(LOCALHOST, port, 1, evh1_on_recv, evh1_on_accept,
+			     evh1_on_close, 0),
+	       "port used");
+
+	c2 = evh_client(LOCALHOST, port, evh1_on_recv, evh2_on_connect,
+			evh2_on_connect_error, evh1_on_close, 0);
+	ASSERT(!evh_acceptor_port(c2), "not acceptor");
+	ASSERT(connection_set_mplex(c1, 0), "set mplex acceptor err");
+	ASSERT(connection_write(c1, "x", 1), "write to acceptor");
+	ASSERT(connection_write_complete(c1), "write complete");
+	ASSERT(!connection_on_accept(c2),
+	       "connection_on_accept for non-acceptor");
+	ASSERT(!connection_on_connect(c1),
+	       "connection_on_connect for non-outbound");
+	ASSERT(!connection_on_connect_error(c1),
+	       "connection_on_connect_error for non-outbound");
+	ASSERT(connection_on_connect_error(c2),
+	       "connection_on_connect_error for outbound");
+
+	connection_release(c1);
+	connection_release(c2);
+
+	ASSERT(!evh_client(BAD_ADDR, port, evh1_on_recv, evh2_on_connect,
+			   evh2_on_connect_error, evh1_on_close, 0),
+	       "bad addr");
+
+	c1 = evh_acceptor(LOCALHOST, 0, 1, evh1_on_recv, evh1_on_accept,
+			  evh1_on_close, 0);
+
+	connection_close(c1);
+	connection_release(c1);
 
 	ASSERT_BYTES(0);
 }
