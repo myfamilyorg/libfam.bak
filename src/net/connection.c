@@ -145,8 +145,7 @@ Connection *evh_client(const u8 addr[4], u16 port, OnRecvFn on_recv,
 	if (ret < 0 && err != EINPROGRESS) {
 		release(client);
 		return NULL;
-	} else if (ret == 0)
-		client->data.outbound.is_connected = true;
+	}
 	return client;
 }
 
