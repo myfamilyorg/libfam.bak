@@ -23,36 +23,38 @@
  *
  *******************************************************************************/
 
-#ifndef _CONNECTION_H
-#define _CONNECTION_H
+#ifndef _WS_H
+#define _WS_H
 
-#include <types.H>
+typedef struct {
+	u8 *buffer;
+	u64 len;
+} WsMessage;
 
-typedef enum { Acceptor, Inbound, Outbound } ConnectionType;
+typedef struct {
+	u16 port;
+	u8 addr[4];
+	u16 backlog;
+	u16 workers;
+} WsConfig;
 
-typedef struct Connection Connection;
+typedef struct WsConnection WsConnection;
+typedef struct Ws Ws;
 
-typedef void (*OnRecvFn)(void *ctx, Connection *conn, u64 rlen);
-typedef void (*OnAcceptFn)(void *ctx, Connection *conn);
-typedef void (*OnCloseFn)(void *ctx, Connection *conn);
-typedef void (*OnConnectFn)(void *ctx, Connection *conn, int error);
+typedef void (*OnOpen)(WsConnection *conn);
+typedef void (*OnClose)(WsConnection *conn);
+typedef void (*OnMessage)(WsConnection *conn, WsMessage *msg);
 
-Connection *evh_acceptor(const u8 addr[4], u16 port, u16 backlog,
-			 OnRecvFn on_recv, OnAcceptFn on_accept,
-			 OnCloseFn on_close, u64 connection_alloc_overhead);
-Connection *evh_client(const u8 addr[4], u16 port, OnRecvFn on_recv,
-		       OnConnectFn on_connect, OnCloseFn on_close,
-		       u64 connection_alloc_overhead);
+i32 ws_send(WsConnection *conn, WsMessage *msg);
+Ws *ws_init(WsConfig *config, OnMessage on_message, OnOpen on_open,
+	    OnClose on_close);
+i32 ws_start(Ws *ws);
+i32 ws_stop(Ws *ws);
 
-u16 evh_acceptor_port(const Connection *conn);
-i32 connection_close(Connection *connection);
-i32 connection_write(Connection *connection, const void *buf, u64 len);
-u8 *connection_rbuf(Connection *conn);
-u64 connection_rbuf_offset(Connection *conn);
-void connection_clear_rbuf_through(Connection *conn, u64 off);
-void connection_clear_rbuf(Connection *conn);
-ConnectionType connection_type(Connection *conn);
-i32 connection_socket(Connection *conn);
-bool connection_is_connected(Connection *conn);
+u64 ws_connection_id(WsConnection *connection);
+WsConnection *ws_connect(Ws *ws, const u8 *url);
+i32 ws_connection_close(WsConnection *conn, i32 code, const u8 *reason);
+const u8 *ws_connection_uri(WsConnection *conn);
+u16 ws_port(Ws *ws);
 
-#endif /* _CONNECTION_H */
+#endif /* _WS_H */

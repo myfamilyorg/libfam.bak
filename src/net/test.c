@@ -182,13 +182,12 @@ Test(socket_fails) {
 
 u64 *evh1_complete = NULL;
 
-i32 evh1_on_accept(void *ctx, Connection *conn) {
+void evh1_on_accept(void *ctx, Connection *conn) {
 	ASSERT_EQ(*((i32 *)ctx), 101, "ctx==101");
 	connection_close(conn);
-	return 0;
 }
 
-i32 evh1_on_recv(void *ctx, Connection *conn, u64 rlen) {
+void evh1_on_recv(void *ctx, Connection *conn, u64 rlen) {
 	u8 *rbuf = connection_rbuf(conn);
 	u64 offset = connection_rbuf_offset(conn);
 	ASSERT_EQ(*((i32 *)ctx), 101, "ctx==101");
@@ -198,15 +197,13 @@ i32 evh1_on_recv(void *ctx, Connection *conn, u64 rlen) {
 	__add64(evh1_complete, 1);
 	connection_clear_rbuf_through(conn, offset);
 	connection_clear_rbuf(conn);
-	return 0;
 }
 
-i32 evh1_on_close(void *ctx, Connection *conn) {
+void evh1_on_close(void *ctx, Connection *conn) {
 	ASSERT(conn, "conn!=NULL");
 	ASSERT_EQ(*((i32 *)ctx), 101, "ctx==101");
 	ASSERT_EQ(ALOAD(evh1_complete), 1, "evh1_complete==1");
 	__add64(evh1_complete, 1);
-	return 0;
 }
 
 Test(evh1) {
@@ -238,14 +235,12 @@ Test(evh1) {
 u64 *evh2_complete = NULL;
 u64 *evh2_on_connect_val = NULL;
 
-i32 evh2_on_accept(void *ctx, Connection *conn) {
+void evh2_on_accept(void *ctx, Connection *conn) {
 	ASSERT(conn, "conn!=NULL");
 	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
-	/*connection_close(conn);*/
-	return 0;
 }
 
-i32 evh2_on_recv(void *ctx, Connection *conn, u64 rlen) {
+void evh2_on_recv(void *ctx, Connection *conn, u64 rlen) {
 	u8 *rbuf = connection_rbuf(conn);
 	u64 offset = connection_rbuf_offset(conn);
 	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
@@ -253,24 +248,20 @@ i32 evh2_on_recv(void *ctx, Connection *conn, u64 rlen) {
 	ASSERT_EQ(offset, 1, "offset=1");
 	ASSERT_EQ(rbuf[0], 'Z', "rbuf[0]='X'");
 	connection_close(conn);
-
-	return 0;
 }
 
-i32 evh2_on_close(void *ctx, Connection *conn) {
+void evh2_on_close(void *ctx, Connection *conn) {
 	ASSERT(conn, "conn!=NULL");
 	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
 	ASSERT(ALOAD(evh2_complete) <= 2, "evh2_complete <= 2");
 	__add64(evh2_complete, 1);
-	return 0;
 }
 
-i32 evh2_on_connect(void *ctx, Connection *conn, int error) {
+void evh2_on_connect(void *ctx, Connection *conn, int error) {
 	ASSERT(!error, "!error");
 	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
 	ASSERT(conn, "conn!=NULL");
 	__add64(evh2_on_connect_val, 1);
-	return 0;
 }
 
 Test(evh2) {
