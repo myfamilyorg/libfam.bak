@@ -121,12 +121,7 @@ STATIC i32 proc_write(Evh *evh, Connection *conn) {
 		if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) < 0) {
 			return -1;
 		}
-		if (error) {
-			connection_on_connect_error(conn)(evh->ctx, conn);
-		} else {
-			connection_on_connect(conn)(evh->ctx, conn);
-		}
-		/* Set true even on err to avoid this block */
+		connection_on_connect(conn)(evh->ctx, conn, error);
 		connection_set_is_connected(conn);
 	}
 	return connection_write_complete(conn);
@@ -203,7 +198,7 @@ i32 evh_register(Evh *evh, Connection *conn) {
 	} else if (ctype == Outbound || ctype == Inbound) {
 		if (ctype == Inbound || connection_is_connected(conn)) {
 			if (ctype == Outbound)
-				connection_on_connect(conn)(evh->ctx, conn);
+				connection_on_connect(conn)(evh->ctx, conn, 0);
 			return mregister(evh->mplex, socket,
 					 MULTIPLEX_FLAG_READ, conn);
 		} else {

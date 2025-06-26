@@ -264,17 +264,11 @@ i32 evh2_on_close(void *ctx, Connection *conn) {
 	return 0;
 }
 
-i32 evh2_on_connect(void *ctx, Connection *conn) {
+i32 evh2_on_connect(void *ctx, Connection *conn, int error) {
+	ASSERT(!error, "!error");
 	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
 	ASSERT(conn, "conn!=NULL");
 	__add64(evh2_on_connect_val, 1);
-	return 0;
-}
-
-i32 evh2_on_connect_error(void *ctx, Connection *conn) {
-	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
-	ASSERT(conn, "conn!=NULL");
-	__add64(evh2_on_connect_val, 2);
 	return 0;
 }
 
@@ -296,7 +290,7 @@ Test(evh2) {
 				evh2_on_accept, evh2_on_close, 0);
 	port = evh_acceptor_port(acceptor);
 	conn = evh_client(LOCALHOST, port, evh2_on_recv, evh2_on_connect,
-			  evh2_on_connect_error, evh2_on_close, 0);
+			  evh2_on_close, 0);
 	evh2 = evh_start(&ctx);
 	evh_register(evh2, acceptor);
 	evh_register(evh2, conn);
@@ -333,7 +327,7 @@ Test(evh3) {
 				evh2_on_accept, evh2_on_close, 0);
 	port = evh_acceptor_port(acceptor);
 	conn = evh_client(LOCALHOST, port, evh2_on_recv, evh2_on_connect,
-			  evh2_on_connect_error, evh2_on_close, 0);
+			  evh2_on_close, 0);
 	evh2 = evh_start(&ctx);
 	evh_register(evh2, acceptor);
 	evh_register(evh2, conn);
@@ -366,7 +360,7 @@ Test(connection_err) {
 	       "port used");
 
 	c2 = evh_client(LOCALHOST, port, evh1_on_recv, evh2_on_connect,
-			evh2_on_connect_error, evh1_on_close, 0);
+			evh1_on_close, 0);
 	ASSERT(!evh_acceptor_port(c2), "not acceptor");
 	ASSERT(connection_set_mplex(c1, 0), "set mplex acceptor err");
 	ASSERT(connection_write(c1, "x", 1), "write to acceptor");
@@ -375,16 +369,12 @@ Test(connection_err) {
 	       "connection_on_accept for non-acceptor");
 	ASSERT(!connection_on_connect(c1),
 	       "connection_on_connect for non-outbound");
-	ASSERT(!connection_on_connect_error(c1),
-	       "connection_on_connect_error for non-outbound");
-	ASSERT(connection_on_connect_error(c2),
-	       "connection_on_connect_error for outbound");
 
 	connection_release(c1);
 	connection_release(c2);
 
 	ASSERT(!evh_client(BAD_ADDR, port, evh1_on_recv, evh2_on_connect,
-			   evh2_on_connect_error, evh1_on_close, 0),
+			   evh1_on_close, 0),
 	       "bad addr");
 
 	c1 = evh_acceptor(LOCALHOST, 0, 1, evh1_on_recv, evh1_on_accept,

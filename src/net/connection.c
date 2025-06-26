@@ -66,7 +66,6 @@ typedef struct {
 
 typedef struct {
 	OnConnectFn on_connect;
-	OnConnectErrorFn on_connect_error;
 	bool is_connected;
 	ConnectionCommon common;
 } OutboundData;
@@ -120,8 +119,7 @@ u16 evh_acceptor_port(const Connection *conn) {
 }
 
 Connection *evh_client(const u8 addr[4], u16 port, OnRecvFn on_recv,
-		       OnConnectFn on_connect,
-		       OnConnectErrorFn on_connect_error, OnCloseFn on_close,
+		       OnConnectFn on_connect, OnCloseFn on_close,
 		       u64 connection_alloc_overhead) {
 	i32 ret;
 	Connection *client =
@@ -140,7 +138,6 @@ Connection *evh_client(const u8 addr[4], u16 port, OnRecvFn on_recv,
 	client->data.outbound.common.wbuf_capacity = 0;
 	client->data.outbound.common.wbuf_offset = 0;
 	client->data.outbound.on_connect = on_connect;
-	client->data.outbound.on_connect_error = on_connect_error;
 	ret = socket_connect(&client->socket, addr, port);
 	if (ret < 0 && err != EINPROGRESS) {
 		release(client);
@@ -376,13 +373,6 @@ OnConnectFn connection_on_connect(Connection *conn) {
 		return NULL;
 	}
 	return conn->data.outbound.on_connect;
-}
-OnConnectErrorFn connection_on_connect_error(Connection *conn) {
-	if (conn->conn_type != Outbound) {
-		err = EINVAL;
-		return NULL;
-	}
-	return conn->data.outbound.on_connect_error;
 }
 
 i32 connection_check_capacity(Connection *conn) {
