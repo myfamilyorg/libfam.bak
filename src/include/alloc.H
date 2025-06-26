@@ -35,11 +35,11 @@
 #endif /* PAGE_SIZE */
 
 #ifndef CHUNK_SIZE
-#define CHUNK_SIZE ((u64)(0x1 << 24)) /* 16mb */
+#define CHUNK_SIZE ((u64)(0x1 << 22)) /* 4mb */
 #endif
 
 #ifndef MAX_SLAB_SIZE
-#define MAX_SLAB_SIZE ((u64)(CHUNK_SIZE >> 2)) /* 4mb */
+#define MAX_SLAB_SIZE ((u64)(CHUNK_SIZE >> 2)) /* 1mb */
 #endif
 
 #include <sys.H>

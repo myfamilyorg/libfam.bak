@@ -98,24 +98,24 @@ Test(alloc2) {
 	t1 = alloc_impl(a, CHUNK_SIZE / 4);
 
 	t2 = alloc_impl(a, CHUNK_SIZE / 4);
-	ASSERT_EQ((u64)t2 - (u64)t1, 4 * 1024 * 1024, "diff=4mb");
+	ASSERT_EQ((u64)t2 - (u64)t1, CHUNK_SIZE / 4, "diff=1mb");
 
 	t3 = alloc_impl(a, CHUNK_SIZE / 4);
-	ASSERT_EQ((u64)t3 - (u64)t2, 4 * 1024 * 1024, "diff=4mb");
+	ASSERT_EQ((u64)t3 - (u64)t2, CHUNK_SIZE / 4, "diff=1mb");
 
 	t4 = alloc_impl(a, CHUNK_SIZE / 4);
 	/* only 3 slabs fit in a chunk due to overhead */
-	ASSERT((u64)t4 - (u64)t3 != 4 * 1024 * 1024, "diff!=4mb");
+	ASSERT((u64)t4 - (u64)t3 != CHUNK_SIZE / 4, "diff!=1mb");
 
 	t5 = alloc_impl(a, CHUNK_SIZE / 4);
-	ASSERT_EQ((u64)t5 - (u64)t4, 4 * 1024 * 1024, "diff=4mb");
+	ASSERT_EQ((u64)t5 - (u64)t4, CHUNK_SIZE / 4, "diff=1mb");
 
 	t6 = alloc_impl(a, CHUNK_SIZE / 4);
-	ASSERT_EQ((u64)t6 - (u64)t5, 4 * 1024 * 1024, "diff=4mb");
+	ASSERT_EQ((u64)t6 - (u64)t5, CHUNK_SIZE / 4, "diff=1mb");
 
 	t7 = alloc_impl(a, CHUNK_SIZE / 4);
 	/* only 3 slabs fit in a chunk due to overhead */
-	ASSERT((u64)t7 - (u64)t6 != 4 * 1024 * 1024, "diff!=4mb");
+	ASSERT((u64)t7 - (u64)t6 != CHUNK_SIZE / 4, "diff!=1mb");
 
 	release_impl(a, t1);
 	release_impl(a, t2);
