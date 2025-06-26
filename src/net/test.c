@@ -24,6 +24,7 @@
  *******************************************************************************/
 
 #include <atomic.H>
+#include <connection_internal.H>
 #include <error.H>
 #include <event.H>
 #include <evh.H>

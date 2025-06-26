@@ -24,7 +24,7 @@
  *******************************************************************************/
 
 #include <alloc.H>
-#include <connection.H>
+#include <connection_internal.H>
 #include <error.H>
 #include <event.H>
 #include <format.H>
