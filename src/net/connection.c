@@ -58,7 +58,6 @@ typedef struct {
 	u8 *wbuf;
 	u64 wbuf_capacity;
 	u64 wbuf_offset;
-
 } ConnectionCommon;
 
 typedef struct {
@@ -68,6 +67,7 @@ typedef struct {
 typedef struct {
 	OnConnectFn on_connect;
 	OnConnectErrorFn on_connect_error;
+	bool is_connected;
 	ConnectionCommon common;
 } OutboundData;
 
@@ -129,6 +129,7 @@ Connection *evh_client(const u8 addr[4], u16 port, OnRecvFn on_recv,
 	if (client == NULL) return NULL;
 	client->conn_type = Outbound;
 	client->data.outbound.common.on_recv = on_recv;
+	client->data.outbound.is_connected = false;
 	client->data.outbound.common.on_close = on_close;
 	client->data.outbound.common.lock = LOCK_INIT;
 	client->data.outbound.common.is_closed = false;
@@ -144,7 +145,8 @@ Connection *evh_client(const u8 addr[4], u16 port, OnRecvFn on_recv,
 	if (ret < 0 && err != EINPROGRESS) {
 		release(client);
 		return NULL;
-	}
+	} else if (ret == 0)
+		client->data.outbound.is_connected = true;
 	return client;
 }
 
@@ -369,6 +371,21 @@ OnAcceptFn connection_on_accept(Connection *conn) {
 	return conn->data.acceptor.on_accept;
 }
 
+OnConnectFn connection_on_connect(Connection *conn) {
+	if (conn->conn_type != Outbound) {
+		err = EINVAL;
+		return NULL;
+	}
+	return conn->data.outbound.on_connect;
+}
+OnConnectErrorFn connection_on_connect_error(Connection *conn) {
+	if (conn->conn_type != Outbound) {
+		err = EINVAL;
+		return NULL;
+	}
+	return conn->data.outbound.on_connect_error;
+}
+
 i32 connection_check_capacity(Connection *conn) {
 	ConnectionCommon *common = connection_common(conn);
 	if (!common) return 0;
@@ -396,4 +413,14 @@ void connection_release(Connection *conn) {
 	}
 	close(conn->socket);
 	release(conn);
+}
+
+bool connection_is_connected(Connection *conn) {
+	if (conn->conn_type != Outbound) return false;
+	return conn->data.outbound.is_connected;
+}
+
+void connection_set_is_connected(Connection *conn) {
+	if (conn->conn_type == Outbound)
+		conn->data.outbound.is_connected = true;
 }

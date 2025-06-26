@@ -233,6 +233,7 @@ Test(evh1) {
 }
 
 u64 *evh2_complete = NULL;
+u64 *evh2_on_connect_val = NULL;
 
 i32 evh2_on_accept(void *ctx, Connection *conn) {
 	ASSERT(conn, "conn!=NULL");
@@ -262,14 +263,16 @@ i32 evh2_on_close(void *ctx, Connection *conn) {
 }
 
 i32 evh2_on_connect(void *ctx, Connection *conn) {
-	if (ctx || conn) {
-	}
+	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
+	ASSERT(conn, "conn!=NULL");
+	__add64(evh2_on_connect_val, 1);
 	return 0;
 }
 
 i32 evh2_on_connect_error(void *ctx, Connection *conn) {
-	if (ctx || conn) {
-	}
+	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
+	ASSERT(conn, "conn!=NULL");
+	__add64(evh2_on_connect_val, 2);
 	return 0;
 }
 
@@ -283,6 +286,10 @@ Test(evh2) {
 	ASSERT(evh2_complete, "evh2_complete");
 	*evh2_complete = 0;
 
+	evh2_on_connect_val = alloc(sizeof(u64));
+	ASSERT(evh2_on_connect_val, "evh2_on_connect_val");
+	*evh2_on_connect_val = 0;
+
 	acceptor = evh_acceptor(LOCALHOST, port, 10, evh2_on_recv,
 				evh2_on_accept, evh2_on_close, 0);
 	port = evh_acceptor_port(acceptor);
@@ -293,8 +300,10 @@ Test(evh2) {
 	evh_register(evh2, conn);
 	connection_write(conn, "Z", 1);
 	while (ALOAD(evh2_complete) < 2);
+	ASSERT_EQ(ALOAD(evh2_on_connect_val), 1, "connect success");
 	ASSERT_EQ(ALOAD(evh2_complete), 2, "2 closed conns");
 	release(evh2_complete);
+	release(evh2_on_connect_val);
 	evh_stop(evh2);
 
 	connection_release(acceptor);

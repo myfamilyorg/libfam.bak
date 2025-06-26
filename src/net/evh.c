@@ -45,6 +45,7 @@ struct Evh {
 	i32 wakeup;
 	i32 mplex;
 	i32 stopped;
+	void *ctx;
 };
 
 STATIC i32 proc_wakeup(i32 wakeup) {
@@ -111,7 +112,23 @@ STATIC void proc_read(Connection *conn, void *ctx) {
 	}
 }
 
-STATIC i32 proc_write(Connection *conn) {
+STATIC i32 proc_write(Evh *evh, Connection *conn) {
+	i32 sock = connection_socket(conn);
+	if (connection_type(conn) == Outbound &&
+	    !connection_is_connected(conn)) {
+		i32 error = 0;
+		i32 len = sizeof(error);
+		if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) < 0) {
+			return -1;
+		}
+		if (error) {
+			connection_on_connect_error(conn)(evh->ctx, conn);
+		} else {
+			connection_on_connect(conn)(evh->ctx, conn);
+		}
+		/* Set true even on err to avoid this block */
+		connection_set_is_connected(conn);
+	}
 	return connection_write_complete(conn);
 }
 
@@ -130,7 +147,7 @@ STATIC void event_loop(Evh *evh, void *ctx, i32 wakeup) {
 					proc_acceptor(evh, conn, ctx);
 				} else {
 					if (event_is_write(events[i]))
-						proc_write(conn);
+						proc_write(evh, conn);
 					if (event_is_read(events[i]))
 						proc_read(conn, ctx);
 				}
@@ -179,13 +196,24 @@ STATIC i32 init_event_loop(Evh *evh, void *ctx) {
 
 i32 evh_register(Evh *evh, Connection *conn) {
 	i32 socket = connection_socket(conn);
-	if (connection_type(conn) == Acceptor) {
+	ConnectionType ctype = connection_type(conn);
+	if (ctype == Acceptor) {
 		return mregister(evh->mplex, socket, MULTIPLEX_FLAG_ACCEPT,
 				 conn);
+	} else if (ctype == Outbound || ctype == Inbound) {
+		if (ctype == Inbound || connection_is_connected(conn)) {
+			if (ctype == Outbound)
+				connection_on_connect(conn)(evh->ctx, conn);
+			return mregister(evh->mplex, socket,
+					 MULTIPLEX_FLAG_READ, conn);
+		} else {
+			connection_set_mplex(conn, evh->mplex);
+			return mregister(evh->mplex, socket,
+					 MULTIPLEX_FLAG_WRITE, conn);
+		}
 	} else {
-		/* TODO: register as write for client connect */
-		connection_set_mplex(conn, evh->mplex);
-		return mregister(evh->mplex, socket, MULTIPLEX_FLAG_READ, conn);
+		err = EINVAL;
+		return -1;
 	}
 }
 
@@ -193,6 +221,7 @@ Evh *evh_start(void *ctx) {
 	Evh *evh = alloc(sizeof(Evh));
 	if (!evh) return NULL;
 	evh->mplex = multiplex();
+	evh->ctx = ctx;
 	if (evh->mplex == -1) {
 		release(evh);
 		return NULL;

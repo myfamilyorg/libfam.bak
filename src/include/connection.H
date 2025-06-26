@@ -63,8 +63,12 @@ i32 connection_socket(Connection *conn);
 OnAcceptFn connection_on_accept(Connection *conn);
 OnRecvFn connection_on_recv(Connection *conn);
 OnCloseFn connection_on_close(Connection *conn);
+OnConnectFn connection_on_connect(Connection *conn);
+OnConnectErrorFn connection_on_connect_error(Connection *conn);
 i64 connection_alloc_overhead(Connection *conn);
 i32 connection_check_capacity(Connection *conn);
 void connection_release(Connection *conn);
+bool connection_is_connected(Connection *conn);
+void connection_set_is_connected(Connection *conn);
 
 #endif /* _CONNECTION_H */
