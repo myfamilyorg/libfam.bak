@@ -1253,6 +1253,6 @@ Test(sys) {
 	ASSERT(setsockopt(fd, 0, 0, NULL, 0), "setsockopt");
 	ASSERT(getsockname(fd, NULL, NULL), "getsockname");
 	ASSERT(!listen(fd, 0), "listen");
-
+	ASSERT(getsockopt(0, 0, 0, NULL, NULL), "getsockopt is err");
 	close(fd);
 }
