@@ -134,10 +134,21 @@ struct itimerval {
 };
 
 typedef struct {
-	i32 si_pid;
+	i32 si_signo;
+	i32 si_errno;
 	i32 si_code;
-	i32 si_status;
-	u8 pad[128 - 3 * sizeof(i32)];
+	union {
+		struct {
+			i32 si_pid;
+			i32 si_uid;
+			i32 si_status;
+			i32 si_utime;
+
+			i32 si_stime;
+
+		} _sigchld;
+	} _sifields;
+	u8 pad[128 - 7 * sizeof(i32)];
 } siginfo_t;
 
 typedef struct {
