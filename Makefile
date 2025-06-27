@@ -88,7 +88,7 @@ $(TEST_LIB): $(TEST_OBJECTS) | $(LIBDIR)
 
 # Build test binary
 $(TEST_BIN): $(TEST_OBJ) $(TEST_LIB) | $(BINDIR)
-	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) $(SRCDIR)/test/main.c $(TEST_BINARY_CFLAGS) -lfam_test -o $@
+	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) -DTEST=1 $(SRCDIR)/test/main.c $(TEST_BINARY_CFLAGS) -lfam_test -o $@
 
 # Run tests
 test: $(TEST_BIN)

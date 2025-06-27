@@ -59,12 +59,12 @@ void *alloc(u64 size);
 void release(void *ptr);
 void *resize(void *ptr, u64 size);
 
+#if TEST == 1
 u64 allocated_bytes_impl(Alloc *a);
 void reset_allocated_bytes_impl(Alloc *a);
 u64 get_allocated_bytes(void);
 void reset_allocated_bytes(void);
 
-#if TEST == 1
 extern u64 _debug_cas_loop;
 extern u64 _debug_alloc_failure;
 extern u64 _debug_alloc_failure_bypass_count;
