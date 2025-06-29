@@ -95,8 +95,12 @@ u64 _debug_alloc_failure_bypass_count = 0;
 									    ctz64(           \
 										temp_word) - \
 									    1;               \
-								else                         \
+								else if (                    \
+								    bit_start >              \
+								    0)                       \
 									bit_start--;         \
+								else                         \
+									break;               \
 							}                                    \
 						}                                            \
 					}                                                    \
@@ -184,16 +188,14 @@ struct Alloc {
 	u64 size;
 	u64 slab_pointers[MAX_SLAB_SIZES];
 	u64 last_free;
-#if MEMSAN == 1
 	u64 allocated_bytes;
-#endif
 };
 
 typedef struct {
 	u32 slab_size;
 	u64 last_free;
 	u64 next;
-	u8 padding[12];
+	u8 padding[4];
 } Chunk;
 
 struct chunk_header {
@@ -309,6 +311,8 @@ STATIC void *allocate_slab_impl(Alloc *a, u64 size) {
 		cur = atomic_load_or_allocate_impl(a, &chunk->next, slab_size);
 	}
 
+	if (!ret_ptr) err = ENOMEM;
+
 	return ret_ptr;
 }
 
@@ -337,6 +341,11 @@ Alloc *alloc_init(AllocType t, u64 size, ...) {
 	u64 bitmap_bits = size / CHUNK_SIZE;
 	u64 bitmap_bytes = (bitmap_bits + 7) / 8;
 	u64 bitmap_pages = (bitmap_bytes + PAGE_SIZE - 1) / PAGE_SIZE;
+
+	if (size < CHUNK_SIZE) {
+		err = EINVAL;
+		return NULL;
+	}
 
 	if (t == ALLOC_TYPE_MAP) {
 		ret = map(size + sizeof(Alloc) + bitmap_pages * PAGE_SIZE);
@@ -450,6 +459,9 @@ void release_impl(Alloc *a, void *ptr) {
 		RELEASE_BITS((void *)((u64)a + sizeof(Alloc)), chunk_index,
 			     &a->last_free, bits);
 		MEMSAN_SUB(CHUNK_SIZE * bits);
+	} else if (offset % 8 != 0) { /* At least 8 byte aligned */
+		panic("Invalid memory release!");
+
 	} else {
 		/* Slab */
 		Chunk *chunk = (Chunk *)chunk_base;
@@ -492,7 +504,7 @@ void *resize_impl(Alloc *a, void *ptr, u64 new_size) {
 
 	if (chunk_offset == 0) {
 		/* Single-chunk allocation (> MAX_SLAB_SIZE, <= CHUNK_SIZE) */
-		old_size = CHUNK_SIZE - CHUNK_HEADER_OFFSET;
+		old_size = CHUNK_SIZE;
 		if (new_size > MAX_SLAB_SIZE && new_size <= CHUNK_SIZE) {
 			return ptr; /* Stays single chunk */
 		}

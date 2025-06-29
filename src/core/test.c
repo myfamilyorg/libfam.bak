@@ -1324,3 +1324,273 @@ Test(sys) {
 	ASSERT(getsockopt(0, 0, 0, NULL, NULL), "getsockopt is err");
 	close(fd);
 }
+
+Test(large_multi_chunk) {
+	Alloc *a;
+	void *p;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
+	p = alloc_impl(a, CHUNK_SIZE * 10 - 16);
+	ASSERT(p, "p != NULL");
+	release_impl(a, p);
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}
+
+Test(small_bitmap) {
+	Alloc *a;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE / 2);
+	ASSERT(!a, "a==NULL");
+}
+
+Test(concurrent_free) {
+	Alloc *a;
+	void *ptrs[10];
+	int i;
+	i32 fv;
+	a = alloc_init(ALLOC_TYPE_SMAP, CHUNK_SIZE * 16);
+	for (i = 0; i < 10; i++) {
+		ptrs[i] = alloc_impl(a, CHUNK_SIZE / 4);
+		ASSERT(ptrs[i], "alloc != NULL");
+	}
+	if ((fv = two())) {
+		for (i = 0; i < 5; i++) {
+			release_impl(a, ptrs[i]);
+		}
+	} else {
+		for (i = 5; i < 10; i++) {
+			release_impl(a, ptrs[i]);
+		}
+		exit(0);
+	}
+	waitid(P_PID, fv, NULL, WEXITED);
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}
+
+Test(release_invalid_slab) {
+	Alloc *a;
+	void *p;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
+	p = alloc_impl(a, CHUNK_SIZE / 4);
+	ASSERT(p, "p != NULL");
+	_debug_no_exit = true;
+	_debug_no_write = true;
+	release_impl(a, (void *)((u64)p + 1));
+	_debug_no_write = false;
+	_debug_no_exit = false;
+	release_impl(a, p);
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}
+
+Test(multi_word_free) {
+	Alloc *a;
+	void *p;
+	void *p2;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
+	p = alloc_impl(a, CHUNK_SIZE * 2);
+	ASSERT(p, "p != NULL");
+	release_impl(a, p);
+	p2 = alloc_impl(a, CHUNK_SIZE * 2);
+	ASSERT(p2, "p2 != NULL");
+	release_impl(a, p2);
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}
+
+Test(slab_capacity) {
+	Alloc *a;
+	void *p1;
+	void *p2;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
+	p1 = alloc_impl(a, 8);
+	p2 = alloc_impl(a, MAX_SLAB_SIZE);
+	ASSERT(p1, "p1 != NULL");
+	ASSERT(p2, "p2 != NULL");
+	release_impl(a, p1);
+	release_impl(a, p2);
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}
+
+Test(alignment_check) {
+	Alloc *a;
+	void *p;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
+	p = alloc_impl(a, CHUNK_SIZE);
+	ASSERT(p, "p != NULL");
+	ASSERT((u64)p % 16 == 0, "aligned");
+	release_impl(a, p);
+
+	p = alloc_impl(a, 8);
+	ASSERT(p, "p != NULL");
+	ASSERT((u64)p % 8 == 0, "8aligned");
+	release_impl(a, p);
+
+	p = alloc_impl(a, 16);
+	ASSERT(p, "p != NULL");
+	ASSERT((u64)p % 16 == 0, "16aligned");
+	release_impl(a, p);
+
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}
+
+Test(memsan_concurrent) {
+	Alloc *a;
+	void *ptrs[100];
+	int i;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
+	for (i = 0; i < 48; i++) {
+		ptrs[i] = alloc_impl(a, CHUNK_SIZE / 4);
+		ASSERT(ptrs[i], "alloc != NULL");
+	}
+	for (i = 0; i < 48; i++) {
+		release_impl(a, ptrs[i]);
+	}
+#if MEMSAN == 1
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+#endif
+	alloc_destroy(a);
+}
+
+Test(resize_concurrent) {
+	Alloc *a;
+	void *ptrs[10];
+	int i;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
+	for (i = 0; i < 10; i++) {
+		ptrs[i] = alloc_impl(a, 8);
+		ASSERT(ptrs[i], "alloc != NULL");
+		ptrs[i] = resize_impl(a, ptrs[i], 16);
+		ASSERT(ptrs[i], "resize != NULL");
+	}
+	for (i = 0; i < 10; i++) {
+		release_impl(a, ptrs[i]);
+	}
+#if MEMSAN == 1
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+#endif
+	alloc_destroy(a);
+}
+
+Test(slab_concurrent) {
+	Alloc *a;
+	void *ptrs[100];
+	int i;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
+	for (i = 0; i < 100; i++) {
+		ptrs[i] = alloc_impl(a, CHUNK_SIZE / 16);
+		ASSERT(ptrs[i], "alloc != NULL");
+	}
+	for (i = 0; i < 100; i++) {
+		release_impl(a, ptrs[i]);
+	}
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}
+
+Test(slab_failure) {
+	Alloc *a;
+	void *p1;
+	void *p2;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE);
+	p1 = alloc_impl(a, CHUNK_SIZE);
+	ASSERT(p1, "p1 != NULL");
+	err = 0;
+	p2 = alloc_impl(a, CHUNK_SIZE / 4);
+	ASSERT(!p2, "p2 == NULL");
+	ASSERT_EQ(err, ENOMEM, "err == ENOMEM");
+	release_impl(a, p1);
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}
+
+Test(alloc_edge_cases) {
+	Alloc *a;
+	void *p1;
+	void *p2;
+	void *p3;
+	void *p4;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
+	p1 = alloc_impl(a, MAX_SLAB_SIZE);
+	p2 = alloc_impl(a, MAX_SLAB_SIZE + 1);
+	p3 = alloc_impl(a, CHUNK_SIZE);
+	p4 = alloc_impl(a, CHUNK_SIZE + 1);
+	ASSERT(p1, "p1 != NULL");
+	ASSERT(p2, "p2 != NULL");
+	ASSERT(p3, "p3 != NULL");
+	ASSERT(p4, "p4 != NULL");
+	release_impl(a, p1);
+	release_impl(a, p2);
+	release_impl(a, p3);
+	release_impl(a, p4);
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}
+
+Test(multi_chunk_concurrent) {
+	Alloc *a;
+	void *ptrs[3];
+	int i;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
+	for (i = 0; i < 3; i++) {
+		ptrs[i] = alloc_impl(a, CHUNK_SIZE * 2);
+		ASSERT(ptrs[i], "alloc != NULL");
+	}
+	for (i = 0; i < 3; i++) {
+		release_impl(a, ptrs[i]);
+	}
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}
+
+Test(multi_chunk_fragmentation) {
+	Alloc *a;
+	void *ptrs[100];
+	int i;
+	void *p;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
+	for (i = 0; i < 12; i += 2) {
+		ptrs[i] = alloc_impl(a, CHUNK_SIZE);
+	}
+	for (i = 0; i < 12; i += 2) {
+		release_impl(a, ptrs[i]);
+	}
+	p = alloc_impl(a, CHUNK_SIZE * 3);
+	ASSERT(p, "p != NULL");
+	release_impl(a, p);
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}
+
+Test(resize_edge_cases) {
+	Alloc *a;
+	void *p1;
+	void *p2;
+	void *p3;
+	void *p4;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
+	p1 = alloc_impl(a, MAX_SLAB_SIZE);
+	p2 = alloc_impl(a, MAX_SLAB_SIZE + 1);
+	p3 = alloc_impl(a, CHUNK_SIZE);
+	p4 = alloc_impl(a, CHUNK_SIZE + 1);
+	ASSERT(p1, "p1 != NULL");
+	ASSERT(p2, "p2 != NULL");
+	ASSERT(p3, "p3 != NULL");
+	ASSERT(p4, "p4 != NULL");
+	p1 = resize_impl(a, p1, MAX_SLAB_SIZE + 1);
+	p2 = resize_impl(a, p2, MAX_SLAB_SIZE);
+	p3 = resize_impl(a, p3, CHUNK_SIZE + 1);
+	p4 = resize_impl(a, p4, CHUNK_SIZE);
+	ASSERT(p1, "p1 != NULL");
+	ASSERT(p2, "p2 != NULL");
+	ASSERT(p3, "p3 != NULL");
+	ASSERT(p4, "p4 != NULL");
+	release_impl(a, p1);
+	release_impl(a, p2);
+	release_impl(a, p3);
+	release_impl(a, p4);
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}
