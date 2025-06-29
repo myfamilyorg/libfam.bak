@@ -129,6 +129,39 @@ Test(alloc2) {
 	alloc_destroy(a);
 }
 
+Test(alloc3) {
+	Alloc *a;
+	u8 *t1 = NULL, *t2 = NULL;
+	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
+
+	t1 = alloc_impl(a, CHUNK_SIZE + 1);
+	t2 = alloc_impl(a, CHUNK_SIZE + 1);
+	ASSERT(t1, "t1!=NULL");
+	ASSERT(t2, "t2!=NULL");
+	ASSERT_EQ((u64)t2 - (u64)t1, CHUNK_SIZE * 2, "2 chunks required");
+	release_impl(a, t1);
+	release_impl(a, t2);
+
+	t1 = alloc_impl(a, 2 * CHUNK_SIZE - 16);
+	t2 = alloc_impl(a, 2 * CHUNK_SIZE - 16);
+	ASSERT(t1, "t1!=NULL");
+	ASSERT(t2, "t2!=NULL");
+	ASSERT_EQ((u64)t2 - (u64)t1, CHUNK_SIZE * 2, "2 chunks still required");
+	release_impl(a, t1);
+	release_impl(a, t2);
+
+	t1 = alloc_impl(a, 2 * CHUNK_SIZE - 15);
+	t2 = alloc_impl(a, 2 * CHUNK_SIZE - 15);
+	ASSERT(t1, "t1!=NULL");
+	ASSERT(t2, "t2!=NULL");
+	ASSERT_EQ((u64)t2 - (u64)t1, CHUNK_SIZE * 3, "3 chunks required");
+	release_impl(a, t1);
+	release_impl(a, t2);
+
+	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
+	alloc_destroy(a);
+}
+
 Test(resize1) {
 	Alloc *a;
 	u8 *t1 = NULL, *t2 = NULL, *t3 = NULL;
@@ -181,9 +214,9 @@ Test(get_memory_bytes) {
 	err = 0;
 	ASSERT_EQ(alloc_init(100, CHUNK_SIZE * 16), NULL, "invalid type");
 	ASSERT_EQ(err, EINVAL, "err");
-	ASSERT_EQ(alloc(CHUNK_SIZE + 1), NULL, "too big");
+	ASSERT_EQ(alloc(CHUNK_SIZE * 64), NULL, "too big");
 	ptr = alloc(8);
-	ASSERT_EQ(resize(ptr, CHUNK_SIZE + 1), NULL, "too big");
+	ASSERT_EQ(resize(ptr, CHUNK_SIZE * 64), NULL, "too big");
 	release(ptr);
 }
 
