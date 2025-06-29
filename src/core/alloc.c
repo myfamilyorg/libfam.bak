@@ -504,6 +504,7 @@ void release_impl(Alloc *a, void *ptr) {
 #endif
 	}
 }
+
 void *resize_impl(Alloc *a, void *ptr, u64 new_size) {
 	u64 base_offset;
 	u64 offset;
@@ -511,53 +512,111 @@ void *resize_impl(Alloc *a, void *ptr, u64 new_size) {
 	u64 old_size;
 
 	/* Handle null pointer or zero size */
-	if (ptr == NULL) {
+	if (ptr == (void *)0) {
 		return alloc_impl(a, new_size);
 	}
 	if (new_size == 0) {
 		release_impl(a, ptr);
-		return NULL;
+		return (void *)0;
 	}
 
 	/* Validate new size */
-	if (new_size > CHUNK_SIZE) {
+	if (new_size > (CHUNK_SIZE * 64) - CHUNK_HEADER_OFFSET) {
 		err = EINVAL;
-		return NULL;
+		return (void *)0;
 	}
 
 	/* Validate pointer */
 	base_offset = (u64)a + sizeof(Alloc) + a->bitmap_pages * PAGE_SIZE;
 	if ((u64)ptr < base_offset || (u64)ptr >= base_offset + a->size) {
 		panic("Invalid pointer resized!\n");
-		return NULL;
+		return (void *)0;
 	}
 
 	offset = (u64)ptr - base_offset;
 
-	if (offset % CHUNK_SIZE == 0) {
-		/* Chunk-sized allocation (> MAX_SLAB_SIZE) */
-		if (new_size > MAX_SLAB_SIZE) {
-			/* New size still requires a chunk, no need to resize */
-			return ptr;
-		}
-		/* Resize to a slab */
-		new_ptr = allocate_slab_impl(a, new_size);
-		if (new_ptr == NULL) {
-			return NULL;
-		}
-		/* Copy data (up to new_size, as chunk is larger) */
-		memcpy(new_ptr, ptr, new_size);
+	/* Determine allocation type */
+	u64 chunk_index = offset / CHUNK_SIZE;
+	u64 chunk_offset = offset % CHUNK_SIZE;
+	void *chunk_base = (void *)(base_offset + chunk_index * CHUNK_SIZE);
 
-		RELEASE_BIT((void *)((u64)a + sizeof(Alloc)),
-			    offset / CHUNK_SIZE, &a->last_free);
+	if (chunk_offset == 0) {
+		/* Single-chunk allocation (> MAX_SLAB_SIZE, <= CHUNK_SIZE) */
+		if (new_size > MAX_SLAB_SIZE) {
+			/* New size requires chunk or multi-chunk */
+			if (new_size <= CHUNK_SIZE) {
+				/* Stays single chunk */
+				return ptr;
+			}
+			/* Resize to multi-chunk */
+			new_ptr = allocate_chunk_multi(a, new_size);
+			if (new_ptr == (void *)0) {
+				return (void *)0;
+			}
+			/* Copy data, assume old size is CHUNK_SIZE -
+			 * CHUNK_HEADER_OFFSET */
+			old_size = CHUNK_SIZE - CHUNK_HEADER_OFFSET;
+			if (new_size < old_size) {
+				old_size = new_size;
+			}
+			memcpy(new_ptr, ptr, old_size);
+			/* Free old chunk */
+			RELEASE_BIT((void *)((u64)a + sizeof(Alloc)),
+				    chunk_index, &a->last_free);
+#if MEMSAN == 1
+			__sub64(&a->allocated_bytes, CHUNK_SIZE);
+#endif
+			return new_ptr;
+		}
+		/* Resize to slab */
+		new_ptr = allocate_slab_impl(a, new_size);
+		if (new_ptr == (void *)0) {
+			return (void *)0;
+		}
+		/* Copy data */
+		old_size = CHUNK_SIZE - CHUNK_HEADER_OFFSET;
+		if (new_size < old_size) {
+			old_size = new_size;
+		}
+		memcpy(new_ptr, ptr, old_size);
+		/* Free old chunk */
+		RELEASE_BIT((void *)((u64)a + sizeof(Alloc)), chunk_index,
+			    &a->last_free);
 #if MEMSAN == 1
 		__sub64(&a->allocated_bytes, CHUNK_SIZE);
-#endif /* MEMSAN */
+#endif
+		return new_ptr;
+	} else if (chunk_offset == CHUNK_HEADER_OFFSET) {
+		/* Multi-chunk allocation (> CHUNK_SIZE) */
+		/* Assume header at chunk_base has size field */
+		struct chunk_header {
+			u64 size;
+		}; /* Replace with your header */
+		old_size = ((struct chunk_header *)chunk_base)->size;
+		/* Fallback if header undefined */
+		if (old_size == 0) {
+			old_size = (CHUNK_SIZE * 64) - CHUNK_HEADER_OFFSET;
+		}
+		if (new_size > CHUNK_SIZE && old_size >= new_size) {
+			/* New size fits in existing multi-chunk */
+			return ptr;
+		}
+		/* Allocate new slab, chunk, or multi-chunk */
+		new_ptr = alloc_impl(a, new_size);
+		if (new_ptr == (void *)0) {
+			return (void *)0;
+		}
+		/* Copy data */
+		if (new_size < old_size) {
+			old_size = new_size;
+		}
+		memcpy(new_ptr, ptr, old_size);
+		/* Free old multi-chunk */
+		release_impl(a, ptr);
 		return new_ptr;
 	} else {
 		/* Slab allocation (<= MAX_SLAB_SIZE) */
-		Chunk *chunk = (Chunk *)(CHUNK_OFFSET(a) +
-					 (offset / CHUNK_SIZE) * CHUNK_SIZE);
+		Chunk *chunk = (Chunk *)(chunk_base);
 		void *base = (void *)((u64)chunk + sizeof(Chunk));
 		u64 old_slab_size = chunk->slab_size;
 		u64 bitmap_size = BITMAP_SIZE(old_slab_size);
@@ -566,17 +625,17 @@ void *resize_impl(Alloc *a, void *ptr, u64 new_size) {
 		u64 new_slab_size = calculate_slab_size_impl(new_size);
 
 		if (old_slab_size == new_slab_size) {
-			/* Same slab size, keep in-place */
+			/* Same slab size */
 			return ptr;
 		}
 
-		/* Allocate new slab or chunk */
+		/* Allocate new slab, chunk, or multi-chunk */
 		new_ptr = alloc_impl(a, new_size);
-		if (new_ptr == NULL) {
-			return NULL;
+		if (new_ptr == (void *)0) {
+			return (void *)0;
 		}
 
-		/* Copy data (up to smaller of old/new size) */
+		/* Copy data */
 		old_size = old_slab_size;
 		if (new_size < old_size) {
 			old_size = new_size;
@@ -587,7 +646,7 @@ void *resize_impl(Alloc *a, void *ptr, u64 new_size) {
 		RELEASE_BIT(base, index, &chunk->last_free);
 #if MEMSAN == 1
 		__sub64(&a->allocated_bytes, old_slab_size);
-#endif /* MEMSAN */
+#endif
 		return new_ptr;
 	}
 }
