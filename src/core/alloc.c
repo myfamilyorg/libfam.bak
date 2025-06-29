@@ -47,7 +47,7 @@ u64 _debug_alloc_failure_bypass_count = 0;
 		u64 start_word = local_last_free;                                            \
 		int wrapped = 0;                                                             \
 		(result) = (u64) - 1;                                                        \
-		while (true) {                                                               \
+		while (1) {                                                                  \
 			u64 word_idx = local_last_free;                                      \
 			if (word_idx >= max_words) {                                         \
 				if (wrapped) break;                                          \
@@ -115,7 +115,7 @@ u64 _debug_alloc_failure_bypass_count = 0;
 					local_last_free))                                    \
 				expected = ALOAD(last_free_ptr);                             \
 		}                                                                            \
-	} while (false)
+	} while (0)
 
 /* Consolidated bitmap release macro */
 #define RELEASE_BITS(base, index, last_free_ptr, bits)                       \
@@ -125,7 +125,7 @@ u64 _debug_alloc_failure_bypass_count = 0;
 		u64 *bitmap = (u64 *)((u8 *)(base));                         \
 		u64 *word_ptr = &bitmap[(index) / 64];                       \
 		u64 bit_mask = ((1UL << (bits)) - 1) << ((index) % 64);      \
-		while (true) {                                               \
+		while (1) {                                                  \
 			u64 old_value = *word_ptr, new_value;                \
 			if ((old_value & bit_mask) != bit_mask) {            \
 				panic("Double free or invalid bits!");       \
@@ -136,7 +136,7 @@ u64 _debug_alloc_failure_bypass_count = 0;
 		while (expected > new_last_free &&                           \
 		       !__cas64(last_free_ptr, &expected, new_last_free))    \
 			expected = ALOAD(last_free_ptr);                     \
-	} while (false)
+	} while (0)
 
 #define CHUNK_OFFSET(a) \
 	((u8 *)((u64)a + sizeof(Alloc) + a->bitmap_pages * PAGE_SIZE))
@@ -151,23 +151,23 @@ u64 _debug_alloc_failure_bypass_count = 0;
 		(chunk_offset) = (offset) % CHUNK_SIZE;                 \
 		(chunk_base) =                                          \
 		    (void *)(base_offset + (chunk_index) * CHUNK_SIZE); \
-	} while (false)
+	} while (0)
 #if MEMSAN == 1
 #define MEMSAN_ADD(bytes)                              \
 	do {                                           \
 		__add64(&a->allocated_bytes, (bytes)); \
-	} while (false)
+	} while (0)
 #define MEMSAN_SUB(bytes)                              \
 	do {                                           \
 		__sub64(&a->allocated_bytes, (bytes)); \
-	} while (false)
+	} while (0)
 #else
 #define MEMSAN_ADD(bytes) \
 	do {              \
-	} while (false)
+	} while (0)
 #define MEMSAN_SUB(bytes) \
 	do {              \
-	} while (false)
+	} while (0)
 #endif
 #define ALLOC_AND_COPY(a, new_size, ptr, old_size, new_ptr)           \
 	do {                                                          \
@@ -175,7 +175,7 @@ u64 _debug_alloc_failure_bypass_count = 0;
 		if (!(new_ptr)) break;                                \
 		if ((new_size) < (old_size)) (old_size) = (new_size); \
 		memcpy((new_ptr), (ptr), (old_size));                 \
-	} while (false)
+	} while (0)
 
 struct Alloc {
 	u64 bitmap_pages;
@@ -281,7 +281,7 @@ STATIC u64 atomic_load_or_allocate_impl(Alloc *a, u64 *ptr, u32 slab_size) {
 		RELEASE_BITS((void *)((u64)a + sizeof(Alloc)), new_value,
 			     &a->last_free, 1);
 		expected = (u64)-1;
-	} while (true);
+	} while (1);
 
 	return cur;
 }
@@ -493,32 +493,17 @@ void *resize_impl(Alloc *a, void *ptr, u64 new_size) {
 	if (chunk_offset == 0) {
 		/* Single-chunk allocation (> MAX_SLAB_SIZE, <= CHUNK_SIZE) */
 		old_size = CHUNK_SIZE - CHUNK_HEADER_OFFSET;
-		if (new_size > MAX_SLAB_SIZE) {
-			/* New size requires chunk or multi-chunk */
-			if (new_size <= CHUNK_SIZE) {
-				return ptr; /* Stays single chunk */
-			}
-			/* Resize to multi-chunk */
-			ALLOC_AND_COPY(a, new_size, ptr, old_size, new_ptr);
-			if (!new_ptr) return NULL;
-			RELEASE_BITS((void *)((u64)a + sizeof(Alloc)),
-				     chunk_index, &a->last_free, 1);
-			MEMSAN_SUB(CHUNK_SIZE);
-			return new_ptr;
+		if (new_size > MAX_SLAB_SIZE && new_size <= CHUNK_SIZE) {
+			return ptr; /* Stays single chunk */
 		}
-		/* Resize to slab */
 		ALLOC_AND_COPY(a, new_size, ptr, old_size, new_ptr);
 		if (!new_ptr) return NULL;
-		RELEASE_BITS((void *)((u64)a + sizeof(Alloc)), chunk_index,
-			     &a->last_free, 1);
-		MEMSAN_SUB(CHUNK_SIZE);
+		release_impl(a, ptr); /* Handles single-chunk release */
 		return new_ptr;
 	} else if (chunk_offset == CHUNK_HEADER_OFFSET) {
 		/* Multi-chunk allocation (> CHUNK_SIZE) */
 		struct chunk_header *header = (struct chunk_header *)chunk_base;
 		old_size = header->size;
-		if (!old_size)
-			old_size = (CHUNK_SIZE * 64) - CHUNK_HEADER_OFFSET;
 		if (new_size > CHUNK_SIZE && old_size >= new_size) {
 			return ptr; /* Fits in existing multi-chunk */
 		}
@@ -529,11 +514,7 @@ void *resize_impl(Alloc *a, void *ptr, u64 new_size) {
 	} else {
 		/* Slab allocation (<= MAX_SLAB_SIZE) */
 		Chunk *chunk = (Chunk *)chunk_base;
-		void *base = (void *)((u64)chunk + sizeof(Chunk));
 		u64 old_slab_size = chunk->slab_size;
-		u64 bitmap_size = BITMAP_SIZE(old_slab_size);
-		u64 index =
-		    ((u64)ptr - ((u64)base + bitmap_size)) / old_slab_size;
 		u64 new_slab_size = calculate_slab_size_impl(new_size);
 		old_size = old_slab_size;
 
@@ -542,8 +523,7 @@ void *resize_impl(Alloc *a, void *ptr, u64 new_size) {
 		}
 		ALLOC_AND_COPY(a, new_size, ptr, old_size, new_ptr);
 		if (!new_ptr) return NULL;
-		RELEASE_BITS(base, index, &chunk->last_free, 1);
-		MEMSAN_SUB(old_slab_size);
+		release_impl(a, ptr); /* Handles slab release */
 		return new_ptr;
 	}
 }

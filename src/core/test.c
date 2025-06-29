@@ -164,6 +164,13 @@ Test(alloc3) {
 	ASSERT(t1, "t1!=NULL");
 	release_impl(a, t1);
 
+	/* Test panic dealloc */
+	_debug_no_exit = true;
+	_debug_no_write = true;
+	release_impl(a, (void *)1);
+	_debug_no_write = false;
+	_debug_no_exit = false;
+
 	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
 	alloc_destroy(a);
 }
@@ -182,6 +189,28 @@ Test(resize1) {
 	release_impl(a, t1);
 	resize_impl(a, t2, 0);
 	resize_impl(a, t3, 0);
+
+	t1 = resize_impl(a, NULL, CHUNK_SIZE);
+	ASSERT(t1, "t1!=NULL");
+#if MEMSAN == 1
+	ASSERT_EQ(allocated_bytes_impl(a), CHUNK_SIZE, "alloc=CHUNK_SIZE");
+#endif
+
+	t1 = resize_impl(a, t1, CHUNK_SIZE + 18);
+#if MEMSAN == 1
+	ASSERT_EQ(allocated_bytes_impl(a), 2 * CHUNK_SIZE,
+		  "alloc=2* CHUNK_SIZE");
+#endif
+
+	ASSERT(t1, "t1!=NULL");
+
+	t1 = resize_impl(a, t1, 8);
+	ASSERT(t1, "t1!=NULL");
+#if MEMSAN == 1
+	ASSERT_EQ(allocated_bytes_impl(a), 8, "alloc=8");
+#endif
+
+	release_impl(a, t1);
 
 	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
 	alloc_destroy(a);
