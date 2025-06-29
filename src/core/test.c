@@ -158,6 +158,12 @@ Test(alloc3) {
 	release_impl(a, t1);
 	release_impl(a, t2);
 
+	t1 = alloc_impl(a, CHUNK_SIZE * 16);
+	ASSERT(!t1, "t1=NULL");
+	t1 = alloc_impl(a, CHUNK_SIZE * 16 - 16);
+	ASSERT(t1, "t1!=NULL");
+	release_impl(a, t1);
+
 	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
 	alloc_destroy(a);
 }
