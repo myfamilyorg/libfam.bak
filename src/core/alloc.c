@@ -37,176 +37,145 @@ u64 _debug_alloc_failure_bypass_count = 0;
 #define SHM_SIZE_DEFAULT (CHUNK_SIZE * 64)
 #define CHUNK_HEADER_OFFSET 16
 #define MAX_SLAB_SIZES 32
-#define NEXT_FREE_BIT(base, max, result, last_free_ptr)                        \
-	do {                                                                   \
-		u64 max_words;                                                 \
-		u64 *bitmap;                                                   \
-		u64 local_last_free;                                           \
-		u64 start_word;                                                \
-		bool wrapped = false;                                          \
-		(result) = (u64) - 1;                                          \
-		bitmap = (u64 *)((u8 *)(base));                                \
-		max_words = ((max) + 63) >> 6;                                 \
-		local_last_free = ALOAD(last_free_ptr);                        \
-		start_word = local_last_free;                                  \
-		while (true) {                                                 \
-			u64 word_idx = local_last_free;                        \
-			if (word_idx >= max_words) {                           \
-				if (wrapped) break; /* Full scan completed */  \
-				word_idx = 0;	    /* Wrap around to start */ \
-				wrapped = true;                                \
-			}                                                      \
-			if (bitmap[word_idx] != ~0UL) {                        \
-				u64 word = bitmap[word_idx];                   \
-				u64 bit_value = __builtin_ctzll(~word);        \
-				u64 index = word_idx * 64 + bit_value;         \
-				if (index < max) {                             \
-					if (__cas64(                           \
-						&bitmap[word_idx], &word,      \
-						word | (1UL << bit_value))) {  \
-						(result) = index;              \
-						break;                         \
-					} else                                 \
-						continue; /* Retry if CAS      \
-							     fails */          \
-				}                                              \
-			}                                                      \
-			local_last_free = word_idx + 1;                        \
-			if (wrapped && local_last_free > start_word) break;    \
-		}                                                              \
-		if ((result) == (u64) - 1 &&                                   \
-		    local_last_free > ALOAD(last_free_ptr)) {                  \
-			u64 expected = ALOAD(last_free_ptr);                   \
-			while (expected < local_last_free &&                   \
-			       !__cas64(last_free_ptr, &expected,              \
-					local_last_free))                      \
-				expected = ALOAD(last_free_ptr);               \
-		}                                                              \
-	} while (false)
 
-#define RELEASE_BIT(base, index, last_free_ptr)                           \
-	do {                                                              \
-		u64 new_last_free = index / 64;                           \
-		u64 expected = ALOAD(last_free_ptr);                      \
-		u64 *bitmap = (u64 *)((u8 *)(base));                      \
-		u64 *word_ptr = &bitmap[index / 64];                      \
-		u64 bit_mask = 1UL << (index % 64);                       \
-		while (true) {                                            \
-			u64 old_value = *word_ptr, new_value;             \
-			if ((old_value & bit_mask) == 0) {                \
-				panic("Double free!");                    \
-			}                                                 \
-			new_value = old_value & ~bit_mask;                \
-			if (__cas64(word_ptr, &old_value, new_value)) {   \
-				break;                                    \
-			}                                                 \
-		}                                                         \
-		while (expected > new_last_free &&                        \
-		       !__cas64(last_free_ptr, &expected, new_last_free)) \
-			expected = ALOAD(last_free_ptr);                  \
-	} while (false)
-/* Assume U64_MAX is defined: #define U64_MAX 0xFFFFFFFFFFFFFFFFULL */
-#define NEXT_FREE_BIT_MULTI(base, max, result, last_free_ptr, bits)              \
-	do {                                                                     \
-		u64 max_words;                                                   \
-		u64 *bitmap;                                                     \
-		u64 local_last_free;                                             \
-		u64 start_word;                                                  \
-		int wrapped = 0;                                                 \
-		(result) = (u64) - 1;                                            \
-		bitmap = (u64 *)((u8 *)(base));                                  \
-		max_words = ((max) + 63) >> 6;                                   \
-		local_last_free = ALOAD(last_free_ptr);                          \
-		start_word = local_last_free;                                    \
-		while (true) {                                                   \
-			u64 word_idx = local_last_free;                          \
-			if (word_idx >= max_words) {                             \
-				if (wrapped) break;                              \
-				word_idx = 0;                                    \
-				wrapped = 1;                                     \
-			}                                                        \
-			u64 word = bitmap[word_idx];                             \
-			if (word != U64_MAX) { /* At least one free bit */       \
-				u64 temp_word = ~word;                           \
-				u64 bit_start = 0;                               \
-				int found = 0;                                   \
-				/* Check all possible starting positions */      \
-				for (bit_start = 0;                              \
-				     bit_start <= (u64)64 - (bits);              \
-				     bit_start++) {                              \
-					u64 mask = ((1UL << (bits)) - 1)         \
-						   << bit_start;                 \
-					if ((temp_word & mask) == mask &&        \
-					    word_idx * 64 + bit_start +          \
-						    (bits) <=                    \
-						(max)) {                         \
-						if (__cas64(&bitmap[word_idx],   \
-							    &word,               \
-							    word | mask)) {      \
-							(result) =               \
-							    word_idx * 64 +      \
-							    bit_start;           \
-							found = 1;               \
-							break;                   \
-						} else {                         \
-							word =                   \
-							    bitmap[word_idx];    \
-							temp_word = ~word;       \
-							if (word == U64_MAX)     \
-								break; /* No     \
-									  free   \
-									  bits   \
-									  left   \
-									*/       \
-							bit_start--; /* Retry    \
-									from     \
-									current  \
-									position \
-								      */         \
-						}                                \
-					}                                        \
-				}                                                \
-				if (found) break;                                \
-			}                                                        \
-			local_last_free = word_idx + 1;                          \
-			if (wrapped && local_last_free > start_word) break;      \
-		}                                                                \
-		if ((result) == (u64) - 1 &&                                     \
-		    local_last_free > ALOAD(last_free_ptr)) {                    \
-			u64 expected = ALOAD(last_free_ptr);                     \
-			while (expected < local_last_free &&                     \
-			       !__cas64(last_free_ptr, &expected,                \
-					local_last_free))                        \
-				expected = ALOAD(last_free_ptr);                 \
-		}                                                                \
-	} while (false)
-#define RELEASE_BIT_MULTI(base, index, last_free_ptr, bits)               \
-	do {                                                              \
-		u64 new_last_free = (index) / 64;                         \
-		u64 expected = ALOAD(last_free_ptr);                      \
-		u64 *bitmap = (u64 *)((u8 *)(base));                      \
-		u64 *word_ptr = &bitmap[(index) / 64];                    \
-		u64 bit_mask = ((1UL << (bits)) - 1) << ((index) % 64);   \
-		while (true) {                                            \
-			u64 old_value = *word_ptr, new_value;             \
-			if ((old_value & bit_mask) != bit_mask) {         \
-				panic("Double free or invalid bits!");    \
-			}                                                 \
-			new_value = old_value & ~bit_mask;                \
-			if (__cas64(word_ptr, &old_value, new_value)) {   \
-				break;                                    \
-			}                                                 \
-		}                                                         \
-		while (expected > new_last_free &&                        \
-		       !__cas64(last_free_ptr, &expected, new_last_free)) \
-			expected = ALOAD(last_free_ptr);                  \
-	} while (false)
+/* Consolidated bitmap allocation macro */
+#define FIND_FREE_BITS(base, max, result, last_free_ptr, bits)                               \
+	do {                                                                                 \
+		u64 max_words = ((max) + 63) >> 6;                                           \
+		u64 *bitmap = (u64 *)((u8 *)(base));                                         \
+		u64 local_last_free = ALOAD(last_free_ptr);                                  \
+		u64 start_word = local_last_free;                                            \
+		int wrapped = 0;                                                             \
+		(result) = (u64) - 1;                                                        \
+		while (1) {                                                                  \
+			u64 word_idx = local_last_free;                                      \
+			if (word_idx >= max_words) {                                         \
+				if (wrapped) break;                                          \
+				word_idx = 0;                                                \
+				wrapped = 1;                                                 \
+			}                                                                    \
+			u64 word = bitmap[word_idx];                                         \
+			if (word != U64_MAX) {                                               \
+				u64 temp_word = ~word;                                       \
+				u64 bit_start =                                              \
+				    (bits) == 1 ? ctz64(temp_word) : 0;                      \
+				int found = 0;                                               \
+				for (; bit_start <= (u64)64 - (bits);                        \
+				     bit_start++) {                                          \
+					u64 mask = ((1UL << (bits)) - 1)                     \
+						   << bit_start;                             \
+					if ((bits) == 1 ||                                   \
+					    (temp_word & mask) == mask) {                    \
+						if (word_idx * 64 +                          \
+							bit_start + (bits) <=                \
+						    (max)) {                                 \
+							if (__cas64(                         \
+								&bitmap                      \
+								    [word_idx],              \
+								&word,                       \
+								word |                       \
+								    mask)) {                 \
+								(result) =                   \
+								    word_idx *               \
+									64 +                 \
+								    bit_start;               \
+								found = 1;                   \
+								break;                       \
+							} else {                             \
+								word = bitmap                \
+								    [word_idx];              \
+								temp_word =                  \
+								    ~word;                   \
+								if (word ==                  \
+								    U64_MAX)                 \
+									break;               \
+								if ((bits) ==                \
+								    1)                       \
+									bit_start =          \
+									    ctz64(           \
+										temp_word) - \
+									    1;               \
+								else                         \
+									bit_start--;         \
+							}                                    \
+						}                                            \
+					}                                                    \
+					if ((bits) == 1) break;                              \
+				}                                                            \
+				if (found) break;                                            \
+			}                                                                    \
+			local_last_free = word_idx + 1;                                      \
+			if (wrapped && local_last_free > start_word) break;                  \
+		}                                                                            \
+		if ((result) == (u64) - 1 &&                                                 \
+		    local_last_free > ALOAD(last_free_ptr)) {                                \
+			u64 expected = ALOAD(last_free_ptr);                                 \
+			while (expected < local_last_free &&                                 \
+			       !__cas64(last_free_ptr, &expected,                            \
+					local_last_free))                                    \
+				expected = ALOAD(last_free_ptr);                             \
+		}                                                                            \
+	} while (0)
+
+/* Consolidated bitmap release macro */
+#define RELEASE_BITS(base, index, last_free_ptr, bits)                       \
+	do {                                                                 \
+		u64 new_last_free = (index) / 64;                            \
+		u64 expected = ALOAD(last_free_ptr);                         \
+		u64 *bitmap = (u64 *)((u8 *)(base));                         \
+		u64 *word_ptr = &bitmap[(index) / 64];                       \
+		u64 bit_mask = ((1UL << (bits)) - 1) << ((index) % 64);      \
+		while (1) {                                                  \
+			u64 old_value = *word_ptr, new_value;                \
+			if ((old_value & bit_mask) != bit_mask) {            \
+				panic("Double free or invalid bits!");       \
+			}                                                    \
+			new_value = old_value & ~bit_mask;                   \
+			if (__cas64(word_ptr, &old_value, new_value)) break; \
+		}                                                            \
+		while (expected > new_last_free &&                           \
+		       !__cas64(last_free_ptr, &expected, new_last_free))    \
+			expected = ALOAD(last_free_ptr);                     \
+	} while (0)
 
 #define CHUNK_OFFSET(a) \
 	((u8 *)((u64)a + sizeof(Alloc) + a->bitmap_pages * PAGE_SIZE))
 #define BITMAP_CAPACITY(slab_size) \
 	((8UL * (CHUNK_SIZE - sizeof(Chunk))) / (1 + 8 * (slab_size)))
 #define BITMAP_SIZE(slab_size) (((BITMAP_CAPACITY(slab_size) + 127) / 128) * 16)
+#define GET_BASE_OFFSET(a) \
+	((u64)a + sizeof(Alloc) + a->bitmap_pages * PAGE_SIZE)
+#define GET_CHUNK_INFO(offset, chunk_index, chunk_offset, chunk_base)   \
+	do {                                                            \
+		(chunk_index) = (offset) / CHUNK_SIZE;                  \
+		(chunk_offset) = (offset) % CHUNK_SIZE;                 \
+		(chunk_base) =                                          \
+		    (void *)(base_offset + (chunk_index) * CHUNK_SIZE); \
+	} while (0)
+#if MEMSAN == 1
+#define MEMSAN_ADD(bytes)                              \
+	do {                                           \
+		__add64(&a->allocated_bytes, (bytes)); \
+	} while (0)
+#define MEMSAN_SUB(bytes)                              \
+	do {                                           \
+		__sub64(&a->allocated_bytes, (bytes)); \
+	} while (0)
+#else
+#define MEMSAN_ADD(bytes) \
+	do {              \
+	} while (0)
+#define MEMSAN_SUB(bytes) \
+	do {              \
+	} while (0)
+#endif
+#define ALLOC_AND_COPY(a, new_size, ptr, old_size, new_ptr)           \
+	do {                                                          \
+		(new_ptr) = alloc_impl((a), (new_size));              \
+		if ((new_ptr) == (void *)0) break;                    \
+		if ((new_size) < (old_size)) (old_size) = (new_size); \
+		memcpy((new_ptr), (ptr), (old_size));                 \
+	} while (0)
 
 struct Alloc {
 	u64 bitmap_pages;
@@ -217,7 +186,7 @@ struct Alloc {
 	u64 last_free;
 #if MEMSAN == 1
 	u64 allocated_bytes;
-#endif /* MEMSAN */
+#endif
 };
 
 typedef struct {
@@ -227,20 +196,33 @@ typedef struct {
 	u8 padding[12];
 } Chunk;
 
+struct chunk_header {
+	u64 size;
+	u64 chunk_count;
+};
+
 STATIC Alloc *_alloc_ptr__ = NULL;
+
+/* Software CTZ for C89, avoids __builtin_ctzll */
+static unsigned long long ctz64(unsigned long long x) {
+	unsigned long long count = 0;
+	if (x == 0) return 64;
+	while (!(x & 1)) {
+		count++;
+		x >>= 1;
+	}
+	return count;
+}
 
 STATIC u64 get_memory_bytes(void) {
 	u64 shm_size = SHM_SIZE_DEFAULT;
-	u8 *smembytes;
-	smembytes = getenv("SHARED_MEMORY_BYTES");
+	u8 *smembytes = getenv("SHARED_MEMORY_BYTES");
 	if (smembytes) {
 		u64 bytes = string_to_uint128(smembytes, strlen(smembytes));
 		if (bytes < CHUNK_SIZE * 4 || bytes % CHUNK_SIZE != 0) {
 			const u8 *msg =
-			    "WARN: SHARED_MEMORY_BYTES must be "
-			    "divisible by "
-			    "CHUNK_SIZE and greater than or equal "
-			    "CHUNK_SIZE * "
+			    "WARN: SHARED_MEMORY_BYTES must be divisible by "
+			    "CHUNK_SIZE and greater than or equal CHUNK_SIZE * "
 			    "4. Using default.\n";
 			write(2, msg, strlen(msg));
 		} else {
@@ -261,16 +243,14 @@ STATIC u64 calculate_slab_size_impl(u64 value) {
 }
 
 STATIC u64 calculate_slab_index_impl(u64 value) {
-	u64 n;
 	if (value <= 8) return 0;
-	n = 64 - __builtin_clzll(value - 1);
-	return n - 3;
+	return (64 - __builtin_clzll(value - 1)) - 3;
 }
 
 STATIC u64 allocate_chunk_impl(Alloc *a) {
 	u64 res;
-	NEXT_FREE_BIT((void *)((u64)a + sizeof(Alloc)), a->bitmap_bits, res,
-		      &a->last_free);
+	FIND_FREE_BITS((void *)((u64)a + sizeof(Alloc)), a->bitmap_bits, res,
+		       &a->last_free, 1);
 	if (res == (u64)-1) err = ENOMEM;
 	return res;
 }
@@ -281,94 +261,78 @@ STATIC u64 atomic_load_or_allocate_impl(Alloc *a, u64 *ptr, u32 slab_size) {
 
 	do {
 		cur = ALOAD(ptr);
-
 		if (cur != (u64)-1) break;
-
 		new_value = allocate_chunk_impl(a);
-		if (new_value == ((u64)-1)) break;
+		if (new_value == (u64)-1) break;
 		chunk = (void *)(new_value * CHUNK_SIZE + CHUNK_OFFSET(a));
 		memset(chunk, 0, sizeof(Chunk) + BITMAP_SIZE(slab_size));
 		chunk->next = (u64)-1;
 		chunk->slab_size = slab_size;
 		chunk->last_free = 0;
-
 		if (__cas64(ptr, &expected, new_value)) {
 			cur = new_value;
 #if TEST == 1
-			if (!ALOAD(&_debug_cas_loop))
-#endif /* TEST */
-				break;
-#if TEST == 1
+			if (!ALOAD(&_debug_cas_loop)) break;
 			__sub64(&_debug_cas_loop, 1);
-#endif /* TEST */
+#else
+			break;
+#endif
 		}
-
-		RELEASE_BIT((void *)((u64)a + sizeof(Alloc)), new_value,
-			    &a->last_free);
+		RELEASE_BITS((void *)((u64)a + sizeof(Alloc)), new_value,
+			     &a->last_free, 1);
 		expected = (u64)-1;
-	} while (true);
+	} while (1);
 
 	return cur;
 }
 
 STATIC void *allocate_slab_impl(Alloc *a, u64 size) {
 	i32 index = calculate_slab_index_impl(size);
-	void *chunk_bitmap;
-	Chunk *chunk;
 	u64 slab_size = calculate_slab_size_impl(size);
 	u64 max, ret,
 	    cur = atomic_load_or_allocate_impl(a, &a->slab_pointers[index],
 					       slab_size);
-	void *ret_ptr = NULL;
+	void *ret_ptr = (void *)0;
 
 	while (cur != (u64)-1) {
 		max = BITMAP_CAPACITY(slab_size);
-		chunk = (Chunk *)(CHUNK_OFFSET(a) + cur * CHUNK_SIZE);
-		chunk_bitmap = (void *)((u64)chunk + sizeof(Chunk));
-		NEXT_FREE_BIT(chunk_bitmap, max, ret, &chunk->last_free);
+		Chunk *chunk = (Chunk *)(CHUNK_OFFSET(a) + cur * CHUNK_SIZE);
+		void *chunk_bitmap = (void *)((u64)chunk + sizeof(Chunk));
+		FIND_FREE_BITS(chunk_bitmap, max, ret, &chunk->last_free, 1);
 		if (ret != (u64)-1) {
 			u64 bitmap_size = BITMAP_SIZE(slab_size);
 			ret_ptr = (u8 *)chunk + sizeof(Chunk) + bitmap_size +
 				  (ret * slab_size);
+			MEMSAN_ADD(slab_size);
 			break;
 		}
 		cur = atomic_load_or_allocate_impl(a, &chunk->next, slab_size);
 	}
 
-#if MEMSAN == 1
-	if (ret_ptr) {
-		__add64(&a->allocated_bytes, slab_size);
-	}
-#endif /* MEMSAN */
-
 	return ret_ptr;
 }
 
 STATIC void *allocate_chunk_multi(Alloc *a, u64 size) {
-	void *ret = NULL;
 	u64 chunks_needed =
 	    1 + ((size + (CHUNK_HEADER_OFFSET - 1)) / CHUNK_SIZE);
 	u64 res;
-	NEXT_FREE_BIT_MULTI((void *)((u64)a + sizeof(Alloc)), a->bitmap_bits,
-			    res, &a->last_free, chunks_needed);
-	if (res == (u64)-1)
+	FIND_FREE_BITS((void *)((u64)a + sizeof(Alloc)), a->bitmap_bits, res,
+		       &a->last_free, chunks_needed);
+	if (res == (u64)-1) {
 		err = ENOMEM;
-	else {
-#if MEMSAN == 1
-		__add64(&a->allocated_bytes, CHUNK_SIZE * chunks_needed);
-#endif
-		*(u64 *)((void *)((u64)a + sizeof(Alloc) +
-				  a->bitmap_pages * PAGE_SIZE +
-				  CHUNK_SIZE * res)) = chunks_needed;
-		ret = (void *)((u64)a + sizeof(Alloc) +
-			       a->bitmap_pages * PAGE_SIZE + CHUNK_SIZE * res) +
-		      CHUNK_HEADER_OFFSET;
+		return (void *)0;
 	}
-	return ret;
+	struct chunk_header *header =
+	    (void *)((u64)a + sizeof(Alloc) + a->bitmap_pages * PAGE_SIZE +
+		     CHUNK_SIZE * res);
+	header->size = size;
+	header->chunk_count = chunks_needed;
+	MEMSAN_ADD(CHUNK_SIZE * chunks_needed);
+	return (void *)((u8 *)header + CHUNK_HEADER_OFFSET);
 }
 
 Alloc *alloc_init(AllocType t, u64 size, ...) {
-	Alloc *ret = NULL;
+	Alloc *ret = (void *)0;
 	int i;
 	u64 bitmap_bits = size / CHUNK_SIZE;
 	u64 bitmap_bytes = (bitmap_bits + 7) / 8;
@@ -389,18 +353,17 @@ Alloc *alloc_init(AllocType t, u64 size, ...) {
 	} else {
 		err = EINVAL;
 	}
-	if (!ret) return NULL;
+	if (!ret) return (void *)0;
 
 	ret->bitmap_bits = bitmap_bits;
 	ret->bitmap_bytes = bitmap_bytes;
 	ret->bitmap_pages = bitmap_pages;
 	ret->size = size;
-	for (i = 0; i < MAX_SLAB_SIZES; i++) ret->slab_pointers[i] = -1;
+	for (i = 0; i < MAX_SLAB_SIZES; i++) ret->slab_pointers[i] = (u64)-1;
 	ret->last_free = 0;
 #if MEMSAN == 1
 	ret->allocated_bytes = 0;
-#endif /* MEMSAN */
-
+#endif
 	return ret;
 }
 
@@ -412,18 +375,18 @@ u64 allocated_bytes_impl(Alloc *a __attribute__((unused))) {
 	u64 ret = 0;
 #if MEMSAN == 1
 	ret = a->allocated_bytes;
-#endif /* MEMSAN */
+#endif
 	return ret;
 }
 
 void reset_allocated_bytes_impl(Alloc *a __attribute__((unused))) {
 #if MEMSAN == 1
 	a->allocated_bytes = 0;
-#endif /* MEMSAN */
+#endif
 }
 
 void *alloc_impl(Alloc *a, u64 size) {
-	void *ret = NULL;
+	void *ret = (void *)0;
 
 #if TEST == 1
 	u64 cur, bypass;
@@ -431,7 +394,7 @@ void *alloc_impl(Alloc *a, u64 size) {
 		while ((cur = ALOAD(&_debug_alloc_failure))) {
 			u64 exp = cur;
 			if (__cas64(&_debug_alloc_failure, &exp, cur - 1))
-				return NULL;
+				return (void *)0;
 		}
 	} else {
 		u64 exp = bypass;
@@ -442,16 +405,13 @@ void *alloc_impl(Alloc *a, u64 size) {
 	if (size > CHUNK_SIZE) {
 		if (size > (CHUNK_SIZE * 64) - CHUNK_HEADER_OFFSET) {
 			err = EINVAL;
-			return NULL;
-		} else {
-			ret = allocate_chunk_multi(a, size);
+			return (void *)0;
 		}
+		ret = allocate_chunk_multi(a, size);
 	} else if (size > MAX_SLAB_SIZE) {
 		u64 chunk = allocate_chunk_impl(a);
-		if ((i64)chunk < 0) return NULL;
-#if MEMSAN == 1
-		__add64(&a->allocated_bytes, CHUNK_SIZE);
-#endif
+		if ((i64)chunk < 0) return (void *)0;
+		MEMSAN_ADD(CHUNK_SIZE);
 		ret =
 		    (void *)((u64)a + sizeof(Alloc) +
 			     a->bitmap_pages * PAGE_SIZE + CHUNK_SIZE * chunk);
@@ -463,53 +423,48 @@ void *alloc_impl(Alloc *a, u64 size) {
 }
 
 void release_impl(Alloc *a, void *ptr) {
-	u64 offset;
+	u64 base_offset, offset, chunk_index, chunk_offset;
+	void *chunk_base;
 
-	if (a == NULL || ptr == NULL ||
-	    (u64)ptr < ((u64)a + sizeof(Alloc) + a->bitmap_pages * PAGE_SIZE) ||
-	    (u64)ptr >= ((u64)a + a->size + sizeof(Alloc) +
-			 a->bitmap_pages * PAGE_SIZE)) {
+	if (a == (void *)0 || ptr == (void *)0) {
+		panic("Invalid memory release!");
+		return;
+	}
+	base_offset = GET_BASE_OFFSET(a);
+	offset = (u64)ptr - base_offset;
+	if ((u64)ptr < base_offset || (u64)ptr >= base_offset + a->size) {
 		panic("Invalid memory release!");
 		return;
 	}
 
-	offset =
-	    (u64)ptr - ((u64)a + sizeof(Alloc) + a->bitmap_pages * PAGE_SIZE);
-
-	if (offset % CHUNK_SIZE == 0) {
-		RELEASE_BIT((void *)((u64)a + sizeof(Alloc)),
-			    offset / CHUNK_SIZE, &a->last_free);
-#if MEMSAN == 1
-		__sub64(&a->allocated_bytes, CHUNK_SIZE);
-#endif /* MEMSAN */
-	} else if ((offset - CHUNK_HEADER_OFFSET) % CHUNK_SIZE == 0) {
-		u64 bits = *(u64 *)((u8 *)ptr - CHUNK_HEADER_OFFSET);
-		void *bitmap_ptr = (void *)((u64)a + sizeof(Alloc));
-		u64 bit = offset / CHUNK_SIZE;
-		RELEASE_BIT_MULTI(bitmap_ptr, bit, &a->last_free, bits);
-#if MEMSAN == 1
-		__sub64(&a->allocated_bytes, CHUNK_SIZE * bits);
-#endif /* MEMSAN */
-
+	GET_CHUNK_INFO(offset, chunk_index, chunk_offset, chunk_base);
+	if (chunk_offset == 0) {
+		/* Single chunk */
+		RELEASE_BITS((void *)((u64)a + sizeof(Alloc)), chunk_index,
+			     &a->last_free, 1);
+		MEMSAN_SUB(CHUNK_SIZE);
+	} else if (chunk_offset == CHUNK_HEADER_OFFSET) {
+		/* Multi-chunk */
+		struct chunk_header *header = (struct chunk_header *)chunk_base;
+		u64 bits = header->chunk_count;
+		RELEASE_BITS((void *)((u64)a + sizeof(Alloc)), chunk_index,
+			     &a->last_free, bits);
+		MEMSAN_SUB(CHUNK_SIZE * bits);
 	} else {
-		Chunk *chunk = (Chunk *)(CHUNK_OFFSET(a) +
-					 (offset / CHUNK_SIZE) * CHUNK_SIZE);
+		/* Slab */
+		Chunk *chunk = (Chunk *)chunk_base;
 		void *base = (void *)((u64)chunk + sizeof(Chunk));
 		u64 slab_size = chunk->slab_size;
 		u64 bitmap_size = BITMAP_SIZE(slab_size);
 		u64 index = ((u64)ptr - ((u64)base + bitmap_size)) / slab_size;
-		RELEASE_BIT(base, index, &chunk->last_free);
-#if MEMSAN == 1
-		__sub64(&a->allocated_bytes, slab_size);
-#endif
+		RELEASE_BITS(base, index, &chunk->last_free, 1);
+		MEMSAN_SUB(slab_size);
 	}
 }
 
 void *resize_impl(Alloc *a, void *ptr, u64 new_size) {
-	u64 base_offset;
-	u64 offset;
-	void *new_ptr;
-	u64 old_size;
+	u64 base_offset, offset, chunk_index, chunk_offset, old_size;
+	void *chunk_base, *new_ptr = (void *)0;
 
 	/* Handle null pointer or zero size */
 	if (ptr == (void *)0) {
@@ -527,135 +482,80 @@ void *resize_impl(Alloc *a, void *ptr, u64 new_size) {
 	}
 
 	/* Validate pointer */
-	base_offset = (u64)a + sizeof(Alloc) + a->bitmap_pages * PAGE_SIZE;
+	base_offset = GET_BASE_OFFSET(a);
 	if ((u64)ptr < base_offset || (u64)ptr >= base_offset + a->size) {
 		panic("Invalid pointer resized!\n");
 		return (void *)0;
 	}
-
 	offset = (u64)ptr - base_offset;
-
-	/* Determine allocation type */
-	u64 chunk_index = offset / CHUNK_SIZE;
-	u64 chunk_offset = offset % CHUNK_SIZE;
-	void *chunk_base = (void *)(base_offset + chunk_index * CHUNK_SIZE);
+	GET_CHUNK_INFO(offset, chunk_index, chunk_offset, chunk_base);
 
 	if (chunk_offset == 0) {
 		/* Single-chunk allocation (> MAX_SLAB_SIZE, <= CHUNK_SIZE) */
+		old_size = CHUNK_SIZE - CHUNK_HEADER_OFFSET;
 		if (new_size > MAX_SLAB_SIZE) {
 			/* New size requires chunk or multi-chunk */
 			if (new_size <= CHUNK_SIZE) {
-				/* Stays single chunk */
-				return ptr;
+				return ptr; /* Stays single chunk */
 			}
 			/* Resize to multi-chunk */
-			new_ptr = allocate_chunk_multi(a, new_size);
-			if (new_ptr == (void *)0) {
-				return (void *)0;
-			}
-			/* Copy data, assume old size is CHUNK_SIZE -
-			 * CHUNK_HEADER_OFFSET */
-			old_size = CHUNK_SIZE - CHUNK_HEADER_OFFSET;
-			if (new_size < old_size) {
-				old_size = new_size;
-			}
-			memcpy(new_ptr, ptr, old_size);
-			/* Free old chunk */
-			RELEASE_BIT((void *)((u64)a + sizeof(Alloc)),
-				    chunk_index, &a->last_free);
-#if MEMSAN == 1
-			__sub64(&a->allocated_bytes, CHUNK_SIZE);
-#endif
+			ALLOC_AND_COPY(a, new_size, ptr, old_size, new_ptr);
+			if (new_ptr == (void *)0) return (void *)0;
+			RELEASE_BITS((void *)((u64)a + sizeof(Alloc)),
+				     chunk_index, &a->last_free, 1);
+			MEMSAN_SUB(CHUNK_SIZE);
 			return new_ptr;
 		}
 		/* Resize to slab */
-		new_ptr = allocate_slab_impl(a, new_size);
-		if (new_ptr == (void *)0) {
-			return (void *)0;
-		}
-		/* Copy data */
-		old_size = CHUNK_SIZE - CHUNK_HEADER_OFFSET;
-		if (new_size < old_size) {
-			old_size = new_size;
-		}
-		memcpy(new_ptr, ptr, old_size);
-		/* Free old chunk */
-		RELEASE_BIT((void *)((u64)a + sizeof(Alloc)), chunk_index,
-			    &a->last_free);
-#if MEMSAN == 1
-		__sub64(&a->allocated_bytes, CHUNK_SIZE);
-#endif
+		ALLOC_AND_COPY(a, new_size, ptr, old_size, new_ptr);
+		if (new_ptr == (void *)0) return (void *)0;
+		RELEASE_BITS((void *)((u64)a + sizeof(Alloc)), chunk_index,
+			     &a->last_free, 1);
+		MEMSAN_SUB(CHUNK_SIZE);
 		return new_ptr;
 	} else if (chunk_offset == CHUNK_HEADER_OFFSET) {
 		/* Multi-chunk allocation (> CHUNK_SIZE) */
-		/* Assume header at chunk_base has size field */
-		struct chunk_header {
-			u64 size;
-		}; /* Replace with your header */
-		old_size = ((struct chunk_header *)chunk_base)->size;
-		/* Fallback if header undefined */
-		if (old_size == 0) {
+		struct chunk_header *header = (struct chunk_header *)chunk_base;
+		old_size = header->size;
+		if (old_size == 0)
 			old_size = (CHUNK_SIZE * 64) - CHUNK_HEADER_OFFSET;
-		}
 		if (new_size > CHUNK_SIZE && old_size >= new_size) {
-			/* New size fits in existing multi-chunk */
-			return ptr;
+			return ptr; /* Fits in existing multi-chunk */
 		}
-		/* Allocate new slab, chunk, or multi-chunk */
-		new_ptr = alloc_impl(a, new_size);
-		if (new_ptr == (void *)0) {
-			return (void *)0;
-		}
-		/* Copy data */
-		if (new_size < old_size) {
-			old_size = new_size;
-		}
-		memcpy(new_ptr, ptr, old_size);
-		/* Free old multi-chunk */
-		release_impl(a, ptr);
+		ALLOC_AND_COPY(a, new_size, ptr, old_size, new_ptr);
+		if (new_ptr == (void *)0) return (void *)0;
+		release_impl(a, ptr); /* Handles multi-bit release */
 		return new_ptr;
 	} else {
 		/* Slab allocation (<= MAX_SLAB_SIZE) */
-		Chunk *chunk = (Chunk *)(chunk_base);
+		Chunk *chunk = (Chunk *)chunk_base;
 		void *base = (void *)((u64)chunk + sizeof(Chunk));
 		u64 old_slab_size = chunk->slab_size;
 		u64 bitmap_size = BITMAP_SIZE(old_slab_size);
 		u64 index =
 		    ((u64)ptr - ((u64)base + bitmap_size)) / old_slab_size;
 		u64 new_slab_size = calculate_slab_size_impl(new_size);
+		old_size = old_slab_size;
 
 		if (old_slab_size == new_slab_size) {
-			/* Same slab size */
-			return ptr;
+			return ptr; /* Same slab size */
 		}
-
-		/* Allocate new slab, chunk, or multi-chunk */
-		new_ptr = alloc_impl(a, new_size);
-		if (new_ptr == (void *)0) {
-			return (void *)0;
-		}
-
-		/* Copy data */
-		old_size = old_slab_size;
-		if (new_size < old_size) {
-			old_size = new_size;
-		}
-		memcpy(new_ptr, ptr, old_size);
-
-		/* Release old slab */
-		RELEASE_BIT(base, index, &chunk->last_free);
-#if MEMSAN == 1
-		__sub64(&a->allocated_bytes, old_slab_size);
-#endif
+		ALLOC_AND_COPY(a, new_size, ptr, old_size, new_ptr);
+		if (new_ptr == (void *)0) return (void *)0;
+		RELEASE_BITS(base, index, &chunk->last_free, 1);
+		MEMSAN_SUB(old_slab_size);
 		return new_ptr;
 	}
 }
 
 void reset_allocated_bytes(void) { reset_allocated_bytes_impl(_alloc_ptr__); }
+
 u64 get_allocated_bytes(void) { return allocated_bytes_impl(_alloc_ptr__); }
+
 void *alloc(u64 size) { return alloc_impl(_alloc_ptr__, size); }
+
 void release(void *ptr) { release_impl(_alloc_ptr__, ptr); }
+
 void *resize(void *ptr, u64 size) {
 	return resize_impl(_alloc_ptr__, ptr, size);
 }
-
