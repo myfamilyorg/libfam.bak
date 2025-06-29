@@ -105,80 +105,80 @@ u64 _debug_alloc_failure_bypass_count = 0;
 		       !__cas64(last_free_ptr, &expected, new_last_free)) \
 			expected = ALOAD(last_free_ptr);                  \
 	} while (false)
-#define NEXT_FREE_BIT_MULTI(base, max, result, last_free_ptr, bits)               \
-	do {                                                                      \
-		u64 max_words;                                                    \
-		u64 *bitmap;                                                      \
-		u64 local_last_free;                                              \
-		u64 start_word;                                                   \
-		bool wrapped = false;                                             \
-		(result) = (u64) - 1;                                             \
-		bitmap = (u64 *)((u8 *)(base));                                   \
-		max_words = ((max) + 63) >> 6;                                    \
-		local_last_free = ALOAD(last_free_ptr);                           \
-		start_word = local_last_free;                                     \
-		while (true) {                                                    \
-			u64 word_idx = local_last_free;                           \
-			if (word_idx >= max_words) {                              \
-				if (wrapped) break;                               \
-				word_idx = 0;                                     \
-				wrapped = true;                                   \
-			}                                                         \
-			u64 word = bitmap[word_idx];                              \
-			u64 free_bits = __builtin_popcountll(~word);              \
-			if (free_bits >= (bits)) {                                \
-				u64 temp_word = ~word;                            \
-				u64 bit_start = 0;                                \
-				bool found = false;                               \
-				/* Check all possible starting positions */       \
-				for (bit_start = 0;                               \
-				     bit_start <= (u64)64 - (bits);               \
-				     bit_start++) {                               \
-					u64 mask = ((1UL << (bits)) - 1)          \
-						   << bit_start;                  \
-					if ((temp_word & mask) == mask &&         \
-					    word_idx * 64 + bit_start +           \
-						    (bits) <=                     \
-						(max)) {                          \
-						if (__cas64(&bitmap[word_idx],    \
-							    &word,                \
-							    word | mask)) {       \
-							(result) =                \
-							    word_idx * 64 +       \
-							    bit_start;            \
-							found = true;             \
-							break;                    \
-						} else {                          \
-							word =                    \
-							    bitmap[word_idx];     \
-							temp_word = ~word;        \
-							free_bits =               \
-							    __builtin_popcountll( \
-								~word);           \
-							if (free_bits <           \
-							    (bits))               \
-								break;            \
-							bit_start--; /* Retry     \
-									from      \
-									current   \
-									position  \
-								      */          \
-						}                                 \
-					}                                         \
-				}                                                 \
-				if (found) break;                                 \
-			}                                                         \
-			local_last_free = word_idx + 1;                           \
-			if (wrapped && local_last_free > start_word) break;       \
-		}                                                                 \
-		if ((result) == (u64) - 1 &&                                      \
-		    local_last_free > ALOAD(last_free_ptr)) {                     \
-			u64 expected = ALOAD(last_free_ptr);                      \
-			while (expected < local_last_free &&                      \
-			       !__cas64(last_free_ptr, &expected,                 \
-					local_last_free))                         \
-				expected = ALOAD(last_free_ptr);                  \
-		}                                                                 \
+/* Assume U64_MAX is defined: #define U64_MAX 0xFFFFFFFFFFFFFFFFULL */
+#define NEXT_FREE_BIT_MULTI(base, max, result, last_free_ptr, bits)              \
+	do {                                                                     \
+		u64 max_words;                                                   \
+		u64 *bitmap;                                                     \
+		u64 local_last_free;                                             \
+		u64 start_word;                                                  \
+		int wrapped = 0;                                                 \
+		(result) = (u64) - 1;                                            \
+		bitmap = (u64 *)((u8 *)(base));                                  \
+		max_words = ((max) + 63) >> 6;                                   \
+		local_last_free = ALOAD(last_free_ptr);                          \
+		start_word = local_last_free;                                    \
+		while (true) {                                                   \
+			u64 word_idx = local_last_free;                          \
+			if (word_idx >= max_words) {                             \
+				if (wrapped) break;                              \
+				word_idx = 0;                                    \
+				wrapped = 1;                                     \
+			}                                                        \
+			u64 word = bitmap[word_idx];                             \
+			if (word != U64_MAX) { /* At least one free bit */       \
+				u64 temp_word = ~word;                           \
+				u64 bit_start = 0;                               \
+				int found = 0;                                   \
+				/* Check all possible starting positions */      \
+				for (bit_start = 0;                              \
+				     bit_start <= (u64)64 - (bits);              \
+				     bit_start++) {                              \
+					u64 mask = ((1UL << (bits)) - 1)         \
+						   << bit_start;                 \
+					if ((temp_word & mask) == mask &&        \
+					    word_idx * 64 + bit_start +          \
+						    (bits) <=                    \
+						(max)) {                         \
+						if (__cas64(&bitmap[word_idx],   \
+							    &word,               \
+							    word | mask)) {      \
+							(result) =               \
+							    word_idx * 64 +      \
+							    bit_start;           \
+							found = 1;               \
+							break;                   \
+						} else {                         \
+							word =                   \
+							    bitmap[word_idx];    \
+							temp_word = ~word;       \
+							if (word == U64_MAX)     \
+								break; /* No     \
+									  free   \
+									  bits   \
+									  left   \
+									*/       \
+							bit_start--; /* Retry    \
+									from     \
+									current  \
+									position \
+								      */         \
+						}                                \
+					}                                        \
+				}                                                \
+				if (found) break;                                \
+			}                                                        \
+			local_last_free = word_idx + 1;                          \
+			if (wrapped && local_last_free > start_word) break;      \
+		}                                                                \
+		if ((result) == (u64) - 1 &&                                     \
+		    local_last_free > ALOAD(last_free_ptr)) {                    \
+			u64 expected = ALOAD(last_free_ptr);                     \
+			while (expected < local_last_free &&                     \
+			       !__cas64(last_free_ptr, &expected,                \
+					local_last_free))                        \
+				expected = ALOAD(last_free_ptr);                 \
+		}                                                                \
 	} while (false)
 #define RELEASE_BIT_MULTI(base, index, last_free_ptr, bits)               \
 	do {                                                              \
