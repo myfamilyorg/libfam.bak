@@ -171,6 +171,7 @@ Connection *evh_accepted(i32 fd, OnRecvFn on_recv, OnCloseFn on_close,
 
 i32 connection_write(Connection *conn, const void *buf, u64 len) {
 	i64 wlen = 0;
+	u64 offset;
 	ConnectionCommon *common = connection_common(conn);
 
 	if (!common) {
@@ -184,7 +185,7 @@ i32 connection_write(Connection *conn, const void *buf, u64 len) {
 			return -1;
 		}
 		if (!common->wbuf_offset) {
-			u64 offset = 0;
+			offset = 0;
 		write_block:
 			if (_debug_force_write_error) {
 				wlen = -1;
@@ -195,7 +196,6 @@ i32 connection_write(Connection *conn, const void *buf, u64 len) {
 				wlen = write(conn->socket, (u8 *)buf + offset,
 					     len);
 			if (wlen < 0 && err == EINTR) {
-				if (wlen > 0) offset += wlen;
 				_debug_force_write_error = false;
 				goto write_block;
 			} else if (wlen < 0 && err == EAGAIN)
@@ -248,7 +248,10 @@ i32 connection_write_complete(Connection *connection) {
 	sock = connection->socket;
 	{
 		LockGuard lg = wlock(&common->lock);
-		if (common->is_closed) return -1;
+		if (common->is_closed) {
+			err = EIO;
+			return -1;
+		}
 
 		while (cur < common->wbuf_offset) {
 			if (_debug_force_write_error)
@@ -259,6 +262,7 @@ i32 connection_write_complete(Connection *connection) {
 					       : _debug_connection_wmax;
 				wlen = write(sock, common->wbuf + cur, wmax);
 			}
+			if (wlen < 0 && err == EAGAIN) break;
 			if (wlen < 0) {
 				shutdown(sock, SHUT_RDWR);
 				return -1;
@@ -292,9 +296,15 @@ i32 connection_close(Connection *connection) {
 		return close(connection->socket);
 	} else {
 		ConnectionCommon *common = connection_common(connection);
-		if (!common) return -1;
+		if (!common) {
+			err = EINVAL;
+			return -1;
+		}
 		LockGuard lg = wlock(&common->lock);
-		if (common->is_closed) return -1;
+		if (common->is_closed) {
+			err = EIO;
+			return -1;
+		}
 		common->is_closed = true;
 		return shutdown(connection->socket, SHUT_RDWR);
 	}
@@ -326,7 +336,10 @@ u64 connection_rbuf_offset(Connection *conn) {
 
 i32 connection_set_rbuf_offset(Connection *conn, u64 noffset) {
 	ConnectionCommon *common = connection_common(conn);
-	if (!common) return -1;
+	if (!common) {
+		err = EINVAL;
+		return -1;
+	}
 	common->rbuf_offset = noffset;
 	return 0;
 }
@@ -351,7 +364,10 @@ i32 connection_set_mplex(Connection *conn, i32 mplex) {
 
 i32 connection_socket(Connection *conn) { return conn->socket; }
 i64 connection_alloc_overhead(Connection *conn) {
-	if (!conn || conn->conn_type != Acceptor) return -1;
+	if (!conn || conn->conn_type != Acceptor) {
+		err = EINVAL;
+		return -1;
+	}
 	return conn->data.acceptor.connection_alloc_overhead;
 }
 
@@ -415,9 +431,9 @@ void connection_release(Connection *conn) {
 		common->is_closed = true;
 		if (common->wbuf_capacity) release(common->wbuf);
 		common->wbuf_capacity = common->wbuf_offset = 0;
+		close(conn->socket);
+		release(conn);
 	}
-	close(conn->socket);
-	release(conn);
 }
 
 bool connection_is_connected(Connection *conn) {
