@@ -26,11 +26,11 @@
 #ifndef _AES_H
 #define _AES_H
 
+#include <types.H>
+
 #define AES_BLOCKLEN 16
 #define AES_KEYLEN 32
 #define AES_KEYEXPSIZE 240
-
-#include <types.H>
 
 typedef struct {
 	u8 RoundKey[AES_KEYEXPSIZE];
@@ -39,7 +39,6 @@ typedef struct {
 
 void aes_init(AesContext *ctx, const u8 *key, const u8 *iv);
 void aes_set_iv(AesContext *ctx, const u8 *iv);
-
 void aes_ctr_xcrypt_buffer(AesContext *ctx, u8 *buf, u64 length);
 
 #endif /* _AES_H */

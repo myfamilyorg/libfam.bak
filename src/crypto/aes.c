@@ -1,20 +1,32 @@
+/********************************************************************************
+ * MIT License
+ *
+ * Copyright (c) 2025 Christopher Gilliard
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
 #include <aes.H>
-#include <aes.h>
 #include <format.H>
 #include <misc.H>
 #include <types.H>
-
-void aes_ctr_xcrypt_buffer(AesContext* ctx, u8* buf, u64 length) {
-	AES_CTR_xcrypt_buffer((struct AES_ctx*)ctx, buf, length);
-}
-
-void aes_set_iv(AesContext* ctx, const u8* iv) {
-	AES_ctx_set_iv((struct AES_ctx*)ctx, iv);
-}
-
-void aes_init(AesContext* ctx, const u8* key, const u8* iv) {
-	AES_init_ctx_iv((struct AES_ctx*)ctx, key, iv);
-}
 
 #define Nb 4
 #define Nk 8
@@ -106,14 +118,14 @@ static void KeyExpansion(u8* RoundKey, const u8* Key) {
 	}
 }
 
-void AES_init_ctx(struct AES_ctx* ctx, const u8* key) {
+void AES_init_ctx(AesContext* ctx, const u8* key) {
 	KeyExpansion(ctx->RoundKey, key);
 }
-void AES_init_ctx_iv(struct AES_ctx* ctx, const u8* key, const u8* iv) {
+void aes_init(AesContext* ctx, const u8* key, const u8* iv) {
 	KeyExpansion(ctx->RoundKey, key);
 	memcpy(ctx->Iv, iv, AES_BLOCKLEN);
 }
-void AES_ctx_set_iv(struct AES_ctx* ctx, const u8* iv) {
+void aes_set_iv(AesContext* ctx, const u8* iv) {
 	memcpy(ctx->Iv, iv, AES_BLOCKLEN);
 }
 
@@ -209,7 +221,7 @@ static void Cipher(state_t* state, const u8* RoundKey) {
 
 /* Symmetrical operation: same function for encrypting as for decrypting. Note
  * any IV/nonce should never be reused with the same key */
-void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, u8* buf, u64 length) {
+void aes_ctr_xcrypt_buffer(AesContext* ctx, u8* buf, u64 length) {
 	u8 buffer[AES_BLOCKLEN];
 
 	u64 i;
