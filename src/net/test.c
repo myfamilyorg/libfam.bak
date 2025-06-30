@@ -604,7 +604,7 @@ void evh1_on_recv(void *ctx, Connection *conn, u64 rlen) {
 	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
 	ASSERT_EQ(rlen, 1, "rlen=1");
 	ASSERT_EQ(offset, 1, "offset=1");
-	ASSERT_EQ(rbuf[0], 'Z', "rbuf[0]='X'");
+	ASSERT_EQ(rbuf[0], 'Z', "rbuf[0]='Z'");
 	connection_close(conn);
 }
 
