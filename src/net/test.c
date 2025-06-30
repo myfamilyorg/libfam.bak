@@ -188,7 +188,7 @@ Test(socket_fails) {
 	fd2 = test_connect(LOCALHOST, port);
 	_debug_setnonblocking_err = true;
 	ASSERT(socket_accept(fd1) == -1, "accept with nonblock err");
-	ASSERT(socket_listen(1, LOCALHOST, 0, 1) == -1,
+	ASSERT(socket_listen((void*)1, LOCALHOST, 0, 1) == -1,
 	       "listen with nonblock err");
 	_debug_setnonblocking_err = false;
 	close(fd1);
