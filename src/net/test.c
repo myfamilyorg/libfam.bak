@@ -23,8 +23,9 @@
  *
  *******************************************************************************/
 
+#include <alloc.H>
 #include <atomic.H>
-/*#include <connection_internal.H>*/
+#include <connection_internal.H>
 #include <error.H>
 #include <event.H>
 /*#include <evh.H>*/
@@ -188,7 +189,7 @@ Test(socket_fails) {
 	fd2 = test_connect(LOCALHOST, port);
 	_debug_setnonblocking_err = true;
 	ASSERT(socket_accept(fd1) == -1, "accept with nonblock err");
-	ASSERT(socket_listen((void*)1, LOCALHOST, 0, 1) == -1,
+	ASSERT(socket_listen((void *)1, LOCALHOST, 0, 1) == -1,
 	       "listen with nonblock err");
 	_debug_setnonblocking_err = false;
 	close(fd1);
@@ -197,181 +198,36 @@ Test(socket_fails) {
 	ASSERT_EQ(mregister(-1, -1, 0, NULL), -1, "mreg invalid");
 	ASSERT_EQ(mwait(-1, NULL, 0, -1), -1, "mwait invalid");
 }
-/*
 
-    u64 *evh1_complete = NULL;
+void c1_on_accept(void *ctx __attribute__((unused)),
+		  Connection *conn __attribute__((unused))) {}
 
-void evh1_on_accept(void *ctx, Connection *conn) {
-	ASSERT_EQ(*((i32 *)ctx), 101, "ctx==101");
-	connection_close(conn);
-}
+void c1_on_recv(void *ctx __attribute__((unused)),
+		Connection *conn __attribute__((unused)),
+		u64 rlen __attribute__((unused))) {}
 
-void evh1_on_recv(void *ctx, Connection *conn, u64 rlen) {
-	u8 *rbuf = connection_rbuf(conn);
-	u64 offset = connection_rbuf_offset(conn);
-	ASSERT_EQ(*((i32 *)ctx), 101, "ctx==101");
-	ASSERT_EQ(rlen, 1, "rlen=1");
-	ASSERT_EQ(offset, 1, "offset=1");
-	ASSERT_EQ(rbuf[0], 'X', "rbuf[0]='X'");
-	__add64(evh1_complete, 1);
-	connection_clear_rbuf_through(conn, offset);
-	connection_clear_rbuf(conn);
-}
+void c1_on_close(void *ctx __attribute__((unused)),
+		 Connection *conn __attribute__((unused))) {}
 
-void evh1_on_close(void *ctx, Connection *conn) {
-	ASSERT(conn, "conn!=NULL");
-	ASSERT_EQ(*((i32 *)ctx), 101, "ctx==101");
-	ASSERT_EQ(ALOAD(evh1_complete), 1, "evh1_complete==1");
-	__add64(evh1_complete, 1);
-}
-
-Test(evh1) {
-	i32 ctx = 101, client;
-	u16 port = 0;
-	Evh *evh1;
-	Connection *acceptor;
-
-	evh1_complete = alloc(sizeof(u64));
-	ASSERT(evh1_complete, "evh1_complete");
-	*evh1_complete = 0;
-
-	acceptor = evh_acceptor(LOCALHOST, port, 10, evh1_on_recv,
-				evh1_on_accept, evh1_on_close, 0);
-	port = evh_acceptor_port(acceptor);
-	evh1 = evh_start(&ctx);
-	evh_register(evh1, acceptor);
-	client = test_connect(LOCALHOST, port);
-	ASSERT(client > 0, "client>0");
-	while (write(client, "X", 1) != 1);
-	while (ALOAD(evh1_complete) != 2);
-	release(evh1_complete);
-	evh_stop(evh1);
-	connection_release(acceptor);
-
-	ASSERT_BYTES(0);
-}
-
-u64 *evh2_complete = NULL;
-u64 *evh2_on_connect_val = NULL;
-
-void evh2_on_accept(void *ctx, Connection *conn) {
-	ASSERT(conn, "conn!=NULL");
-	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
-}
-
-void evh2_on_recv(void *ctx, Connection *conn, u64 rlen) {
-	u8 *rbuf = connection_rbuf(conn);
-	u64 offset = connection_rbuf_offset(conn);
-	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
-	ASSERT_EQ(rlen, 1, "rlen=1");
-	ASSERT_EQ(offset, 1, "offset=1");
-	ASSERT_EQ(rbuf[0], 'Z', "rbuf[0]='X'");
-	connection_close(conn);
-}
-
-void evh2_on_close(void *ctx, Connection *conn) {
-	ASSERT(conn, "conn!=NULL");
-	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
-	ASSERT(ALOAD(evh2_complete) <= 2, "evh2_complete <= 2");
-	__add64(evh2_complete, 1);
-}
-
-void evh2_on_connect(void *ctx, Connection *conn, int error) {
-	ASSERT(!error, "!error");
-	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
-	ASSERT(conn, "conn!=NULL");
-	__add64(evh2_on_connect_val, 1);
-}
-
-Test(evh2) {
-	i32 ctx = 102;
-	u16 port = 0;
-	Evh *evh2;
-	Connection *acceptor, *conn;
-
-	evh2_complete = alloc(sizeof(u64));
-	ASSERT(evh2_complete, "evh2_complete");
-	*evh2_complete = 0;
-
-	evh2_on_connect_val = alloc(sizeof(u64));
-	ASSERT(evh2_on_connect_val, "evh2_on_connect_val");
-	*evh2_on_connect_val = 0;
-
-	acceptor = evh_acceptor(LOCALHOST, port, 10, evh2_on_recv,
-				evh2_on_accept, evh2_on_close, 0);
-	port = evh_acceptor_port(acceptor);
-	conn = evh_client(LOCALHOST, port, evh2_on_recv, evh2_on_connect,
-			  evh2_on_close, 0);
-	evh2 = evh_start(&ctx);
-	evh_register(evh2, acceptor);
-	evh_register(evh2, conn);
-	connection_write(conn, "Z", 1);
-	while (ALOAD(evh2_complete) < 2);
-	ASSERT_EQ(ALOAD(evh2_on_connect_val), 1, "connect success");
-	ASSERT_EQ(ALOAD(evh2_complete), 2, "2 closed conns");
-	release(evh2_complete);
-	release(evh2_on_connect_val);
-	evh_stop(evh2);
-
-	connection_release(acceptor);
-
-	ASSERT_BYTES(0);
-}
-
-Test(evh3) {
-	i32 ctx = 102;
-	u16 port = 0;
-	Evh *evh2;
-	Connection *acceptor, *conn;
-
-	_debug_force_write_buffer = true;
-
-	evh2_complete = alloc(sizeof(u64));
-	ASSERT(evh2_complete, "evh2_complete");
-	*evh2_complete = 0;
-
-	evh2_on_connect_val = alloc(sizeof(u64));
-	ASSERT(evh2_on_connect_val, "evh2_on_connect_val");
-	*evh2_on_connect_val = 0;
-
-	acceptor = evh_acceptor(LOCALHOST, port, 10, evh2_on_recv,
-				evh2_on_accept, evh2_on_close, 0);
-	port = evh_acceptor_port(acceptor);
-	conn = evh_client(LOCALHOST, port, evh2_on_recv, evh2_on_connect,
-			  evh2_on_close, 0);
-	evh2 = evh_start(&ctx);
-	evh_register(evh2, acceptor);
-	evh_register(evh2, conn);
-	connection_write(conn, "Z", 1);
-	while (ALOAD(evh2_complete) < 2);
-	ASSERT_EQ(ALOAD(evh2_on_connect_val), 1, "connect success");
-	ASSERT_EQ(ALOAD(evh2_complete), 2, "2 closed conns");
-	release(evh2_complete);
-	release(evh2_on_connect_val);
-	evh_stop(evh2);
-
-	connection_release(acceptor);
-
-	ASSERT_BYTES(0);
-
-	_debug_force_write_buffer = false;
-}
+void c1_on_connect(void *ctx __attribute__((unused)),
+		   Connection *conn __attribute__((unused)),
+		   int err __attribute__((unused))) {}
 
 u8 BAD_ADDR[4] = {255, 255, 255, 255};
 
-Test(connection_err) {
+Test(connection1) {
 	u16 port;
 	Connection *c2;
-	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, evh1_on_recv,
-				      evh1_on_accept, evh1_on_close, 0);
+	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+				      c1_on_close, 0);
 	ASSERT(c1, "c1");
 	port = evh_acceptor_port(c1);
-	ASSERT(!evh_acceptor(LOCALHOST, port, 1, evh1_on_recv, evh1_on_accept,
-			     evh1_on_close, 0),
+	ASSERT(!evh_acceptor(LOCALHOST, port, 1, c1_on_recv, c1_on_accept,
+			     c1_on_close, 0),
 	       "port used");
 
-	c2 = evh_client(LOCALHOST, port, evh1_on_recv, evh2_on_connect,
-			evh1_on_close, 0);
+	c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect, c1_on_close,
+			0);
 	ASSERT(!evh_acceptor_port(c2), "not acceptor");
 	ASSERT(connection_set_mplex(c1, 0), "set mplex acceptor err");
 	ASSERT(connection_write(c1, "x", 1), "write to acceptor");
@@ -384,16 +240,181 @@ Test(connection_err) {
 	connection_release(c1);
 	connection_release(c2);
 
-	ASSERT(!evh_client(BAD_ADDR, port, evh1_on_recv, evh2_on_connect,
-			   evh1_on_close, 0),
+	ASSERT(!evh_client(BAD_ADDR, port, c1_on_recv, c1_on_connect,
+			   c1_on_close, 0),
 	       "bad addr");
 
-	c1 = evh_acceptor(LOCALHOST, 0, 1, evh1_on_recv, evh1_on_accept,
-			  evh1_on_close, 0);
+	c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+			  c1_on_close, 0);
 
 	connection_close(c1);
 	connection_release(c1);
 
 	ASSERT_BYTES(0);
 }
-*/
+
+Test(connection2) {
+	u8 buf[64] = {0};
+	i32 fd;
+	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+				      c1_on_close, 0);
+	u16 port = evh_acceptor_port(c1);
+	Connection *c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
+				    c1_on_close, 0);
+	Connection *c3;
+	i32 mplex = multiplex();
+
+	while ((fd = socket_accept(connection_socket(c1))) == -1);
+	c3 = evh_accepted(fd, c1_on_recv, c1_on_close, 0);
+	ASSERT(c3, "c3!=NULL");
+
+	ASSERT_EQ(connection_type(c1), Acceptor, "Acceptor");
+	ASSERT_EQ(connection_type(c2), Outbound, "Outbound");
+	ASSERT_EQ(connection_type(c3), Inbound, "Inbound");
+
+	ASSERT(!connection_write(c3, "1", 1), "connection_write1");
+	while (read(connection_socket(c2), buf, sizeof(buf)) != 1) {
+	}
+	ASSERT_EQ(buf[0], '1', "1");
+
+	_debug_force_write_buffer = true;
+	err = 0;
+	connection_set_mplex(c3, mplex);
+	ASSERT(!connection_write(c3, "2", 1), "connection_write2");
+	_debug_force_write_buffer = false;
+	connection_write_complete(c3);
+	while (read(connection_socket(c2), buf, sizeof(buf)) != 1) {
+	}
+	ASSERT_EQ(buf[0], '2', "2");
+
+	_debug_force_write_buffer = true;
+	connection_set_mplex(c3, -1);
+	ASSERT(connection_write(c3, "3", 1), "connection_write3");
+	connection_set_mplex(c3, mplex);
+	/* Connection now closed */
+	ASSERT(connection_write(c3, "4", 1), "connection_write4");
+
+	_debug_force_write_buffer = false;
+
+	/* Since we're not using rbuf (like evh), it's uninitialized */
+	ASSERT(!connection_rbuf(c3), "rbuf==NULL");
+	ASSERT(!connection_rbuf_offset(c3), "rbuf_offset=0");
+	ASSERT(!connection_rbuf_capacity(c3), "rbuf_capacity=0");
+	connection_clear_rbuf_through(c3, 0);
+	connection_clear_rbuf(c3);
+	ASSERT(!connection_set_rbuf_offset(c3, 0), "set_rbuf");
+	ASSERT(!connection_is_connected(c2), "c2 not conn");
+	connection_set_is_connected(c2);
+	ASSERT(connection_is_connected(c2), "c2 conn");
+	ASSERT(!connection_alloc_overhead(c1), "no overhead");
+	ASSERT(connection_on_recv(c1), "c1 on_recv != NULL");
+	ASSERT(connection_on_recv(c2), "c2 on_recv != NULL");
+	ASSERT(connection_on_close(c1), "c1 on_close != NULL");
+	ASSERT(connection_on_close(c2), "c2 on_close != NULL");
+	ASSERT(connection_on_accept(c1), "c1 on_accept != NULL");
+	ASSERT(connection_on_connect(c2), "c2 on_connect != NULL");
+
+	ASSERT(!connection_check_capacity(c2), "c2 can add capacity");
+	ASSERT(connection_check_capacity(c1), "c1 can not add capacity");
+
+	close(mplex);
+	close(fd);
+	connection_close(c3);
+
+	err = 0;
+	ASSERT(connection_write(c3, "x", 1), "connection_writex");
+	ASSERT(err, EIO); /* Already closed */
+
+	connection_close(c2);
+	connection_close(c1);
+	connection_release(c3);
+	connection_release(c2);
+	connection_release(c1);
+
+	ASSERT_BYTES(0);
+}
+
+Test(connection3) {
+	u8 buf[64] = {0};
+	i32 fd;
+	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+				      c1_on_close, 0);
+	u16 port = evh_acceptor_port(c1);
+	Connection *c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
+				    c1_on_close, 0);
+	Connection *c3;
+	i32 mplex = multiplex();
+
+	while ((fd = socket_accept(connection_socket(c1))) == -1);
+	c3 = evh_accepted(fd, c1_on_recv, c1_on_close, 0);
+	ASSERT(c3, "c3!=NULL");
+
+	ASSERT_EQ(connection_type(c1), Acceptor, "Acceptor");
+	ASSERT_EQ(connection_type(c2), Outbound, "Outbound");
+	ASSERT_EQ(connection_type(c3), Inbound, "Inbound");
+
+	ASSERT(!connection_write(c3, "1", 1), "connection_write1");
+	while (read(connection_socket(c2), buf, sizeof(buf)) != 1) {
+	}
+	ASSERT_EQ(buf[0], '1', "1");
+
+	_debug_force_write_buffer = true;
+	err = 0;
+	connection_set_mplex(c3, mplex);
+	ASSERT(!connection_write(c3, "2", 1), "connection_write2");
+	_debug_force_write_buffer = false;
+	connection_set_mplex(c3, -1);
+	connection_write_complete(c3);
+	while (read(connection_socket(c2), buf, sizeof(buf)) != 1) {
+	}
+	ASSERT_EQ(buf[0], '2', "2");
+
+	close(mplex);
+	connection_close(c2);
+	connection_close(c1);
+	connection_release(c3);
+	connection_release(c2);
+	connection_release(c1);
+
+	ASSERT_BYTES(0);
+}
+
+Test(connection4) {
+	u8 buf[64] = {0};
+	i32 fd;
+	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+				      c1_on_close, 0);
+	u16 port = evh_acceptor_port(c1);
+	Connection *c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
+				    c1_on_close, 0);
+	Connection *c3;
+	i32 mplex = multiplex();
+
+	while ((fd = socket_accept(connection_socket(c1))) == -1);
+	c3 = evh_accepted(fd, c1_on_recv, c1_on_close, 0);
+	ASSERT(c3, "c3!=NULL");
+
+	ASSERT_EQ(connection_type(c1), Acceptor, "Acceptor");
+	ASSERT_EQ(connection_type(c2), Outbound, "Outbound");
+	ASSERT_EQ(connection_type(c3), Inbound, "Inbound");
+
+	ASSERT(!connection_write(c3, "1", 1), "connection_write1");
+	while (read(connection_socket(c2), buf, sizeof(buf)) != 1) {
+	}
+	ASSERT_EQ(buf[0], '1', "1");
+
+	connection_set_mplex(c3, mplex);
+	_debug_alloc_failure = 1;
+	_debug_force_write_buffer = true;
+	ASSERT(connection_write(c3, "y", 1), "connection_writey");
+	_debug_force_write_buffer = false;
+
+	close(mplex);
+	connection_close(c2);
+	connection_close(c1);
+	connection_release(c3);
+	connection_release(c2);
+	connection_release(c1);
+
+	ASSERT_BYTES(0);
+}

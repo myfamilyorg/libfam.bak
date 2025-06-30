@@ -402,8 +402,9 @@ void *alloc_impl(Alloc *a, u64 size) {
 	if (!(bypass = ALOAD(&_debug_alloc_failure_bypass_count))) {
 		while ((cur = ALOAD(&_debug_alloc_failure))) {
 			u64 exp = cur;
-			if (__cas64(&_debug_alloc_failure, &exp, cur - 1))
+			if (__cas64(&_debug_alloc_failure, &exp, cur - 1)) {
 				return NULL;
+			}
 		}
 	} else {
 		u64 exp = bypass;
