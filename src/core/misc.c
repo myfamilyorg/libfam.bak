@@ -182,19 +182,29 @@ void *memorymove(void *dest, const void *src, u64 n) {
 
 void byteszero(void *s, u64 len) { memset(s, 0, len); }
 
-u64 u128_to_string(u8 *buf, u128 v) {
-	u8 temp[40];
+u64 u128_to_string_impl(u8 *buf, u128 v, bool hex, bool upper) {
+	u8 temp[64] = {0};
 	i32 i = 0, j = 0;
+	u16 hex_mod = hex ? 16 : 10;
+	const char *hex_code = upper ? "0123456789ABCDEF" : "0123456789abcdef";
 
-	if (v == 0) {
+	if (hex) {
+		j = 2;
 		buf[0] = '0';
-		buf[1] = '\0';
-		return 1;
+		buf[1] = 'x';
+	}
+	if (v == 0) {
+		buf[j++] = '0';
+		buf[j] = '\0';
+		return j;
 	}
 
 	while (v > 0) {
-		temp[i++] = '0' + (v % 10);
-		v /= 10;
+		temp[i++] = hex_code[(v % hex_mod)];
+		if (hex_mod == 16)
+			v /= 16;
+		else
+			v /= 10;
 	}
 
 	for (; i > 0; j++) {
@@ -204,7 +214,11 @@ u64 u128_to_string(u8 *buf, u128 v) {
 	return j;
 }
 
-u64 i128_to_string(u8 *buf, i128 v) {
+u64 u128_to_string(u8 *buf, u128 v) {
+	return u128_to_string_impl(buf, v, false, false);
+}
+
+u64 i128_to_string_impl(u8 *buf, i128 v, bool hex, bool upper) {
 	u64 len;
 	const i128 int128_min = I128_MIN;
 	const u128 int128_min_abs = (u128)0x8000000000000000UL << 64;
@@ -220,8 +234,12 @@ u64 i128_to_string(u8 *buf, i128 v) {
 		abs_v = (u128)v;
 	}
 
-	len = u128_to_string(buf, abs_v);
+	len = u128_to_string_impl(buf, abs_v, hex, upper);
 	return is_negative ? len + 1 : len;
+}
+
+u64 i128_to_string(u8 *buf, i128 v) {
+	return i128_to_string_impl(buf, v, false, false);
 }
 
 /* Convert string to unsigned 128-bit integer */

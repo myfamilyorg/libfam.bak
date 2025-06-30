@@ -27,7 +27,7 @@
 #include <format.H>
 #include <misc.H>
 
-i32 format_check_resize(Formatter *f, u64 size) {
+STATIC i32 format_check_resize(Formatter *f, u64 size) {
 	void *tmp;
 	if (f->pos + size > f->capacity) {
 		tmp = resize(f->buf, f->pos + size);
@@ -38,9 +38,27 @@ i32 format_check_resize(Formatter *f, u64 size) {
 	return 0;
 }
 
+STATIC const char *find_next_placeholder(const char *p) {
+	const char *v1 = substr(p, "{x}");
+	const char *v2 = substr(p, "{X}");
+	const char *v3 = substr(p, "{}");
+
+	/* If no placeholders found, return NULL */
+	if (!v1 && !v2 && !v3) return NULL;
+
+	/* Initialize result to NULL; update with earliest non-NULL pointer */
+	const char *result = NULL;
+	if (v1 && (!result || v1 < result)) result = v1;
+	if (v2 && (!result || v2 < result)) result = v2;
+	if (v3 && (!result || v3 < result)) result = v3;
+
+	return result;
+}
+
 /* Main format_append implementation */
 int format_append(Formatter *f, const char *fmt, ...) {
-	u8 buf[40] = {0};
+	u8 buf[64] = {0};
+	bool hex = false, upper = false;
 	u64 len;
 	__builtin_va_list args;
 	const char *p, *next_placeholder;
@@ -57,13 +75,23 @@ int format_append(Formatter *f, const char *fmt, ...) {
 	/* Parse format string */
 	p = fmt;
 	while (*p != '\0') {
-		next_placeholder = substr(p, "{}");
+		next_placeholder = find_next_placeholder(p);
 		if (next_placeholder == NULL) {
 			len = strlen(p);
 			if (format_check_resize(f, len) < 0) return -1;
 			memcpy(f->buf + f->pos, p, len);
 			f->pos += len;
 			break;
+		}
+		if (next_placeholder[1] == 'X') {
+			hex = true;
+			upper = true;
+		} else if (next_placeholder[1] == 'x') {
+			hex = true;
+			upper = false;
+		} else {
+			hex = false;
+			upper = false;
 		}
 
 		len = next_placeholder - p;
@@ -73,12 +101,14 @@ int format_append(Formatter *f, const char *fmt, ...) {
 
 		next = __builtin_va_arg(args, Printable);
 		if (next.t == I128_T) {
-			len = i128_to_string(buf, next.data.ivalue);
+			len = i128_to_string_impl(buf, next.data.ivalue, hex,
+						  upper);
 			if (format_check_resize(f, len) < 0) return -1;
 			memcpy(f->buf + f->pos, buf, len);
 			f->pos += len;
 		} else if (next.t == U128_T) {
-			len = u128_to_string(buf, next.data.ivalue);
+			len = u128_to_string_impl(buf, next.data.ivalue, hex,
+						  upper);
 			if (format_check_resize(f, len) < 0) return -1;
 			memcpy(f->buf + f->pos, buf, len);
 			f->pos += len;
@@ -90,7 +120,10 @@ int format_append(Formatter *f, const char *fmt, ...) {
 		}
 
 		/* Move past {} */
-		p = next_placeholder + 2;
+		if (next_placeholder[1] == '}')
+			p = next_placeholder + 2;
+		else
+			p = next_placeholder + 3;
 	}
 
 	/* Cleanup */

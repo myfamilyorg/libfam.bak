@@ -98,37 +98,43 @@ const u8 *format_to_string(Formatter *f);
 	_Pragma("GCC diagnostic pop");
 /* clang-format on */
 
-#define println(fmt, ...)                         \
-	do {                                      \
-		const u8 *_ret__;                 \
-		Formatter _f__ = {0};             \
-		format(&_f__, fmt, __VA_ARGS__);  \
-		_ret__ = format_to_string(&_f__); \
-		write(2, _ret__, strlen(_ret__)); \
-		write(2, "\n", 1);                \
-		format_clear(&_f__);              \
+#define println(fmt, ...)                                 \
+	do {                                              \
+		const u8 *_ret__;                         \
+		Formatter _f__ = {0};                     \
+		format(&_f__, fmt, __VA_ARGS__);          \
+		_ret__ = format_to_string(&_f__);         \
+		if (_ret__) {                             \
+			write(2, _ret__, strlen(_ret__)); \
+			write(2, "\n", 1);                \
+			format_clear(&_f__);              \
+		}                                         \
 	} while (false);
 
-#define print(fmt, ...)                           \
-	do {                                      \
-		const u8 *_ret__;                 \
-		Formatter _f__ = {0};             \
-		format(&_f__, fmt, __VA_ARGS__);  \
-		_ret__ = format_to_string(&_f__); \
-		write(2, _ret__, strlen(_ret__)); \
-		format_clear(&_f__);              \
+#define print(fmt, ...)                                   \
+	do {                                              \
+		const u8 *_ret__;                         \
+		Formatter _f__ = {0};                     \
+		format(&_f__, fmt, __VA_ARGS__);          \
+		_ret__ = format_to_string(&_f__);         \
+		if (_ret__) {                             \
+			write(2, _ret__, strlen(_ret__)); \
+			format_clear(&_f__);              \
+		}                                         \
 	} while (false);
 
-#define panic(fmt, ...)                          \
-	do {                                     \
-		const u8 *ret;                   \
-		Formatter _f__ = {0};            \
-		format(&_f__, fmt, __VA_ARGS__); \
-		ret = format_to_string(&_f__);   \
-		write(2, ret, strlen(ret));      \
-		write(2, "\n", 1);               \
-		format_clear(&_f__);             \
-		if (!_debug_no_exit) exit(-1);   \
+#define panic(fmt, ...)                                   \
+	do {                                              \
+		const u8 *_ret__;                         \
+		Formatter _f__ = {0};                     \
+		format(&_f__, fmt, __VA_ARGS__);          \
+		_ret__ = format_to_string(&_f__);         \
+		if (_ret__) {                             \
+			write(2, _ret__, strlen(_ret__)); \
+			write(2, "\n", 1);                \
+			format_clear(&_f__);              \
+		}                                         \
+		if (!_debug_no_exit) exit(-1);            \
 	} while (false);
 
 #pragma GCC diagnostic pop

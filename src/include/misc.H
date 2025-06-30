@@ -43,11 +43,11 @@ void *memorymove(void *dst, const void *src, u64 n);
 void byteszero(void *dst, u64 n);
 u64 u128_to_string(u8 *buf, u128 v);
 u64 i128_to_string(u8 *buf, i128 v);
+u64 u128_to_string_impl(u8 *buf, u128 v, bool hex, bool upper);
+u64 i128_to_string_impl(u8 *buf, i128 v, bool hex, bool upper);
 u64 double_to_string(u8 *buf, double v, i32 max_decimals);
-u64 b64_encode(const u8 *in, u64 in_len, u8 *out,
-		  u64 out_max);
-u64 b64_decode(const u8 *in, u64 in_len, u8 *out,
-		  u64 out_max);
+u64 b64_encode(const u8 *in, u64 in_len, u8 *out, u64 out_max);
+u64 b64_decode(const u8 *in, u64 in_len, u8 *out, u64 out_max);
 u128 string_to_uint128(const u8 *buf, u64 len);
 i128 string_to_int128(const u8 *buf, u64 len);
 

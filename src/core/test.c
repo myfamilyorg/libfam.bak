@@ -994,6 +994,7 @@ Test(misc) {
 	ASSERT_EQ(string_to_int128("+5", 2), 5, "+5");
 	ASSERT_EQ(string_to_int128("-", 1), 0, "-");
 	len = u128_to_string(sx, U128_MAX);
+
 	ASSERT_EQ(string_to_int128(sx, len), 0, "overflow int128");
 
 	ASSERT_EQ(double_to_string(buf1, 1.2, 1), 3, "double to str 1.2");
@@ -1593,4 +1594,14 @@ Test(resize_edge_cases) {
 	release_impl(a, p4);
 	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
 	alloc_destroy(a);
+}
+
+Test(test_hex) {
+	Formatter f = {0};
+	format(&f, "x={x},y={X},z={}", 123456, 123456, 123456);
+	ASSERT(!strcmp(format_to_string(&f), "x=0x1e240,y=0x1E240,z=123456"),
+	       "strcmp");
+	format_clear(&f);
+	format(&f, "x={X}", -0xccd);
+	ASSERT(!strcmp(format_to_string(&f), "x=-0xCCD"), "strcmp2");
 }
