@@ -39,6 +39,7 @@
 bool _debug_force_write_buffer = false;
 bool _debug_force_write_error = false;
 i32 _debug_write_error_code = EIO;
+u64 _debug_connection_wmax = 0;
 
 typedef struct {
 	OnRecvFn on_recv;
@@ -252,14 +253,18 @@ i32 connection_write_complete(Connection *connection) {
 		while (cur < common->wbuf_offset) {
 			if (_debug_force_write_error)
 				wlen = -1;
-			else
-				wlen = write(sock, common->wbuf + cur,
-					     common->wbuf_offset - cur);
+			else {
+				u64 wmax = !_debug_connection_wmax
+					       ? common->wbuf_offset - cur
+					       : _debug_connection_wmax;
+				wlen = write(sock, common->wbuf + cur, wmax);
+			}
 			if (wlen < 0) {
 				shutdown(sock, SHUT_RDWR);
 				return -1;
 			}
 			cur += wlen;
+			if (_debug_connection_wmax) break;
 		}
 
 		if (cur == common->wbuf_offset) {
