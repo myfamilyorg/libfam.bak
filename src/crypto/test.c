@@ -107,3 +107,31 @@ Test(sha1) {
 	ASSERT(!strcmp(out, "UPbAbd1BjBI1Q+p8zMFyP2vVIjw="),
 	       "UPbAbd1BjBI1Q+p8zMFyP2vVIjw=");
 }
+
+Test(rng) {
+	Rng rng;
+	u8 key[32] = {0};
+	u8 iv[16] = {1};
+	u64 v1 = 0, v2 = 0, v3 = 0, v4 = 0, v5 = 0, v6 = 0;
+	rng_init(&rng);
+	rng_gen(&rng, &v1, sizeof(u64));
+	rng_gen(&rng, &v2, sizeof(u64));
+	ASSERT(v1 != v2, "v1!=v2");
+	ASSERT(v1 != 0, "v1!=0");
+	ASSERT(v2 != 0, "v2!=0");
+
+	rng_test_seed(&rng, key, iv);
+	rng_gen(&rng, &v3, sizeof(u64));
+	rng_gen(&rng, &v4, sizeof(u64));
+	ASSERT_EQ(v3, 15566405176654077661UL, "v3=15566405176654077661");
+	ASSERT_EQ(v4, 2865243117314082982UL, "v4=2865243117314082982");
+
+	rng_reseed(&rng);
+
+	rng_gen(&rng, &v5, sizeof(u64));
+	rng_gen(&rng, &v6, sizeof(u64));
+	ASSERT(v5 != v6, "v5!=v6");
+	ASSERT(v5 != 0, "v5!=0");
+	ASSERT(v6 != 0, "v6!=0");
+}
+
