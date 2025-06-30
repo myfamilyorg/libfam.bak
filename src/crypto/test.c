@@ -29,28 +29,7 @@
 #include <sha1.H>
 #include <test.H>
 
-Test(crypto1) { ASSERT(1, "1"); }
-
-/*
 Test(aes1) {
-	const u8 key1[32] = {0};
-	const u8 iv1[16] = {0};
-	const u8 iv2[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5};
-	u8 buf[64] = {0};
-	AesContext ctx = {0};
-	aes_init(&ctx, key1, iv1);
-	aes_ctr_xcrypt_buffer(&ctx, buf, sizeof(buf));
-	println("buf0={}", buf[0]);
-	ASSERT_EQ(buf[0], 102, "aes102");
-	aes_set_iv(&ctx, iv2);
-	aes_ctr_xcrypt_buffer(&ctx, buf, sizeof(buf));
-	println("buf0={x}", buf[0]);
-	ASSERT_EQ(buf[0], 90, "aes90");
-}
-*/
-
-Test(aes1) {
-	i32 i;
 	u8 key[32] = {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe,
 		      0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
 		      0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7,
@@ -77,15 +56,7 @@ Test(aes1) {
 	aes_init(&ctx, key, iv);
 	aes_ctr_xcrypt_buffer(&ctx, in, 64);
 
-	for (i = 0; i < 64; i++) {
-		println("found[{}]={},expected[{}]={}", i, in[i], i, out[i]);
-	}
-
-	if (0 == memcmp((u8*)out, (u8*)in, 64)) {
-		println("SUCCESS!");
-	} else {
-		println("FAILURE!");
-	}
+	ASSERT(!memcmp((u8*)out, (u8*)in, 64), "aes256 test vector");
 }
 
 void hex_to_bytes(const char* hex, u8* bytes, u64 len) {

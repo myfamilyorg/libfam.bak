@@ -7,14 +7,10 @@ void aes_ctr_xcrypt_buffer(struct AES_ctx* ctx, u8* buf, u64 length) {
 	AES_CTR_xcrypt_buffer(ctx, buf, length);
 }
 
-void aes_set_iv(struct AES_ctx* ctx, const u8* iv) {
-	println("keylen={}", AES_KEYLEN);
-	AES_ctx_set_iv(ctx, iv);
-}
+void aes_set_iv(struct AES_ctx* ctx, const u8* iv) { AES_ctx_set_iv(ctx, iv); }
 
-void aes_init(struct AES_ctx* ctx, const u8* key) {
-	println("keylen={}", AES_KEYLEN);
-	AES_init_ctx(ctx, key);
+void aes_init(struct AES_ctx* ctx, const u8* key, const u8* iv) {
+	AES_init_ctx_iv(ctx, key, iv);
 }
 
 /*
