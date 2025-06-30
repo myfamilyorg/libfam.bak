@@ -418,3 +418,126 @@ Test(connection4) {
 
 	ASSERT_BYTES(0);
 }
+
+Test(connection5) {
+	u8 buf[64] = {0};
+	i32 fd;
+	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+				      c1_on_close, 0);
+	u16 port = evh_acceptor_port(c1);
+	Connection *c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
+				    c1_on_close, 0);
+	Connection *c3;
+	i32 mplex = multiplex();
+
+	while ((fd = socket_accept(connection_socket(c1))) == -1);
+	c3 = evh_accepted(fd, c1_on_recv, c1_on_close, 0);
+	ASSERT(c3, "c3!=NULL");
+
+	ASSERT_EQ(connection_type(c1), Acceptor, "Acceptor");
+	ASSERT_EQ(connection_type(c2), Outbound, "Outbound");
+	ASSERT_EQ(connection_type(c3), Inbound, "Inbound");
+
+	ASSERT(!connection_write(c3, "1", 1), "connection_write1");
+	while (read(connection_socket(c2), buf, sizeof(buf)) != 1) {
+	}
+	ASSERT_EQ(buf[0], '1', "1");
+
+	connection_set_mplex(c3, mplex);
+	_debug_force_write_error = true;
+	ASSERT(connection_write(c3, "y", 1), "connection_writey");
+	_debug_force_write_error = false;
+
+	close(mplex);
+	connection_close(c2);
+	connection_close(c1);
+	connection_release(c3);
+	connection_release(c2);
+	connection_release(c1);
+
+	ASSERT_BYTES(0);
+}
+
+Test(connection6) {
+	u8 buf[64] = {0};
+	i32 fd;
+	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+				      c1_on_close, 0);
+	u16 port = evh_acceptor_port(c1);
+	Connection *c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
+				    c1_on_close, 0);
+	Connection *c3;
+	i32 mplex = multiplex();
+
+	while ((fd = socket_accept(connection_socket(c1))) == -1);
+	c3 = evh_accepted(fd, c1_on_recv, c1_on_close, 0);
+	ASSERT(c3, "c3!=NULL");
+
+	ASSERT_EQ(connection_type(c1), Acceptor, "Acceptor");
+	ASSERT_EQ(connection_type(c2), Outbound, "Outbound");
+	ASSERT_EQ(connection_type(c3), Inbound, "Inbound");
+
+	ASSERT(!connection_write(c3, "1", 1), "connection_write1");
+	while (read(connection_socket(c2), buf, sizeof(buf)) != 1) {
+	}
+	ASSERT_EQ(buf[0], '1', "1");
+
+	connection_set_mplex(c3, mplex);
+	_debug_force_write_error = true;
+	_debug_write_error_code = EINTR;
+	/* Interrupt should retry */
+	ASSERT(!connection_write(c3, "y", 1), "connection_writey");
+	_debug_write_error_code = EIO;
+	_debug_force_write_error = false;
+
+	while (read(connection_socket(c2), buf, sizeof(buf)) != 1) {
+	}
+	ASSERT_EQ(buf[0], 'y', "y");
+
+	close(mplex);
+	connection_close(c2);
+	connection_close(c1);
+	connection_release(c3);
+	connection_release(c2);
+	connection_release(c1);
+
+	ASSERT_BYTES(0);
+}
+
+Test(connection7) {
+	i32 fd;
+	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+				      c1_on_close, 0);
+	u16 port = evh_acceptor_port(c1);
+	Connection *c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
+				    c1_on_close, 0);
+	Connection *c3;
+	i32 mplex = multiplex();
+
+	while ((fd = socket_accept(connection_socket(c1))) == -1);
+	c3 = evh_accepted(fd, c1_on_recv, c1_on_close, 0);
+	ASSERT(c3, "c3!=NULL");
+
+	ASSERT_EQ(connection_type(c1), Acceptor, "Acceptor");
+	ASSERT_EQ(connection_type(c2), Outbound, "Outbound");
+	ASSERT_EQ(connection_type(c3), Inbound, "Inbound");
+
+	_debug_force_write_buffer = true;
+	err = 0;
+	connection_set_mplex(c3, mplex);
+	ASSERT(!connection_write(c3, "1", 1), "connection_write1");
+	_debug_force_write_buffer = false;
+	connection_set_mplex(c3, -1);
+	_debug_force_write_error = true;
+	ASSERT_EQ(connection_write_complete(c3), -1, "write complete err");
+	_debug_force_write_error = false;
+
+	close(mplex);
+	connection_close(c2);
+	connection_close(c1);
+	connection_release(c3);
+	connection_release(c2);
+	connection_release(c1);
+
+	ASSERT_BYTES(0);
+}

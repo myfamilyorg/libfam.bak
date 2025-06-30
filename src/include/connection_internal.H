@@ -46,6 +46,8 @@ i32 connection_write_complete(Connection *connection);
 
 #if TEST == 1
 extern bool _debug_force_write_buffer;
+extern bool _debug_force_write_error;
+extern i32 _debug_write_error_code;
 #endif /* TEST */
 
 #endif /* _CONNECTION_INTERNAL_H */

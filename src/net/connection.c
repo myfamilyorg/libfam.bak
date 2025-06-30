@@ -37,6 +37,8 @@
 #define MIN_RESIZE (MIN_EXCESS * 2)
 
 bool _debug_force_write_buffer = false;
+bool _debug_force_write_error = false;
+i32 _debug_write_error_code = EIO;
 
 typedef struct {
 	OnRecvFn on_recv;
@@ -183,13 +185,17 @@ i32 connection_write(Connection *conn, const void *buf, u64 len) {
 		if (!common->wbuf_offset) {
 			u64 offset = 0;
 		write_block:
-			if (_debug_force_write_buffer)
+			if (_debug_force_write_error) {
+				wlen = -1;
+				err = _debug_write_error_code;
+			} else if (_debug_force_write_buffer)
 				wlen = 0;
 			else
 				wlen = write(conn->socket, (u8 *)buf + offset,
 					     len);
 			if (wlen < 0 && err == EINTR) {
 				if (wlen > 0) offset += wlen;
+				_debug_force_write_error = false;
 				goto write_block;
 			} else if (wlen < 0 && err == EAGAIN)
 				wlen = 0;
@@ -244,8 +250,11 @@ i32 connection_write_complete(Connection *connection) {
 		if (common->is_closed) return -1;
 
 		while (cur < common->wbuf_offset) {
-			wlen = write(sock, common->wbuf + cur,
-				     common->wbuf_offset - cur);
+			if (_debug_force_write_error)
+				wlen = -1;
+			else
+				wlen = write(sock, common->wbuf + cur,
+					     common->wbuf_offset - cur);
 			if (wlen < 0) {
 				shutdown(sock, SHUT_RDWR);
 				return -1;
