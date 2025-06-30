@@ -1,19 +1,11 @@
 #ifndef _AES_H_
 #define _AES_H_
 
+#include <aes.H>
 #include <types.H>
 
-#ifndef CTR
-#define CTR 1
-#endif
-
-#define AES256 1
-#define AES_BLOCKLEN 16
-#define AES_KEYLEN 32
-#define AES_keyExpSize 240
-
 struct AES_ctx {
-	u8 RoundKey[AES_keyExpSize];
+	u8 RoundKey[AES_KEYEXPSIZE];
 	u8 Iv[AES_BLOCKLEN];
 };
 

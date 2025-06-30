@@ -1,30 +1,24 @@
+#include <aes.H>
 #include <aes.h>
 #include <format.H>
 #include <misc.H>
 #include <types.H>
 
-void aes_ctr_xcrypt_buffer(struct AES_ctx* ctx, u8* buf, u64 length) {
-	AES_CTR_xcrypt_buffer(ctx, buf, length);
+void aes_ctr_xcrypt_buffer(AesContext* ctx, u8* buf, u64 length) {
+	AES_CTR_xcrypt_buffer((struct AES_ctx*)ctx, buf, length);
 }
 
-void aes_set_iv(struct AES_ctx* ctx, const u8* iv) { AES_ctx_set_iv(ctx, iv); }
+void aes_set_iv(AesContext* ctx, const u8* iv) {
+	AES_ctx_set_iv((struct AES_ctx*)ctx, iv);
+}
 
-void aes_init(struct AES_ctx* ctx, const u8* key, const u8* iv) {
-	AES_init_ctx_iv(ctx, key, iv);
+void aes_init(AesContext* ctx, const u8* key, const u8* iv) {
+	AES_init_ctx_iv((struct AES_ctx*)ctx, key, iv);
 }
 
 #define Nb 4
-
-#if defined(AES256) && (AES256 == 1)
 #define Nk 8
 #define Nr 14
-#elif defined(AES192) && (AES192 == 1)
-#define Nk 6
-#define Nr 12
-#else
-#define Nk 4
-#define Nr 10
-#endif
 
 typedef u8 state_t[4][4];
 
