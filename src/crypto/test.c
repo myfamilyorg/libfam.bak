@@ -54,6 +54,7 @@ Test(aes1) {
 	AesContext ctx;
 
 	aes_init(&ctx, key, iv);
+	aes_set_iv(&ctx, iv);
 	aes_ctr_xcrypt_buffer(&ctx, in, 64);
 
 	ASSERT(!memcmp((u8*)out, (u8*)in, 64), "aes256 test vector");

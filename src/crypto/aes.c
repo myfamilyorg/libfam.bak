@@ -118,9 +118,6 @@ static void KeyExpansion(u8* RoundKey, const u8* Key) {
 	}
 }
 
-void AES_init_ctx(AesContext* ctx, const u8* key) {
-	KeyExpansion(ctx->RoundKey, key);
-}
 void aes_init(AesContext* ctx, const u8* key, const u8* iv) {
 	KeyExpansion(ctx->RoundKey, key);
 	memcpy(ctx->Iv, iv, AES_BLOCKLEN);
