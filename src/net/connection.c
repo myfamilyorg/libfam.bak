@@ -427,9 +427,9 @@ void connection_release(Connection *conn) {
 		common->is_closed = true;
 		if (common->wbuf_capacity) release(common->wbuf);
 		common->wbuf_capacity = common->wbuf_offset = 0;
-		close(conn->socket);
-		release(conn);
 	}
+	close(conn->socket);
+	release(conn);
 }
 
 bool connection_is_connected(Connection *conn) {
