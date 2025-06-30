@@ -294,11 +294,14 @@ Test(channel1) {
 	ASSERT_EQ(msg2.y, 6, "y=6");
 	ASSERT(recv_now(&ch1, &msg2), "recv none");
 	channel_destroy(&ch1);
+
+	ASSERT_BYTES(0);
 }
 
 Test(channel2) {
 	Channel ch1 = channel(sizeof(TestMessage));
-	if (two()) {
+	i32 pid;
+	if ((pid = two())) {
 		TestMessage msg = {0};
 		recv(&ch1, &msg);
 		ASSERT_EQ(msg.x, 1, "x=1");
@@ -310,6 +313,8 @@ Test(channel2) {
 		send(&ch1, &msg);
 		exit(0);
 	}
+	waitid(P_PID, pid, NULL, WEXITED);
+	channel_destroy(&ch1);
 }
 
 Test(channel3) {
@@ -346,9 +351,9 @@ Test(channel3) {
 			ASSERT(!send(&ch1, &msg), "send3");
 			exit(0);
 		}
+		waitid(P_PID, pid, NULL, WEXITED);
 		channel_destroy(&ch1);
 		ASSERT_BYTES(0);
-		waitid(P_PID, pid, NULL, WEXITED);
 	}
 }
 

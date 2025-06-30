@@ -362,6 +362,7 @@ Test(atomic) {
 	ASSERT(!y, "!y");
 
 	ASSERT(!__cas64(&a64, &b64, 0), "cas64");
+	ASSERT_BYTES(0);
 }
 
 Test(pipe) {
@@ -383,6 +384,7 @@ Test(pipe) {
 		exit(0);
 	}
 	waitid(P_PID, fv, NULL, WEXITED);
+	ASSERT_BYTES(0);
 }
 
 Test(colors) {
@@ -490,6 +492,7 @@ Test(colors) {
 	unlink(test_file);
 
 	unsetenv("NO_COLOR");
+	ASSERT_BYTES(0);
 }
 
 Test(env) {
@@ -513,6 +516,7 @@ Test(env) {
 	ASSERT_EQ(_debug_alloc_failure, 0, "alloc_failure_reset");
 	ASSERT_EQ(_debug_alloc_failure_bypass_count, 0,
 		  "_debug_alloc_failure_bypass_count");
+	ASSERT_BYTES(0);
 }
 
 i32 *__error(void);
@@ -761,6 +765,7 @@ Test(errors) {
 	_debug_no_write = true;
 	perror("test");
 	_debug_no_write = false;
+	ASSERT_BYTES(0);
 }
 
 extern i32 cur_tasks, has_begun;
@@ -885,6 +890,7 @@ Test(timeout4) {
 	signals_init();
 	_debug_no_write = false;
 	_debug_set_timeout_fail = false;
+	ASSERT_BYTES(0);
 }
 
 Test(two1) {
@@ -1020,6 +1026,7 @@ Test(misc) {
 	    !string_to_uint128("999999999999999999999999999999999999999", 39),
 	    "overflow");
 	ASSERT_EQ(err, EINVAL, "einval");
+	ASSERT_BYTES(0);
 }
 
 Test(udivti3) {
@@ -1187,6 +1194,7 @@ Test(double_to_string) {
 	len = double_to_string(buf, 123.456, -1);
 	ASSERT(!strcmp(buf, "123"), "neg_decimals");
 	ASSERT_EQ(len, 3, "neg_decimals_len");
+	ASSERT_BYTES(0);
 }
 
 Test(b64) {
@@ -1489,6 +1497,7 @@ Test(slab_concurrent) {
 	}
 	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
 	alloc_destroy(a);
+	ASSERT_BYTES(0);
 }
 
 Test(slab_failure) {
@@ -1544,6 +1553,7 @@ Test(multi_chunk_concurrent) {
 	}
 	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
 	alloc_destroy(a);
+	ASSERT_BYTES(0);
 }
 
 Test(multi_chunk_fragmentation) {
@@ -1594,6 +1604,7 @@ Test(resize_edge_cases) {
 	release_impl(a, p4);
 	ASSERT_EQ(allocated_bytes_impl(a), 0, "alloc=0");
 	alloc_destroy(a);
+	ASSERT_BYTES(0);
 }
 
 Test(test_hex) {
@@ -1604,4 +1615,6 @@ Test(test_hex) {
 	format_clear(&f);
 	format(&f, "x={X}", -0xccd);
 	ASSERT(!strcmp(format_to_string(&f), "x=-0xCCD"), "strcmp2");
+	format_clear(&f);
+	ASSERT_BYTES(0);
 }
