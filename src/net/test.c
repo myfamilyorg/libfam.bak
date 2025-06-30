@@ -574,9 +574,16 @@ Test(connection8) {
 	ASSERT_EQ(buf[0], '1', "1");
 	_debug_connection_wmax = 0;
 
+	ASSERT(connection_set_rbuf_offset(c1, 1), "invalid for acceptor");
+
 	close(mplex);
+	connection_close(c3);
 	connection_close(c2);
 	connection_close(c1);
+
+	ASSERT_EQ(connection_write_complete(c3), -1, "write closed");
+	ASSERT(connection_alloc_overhead(NULL), "input validation");
+
 	connection_release(c3);
 	connection_release(c2);
 	connection_release(c1);

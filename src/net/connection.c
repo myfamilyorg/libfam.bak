@@ -296,10 +296,6 @@ i32 connection_close(Connection *connection) {
 		return close(connection->socket);
 	} else {
 		ConnectionCommon *common = connection_common(connection);
-		if (!common) {
-			err = EINVAL;
-			return -1;
-		}
 		LockGuard lg = wlock(&common->lock);
 		if (common->is_closed) {
 			err = EIO;
