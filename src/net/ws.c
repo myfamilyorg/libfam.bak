@@ -361,11 +361,11 @@ i32 ws_send(Ws *ws, u64 id, WsMessage *msg) {
 	u8 buf[10];
 	u64 header_len;
 	RbTreeNodePair retval;
-	/*RbTreeNode *root;*/
+	RbTreeNode *root;
 
 	buf[0] = 0x82;
 	conn.id = id;
-	/*root = ws->connections.root;*/
+	root = ws->connections.root;
 
 	if (msg->len <= 125) {
 		buf[1] = (u8)msg->len;
@@ -390,19 +390,12 @@ i32 ws_send(Ws *ws, u64 id, WsMessage *msg) {
 
 	{
 		LockGuard lg = wlock(&ws->lock);
-		/*Connection *sres;*/
-		println("search id = {}", conn.id);
-		ws_rbtree_search(ws->connections.root, (RbTreeNode *)&conn,
-				 &retval);
-		/*sres = (Connection *)&retval.self;*/
-		println("x");
-		if (!retval.self) return -1;
-		println("a");
-		if (connection_write((Connection *)retval.self, buf,
-				     header_len) < 0)
-			return -1;
-		return connection_write((Connection *)retval.self, msg->buffer,
-					msg->len);
+		Connection *sres;
+		ws_rbtree_search(root, (RbTreeNode *)&conn, &retval);
+		sres = (Connection *)retval.self;
+		if (!sres) return -1;
+		if (connection_write(sres, buf, header_len) < 0) return -1;
+		return connection_write(sres, msg->buffer, msg->len);
 	}
 }
 
