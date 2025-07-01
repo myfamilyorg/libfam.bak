@@ -38,11 +38,12 @@ typedef void (*OnCloseFn)(void *ctx, Connection *conn);
 typedef void (*OnConnectFn)(void *ctx, Connection *conn, int error);
 
 Connection *connection_acceptor(const u8 addr[4], u16 port, u16 backlog,
-			 OnRecvFn on_recv, OnAcceptFn on_accept,
-			 OnCloseFn on_close, u64 connection_alloc_overhead);
+				OnRecvFn on_recv, OnAcceptFn on_accept,
+				OnCloseFn on_close,
+				u64 connection_alloc_overhead);
 Connection *connection_client(const u8 addr[4], u16 port, OnRecvFn on_recv,
-		       OnConnectFn on_connect, OnCloseFn on_close,
-		       u64 connection_alloc_overhead);
+			      OnConnectFn on_connect, OnCloseFn on_close,
+			      u64 connection_alloc_overhead);
 
 u16 connection_acceptor_port(const Connection *conn);
 i32 connection_close(Connection *connection);
@@ -55,5 +56,6 @@ ConnectionType connection_type(Connection *conn);
 i32 connection_socket(Connection *conn);
 bool connection_is_connected(Connection *conn);
 u64 connection_size(void);
+void connection_release(Connection *conn);
 
 #endif /* _CONNECTION_H */

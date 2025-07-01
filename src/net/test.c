@@ -33,6 +33,7 @@
 #include <sys.H>
 #include <syscall_const.H>
 #include <test.H>
+#include <ws.H>
 
 u8 LOCALHOST[4] = {127, 0, 0, 1};
 
@@ -217,16 +218,16 @@ u8 BAD_ADDR[4] = {255, 255, 255, 255};
 Test(connection1) {
 	u16 port;
 	Connection *c2;
-	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
-				      c1_on_close, 0);
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv,
+					     c1_on_accept, c1_on_close, 0);
 	ASSERT(c1, "c1");
 	port = connection_acceptor_port(c1);
-	ASSERT(!connection_acceptor(LOCALHOST, port, 1, c1_on_recv, c1_on_accept,
-			     c1_on_close, 0),
+	ASSERT(!connection_acceptor(LOCALHOST, port, 1, c1_on_recv,
+				    c1_on_accept, c1_on_close, 0),
 	       "port used");
 
-	c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect, c1_on_close,
-			0);
+	c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
+			       c1_on_close, 0);
 	ASSERT(!connection_acceptor_port(c2), "not acceptor");
 	ASSERT(connection_set_mplex(c1, 0), "set mplex acceptor err");
 	ASSERT(connection_write(c1, "x", 1), "write to acceptor");
@@ -240,11 +241,11 @@ Test(connection1) {
 	connection_release(c2);
 
 	ASSERT(!connection_client(BAD_ADDR, port, c1_on_recv, c1_on_connect,
-			   c1_on_close, 0),
+				  c1_on_close, 0),
 	       "bad addr");
 
 	c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
-			  c1_on_close, 0);
+				 c1_on_close, 0);
 
 	connection_close(c1);
 	connection_release(c1);
@@ -255,11 +256,11 @@ Test(connection1) {
 Test(connection2) {
 	u8 buf[64] = {0};
 	i32 fd;
-	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
-				      c1_on_close, 0);
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv,
+					     c1_on_accept, c1_on_close, 0);
 	u16 port = connection_acceptor_port(c1);
-	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
-				    c1_on_close, 0);
+	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv,
+					   c1_on_connect, c1_on_close, 0);
 	Connection *c3;
 	i32 mplex = multiplex();
 
@@ -336,11 +337,11 @@ Test(connection2) {
 Test(connection3) {
 	u8 buf[64] = {0};
 	i32 fd;
-	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
-				      c1_on_close, 0);
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv,
+					     c1_on_accept, c1_on_close, 0);
 	u16 port = connection_acceptor_port(c1);
-	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
-				    c1_on_close, 0);
+	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv,
+					   c1_on_connect, c1_on_close, 0);
 	Connection *c3;
 	i32 mplex = multiplex();
 
@@ -381,11 +382,11 @@ Test(connection3) {
 Test(connection4) {
 	u8 buf[64] = {0};
 	i32 fd;
-	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
-				      c1_on_close, 0);
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv,
+					     c1_on_accept, c1_on_close, 0);
 	u16 port = connection_acceptor_port(c1);
-	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
-				    c1_on_close, 0);
+	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv,
+					   c1_on_connect, c1_on_close, 0);
 	Connection *c3;
 	i32 mplex = multiplex();
 
@@ -421,11 +422,11 @@ Test(connection4) {
 Test(connection5) {
 	u8 buf[64] = {0};
 	i32 fd;
-	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
-				      c1_on_close, 0);
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv,
+					     c1_on_accept, c1_on_close, 0);
 	u16 port = connection_acceptor_port(c1);
-	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
-				    c1_on_close, 0);
+	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv,
+					   c1_on_connect, c1_on_close, 0);
 	Connection *c3;
 	i32 mplex = multiplex();
 
@@ -460,11 +461,11 @@ Test(connection5) {
 Test(connection6) {
 	u8 buf[64] = {0};
 	i32 fd;
-	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
-				      c1_on_close, 0);
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv,
+					     c1_on_accept, c1_on_close, 0);
 	u16 port = connection_acceptor_port(c1);
-	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
-				    c1_on_close, 0);
+	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv,
+					   c1_on_connect, c1_on_close, 0);
 	Connection *c3;
 	i32 mplex = multiplex();
 
@@ -505,11 +506,11 @@ Test(connection6) {
 
 Test(connection7) {
 	i32 fd;
-	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
-				      c1_on_close, 0);
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv,
+					     c1_on_accept, c1_on_close, 0);
 	u16 port = connection_acceptor_port(c1);
-	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
-				    c1_on_close, 0);
+	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv,
+					   c1_on_connect, c1_on_close, 0);
 	Connection *c3;
 	i32 mplex = multiplex();
 
@@ -544,11 +545,11 @@ Test(connection7) {
 Test(connection8) {
 	u8 buf[64] = {0};
 	i32 fd;
-	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
-				      c1_on_close, 0);
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv,
+					     c1_on_accept, c1_on_close, 0);
 	u16 port = connection_acceptor_port(c1);
-	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
-				    c1_on_close, 0);
+	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv,
+					   c1_on_connect, c1_on_close, 0);
 	Connection *c3;
 	i32 mplex = multiplex();
 
@@ -637,10 +638,10 @@ Test(evh1) {
 	*evh1_on_connect_val = 0;
 
 	acceptor = connection_acceptor(LOCALHOST, port, 10, evh1_on_recv,
-				evh1_on_accept, evh1_on_close, 0);
+				       evh1_on_accept, evh1_on_close, 0);
 	port = connection_acceptor_port(acceptor);
 	conn = connection_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
-			  evh1_on_close, 0);
+				 evh1_on_close, 0);
 	evh1 = evh_start(&ctx);
 	evh_register(evh1, acceptor);
 	evh_register(evh1, conn);
@@ -665,8 +666,9 @@ Test(evh2) {
 	i32 ctx = 102;
 	u16 port = 0;
 	Connection *conn;
-	Connection *acceptor = connection_acceptor(LOCALHOST, port, 10, evh1_on_recv,
-					    evh1_on_accept, evh1_on_close, 0);
+	Connection *acceptor =
+	    connection_acceptor(LOCALHOST, port, 10, evh1_on_recv,
+				evh1_on_accept, evh1_on_close, 0);
 	evh1_complete = alloc(sizeof(u64));
 	ASSERT(evh1_complete, "evh1_complete");
 	*evh1_complete = 0;
@@ -677,19 +679,19 @@ Test(evh2) {
 
 	port = connection_acceptor_port(acceptor);
 	conn = connection_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
-			  evh1_on_close, 0);
+				 evh1_on_close, 0);
 	_debug_alloc_failure = 1;
 	proc_acceptor(NULL, acceptor, &ctx);
 
 	connection_release(conn);
 	conn = connection_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
-			  evh1_on_close, 0);
+				 evh1_on_close, 0);
 
 	_debug_alloc_failure = 1;
 	proc_read(conn, &ctx);
 
 	conn = connection_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
-			  evh1_on_close, 0);
+				 evh1_on_close, 0);
 
 	_debug_fail_setsockopt = true;
 	ASSERT_EQ(proc_write(NULL, conn), -1, "fail proc_write");
@@ -718,10 +720,10 @@ Test(evh3) {
 	*evh1_on_connect_val = 0;
 
 	acceptor = connection_acceptor(LOCALHOST, port, 10, evh1_on_recv,
-				evh1_on_accept, evh1_on_close, 0);
+				       evh1_on_accept, evh1_on_close, 0);
 	port = connection_acceptor_port(acceptor);
 	conn = connection_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
-			  evh1_on_close, 0);
+				 evh1_on_close, 0);
 	connection_set_is_connected(conn);
 	evh1 = evh_start(&ctx);
 	evh_register(evh1, acceptor);
@@ -742,10 +744,10 @@ Test(evh4) {
 	u16 port = 0;
 	Connection *conn, *acceptor;
 	acceptor = connection_acceptor(LOCALHOST, port, 10, evh1_on_recv,
-				evh1_on_accept, evh1_on_close, 0);
+				       evh1_on_accept, evh1_on_close, 0);
 	port = connection_acceptor_port(acceptor);
 	conn = connection_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
-			  evh1_on_close, 0);
+				 evh1_on_close, 0);
 	_debug_invalid_connection_type = true;
 	ASSERT_EQ(evh_register(NULL, conn), -1, "invalid connection type");
 	_debug_invalid_connection_type = false;
@@ -765,6 +767,44 @@ Test(evh4) {
 	_debug_fail_mregister = true;
 	ASSERT(!evh_start(&ctx), "mregister");
 	_debug_fail_mregister = false;
+
+	ASSERT_BYTES(0);
+}
+
+void ws1_on_message(WsConnection *conn, WsMessage *msg) {
+	u8 buf[2048];
+	u16 len = 2047;
+	if (msg->len < len) len = msg->len;
+	memcpy(buf, msg->buffer, msg->len);
+	buf[len] = 0;
+	println("msg[{}]='{}'", ws_conn_id(conn), buf);
+}
+void ws1_on_connect(WsConnection *conn, i32 err) {
+	if (conn || err) {
+	}
+}
+void ws1_on_open(WsConnection *conn) {
+	println("ws on open {}", ws_conn_id(conn));
+	if (conn) {
+	}
+}
+void ws1_on_close(WsConnection *conn) {
+	println("ws on close {}", ws_conn_id(conn));
+	if (conn) {
+	}
+}
+
+Test(ws1) {
+	WsConfig config = {{127, 0, 0, 1}, 9090, 100, 2};
+	Ws *ws = ws_init(&config, ws1_on_message, ws1_on_open, ws1_on_close,
+			 ws1_on_connect);
+
+	ws_start(ws);
+
+	/*sleepm(100000000);*/
+
+	ws_stop(ws);
+	ws_destroy(ws);
 
 	ASSERT_BYTES(0);
 }

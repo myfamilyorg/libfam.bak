@@ -30,9 +30,8 @@
 
 /* Internal Only functions */
 Connection *connection_accepted(i32 fd, OnRecvFn on_recv, OnCloseFn on_close,
-			 u64 connection_alloc_overhead);
+				u64 connection_alloc_overhead);
 void connection_set_is_connected(Connection *conn);
-void connection_release(Connection *conn);
 i32 connection_check_capacity(Connection *conn);
 i64 connection_alloc_overhead(Connection *conn);
 OnAcceptFn connection_on_accept(Connection *conn);
