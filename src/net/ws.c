@@ -360,7 +360,7 @@ i32 ws_send(Ws *ws, u64 id, WsMessage *msg) {
 	WsConnection conn;
 	u8 buf[10];
 	u64 header_len;
-	RbTreeNodePair retval;
+	RbTreeNodePair retval = {0};
 	RbTreeNode *root;
 
 	buf[0] = 0x82;
