@@ -36,6 +36,10 @@
 
 #define MAX_EVENTS 128
 
+#define GCOV_EXIT                        \
+	__gcov_dump();                   \
+	ASTORE(&evh->stopped, getpid()); \
+	exit(0);
 #ifdef COVERAGE
 void __gcov_dump(void);
 #endif /* COVERAGE */
@@ -155,9 +159,11 @@ end_while:
 	close(wakeup);
 #ifdef COVERAGE
 	/* dump coverage info before allowing parent to proceed */
-	__gcov_dump();
-#endif
+	GCOV_EXIT
+#else
 	ASTORE(&evh->stopped, getpid());
+	exit(0);
+#endif /* COVERAGE */
 }
 
 STATIC i32 init_event_loop(Evh *evh, void *ctx) {
@@ -184,7 +190,6 @@ STATIC i32 init_event_loop(Evh *evh, void *ctx) {
 	if (pid == 0) {
 		/* Child process */
 		event_loop(evh, ctx, fds[0]);
-		exit(0);
 	}
 
 	return 0;

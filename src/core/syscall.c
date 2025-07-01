@@ -35,6 +35,8 @@ bool _debug_fail_getsockbyname = false;
 bool _debug_fail_listen = false;
 bool _debug_fail_setsockopt = false;
 bool _debug_fail_fcntl = false;
+bool _debug_fail_epoll_create1 = false;
+bool _debug_fail_clone3 = false;
 
 #define SET_ERR_VALUE       \
 	if (ret < 0) {      \
@@ -492,6 +494,9 @@ DEFINE_SYSCALL2(62, i32, kill, i32, pid, i32, signal)
 #endif /* Arch */
 
 i32 clone3(struct clone_args *args, u64 size) {
+#if TEST == 1
+	if (_debug_fail_clone3) return -1;
+#endif /* TEST */
 	i32 ret = syscall_clone3(args, size);
 	SET_ERR
 }
@@ -606,6 +611,10 @@ i32 setsockopt(i32 sockfd, i32 level, i32 optname, const void *optval,
 }
 
 i32 getsockopt(i32 sockfd, i32 level, i32 optname, void *optval, u32 *optlen) {
+#if TEST == 1
+	if (_debug_fail_setsockopt) return -1;
+#endif /* TEST */
+
 	i32 ret = syscall_getsockopt(sockfd, level, optname, optval, optlen);
 	SET_ERR
 }
@@ -689,6 +698,10 @@ i32 settimeofday(const struct timeval *tv, const struct timezone *tz) {
 	SET_ERR
 }
 i32 epoll_create1(i32 flags) {
+#if TEST == 1
+	if (_debug_fail_epoll_create1) return -1;
+#endif /* TEST */
+
 	i32 ret = syscall_epoll_create1(flags);
 	SET_ERR
 }

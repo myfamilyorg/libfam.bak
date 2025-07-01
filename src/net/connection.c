@@ -40,6 +40,7 @@ bool _debug_force_write_buffer = false;
 bool _debug_force_write_error = false;
 i32 _debug_write_error_code = EIO;
 u64 _debug_connection_wmax = 0;
+bool _debug_invalid_connection_type = false;
 
 typedef struct {
 	OnRecvFn on_recv;
@@ -346,7 +347,10 @@ u64 connection_rbuf_capacity(Connection *conn) {
 	return common->rbuf_capacity;
 }
 
-ConnectionType connection_type(Connection *conn) { return conn->conn_type; }
+ConnectionType connection_type(Connection *conn) {
+	if (_debug_invalid_connection_type) return -1;
+	return conn->conn_type;
+}
 
 i32 connection_set_mplex(Connection *conn, i32 mplex) {
 	ConnectionCommon *common = connection_common(conn);

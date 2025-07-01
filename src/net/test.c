@@ -659,6 +659,7 @@ Test(evh1) {
 
 void proc_acceptor(Evh *evh, Connection *acceptor, void *ctx);
 void proc_read(Connection *conn, void *ctx);
+i32 proc_write(Evh *evh, Connection *conn);
 
 Test(evh2) {
 	i32 ctx = 102;
@@ -687,9 +688,84 @@ Test(evh2) {
 	_debug_alloc_failure = 1;
 	proc_read(conn, &ctx);
 
+	conn = evh_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
+			  evh1_on_close, 0);
+
+	_debug_fail_setsockopt = true;
+	ASSERT_EQ(proc_write(NULL, conn), -1, "fail proc_write");
+	_debug_fail_setsockopt = false;
+	connection_release(conn);
+
 	connection_release(acceptor);
 	release(evh1_on_connect_val);
 	release(evh1_complete);
 
 	ASSERT_BYTES(0);
 }
+
+Test(evh3) {
+	i32 ctx = 102;
+	u16 port = 0;
+	Evh *evh1;
+	Connection *acceptor, *conn;
+
+	evh1_complete = alloc(sizeof(u64));
+	ASSERT(evh1_complete, "evh1_complete");
+	*evh1_complete = 0;
+
+	evh1_on_connect_val = alloc(sizeof(u64));
+	ASSERT(evh1_on_connect_val, "evh1_on_connect_val");
+	*evh1_on_connect_val = 0;
+
+	acceptor = evh_acceptor(LOCALHOST, port, 10, evh1_on_recv,
+				evh1_on_accept, evh1_on_close, 0);
+	port = evh_acceptor_port(acceptor);
+	conn = evh_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
+			  evh1_on_close, 0);
+	connection_set_is_connected(conn);
+	evh1 = evh_start(&ctx);
+	evh_register(evh1, acceptor);
+	evh_register(evh1, conn);
+
+	connection_close(conn);
+	while (!ALOAD(evh1_complete));
+	evh_stop(evh1);
+	connection_release(acceptor);
+	release(evh1_complete);
+	release(evh1_on_connect_val);
+
+	ASSERT_BYTES(0);
+}
+
+Test(evh4) {
+	i32 ctx = 102;
+	u16 port = 0;
+	Connection *conn, *acceptor;
+	acceptor = evh_acceptor(LOCALHOST, port, 10, evh1_on_recv,
+				evh1_on_accept, evh1_on_close, 0);
+	port = evh_acceptor_port(acceptor);
+	conn = evh_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
+			  evh1_on_close, 0);
+	_debug_invalid_connection_type = true;
+	ASSERT_EQ(evh_register(NULL, conn), -1, "invalid connection type");
+	_debug_invalid_connection_type = false;
+
+	connection_close(conn);
+	connection_release(conn);
+	connection_release(acceptor);
+
+	_debug_fail_clone3 = true;
+	ASSERT(!evh_start(&ctx), "clone3");
+	_debug_fail_clone3 = false;
+
+	_debug_fail_epoll_create1 = true;
+	ASSERT(!evh_start(&ctx), "epoll_create1");
+	_debug_fail_epoll_create1 = false;
+
+	_debug_fail_mregister = true;
+	ASSERT(!evh_start(&ctx), "mregister");
+	_debug_fail_mregister = false;
+
+	ASSERT_BYTES(0);
+}
+

@@ -47,4 +47,8 @@ i32 event_is_read(Event event);
 i32 event_is_write(Event event);
 void *event_attachment(Event event);
 
+#if TEST == 1
+extern bool _debug_fail_mregister;
+#endif /* TEST */
+
 #endif /* _EVENT_H */

@@ -34,12 +34,18 @@
 
 STATIC_ASSERT(sizeof(Event) == sizeof(struct epoll_event), event_match);
 
+bool _debug_fail_mregister = false;
+
 i32 multiplex(void) { return epoll_create1(0); }
 
 i32 mregister(i32 multiplex, i32 fd, i32 flags, void *attach) {
 	struct epoll_event ev = {0};
 	i32 event_flags = 0;
 	i32 ret;
+
+#if TEST == 1
+	if (_debug_fail_mregister) return -1;
+#endif /* TEST */
 
 	if (multiplex < 0 || fd < 0) {
 		err = EINVAL;
