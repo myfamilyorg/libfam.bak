@@ -446,3 +446,5 @@ void connection_set_is_connected(Connection *conn) {
 	if (conn->conn_type == Outbound || conn->conn_type == Inbound)
 		conn->data.outbound.is_connected = true;
 }
+
+u64 connection_size(void) { return sizeof(Connection); }
