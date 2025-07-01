@@ -3,7 +3,7 @@
 [![CI Pipeline](https://github.com/myfamilyorg/libfam/actions/workflows/main.yml/badge.svg)](https://github.com/myfamilyorg/libfam/actions/workflows/main.yml)
 [![Release Version](https://img.shields.io/github/v/release/myfamilyorg/libfam.svg?color=blue)](https://github.com/myfamilyorg/libfam/releases)
 [![Docmentation](https://img.shields.io/static/v1?label=Documentation&message=Github+Pages&color=orange)](https://myfamilyorg.github.io/libfam/)
-[![Code Coverage Charts](https://img.shields.io/static/v1?label=Code%20Coverage%20Charts&message=100.00%&color=purple)](https://myfamilyorg.github.io/libfam/code_coverage.html)
+[![Code Coverage Charts](https://img.shields.io/static/v1?label=Code%20Coverage%20Charts&message=97.83%&color=purple)](https://myfamilyorg.github.io/libfam/code_coverage.html)
 [![License](https://img.shields.io/github/license/myfamilyorg/libfam.svg)](https://github.com/myfamilyorg/libfam/blob/master/LICENSE)
 [![Stars](https://img.shields.io/github/stars/myfamilyorg/libfam.svg?style=social)](https://github.com/myfamilyorg/libfam/stargazers)
 
