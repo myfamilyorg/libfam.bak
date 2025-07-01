@@ -34,7 +34,7 @@
 #include <sha1.H>
 #include <ws.H>
 
-#define CONNECTION_SIZE 128
+#define CONNECTION_SIZE 112
 
 struct Ws {
 	Evh **evh;

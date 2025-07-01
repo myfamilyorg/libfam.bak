@@ -58,11 +58,11 @@ typedef struct {
 	Lock lock;
 	bool is_closed;
 	u8 *rbuf;
-	u64 rbuf_capacity;
-	u64 rbuf_offset;
+	u32 rbuf_capacity;
+	u32 rbuf_offset;
 	u8 *wbuf;
-	u64 wbuf_capacity;
-	u64 wbuf_offset;
+	u32 wbuf_capacity;
+	u32 wbuf_offset;
 } ConnectionCommon;
 
 typedef struct {
@@ -220,8 +220,16 @@ i32 connection_write(Connection *conn, const void *buf, u64 len) {
 			}
 		}
 		if (common->wbuf_offset + len - wlen > common->wbuf_capacity) {
-			void *tmp = resize(common->wbuf,
-					   common->wbuf_offset + len - wlen);
+			void *tmp;
+			u64 needed = common->wbuf_offset + len + wlen;
+			if (needed > U32_MAX) {
+				shutdown(conn->socket, SHUT_RDWR);
+				common->is_closed = true;
+				return -1;
+			}
+
+			tmp = resize(common->wbuf,
+				     common->wbuf_offset + len - wlen);
 			if (!tmp) {
 				shutdown(conn->socket, SHUT_RDWR);
 				common->is_closed = true;
@@ -310,7 +318,7 @@ i32 connection_close(Connection *connection) {
 	}
 }
 
-void connection_clear_rbuf_through(Connection *conn, u64 off) {
+void connection_clear_rbuf_through(Connection *conn, u32 off) {
 	ConnectionCommon *common = connection_common(conn);
 	if (!common || off > common->rbuf_offset) return;
 	memorymove(common->rbuf, common->rbuf + off, common->rbuf_offset - off);
@@ -328,7 +336,7 @@ u8 *connection_rbuf(Connection *conn) {
 	return common->rbuf;
 }
 
-u64 connection_rbuf_offset(Connection *conn) {
+u32 connection_rbuf_offset(Connection *conn) {
 	ConnectionCommon *common = connection_common(conn);
 	if (!common) return 0;
 	return common->rbuf_offset;
@@ -344,7 +352,7 @@ i32 connection_set_rbuf_offset(Connection *conn, u64 noffset) {
 	return 0;
 }
 
-u64 connection_rbuf_capacity(Connection *conn) {
+u32 connection_rbuf_capacity(Connection *conn) {
 	ConnectionCommon *common = connection_common(conn);
 	if (!common) return 0;
 	return common->rbuf_capacity;

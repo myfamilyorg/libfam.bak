@@ -39,7 +39,7 @@ OnRecvFn connection_on_recv(Connection *conn);
 OnCloseFn connection_on_close(Connection *conn);
 OnConnectFn connection_on_connect(Connection *conn);
 i32 connection_set_mplex(Connection *conn, i32 mplex);
-u64 connection_rbuf_capacity(Connection *conn);
+u32 connection_rbuf_capacity(Connection *conn);
 i32 connection_set_rbuf_offset(Connection *conn, u64 noffset);
 i32 connection_write_complete(Connection *connection);
 
