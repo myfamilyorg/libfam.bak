@@ -657,3 +657,39 @@ Test(evh1) {
 	ASSERT_BYTES(0);
 }
 
+void proc_acceptor(Evh *evh, Connection *acceptor, void *ctx);
+void proc_read(Connection *conn, void *ctx);
+
+Test(evh2) {
+	i32 ctx = 102;
+	u16 port = 0;
+	Connection *conn;
+	Connection *acceptor = evh_acceptor(LOCALHOST, port, 10, evh1_on_recv,
+					    evh1_on_accept, evh1_on_close, 0);
+	evh1_complete = alloc(sizeof(u64));
+	ASSERT(evh1_complete, "evh1_complete");
+	*evh1_complete = 0;
+
+	evh1_on_connect_val = alloc(sizeof(u64));
+	ASSERT(evh1_on_connect_val, "evh1_on_connect_val");
+	*evh1_on_connect_val = 0;
+
+	port = evh_acceptor_port(acceptor);
+	conn = evh_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
+			  evh1_on_close, 0);
+	_debug_alloc_failure = 1;
+	proc_acceptor(NULL, acceptor, &ctx);
+
+	connection_release(conn);
+	conn = evh_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
+			  evh1_on_close, 0);
+
+	_debug_alloc_failure = 1;
+	proc_read(conn, &ctx);
+
+	connection_release(acceptor);
+	release(evh1_on_connect_val);
+	release(evh1_complete);
+
+	ASSERT_BYTES(0);
+}
