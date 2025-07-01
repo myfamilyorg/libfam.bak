@@ -29,10 +29,12 @@
 #include <error.H>
 #include <evh.H>
 #include <format.H>
+#include <lock.H>
+#include <rbtree.H>
 #include <sha1.H>
 #include <ws.H>
 
-#define CONNECTION_SIZE 104
+#define CONNECTION_SIZE 128
 
 struct Ws {
 	Evh **evh;
@@ -44,6 +46,8 @@ struct Ws {
 	WsConfig config;
 	u64 next_id;
 	Connection *acceptor;
+	RbTree connections;
+	Lock lock;
 };
 
 struct WsConnection {
@@ -63,6 +67,28 @@ static const u8 *SWITCHING_PROTOS =
 Upgrade: websocket\r\n\
 Connection: Upgrade\r\n\
 Sec-WebSocket-Accept: ";
+
+STATIC i32 ws_rbtree_search(RbTreeNode *cur, const RbTreeNode *value,
+			    RbTreeNodePair *retval) {
+	while (cur) {
+		u64 v1 = ((WsConnection *)cur)->id;
+		u64 v2 = ((WsConnection *)value)->id;
+		if (v1 == v2) {
+			retval->self = cur;
+			break;
+		} else if (v1 < v2) {
+			retval->parent = cur;
+			retval->is_right = 1;
+			cur = cur->right;
+		} else {
+			retval->parent = cur;
+			retval->is_right = 0;
+			cur = cur->left;
+		}
+		retval->self = cur;
+	}
+	return 0;
+}
 
 STATIC void __attribute__((constructor)) _check_connection_size(void) {
 	if (connection_size() != CONNECTION_SIZE)
@@ -141,7 +167,7 @@ STATIC i32 proc_message_single(Ws *ws, WsConnection *wsconn, u64 offset,
 	u8 *rbuf = connection_rbuf((Connection *)wsconn);
 	msg.buffer = rbuf + offset;
 	msg.len = len;
-	ws->on_message(wsconn, &msg);
+	ws->on_message(ws, wsconn, &msg);
 	return 0;
 }
 
@@ -223,7 +249,13 @@ STATIC void ws_on_accept_proc(void *ctx, Connection *conn) {
 	WsConnection *wsconn = (WsConnection *)conn;
 	wsconn->id = __add64(&ws->next_id, 1);
 	wsconn->handshake_complete = false;
-	ws->on_open(wsconn);
+	{
+		LockGuard lg = wlock(&ws->lock);
+
+		rbtree_put(&ws->connections, (RbTreeNode *)wsconn,
+			   ws_rbtree_search);
+	}
+	ws->on_open(ws, wsconn);
 }
 
 STATIC void ws_on_recv_proc(void *ctx, Connection *conn,
@@ -257,7 +289,12 @@ STATIC void ws_on_recv_proc(void *ctx, Connection *conn,
 STATIC void ws_on_close_proc(void *ctx, Connection *conn) {
 	Ws *ws = ctx;
 	WsConnection *wsconn = (WsConnection *)conn;
-	ws->on_close(wsconn);
+	{
+		LockGuard lg = wlock(&ws->lock);
+		rbtree_remove(&ws->connections, (RbTreeNode *)wsconn,
+			      ws_rbtree_search);
+	}
+	ws->on_close(ws, wsconn);
 }
 
 Ws *ws_init(WsConfig *config, OnMessage on_message, OnOpen on_open,
@@ -286,6 +323,8 @@ Ws *ws_init(WsConfig *config, OnMessage on_message, OnOpen on_open,
 	ret->on_open = on_open;
 	ret->on_close = on_close;
 	ret->next_id = 0;
+	ret->connections = RBTREE_INIT;
+	ret->lock = LOCK_INIT;
 	return ret;
 }
 
@@ -317,10 +356,54 @@ void ws_destroy(Ws *ws) {
 	release(ws);
 }
 
-i32 ws_send(u64 id, WsMessage *msg) {
-	if (id || msg) {
+i32 ws_send(Ws *ws, u64 id, WsMessage *msg) {
+	WsConnection conn;
+	u8 buf[10];
+	u64 header_len;
+	RbTreeNodePair retval;
+	/*RbTreeNode *root;*/
+
+	buf[0] = 0x82;
+	conn.id = id;
+	/*root = ws->connections.root;*/
+
+	if (msg->len <= 125) {
+		buf[1] = (u8)msg->len;
+		header_len = 2;
+	} else if (msg->len <= 65535) {
+		buf[1] = 126;
+		buf[2] = (msg->len >> 8) & 0xFF;
+		buf[3] = msg->len & 0xFF;
+		header_len = 4;
+	} else {
+		buf[1] = 127;
+		buf[2] = (msg->len >> 56) & 0xFF;
+		buf[3] = (msg->len >> 48) & 0xFF;
+		buf[4] = (msg->len >> 40) & 0xFF;
+		buf[5] = (msg->len >> 32) & 0xFF;
+		buf[6] = (msg->len >> 24) & 0xFF;
+		buf[7] = (msg->len >> 16) & 0xFF;
+		buf[8] = (msg->len >> 8) & 0xFF;
+		buf[9] = msg->len & 0xFF;
+		header_len = 10;
 	}
-	return 0;
+
+	{
+		LockGuard lg = wlock(&ws->lock);
+		/*Connection *sres;*/
+		println("search id = {}", conn.id);
+		ws_rbtree_search(ws->connections.root, (RbTreeNode *)&conn,
+				 &retval);
+		/*sres = (Connection *)&retval.self;*/
+		println("x");
+		if (!retval.self) return -1;
+		println("a");
+		if (connection_write((Connection *)retval.self, buf,
+				     header_len) < 0)
+			return -1;
+		return connection_write((Connection *)retval.self, msg->buffer,
+					msg->len);
+	}
 }
 
 u64 ws_conn_id(WsConnection *conn) { return conn->id; }
@@ -330,15 +413,11 @@ WsConnection *ws_connect(Ws *ws, u8 addr[4], u16 port) {
 	}
 	return NULL;
 }
+
 i32 ws_close(u64 id, i32 code, const u8 *reason) {
 	if (id || code || reason) {
 	}
 	return 0;
 }
 
-u16 ws_port(Ws *ws) {
-	if (ws) {
-	}
-	return 0;
-}
-
+u16 ws_port(Ws *ws) { return connection_acceptor_port(ws->acceptor); }

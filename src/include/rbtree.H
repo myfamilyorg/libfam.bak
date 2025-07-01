@@ -44,7 +44,7 @@ typedef struct {
 	RbTreeNode *root;
 } RbTree;
 
-static const RbTree INIT_RBTREE = {NULL};
+static const RbTree RBTREE_INIT = {NULL};
 
 static __attribute__((unused)) void rbtree_init_node(RbTreeNode *value) {
         value->parent_color = value->right = value->left = NULL;

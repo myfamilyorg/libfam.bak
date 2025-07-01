@@ -521,7 +521,7 @@ static void validate_rbtree(RbTree *tree) {
 }
 
 Test(rbtree1) {
-	RbTree tree = INIT_RBTREE;
+	RbTree tree = RBTREE_INIT;
 	TestRbTreeNode v1 = {{0}, 1};
 	TestRbTreeNode v2 = {{0}, 2};
 	TestRbTreeNode v3 = {{0}, 3};
@@ -574,7 +574,7 @@ Test(rbtree2) {
 	ASSERT(!rng_init(&rng), "rng_init");
 
 	for (size = 1; size < SIZE; size++) {
-		RbTree tree = INIT_RBTREE;
+		RbTree tree = RBTREE_INIT;
 		TestRbTreeNode values[SIZE];
 		for (i = 0; i < size; i++) {
 			rng_gen(&rng, &values[i].value, sizeof(u64));
@@ -611,7 +611,7 @@ Test(rbtree2) {
 
 Test(rbtree3) {
 	Rng rng;
-	RbTree tree = INIT_RBTREE;
+	RbTree tree = RBTREE_INIT;
 	TestRbTreeNode values[STRESS_SIZE] = {0};
 	bool exists[STRESS_SIZE] = {0};
 	u64 i, op;

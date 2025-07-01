@@ -30,6 +30,7 @@
 #include <format.H>
 #include <lock.H>
 #include <misc.H>
+#include <rbtree.H>
 #include <socket.H>
 #include <syscall_const.H>
 
@@ -75,6 +76,7 @@ typedef struct {
 } OutboundData;
 
 struct Connection {
+	u8 reserved[sizeof(RbTreeNode)]; /* Reserved for Red-black tree data */
 	ConnectionType conn_type;
 	i32 socket;
 	union {
@@ -96,8 +98,9 @@ STATIC ConnectionCommon *connection_common(Connection *connection) {
 }
 
 Connection *connection_acceptor(const u8 addr[4], u16 port, u16 backlog,
-			 OnRecvFn on_recv, OnAcceptFn on_accept,
-			 OnCloseFn on_close, u64 connection_alloc_overhead) {
+				OnRecvFn on_recv, OnAcceptFn on_accept,
+				OnCloseFn on_close,
+				u64 connection_alloc_overhead) {
 	i32 pval;
 	Connection *conn = alloc(sizeof(Connection));
 	if (conn == NULL) return NULL;
@@ -123,8 +126,8 @@ u16 connection_acceptor_port(const Connection *conn) {
 }
 
 Connection *connection_client(const u8 addr[4], u16 port, OnRecvFn on_recv,
-		       OnConnectFn on_connect, OnCloseFn on_close,
-		       u64 connection_alloc_overhead) {
+			      OnConnectFn on_connect, OnCloseFn on_close,
+			      u64 connection_alloc_overhead) {
 	i32 ret;
 	Connection *client =
 	    alloc(sizeof(Connection) + connection_alloc_overhead);
@@ -151,7 +154,7 @@ Connection *connection_client(const u8 addr[4], u16 port, OnRecvFn on_recv,
 }
 
 Connection *connection_accepted(i32 fd, OnRecvFn on_recv, OnCloseFn on_close,
-			 u64 connection_alloc_overhead) {
+				u64 connection_alloc_overhead) {
 	Connection *nconn =
 	    alloc(sizeof(Connection) + connection_alloc_overhead);
 	if (!nconn) return NULL;

@@ -771,26 +771,31 @@ Test(evh4) {
 	ASSERT_BYTES(0);
 }
 
-void ws1_on_message(WsConnection *conn, WsMessage *msg) {
+void ws1_on_message(Ws *ws, WsConnection *conn, WsMessage *msg) {
 	u8 buf[2048];
 	u16 len = 2047;
+	u64 id = ws_conn_id(conn);
+	WsMessage omsg;
 	if (msg->len < len) len = msg->len;
 	memcpy(buf, msg->buffer, msg->len);
 	buf[len] = 0;
-	println("msg[{}]='{}'", ws_conn_id(conn), buf);
+	println("msg[{}]='{}'", id, buf);
+	omsg.len = len;
+	omsg.buffer = buf;
+	ws_send(ws, id, &omsg);
 }
-void ws1_on_connect(WsConnection *conn, i32 err) {
-	if (conn || err) {
+void ws1_on_connect(Ws *ws, WsConnection *conn, i32 err) {
+	if (conn || err || ws) {
 	}
 }
-void ws1_on_open(WsConnection *conn) {
+void ws1_on_open(Ws *ws, WsConnection *conn) {
 	println("ws on open {}", ws_conn_id(conn));
-	if (conn) {
+	if (conn || ws) {
 	}
 }
-void ws1_on_close(WsConnection *conn) {
+void ws1_on_close(Ws *ws, WsConnection *conn) {
 	println("ws on close {}", ws_conn_id(conn));
-	if (conn) {
+	if (conn || ws) {
 	}
 }
 

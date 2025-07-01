@@ -43,10 +43,10 @@ typedef struct {
 typedef struct WsConnection WsConnection;
 typedef struct Ws Ws;
 
-typedef void (*OnOpen)(WsConnection *conn);
-typedef void (*OnClose)(WsConnection *conn);
-typedef void (*OnMessage)(WsConnection *conn, WsMessage *msg);
-typedef void (*OnConnect)(WsConnection *conn, i32 error);
+typedef void (*OnOpen)(Ws *ws, WsConnection *conn);
+typedef void (*OnClose)(Ws *ws, WsConnection *conn);
+typedef void (*OnMessage)(Ws *ws, WsConnection *conn, WsMessage *msg);
+typedef void (*OnConnect)(Ws *ws, WsConnection *conn, i32 error);
 
 Ws *ws_init(WsConfig *config, OnMessage on_message, OnOpen on_open,
 	    OnClose on_close, OnConnect on_connect);
@@ -54,7 +54,7 @@ i32 ws_start(Ws *ws);
 i32 ws_stop(Ws *ws);
 void ws_destroy(Ws *ws);
 
-i32 ws_send(u64 id, WsMessage *msg);
+i32 ws_send(Ws *ws, u64 id, WsMessage *msg);
 u64 ws_conn_id(WsConnection *connection);
 WsConnection *ws_connect(Ws *ws, u8 addr[4], u16 port);
 i32 ws_close(u64 id, i32 code, const u8 *reason);
