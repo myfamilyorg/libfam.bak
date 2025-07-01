@@ -37,14 +37,14 @@ typedef void (*OnAcceptFn)(void *ctx, Connection *conn);
 typedef void (*OnCloseFn)(void *ctx, Connection *conn);
 typedef void (*OnConnectFn)(void *ctx, Connection *conn, int error);
 
-Connection *evh_acceptor(const u8 addr[4], u16 port, u16 backlog,
+Connection *connection_acceptor(const u8 addr[4], u16 port, u16 backlog,
 			 OnRecvFn on_recv, OnAcceptFn on_accept,
 			 OnCloseFn on_close, u64 connection_alloc_overhead);
-Connection *evh_client(const u8 addr[4], u16 port, OnRecvFn on_recv,
+Connection *connection_client(const u8 addr[4], u16 port, OnRecvFn on_recv,
 		       OnConnectFn on_connect, OnCloseFn on_close,
 		       u64 connection_alloc_overhead);
 
-u16 evh_acceptor_port(const Connection *conn);
+u16 connection_acceptor_port(const Connection *conn);
 i32 connection_close(Connection *connection);
 i32 connection_write(Connection *connection, const void *buf, u64 len);
 u8 *connection_rbuf(Connection *conn);

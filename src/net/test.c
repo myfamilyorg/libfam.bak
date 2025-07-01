@@ -217,17 +217,17 @@ u8 BAD_ADDR[4] = {255, 255, 255, 255};
 Test(connection1) {
 	u16 port;
 	Connection *c2;
-	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
 				      c1_on_close, 0);
 	ASSERT(c1, "c1");
-	port = evh_acceptor_port(c1);
-	ASSERT(!evh_acceptor(LOCALHOST, port, 1, c1_on_recv, c1_on_accept,
+	port = connection_acceptor_port(c1);
+	ASSERT(!connection_acceptor(LOCALHOST, port, 1, c1_on_recv, c1_on_accept,
 			     c1_on_close, 0),
 	       "port used");
 
-	c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect, c1_on_close,
+	c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect, c1_on_close,
 			0);
-	ASSERT(!evh_acceptor_port(c2), "not acceptor");
+	ASSERT(!connection_acceptor_port(c2), "not acceptor");
 	ASSERT(connection_set_mplex(c1, 0), "set mplex acceptor err");
 	ASSERT(connection_write(c1, "x", 1), "write to acceptor");
 	ASSERT(connection_write_complete(c1), "write complete");
@@ -239,11 +239,11 @@ Test(connection1) {
 	connection_release(c1);
 	connection_release(c2);
 
-	ASSERT(!evh_client(BAD_ADDR, port, c1_on_recv, c1_on_connect,
+	ASSERT(!connection_client(BAD_ADDR, port, c1_on_recv, c1_on_connect,
 			   c1_on_close, 0),
 	       "bad addr");
 
-	c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+	c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
 			  c1_on_close, 0);
 
 	connection_close(c1);
@@ -255,16 +255,16 @@ Test(connection1) {
 Test(connection2) {
 	u8 buf[64] = {0};
 	i32 fd;
-	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
 				      c1_on_close, 0);
-	u16 port = evh_acceptor_port(c1);
-	Connection *c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
+	u16 port = connection_acceptor_port(c1);
+	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
 				    c1_on_close, 0);
 	Connection *c3;
 	i32 mplex = multiplex();
 
 	while ((fd = socket_accept(connection_socket(c1))) == -1);
-	c3 = evh_accepted(fd, c1_on_recv, c1_on_close, 0);
+	c3 = connection_accepted(fd, c1_on_recv, c1_on_close, 0);
 	ASSERT(c3, "c3!=NULL");
 
 	ASSERT_EQ(connection_type(c1), Acceptor, "Acceptor");
@@ -336,16 +336,16 @@ Test(connection2) {
 Test(connection3) {
 	u8 buf[64] = {0};
 	i32 fd;
-	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
 				      c1_on_close, 0);
-	u16 port = evh_acceptor_port(c1);
-	Connection *c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
+	u16 port = connection_acceptor_port(c1);
+	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
 				    c1_on_close, 0);
 	Connection *c3;
 	i32 mplex = multiplex();
 
 	while ((fd = socket_accept(connection_socket(c1))) == -1);
-	c3 = evh_accepted(fd, c1_on_recv, c1_on_close, 0);
+	c3 = connection_accepted(fd, c1_on_recv, c1_on_close, 0);
 	ASSERT(c3, "c3!=NULL");
 
 	ASSERT_EQ(connection_type(c1), Acceptor, "Acceptor");
@@ -381,16 +381,16 @@ Test(connection3) {
 Test(connection4) {
 	u8 buf[64] = {0};
 	i32 fd;
-	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
 				      c1_on_close, 0);
-	u16 port = evh_acceptor_port(c1);
-	Connection *c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
+	u16 port = connection_acceptor_port(c1);
+	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
 				    c1_on_close, 0);
 	Connection *c3;
 	i32 mplex = multiplex();
 
 	while ((fd = socket_accept(connection_socket(c1))) == -1);
-	c3 = evh_accepted(fd, c1_on_recv, c1_on_close, 0);
+	c3 = connection_accepted(fd, c1_on_recv, c1_on_close, 0);
 	ASSERT(c3, "c3!=NULL");
 
 	ASSERT_EQ(connection_type(c1), Acceptor, "Acceptor");
@@ -421,16 +421,16 @@ Test(connection4) {
 Test(connection5) {
 	u8 buf[64] = {0};
 	i32 fd;
-	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
 				      c1_on_close, 0);
-	u16 port = evh_acceptor_port(c1);
-	Connection *c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
+	u16 port = connection_acceptor_port(c1);
+	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
 				    c1_on_close, 0);
 	Connection *c3;
 	i32 mplex = multiplex();
 
 	while ((fd = socket_accept(connection_socket(c1))) == -1);
-	c3 = evh_accepted(fd, c1_on_recv, c1_on_close, 0);
+	c3 = connection_accepted(fd, c1_on_recv, c1_on_close, 0);
 	ASSERT(c3, "c3!=NULL");
 
 	ASSERT_EQ(connection_type(c1), Acceptor, "Acceptor");
@@ -460,16 +460,16 @@ Test(connection5) {
 Test(connection6) {
 	u8 buf[64] = {0};
 	i32 fd;
-	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
 				      c1_on_close, 0);
-	u16 port = evh_acceptor_port(c1);
-	Connection *c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
+	u16 port = connection_acceptor_port(c1);
+	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
 				    c1_on_close, 0);
 	Connection *c3;
 	i32 mplex = multiplex();
 
 	while ((fd = socket_accept(connection_socket(c1))) == -1);
-	c3 = evh_accepted(fd, c1_on_recv, c1_on_close, 0);
+	c3 = connection_accepted(fd, c1_on_recv, c1_on_close, 0);
 	ASSERT(c3, "c3!=NULL");
 
 	ASSERT_EQ(connection_type(c1), Acceptor, "Acceptor");
@@ -505,16 +505,16 @@ Test(connection6) {
 
 Test(connection7) {
 	i32 fd;
-	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
 				      c1_on_close, 0);
-	u16 port = evh_acceptor_port(c1);
-	Connection *c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
+	u16 port = connection_acceptor_port(c1);
+	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
 				    c1_on_close, 0);
 	Connection *c3;
 	i32 mplex = multiplex();
 
 	while ((fd = socket_accept(connection_socket(c1))) == -1);
-	c3 = evh_accepted(fd, c1_on_recv, c1_on_close, 0);
+	c3 = connection_accepted(fd, c1_on_recv, c1_on_close, 0);
 	ASSERT(c3, "c3!=NULL");
 
 	ASSERT_EQ(connection_type(c1), Acceptor, "Acceptor");
@@ -544,16 +544,16 @@ Test(connection7) {
 Test(connection8) {
 	u8 buf[64] = {0};
 	i32 fd;
-	Connection *c1 = evh_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 1, c1_on_recv, c1_on_accept,
 				      c1_on_close, 0);
-	u16 port = evh_acceptor_port(c1);
-	Connection *c2 = evh_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
+	u16 port = connection_acceptor_port(c1);
+	Connection *c2 = connection_client(LOCALHOST, port, c1_on_recv, c1_on_connect,
 				    c1_on_close, 0);
 	Connection *c3;
 	i32 mplex = multiplex();
 
 	while ((fd = socket_accept(connection_socket(c1))) == -1);
-	c3 = evh_accepted(fd, c1_on_recv, c1_on_close, 0);
+	c3 = connection_accepted(fd, c1_on_recv, c1_on_close, 0);
 	ASSERT(c3, "c3!=NULL");
 
 	ASSERT_EQ(connection_type(c1), Acceptor, "Acceptor");
@@ -636,10 +636,10 @@ Test(evh1) {
 	ASSERT(evh1_on_connect_val, "evh1_on_connect_val");
 	*evh1_on_connect_val = 0;
 
-	acceptor = evh_acceptor(LOCALHOST, port, 10, evh1_on_recv,
+	acceptor = connection_acceptor(LOCALHOST, port, 10, evh1_on_recv,
 				evh1_on_accept, evh1_on_close, 0);
-	port = evh_acceptor_port(acceptor);
-	conn = evh_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
+	port = connection_acceptor_port(acceptor);
+	conn = connection_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
 			  evh1_on_close, 0);
 	evh1 = evh_start(&ctx);
 	evh_register(evh1, acceptor);
@@ -665,7 +665,7 @@ Test(evh2) {
 	i32 ctx = 102;
 	u16 port = 0;
 	Connection *conn;
-	Connection *acceptor = evh_acceptor(LOCALHOST, port, 10, evh1_on_recv,
+	Connection *acceptor = connection_acceptor(LOCALHOST, port, 10, evh1_on_recv,
 					    evh1_on_accept, evh1_on_close, 0);
 	evh1_complete = alloc(sizeof(u64));
 	ASSERT(evh1_complete, "evh1_complete");
@@ -675,20 +675,20 @@ Test(evh2) {
 	ASSERT(evh1_on_connect_val, "evh1_on_connect_val");
 	*evh1_on_connect_val = 0;
 
-	port = evh_acceptor_port(acceptor);
-	conn = evh_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
+	port = connection_acceptor_port(acceptor);
+	conn = connection_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
 			  evh1_on_close, 0);
 	_debug_alloc_failure = 1;
 	proc_acceptor(NULL, acceptor, &ctx);
 
 	connection_release(conn);
-	conn = evh_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
+	conn = connection_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
 			  evh1_on_close, 0);
 
 	_debug_alloc_failure = 1;
 	proc_read(conn, &ctx);
 
-	conn = evh_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
+	conn = connection_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
 			  evh1_on_close, 0);
 
 	_debug_fail_setsockopt = true;
@@ -717,10 +717,10 @@ Test(evh3) {
 	ASSERT(evh1_on_connect_val, "evh1_on_connect_val");
 	*evh1_on_connect_val = 0;
 
-	acceptor = evh_acceptor(LOCALHOST, port, 10, evh1_on_recv,
+	acceptor = connection_acceptor(LOCALHOST, port, 10, evh1_on_recv,
 				evh1_on_accept, evh1_on_close, 0);
-	port = evh_acceptor_port(acceptor);
-	conn = evh_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
+	port = connection_acceptor_port(acceptor);
+	conn = connection_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
 			  evh1_on_close, 0);
 	connection_set_is_connected(conn);
 	evh1 = evh_start(&ctx);
@@ -741,10 +741,10 @@ Test(evh4) {
 	i32 ctx = 102;
 	u16 port = 0;
 	Connection *conn, *acceptor;
-	acceptor = evh_acceptor(LOCALHOST, port, 10, evh1_on_recv,
+	acceptor = connection_acceptor(LOCALHOST, port, 10, evh1_on_recv,
 				evh1_on_accept, evh1_on_close, 0);
-	port = evh_acceptor_port(acceptor);
-	conn = evh_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
+	port = connection_acceptor_port(acceptor);
+	conn = connection_client(LOCALHOST, port, evh1_on_recv, evh1_on_connect,
 			  evh1_on_close, 0);
 	_debug_invalid_connection_type = true;
 	ASSERT_EQ(evh_register(NULL, conn), -1, "invalid connection type");

@@ -29,7 +29,7 @@
 #include <connection.H>
 
 /* Internal Only functions */
-Connection *evh_accepted(i32 fd, OnRecvFn on_recv, OnCloseFn on_close,
+Connection *connection_accepted(i32 fd, OnRecvFn on_recv, OnCloseFn on_close,
 			 u64 connection_alloc_overhead);
 void connection_set_is_connected(Connection *conn);
 void connection_release(Connection *conn);

@@ -78,7 +78,7 @@ Ws *ws_init(WsConfig *config, OnMessage on_message, OnOpen on_open,
 	ret->on_close = on_close;
 	ret->next_id = 0;
 	ret->acceptor =
-	    evh_acceptor(config->addr, config->port, config->backlog,
+	    connection_acceptor(config->addr, config->port, config->backlog,
 			 ws_on_recv_proc, ws_on_accept_proc, ws_on_close_proc,
 			 sizeof(WsConnection) - CONNECTION_SIZE);
 	return ret;

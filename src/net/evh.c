@@ -71,7 +71,7 @@ STATIC void proc_acceptor(Evh *evh, Connection *acceptor, void *ctx) {
 			break;
 		}
 
-		nconn = evh_accepted(fd, connection_on_recv(acceptor),
+		nconn = connection_accepted(fd, connection_on_recv(acceptor),
 				     connection_on_close(acceptor),
 				     connection_alloc_overhead(acceptor));
 		if (!nconn || evh_register(evh, nconn) < 0) {

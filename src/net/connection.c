@@ -95,7 +95,7 @@ STATIC ConnectionCommon *connection_common(Connection *connection) {
 		   : &connection->data.outbound.common;
 }
 
-Connection *evh_acceptor(const u8 addr[4], u16 port, u16 backlog,
+Connection *connection_acceptor(const u8 addr[4], u16 port, u16 backlog,
 			 OnRecvFn on_recv, OnAcceptFn on_accept,
 			 OnCloseFn on_close, u64 connection_alloc_overhead) {
 	i32 pval;
@@ -116,13 +116,13 @@ Connection *evh_acceptor(const u8 addr[4], u16 port, u16 backlog,
 	return conn;
 }
 
-u16 evh_acceptor_port(const Connection *conn) {
+u16 connection_acceptor_port(const Connection *conn) {
 	if (conn->conn_type == Acceptor) return conn->data.acceptor.port;
 	err = EINVAL;
 	return 0;
 }
 
-Connection *evh_client(const u8 addr[4], u16 port, OnRecvFn on_recv,
+Connection *connection_client(const u8 addr[4], u16 port, OnRecvFn on_recv,
 		       OnConnectFn on_connect, OnCloseFn on_close,
 		       u64 connection_alloc_overhead) {
 	i32 ret;
@@ -150,7 +150,7 @@ Connection *evh_client(const u8 addr[4], u16 port, OnRecvFn on_recv,
 	return client;
 }
 
-Connection *evh_accepted(i32 fd, OnRecvFn on_recv, OnCloseFn on_close,
+Connection *connection_accepted(i32 fd, OnRecvFn on_recv, OnCloseFn on_close,
 			 u64 connection_alloc_overhead) {
 	Connection *nconn =
 	    alloc(sizeof(Connection) + connection_alloc_overhead);
