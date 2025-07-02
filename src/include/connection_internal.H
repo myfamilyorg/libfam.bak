@@ -32,11 +32,8 @@
 Connection *connection_accepted(i32 fd, i32 mplex,
 				u32 connection_alloc_overhead);
 void connection_set_is_connected(Connection *conn);
-i32 connection_check_capacity(Connection *conn);
 i64 connection_alloc_overhead(Connection *conn);
 i32 connection_set_mplex(Connection *conn, i32 mplex);
-u32 connection_rbuf_capacity(Connection *conn);
-i32 connection_set_rbuf_offset(Connection *conn, u64 noffset);
 i32 connection_write_complete(Connection *connection);
 
 #if TEST == 1

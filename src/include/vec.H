@@ -37,5 +37,6 @@ i32 vec_extend(Vec *v, void *data, u64 len);
 Vec *vec_resize(Vec *v, u64 nsize);
 Vec *vec_new(u64 size);
 void vec_release(Vec *v);
+i32 vec_truncate(Vec *v, u64 nsize);
 
 #endif /* _VEC_H */

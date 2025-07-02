@@ -59,11 +59,26 @@ Vec *vec_resize(Vec *v, u64 nsize) {
 	Vec *ret = resize(v, nsize + sizeof(Vec));
 	if (!ret) return NULL;
 	ret->capacity = nsize;
-	if (!v) ret->elements = 0;
+	if (!v)
+		ret->elements = 0;
+	else if (ret->elements > ret->capacity)
+		ret->elements = ret->capacity;
 	return ret;
 }
 
 Vec *vec_new(u64 size) { return vec_resize(NULL, size); }
 
 void vec_release(Vec *v) { release(v); }
+
+i32 vec_truncate(Vec *v, u64 nsize) {
+	u64 elems = vec_elements(v);
+	if (nsize > elems) {
+		err = EINVAL;
+		return -1;
+	}
+	if (elems) {
+		v->elements = nsize;
+	}
+	return 0;
+}
 

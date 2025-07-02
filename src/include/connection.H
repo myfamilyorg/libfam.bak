@@ -27,11 +27,13 @@
 #define _CONNECTION_H
 
 #include <types.H>
+#include <vec.H>
 
 #define CONN_FLAG_ACCEPTOR (0x1 << 0)
 #define CONN_FLAG_INBOUND (0x1 << 1)
 #define CONN_FLAG_OUTBOUND (0x1 << 2)
 #define CONN_FLAG_CLOSED (0x1 << 3)
+#define CONN_FLAG_CONNECT_COMPLETE (0x1 << 4)
 
 typedef enum { Acceptor, Inbound, Outbound } ConnectionType;
 typedef struct Connection Connection;
@@ -49,11 +51,9 @@ Connection *connection_client(const u8 addr[4], u16 port,
 u16 connection_acceptor_port(const Connection *conn);
 i32 connection_close(Connection *connection);
 i32 connection_write(Connection *connection, const void *buf, u64 len);
-u8 *connection_rbuf(Connection *conn);
-u32 connection_rbuf_offset(Connection *conn);
+Vec *connection_rbuf(Connection *conn);
+Vec *connection_wbuf(Connection *conn);
 ConnectionType connection_type(Connection *conn);
-void connection_clear_rbuf_through(Connection *conn, u32 off);
-void connection_clear_rbuf(Connection *conn);
 i32 connection_socket(Connection *conn);
 bool connection_is_connected(Connection *conn);
 u64 connection_size(void);

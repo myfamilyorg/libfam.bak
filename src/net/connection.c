@@ -24,6 +24,7 @@
  *******************************************************************************/
 
 #include <alloc.H>
+#include <atomic.H>
 #include <connection_internal.H>
 #include <error.H>
 #include <event.H>
@@ -33,6 +34,7 @@
 #include <rbtree.H>
 #include <socket.H>
 #include <syscall_const.H>
+#include <vec.H>
 
 #define MIN_EXCESS 1024
 #define MIN_RESIZE (MIN_EXCESS * 2)
@@ -51,13 +53,13 @@ typedef struct {
 typedef struct {
 	i32 mplex;
 	Lock lock;
-	u8 *rbuf;
-	u8 *wbuf;
+	Vec *rbuf;
+	Vec *wbuf;
 } ConnectionData;
 
 struct Connection {
 	u8 reserved[sizeof(RbTreeNode)]; /* Reserved for Red-black tree data */
-	u8 flags;
+	u32 flags;
 	i32 socket;
 	union {
 		AcceptorData acceptor_data;
@@ -123,7 +125,7 @@ Connection *connection_accepted(i32 fd, i32 mplex,
 
 i32 connection_write(Connection *conn, const void *buf, u64 len) {
 	i64 wlen = 0;
-	u64 offset;
+	u64 capacity, elements;
 	ConnectionData *conn_data = &conn->data.conn_data;
 
 	if (conn->flags & CONN_FLAG_ACCEPTOR) {
@@ -137,7 +139,6 @@ i32 connection_write(Connection *conn, const void *buf, u64 len) {
 			return -1;
 		}
 		if (!conn_data->wbuf) {
-			offset = 0;
 		write_block:
 			if (_debug_force_write_error) {
 				wlen = -1;
@@ -145,8 +146,7 @@ i32 connection_write(Connection *conn, const void *buf, u64 len) {
 			} else if (_debug_force_write_buffer)
 				wlen = 0;
 			else
-				wlen = write(conn->socket, (u8 *)buf + offset,
-					     len);
+				wlen = write(conn->socket, buf, len);
 			if (wlen < 0 && err == EINTR) {
 				_debug_force_write_error = false;
 				goto write_block;
@@ -167,63 +167,53 @@ i32 connection_write(Connection *conn, const void *buf, u64 len) {
 				return -1;
 			}
 		}
-		/*
-		if (common->wbuf_offset + len - wlen > common->wbuf_capacity) {
-			void *tmp;
-			u64 needed = common->wbuf_offset + len + wlen;
-			if (needed > U32_MAX) {
-				shutdown(conn->socket, SHUT_RD);
-				common->is_closed = true;
-				return -1;
-			}
-
-			tmp = resize(common->wbuf,
-				     common->wbuf_offset + len - wlen);
+		capacity = vec_capacity(conn_data->wbuf);
+		elements = vec_elements(conn_data->wbuf);
+		if (capacity < (len + elements) - wlen) {
+			Vec *tmp = vec_resize(conn_data->wbuf, len + elements);
 			if (!tmp) {
 				shutdown(conn->socket, SHUT_RD);
-				common->is_closed = true;
+				conn->flags |= CONN_FLAG_CLOSED;
 				return -1;
 			}
-			common->wbuf = tmp;
-			common->wbuf_capacity =
-			    common->wbuf_offset + len - wlen;
+			conn_data->wbuf = tmp;
+			vec_extend(conn_data->wbuf, (u8 *)buf + wlen,
+				   len - wlen);
 		}
-		memcpy(common->wbuf + common->wbuf_offset, (u8 *)buf + wlen,
-		       len - wlen);
-		common->wbuf_offset += len - wlen;
-		*/
 	}
 
 	return 0;
 }
 
-/*
-i32 connection_write_complete(Connection *connection) {
-	ConnectionCommon *common = connection_common(connection);
+i32 connection_write_complete(Connection *conn) {
+	ConnectionData *conn_data = &conn->data.conn_data;
 	i64 wlen;
 	u64 cur = 0;
 	i32 sock;
 
-	if (!common) {
+	if (conn->flags & CONN_FLAG_ACCEPTOR) {
 		err = EINVAL;
 		return -1;
 	}
-	sock = connection->socket;
+	sock = conn->socket;
 	{
-		LockGuard lg = wlock(&common->lock);
-		if (common->is_closed) {
+		LockGuard lg = wlock(&conn_data->lock);
+		u64 elems = vec_elements(conn_data->wbuf);
+		if (conn->flags & CONN_FLAG_CLOSED) {
 			err = EIO;
 			return -1;
 		}
 
-		while (cur < common->wbuf_offset) {
+		while (cur < elems) {
 			if (_debug_force_write_error)
 				wlen = -1;
 			else {
 				u64 wmax = !_debug_connection_wmax
-					       ? common->wbuf_offset - cur
+					       ? elems - cur
 					       : _debug_connection_wmax;
-				wlen = write(sock, common->wbuf + cur, wmax);
+				wlen = write(
+				    sock, (u8 *)vec_data(conn_data->wbuf) + cur,
+				    wmax);
 			}
 			if (wlen < 0 && err == EAGAIN) break;
 			if (wlen < 0) {
@@ -234,181 +224,115 @@ i32 connection_write_complete(Connection *connection) {
 			if (_debug_connection_wmax) break;
 		}
 
-		if (cur == common->wbuf_offset) {
-			if (mregister(common->mplex, sock, MULTIPLEX_FLAG_READ,
-				      connection) == -1) {
+		if (cur == elems) {
+			if (mregister(conn_data->mplex, sock,
+				      MULTIPLEX_FLAG_READ, conn) < 0) {
 				shutdown(sock, SHUT_RD);
 				return -1;
 			}
-			if (common->wbuf_capacity) {
-				release(common->wbuf);
-				common->wbuf_offset = 0;
-				common->wbuf_capacity = 0;
-			}
+			vec_release(conn_data->wbuf);
+			conn_data->wbuf = NULL;
 		} else {
-			memorymove(common->wbuf, common->wbuf + cur,
-				   common->wbuf_offset - cur);
-			common->wbuf_offset -= cur;
+			u8 *wbuf = vec_data(conn_data->wbuf);
+			memorymove(wbuf, wbuf + cur, elems - cur);
+			vec_truncate(conn_data->wbuf, elems - cur);
 		}
 	}
 	return 0;
 }
 
-i32 connection_close(Connection *connection) {
-	if (connection->conn_type == Acceptor) {
-		return close(connection->socket);
-	} else {
-		ConnectionCommon *common = connection_common(connection);
-		LockGuard lg = wlock(&common->lock);
-		if (common->is_closed) {
-			err = EIO;
+i32 connection_close(Connection *conn) {
+	ConnectionType ctype = connection_type(conn);
+
+	if (ctype == Acceptor) {
+		u32 flags = ALOAD(&conn->flags);
+		u32 expected = flags & ~CONN_FLAG_CLOSED;
+		if (__cas32(&conn->flags, &expected,
+			    flags | CONN_FLAG_CLOSED)) {
+			return close(conn->socket);
+		} else {
+			err = EALREADY;
 			return -1;
 		}
-		common->is_closed = true;
-		return shutdown(connection->socket, SHUT_RD);
-	}
-}
-
-void connection_clear_rbuf_through(Connection *conn, u32 off) {
-	ConnectionCommon *common = connection_common(conn);
-	if (!common || off > common->rbuf_offset) return;
-	memorymove(common->rbuf, common->rbuf + off, common->rbuf_offset - off);
-	common->rbuf_offset -= off;
-}
-
-void connection_clear_rbuf(Connection *conn) {
-	ConnectionCommon *common = connection_common(conn);
-	if (common) common->rbuf_offset = 0;
-}
-
-u8 *connection_rbuf(Connection *conn) {
-	ConnectionCommon *common = connection_common(conn);
-	if (!common) return NULL;
-	return common->rbuf;
-}
-
-u32 connection_rbuf_offset(Connection *conn) {
-	ConnectionCommon *common = connection_common(conn);
-	if (!common) return 0;
-	return common->rbuf_offset;
-}
-
-i32 connection_set_rbuf_offset(Connection *conn, u64 noffset) {
-	ConnectionCommon *common = connection_common(conn);
-	if (!common) {
+	} else if (ctype == Outbound || ctype == Inbound) {
+		ConnectionData *conn_data = &conn->data.conn_data;
+		LockGuard lg = wlock(&conn_data->lock);
+		if (conn->flags & CONN_FLAG_CLOSED) {
+			err = EALREADY;
+			return -1;
+		}
+		conn->flags |= CONN_FLAG_CLOSED;
+		return shutdown(conn->socket, SHUT_RD);
+	} else {
 		err = EINVAL;
 		return -1;
 	}
-	common->rbuf_offset = noffset;
-	return 0;
 }
 
-u32 connection_rbuf_capacity(Connection *conn) {
-	ConnectionCommon *common = connection_common(conn);
-	if (!common) return 0;
-	return common->rbuf_capacity;
+Vec *connection_rbuf(Connection *conn) {
+	if (conn->flags & CONN_FLAG_ACCEPTOR) {
+		err = EINVAL;
+		return NULL;
+	}
+	return conn->data.conn_data.rbuf;
+}
+Vec *connection_wbuf(Connection *conn) {
+	if (conn->flags & CONN_FLAG_ACCEPTOR) {
+		err = EINVAL;
+		return NULL;
+	}
+	return conn->data.conn_data.wbuf;
 }
 
 ConnectionType connection_type(Connection *conn) {
-	if (_debug_invalid_connection_type) return -1;
-	return conn->conn_type;
+	if (_debug_invalid_connection_type)
+		return -1;
+	else if (conn->flags & CONN_FLAG_ACCEPTOR)
+		return Acceptor;
+	else if (conn->flags & CONN_FLAG_INBOUND)
+		return Inbound;
+	else if (conn->flags & CONN_FLAG_OUTBOUND)
+		return Outbound;
+
+	err = EINVAL;
+	return -1;
 }
 
 i32 connection_set_mplex(Connection *conn, i32 mplex) {
-	ConnectionCommon *common = connection_common(conn);
-	if (!common) {
+	if (conn->flags & CONN_FLAG_ACCEPTOR) {
 		err = EINVAL;
 		return -1;
 	}
-	common->mplex = mplex;
+	conn->data.conn_data.mplex = mplex;
 	return 0;
 }
 
 i32 connection_socket(Connection *conn) { return conn->socket; }
+
 i64 connection_alloc_overhead(Connection *conn) {
-	if (!conn || conn->conn_type != Acceptor) {
+	if ((conn->flags & CONN_FLAG_ACCEPTOR) == 0) {
 		err = EINVAL;
 		return -1;
 	}
 	return conn->data.acceptor_data.connection_alloc_overhead;
 }
 
-
-OnRecvFn connection_on_recv(Connection *conn) {
-	if (conn->conn_type == Acceptor) {
-		return conn->data.acceptor.on_recv;
-	} else {
-		ConnectionCommon *common = connection_common(conn);
-		return common->on_recv;
-	}
-}
-OnCloseFn connection_on_close(Connection *conn) {
-	if (conn->conn_type == Acceptor) {
-		return conn->data.acceptor.on_close;
-	} else {
-		ConnectionCommon *common = connection_common(conn);
-		return common->on_close;
-	}
-}
-
-OnAcceptFn connection_on_accept(Connection *conn) {
-	if (conn->conn_type != Acceptor) {
-		err = EINVAL;
-		return NULL;
-	}
-	return conn->data.acceptor.on_accept;
-}
-
-OnConnectFn connection_on_connect(Connection *conn) {
-	if (conn->conn_type != Outbound) {
-		err = EINVAL;
-		return NULL;
-	}
-	return conn->data.outbound.on_connect;
-}
-
-i32 connection_check_capacity(Connection *conn) {
-	ConnectionCommon *common = connection_common(conn);
-	if (!common) {
-		err = EINVAL;
-		return -1;
-	}
-
-	if (common->rbuf_offset + MIN_EXCESS > common->rbuf_capacity) {
-		void *tmp =
-		    resize(common->rbuf, common->rbuf_offset + MIN_RESIZE);
-		if (tmp == NULL) return -1;
-		common->rbuf = tmp;
-		common->rbuf_capacity = common->rbuf_offset + MIN_RESIZE;
-	}
-
-	return 0;
-}
-
 void connection_release(Connection *conn) {
-	ConnectionCommon *common = connection_common(conn);
-	if (common) {
-		LockGuard lg = wlock(&common->lock);
-		if (common->rbuf_capacity) release(common->rbuf);
-		common->rbuf_capacity = common->rbuf_offset = 0;
-		common->is_closed = true;
-		if (common->wbuf_capacity) release(common->wbuf);
-		common->wbuf_capacity = common->wbuf_offset = 0;
-	}
-	close(conn->socket);
+	connection_close(conn);
 	release(conn);
 }
 
 bool connection_is_connected(Connection *conn) {
-	if (conn->conn_type != Outbound && conn->conn_type != Inbound)
-		return false;
-	return conn->data.outbound.is_connected;
+	return (ALOAD(&conn->flags) & CONN_FLAG_CONNECT_COMPLETE) != 0;
 }
 
 void connection_set_is_connected(Connection *conn) {
-	if (conn->conn_type == Outbound || conn->conn_type == Inbound)
-		conn->data.outbound.is_connected = true;
+	u32 flags = ALOAD(&conn->flags);
+	if ((flags & CONN_FLAG_ACCEPTOR) ||
+	    (flags & CONN_FLAG_CONNECT_COMPLETE))
+		return;
+	__cas32(&conn->flags, &flags, flags | CONN_FLAG_CONNECT_COMPLETE);
 }
 
 u64 connection_size(void) { return sizeof(Connection); }
-*/
+
