@@ -691,6 +691,14 @@ Test(vec1) {
 	ASSERT_EQ(vec_elements(v), 7, "elem=7");
 	ASSERT(!strcmpn("abcdefg", vec_data(v), 7), "data value");
 	ASSERT(vec_extend(v, buf, 100), "overflow");
+	vec_truncate(v, 4);
+	ASSERT_EQ(vec_elements(v), 4, "elem=4");
+	ASSERT_EQ(vec_capacity(v), 100, "capacity=100");
+	v = vec_resize(v, 3);
+	ASSERT_EQ(vec_elements(v), 3, "elem=3");
+	ASSERT_EQ(vec_capacity(v), 3, "capacity=3");
+	ASSERT(vec_truncate(v, 5), "truncate error");
+
 	vec_release(v);
 	ASSERT_BYTES(0);
 }
