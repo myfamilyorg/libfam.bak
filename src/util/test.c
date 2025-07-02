@@ -33,6 +33,7 @@
 #include <robust.H>
 #include <syscall_const.H>
 #include <test.H>
+#include <vec.H>
 
 typedef struct {
 	Lock lock1;
@@ -677,4 +678,19 @@ Test(rbtree3) {
 
 	ASSERT_EQ(tree.root, NULL, "Tree not empty after cleanup");
 	validate_rbtree(&tree);
+}
+
+Test(vec1) {
+	u8 buf[100] = {0};
+	Vec *v = vec_new(100);
+	ASSERT(v, "v!=NULL");
+	ASSERT_EQ(vec_capacity(v), 100, "cap=100");
+	ASSERT_EQ(vec_elements(v), 0, "elem=0");
+	ASSERT(!vec_extend(v, "abcdefg", 7), "vec_extend");
+	ASSERT_EQ(vec_capacity(v), 100, "cap=100");
+	ASSERT_EQ(vec_elements(v), 7, "elem=7");
+	ASSERT(!strcmpn("abcdefg", vec_data(v), 7), "data value");
+	ASSERT(vec_extend(v, buf, 100), "overflow");
+	vec_release(v);
+	ASSERT_BYTES(0);
 }

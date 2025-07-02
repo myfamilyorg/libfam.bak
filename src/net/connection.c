@@ -1,0 +1,414 @@
+/********************************************************************************
+ * MIT License
+ *
+ * Copyright (c) 2025 Christopher Gilliard
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
+#include <alloc.H>
+#include <connection_internal.H>
+#include <error.H>
+#include <event.H>
+#include <format.H>
+#include <lock.H>
+#include <misc.H>
+#include <rbtree.H>
+#include <socket.H>
+#include <syscall_const.H>
+
+#define MIN_EXCESS 1024
+#define MIN_RESIZE (MIN_EXCESS * 2)
+
+bool _debug_force_write_buffer = false;
+bool _debug_force_write_error = false;
+i32 _debug_write_error_code = EIO;
+u64 _debug_connection_wmax = 0;
+bool _debug_invalid_connection_type = false;
+
+typedef struct {
+	u16 port;
+	u32 connection_alloc_overhead;
+} AcceptorData;
+
+typedef struct {
+	i32 mplex;
+	Lock lock;
+	u8 *rbuf;
+	u8 *wbuf;
+} ConnectionData;
+
+struct Connection {
+	u8 reserved[sizeof(RbTreeNode)]; /* Reserved for Red-black tree data */
+	u8 flags;
+	i32 socket;
+	union {
+		AcceptorData acceptor_data;
+		ConnectionData conn_data;
+	} data;
+};
+
+Connection *connection_acceptor(const u8 addr[4], u16 port, u16 backlog,
+				u32 connection_alloc_overhead) {
+	i32 pval;
+	Connection *conn = alloc(sizeof(Connection));
+	if (conn == NULL) return NULL;
+	conn->flags = CONN_FLAG_ACCEPTOR;
+	conn->data.acceptor_data.connection_alloc_overhead =
+	    connection_alloc_overhead;
+	pval = socket_listen(&conn->socket, addr, port, backlog);
+	if (pval < 0) {
+		release(conn);
+		return NULL;
+	}
+	conn->data.acceptor_data.port = pval;
+	return conn;
+}
+
+u16 connection_acceptor_port(const Connection *conn) {
+	if ((conn->flags & CONN_FLAG_ACCEPTOR) == 0) {
+		err = EINVAL;
+		return -1;
+	}
+	return conn->data.acceptor_data.port;
+}
+
+Connection *connection_client(const u8 addr[4], u16 port,
+			      u32 connection_alloc_overhead) {
+	i32 ret;
+	Connection *client =
+	    alloc(sizeof(Connection) + connection_alloc_overhead);
+	if (client == NULL) return NULL;
+	client->flags = CONN_FLAG_OUTBOUND;
+	client->data.conn_data.wbuf = client->data.conn_data.rbuf = NULL;
+	client->data.conn_data.mplex = -1;
+	client->data.conn_data.lock = LOCK_INIT;
+	ret = socket_connect(&client->socket, addr, port);
+	if (ret < 0 && err != EINPROGRESS) {
+		release(client);
+		return NULL;
+	}
+	return client;
+}
+
+Connection *connection_accepted(i32 fd, i32 mplex,
+				u32 connection_alloc_overhead) {
+	Connection *nconn =
+	    alloc(sizeof(Connection) + connection_alloc_overhead);
+	if (!nconn) return NULL;
+	nconn->flags = CONN_FLAG_INBOUND;
+	nconn->socket = fd;
+	nconn->data.conn_data.wbuf = nconn->data.conn_data.rbuf = NULL;
+	nconn->data.conn_data.mplex = mplex;
+	nconn->data.conn_data.lock = LOCK_INIT;
+	return nconn;
+}
+
+i32 connection_write(Connection *conn, const void *buf, u64 len) {
+	i64 wlen = 0;
+	u64 offset;
+	ConnectionData *conn_data = &conn->data.conn_data;
+
+	if (conn->flags & CONN_FLAG_ACCEPTOR) {
+		err = EINVAL;
+		return -1;
+	}
+	{
+		LockGuard lg = wlock(&conn_data->lock);
+		if (conn->flags & CONN_FLAG_CLOSED) {
+			err = EIO;
+			return -1;
+		}
+		if (!conn_data->wbuf) {
+			offset = 0;
+		write_block:
+			if (_debug_force_write_error) {
+				wlen = -1;
+				err = _debug_write_error_code;
+			} else if (_debug_force_write_buffer)
+				wlen = 0;
+			else
+				wlen = write(conn->socket, (u8 *)buf + offset,
+					     len);
+			if (wlen < 0 && err == EINTR) {
+				_debug_force_write_error = false;
+				goto write_block;
+			} else if (wlen < 0 && err == EAGAIN)
+				wlen = 0;
+			else if (wlen < 0 && err) {
+				shutdown(conn->socket, SHUT_RD);
+				conn->flags |= CONN_FLAG_CLOSED;
+				return -1;
+			}
+			if ((u64)wlen == len) return 0;
+			if (mregister(
+				conn_data->mplex, conn->socket,
+				MULTIPLEX_FLAG_READ | MULTIPLEX_FLAG_WRITE,
+				conn) == -1) {
+				shutdown(conn->socket, SHUT_RD);
+				conn->flags |= CONN_FLAG_CLOSED;
+				return -1;
+			}
+		}
+		/*
+		if (common->wbuf_offset + len - wlen > common->wbuf_capacity) {
+			void *tmp;
+			u64 needed = common->wbuf_offset + len + wlen;
+			if (needed > U32_MAX) {
+				shutdown(conn->socket, SHUT_RD);
+				common->is_closed = true;
+				return -1;
+			}
+
+			tmp = resize(common->wbuf,
+				     common->wbuf_offset + len - wlen);
+			if (!tmp) {
+				shutdown(conn->socket, SHUT_RD);
+				common->is_closed = true;
+				return -1;
+			}
+			common->wbuf = tmp;
+			common->wbuf_capacity =
+			    common->wbuf_offset + len - wlen;
+		}
+		memcpy(common->wbuf + common->wbuf_offset, (u8 *)buf + wlen,
+		       len - wlen);
+		common->wbuf_offset += len - wlen;
+		*/
+	}
+
+	return 0;
+}
+
+/*
+i32 connection_write_complete(Connection *connection) {
+	ConnectionCommon *common = connection_common(connection);
+	i64 wlen;
+	u64 cur = 0;
+	i32 sock;
+
+	if (!common) {
+		err = EINVAL;
+		return -1;
+	}
+	sock = connection->socket;
+	{
+		LockGuard lg = wlock(&common->lock);
+		if (common->is_closed) {
+			err = EIO;
+			return -1;
+		}
+
+		while (cur < common->wbuf_offset) {
+			if (_debug_force_write_error)
+				wlen = -1;
+			else {
+				u64 wmax = !_debug_connection_wmax
+					       ? common->wbuf_offset - cur
+					       : _debug_connection_wmax;
+				wlen = write(sock, common->wbuf + cur, wmax);
+			}
+			if (wlen < 0 && err == EAGAIN) break;
+			if (wlen < 0) {
+				shutdown(sock, SHUT_RD);
+				return -1;
+			}
+			cur += wlen;
+			if (_debug_connection_wmax) break;
+		}
+
+		if (cur == common->wbuf_offset) {
+			if (mregister(common->mplex, sock, MULTIPLEX_FLAG_READ,
+				      connection) == -1) {
+				shutdown(sock, SHUT_RD);
+				return -1;
+			}
+			if (common->wbuf_capacity) {
+				release(common->wbuf);
+				common->wbuf_offset = 0;
+				common->wbuf_capacity = 0;
+			}
+		} else {
+			memorymove(common->wbuf, common->wbuf + cur,
+				   common->wbuf_offset - cur);
+			common->wbuf_offset -= cur;
+		}
+	}
+	return 0;
+}
+
+i32 connection_close(Connection *connection) {
+	if (connection->conn_type == Acceptor) {
+		return close(connection->socket);
+	} else {
+		ConnectionCommon *common = connection_common(connection);
+		LockGuard lg = wlock(&common->lock);
+		if (common->is_closed) {
+			err = EIO;
+			return -1;
+		}
+		common->is_closed = true;
+		return shutdown(connection->socket, SHUT_RD);
+	}
+}
+
+void connection_clear_rbuf_through(Connection *conn, u32 off) {
+	ConnectionCommon *common = connection_common(conn);
+	if (!common || off > common->rbuf_offset) return;
+	memorymove(common->rbuf, common->rbuf + off, common->rbuf_offset - off);
+	common->rbuf_offset -= off;
+}
+
+void connection_clear_rbuf(Connection *conn) {
+	ConnectionCommon *common = connection_common(conn);
+	if (common) common->rbuf_offset = 0;
+}
+
+u8 *connection_rbuf(Connection *conn) {
+	ConnectionCommon *common = connection_common(conn);
+	if (!common) return NULL;
+	return common->rbuf;
+}
+
+u32 connection_rbuf_offset(Connection *conn) {
+	ConnectionCommon *common = connection_common(conn);
+	if (!common) return 0;
+	return common->rbuf_offset;
+}
+
+i32 connection_set_rbuf_offset(Connection *conn, u64 noffset) {
+	ConnectionCommon *common = connection_common(conn);
+	if (!common) {
+		err = EINVAL;
+		return -1;
+	}
+	common->rbuf_offset = noffset;
+	return 0;
+}
+
+u32 connection_rbuf_capacity(Connection *conn) {
+	ConnectionCommon *common = connection_common(conn);
+	if (!common) return 0;
+	return common->rbuf_capacity;
+}
+
+ConnectionType connection_type(Connection *conn) {
+	if (_debug_invalid_connection_type) return -1;
+	return conn->conn_type;
+}
+
+i32 connection_set_mplex(Connection *conn, i32 mplex) {
+	ConnectionCommon *common = connection_common(conn);
+	if (!common) {
+		err = EINVAL;
+		return -1;
+	}
+	common->mplex = mplex;
+	return 0;
+}
+
+i32 connection_socket(Connection *conn) { return conn->socket; }
+i64 connection_alloc_overhead(Connection *conn) {
+	if (!conn || conn->conn_type != Acceptor) {
+		err = EINVAL;
+		return -1;
+	}
+	return conn->data.acceptor_data.connection_alloc_overhead;
+}
+
+
+OnRecvFn connection_on_recv(Connection *conn) {
+	if (conn->conn_type == Acceptor) {
+		return conn->data.acceptor.on_recv;
+	} else {
+		ConnectionCommon *common = connection_common(conn);
+		return common->on_recv;
+	}
+}
+OnCloseFn connection_on_close(Connection *conn) {
+	if (conn->conn_type == Acceptor) {
+		return conn->data.acceptor.on_close;
+	} else {
+		ConnectionCommon *common = connection_common(conn);
+		return common->on_close;
+	}
+}
+
+OnAcceptFn connection_on_accept(Connection *conn) {
+	if (conn->conn_type != Acceptor) {
+		err = EINVAL;
+		return NULL;
+	}
+	return conn->data.acceptor.on_accept;
+}
+
+OnConnectFn connection_on_connect(Connection *conn) {
+	if (conn->conn_type != Outbound) {
+		err = EINVAL;
+		return NULL;
+	}
+	return conn->data.outbound.on_connect;
+}
+
+i32 connection_check_capacity(Connection *conn) {
+	ConnectionCommon *common = connection_common(conn);
+	if (!common) {
+		err = EINVAL;
+		return -1;
+	}
+
+	if (common->rbuf_offset + MIN_EXCESS > common->rbuf_capacity) {
+		void *tmp =
+		    resize(common->rbuf, common->rbuf_offset + MIN_RESIZE);
+		if (tmp == NULL) return -1;
+		common->rbuf = tmp;
+		common->rbuf_capacity = common->rbuf_offset + MIN_RESIZE;
+	}
+
+	return 0;
+}
+
+void connection_release(Connection *conn) {
+	ConnectionCommon *common = connection_common(conn);
+	if (common) {
+		LockGuard lg = wlock(&common->lock);
+		if (common->rbuf_capacity) release(common->rbuf);
+		common->rbuf_capacity = common->rbuf_offset = 0;
+		common->is_closed = true;
+		if (common->wbuf_capacity) release(common->wbuf);
+		common->wbuf_capacity = common->wbuf_offset = 0;
+	}
+	close(conn->socket);
+	release(conn);
+}
+
+bool connection_is_connected(Connection *conn) {
+	if (conn->conn_type != Outbound && conn->conn_type != Inbound)
+		return false;
+	return conn->data.outbound.is_connected;
+}
+
+void connection_set_is_connected(Connection *conn) {
+	if (conn->conn_type == Outbound || conn->conn_type == Inbound)
+		conn->data.outbound.is_connected = true;
+}
+
+u64 connection_size(void) { return sizeof(Connection); }
+*/

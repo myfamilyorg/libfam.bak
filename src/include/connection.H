@@ -28,8 +28,12 @@
 
 #include <types.H>
 
-typedef enum { Acceptor, Inbound, Outbound } ConnectionType;
+#define CONN_FLAG_ACCEPTOR (0x1 << 0)
+#define CONN_FLAG_INBOUND (0x1 << 1)
+#define CONN_FLAG_OUTBOUND (0x1 << 2)
+#define CONN_FLAG_CLOSED (0x1 << 3)
 
+typedef enum { Acceptor, Inbound, Outbound } ConnectionType;
 typedef struct Connection Connection;
 
 typedef void (*OnRecvFn)(void *ctx, Connection *conn, u64 rlen);
@@ -47,9 +51,9 @@ i32 connection_close(Connection *connection);
 i32 connection_write(Connection *connection, const void *buf, u64 len);
 u8 *connection_rbuf(Connection *conn);
 u32 connection_rbuf_offset(Connection *conn);
+ConnectionType connection_type(Connection *conn);
 void connection_clear_rbuf_through(Connection *conn, u32 off);
 void connection_clear_rbuf(Connection *conn);
-ConnectionType connection_type(Connection *conn);
 i32 connection_socket(Connection *conn);
 bool connection_is_connected(Connection *conn);
 u64 connection_size(void);

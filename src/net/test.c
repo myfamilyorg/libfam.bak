@@ -89,7 +89,7 @@ Test(socket_connect) {
 	ASSERT_EQ(buf[2], 's', "s");
 	ASSERT_EQ(buf[3], 't', "t");
 
-	shutdown(inbound, SHUT_RDWR);
+	shutdown(inbound, SHUT_RD);
 	close(inbound);
 	close(server);
 	close(conn);
