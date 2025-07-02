@@ -27,6 +27,8 @@
 	<body>
 		<h1>WebSocket Client</h1>
 		<button onclick="sendMessage()">Send Message</button>
+		<button onclick="sendText()">Send Text</button>
+		<input type="text" id="ws_text" size="30" />
 		<div id="output">Connecting to ws://localhost:9090...</div>
 
 		<script>
@@ -86,6 +88,22 @@
 			function sendMessage() {
 				if (ws.readyState === WebSocket.OPEN) {
 					const message = 'Hello, WebSocket!';
+					const encoder = new TextEncoder();
+					const binaryData =
+						encoder.encode(message); // UTF-8 bytes
+					ws.send(binaryData);
+					output.innerHTML += `<p>Sent: ${message}</p>`;
+				} else {
+					output.innerHTML +=
+						'<p>Error: WebSocket is not connected</p>';
+				}
+			}
+			function sendText() {
+				if (ws.readyState === WebSocket.OPEN) {
+					const message =
+						document.getElementById(
+							'ws_text'
+						).value;
 					const encoder = new TextEncoder();
 					const binaryData =
 						encoder.encode(message); // UTF-8 bytes

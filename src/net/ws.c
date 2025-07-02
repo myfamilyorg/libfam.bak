@@ -162,11 +162,12 @@ STATIC i32 ws_proc_handshake(WsConnection *wsconn) {
 }
 
 STATIC i32 proc_message_single(Ws *ws, WsConnection *wsconn, u64 offset,
-			       u64 len) {
+			       u64 len, u8 op) {
 	WsMessage msg;
 	u8 *rbuf = connection_rbuf((Connection *)wsconn);
 	msg.buffer = rbuf + offset;
 	msg.len = len;
+	msg.op = op;
 	ws->on_message(ws, wsconn, &msg);
 	return 0;
 }
@@ -231,7 +232,7 @@ STATIC i32 ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 	}
 
 	if (fin && data_start + len <= rbuf_offset) {
-		proc_message_single(ws, wsconn, data_start, len);
+		proc_message_single(ws, wsconn, data_start, len, op);
 		connection_clear_rbuf_through((Connection *)wsconn,
 					      data_start + len);
 		return 0;
@@ -363,7 +364,7 @@ i32 ws_send(Ws *ws, u64 id, WsMessage *msg) {
 	RbTreeNodePair retval = {0};
 	RbTreeNode *root;
 
-	buf[0] = 0x82;
+	buf[0] = 0x80 | msg->op;
 	conn.id = id;
 	root = ws->connections.root;
 
@@ -407,8 +408,29 @@ WsConnection *ws_connect(Ws *ws, u8 addr[4], u16 port) {
 	return NULL;
 }
 
-i32 ws_close(u64 id, i32 code, const u8 *reason) {
-	if (id || code || reason) {
+i32 ws_close(Ws *ws, u64 id, i32 code, const u8 *reason) {
+	u64 len = strlen(reason);
+	WsConnection conn;
+	RbTreeNode *root = ws->connections.root;
+	RbTreeNodePair retval = {0};
+	WsMessage msg;
+
+	conn.id = id;
+
+	if (code) {
+	}
+
+	msg.buffer = (u8 *)reason;
+	msg.len = len;
+	msg.op = 8;
+	ws_send(ws, id, &msg);
+	{
+		LockGuard lg = wlock(&ws->lock);
+		Connection *sres;
+		ws_rbtree_search(root, (RbTreeNode *)&conn, &retval);
+		sres = (Connection *)retval.self;
+		if (!sres) return -1;
+		connection_close(sres);
 	}
 	return 0;
 }

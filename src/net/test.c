@@ -779,10 +779,12 @@ void ws1_on_message(Ws *ws, WsConnection *conn, WsMessage *msg) {
 	if (msg->len < len) len = msg->len;
 	memcpy(buf, msg->buffer, msg->len);
 	buf[len] = 0;
-	println("msg[{}]='{}'", id, buf);
+	println("msg[{},op={}]='{}'", id, msg->op, buf);
 	omsg.len = len;
 	omsg.buffer = buf;
+	omsg.op = 2;
 	ws_send(ws, id, &omsg);
+	if (!strcmp("exit", buf)) ws_close(ws, id, 0, "closing");
 }
 void ws1_on_connect(Ws *ws, WsConnection *conn, i32 err) {
 	if (conn || err || ws) {
