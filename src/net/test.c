@@ -660,3 +660,41 @@ Test(evh_proc_write_fail) {
 	ASSERT_BYTES(0);
 }
 
+Test(connect_failure) {
+	i32 ctx = 102;
+	u16 port = 0;
+	Evh *evh1;
+	Connection *acceptor, *conn;
+	EvhConfig config = {&ctx, evh1_on_recv, evh1_on_accept, evh1_on_connect,
+			    evh1_on_close};
+
+	evh1_complete = alloc(sizeof(u64));
+	ASSERT(evh1_complete, "evh1_complete");
+	*evh1_complete = 0;
+
+	evh1_on_connect_val = alloc(sizeof(u64));
+	ASSERT(evh1_on_connect_val, "evh1_on_connect_val");
+	*evh1_on_connect_val = 0;
+
+	acceptor = connection_acceptor(LOCALHOST, port, 10, 0);
+	port = connection_acceptor_port(acceptor);
+	conn = connection_client(LOCALHOST, 9876, 0);
+	ASSERT(!connection_is_connected(conn), "not connected");
+	evh1 = evh_init(&config);
+	ASSERT(!evh_start(evh1), "start evh");
+	evh_register(evh1, acceptor);
+	evh_register(evh1, conn);
+	connection_write(conn, "Z", 1);
+	while (ALOAD(evh1_complete) < 1);
+	ASSERT_EQ(ALOAD(evh1_on_connect_val), 1, "connect success");
+	ASSERT_EQ(ALOAD(evh1_complete), 1, "1 closed conns");
+	release(evh1_complete);
+	release(evh1_on_connect_val);
+	ASSERT(!evh_stop(evh1), "stop evh");
+	ASSERT(evh_stop(evh1), "already stopped");
+	evh_destroy(evh1);
+	connection_release(acceptor);
+
+	ASSERT_BYTES(0);
+}
+

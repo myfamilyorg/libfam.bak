@@ -126,9 +126,7 @@ STATIC void proc_read(Evh *evh, Connection *conn) {
 			    capacity - offset);
 
 		if (rlen <= 0) {
-			if (err != EAGAIN) {
-				proc_close(evh, conn);
-			}
+			if (err != EAGAIN) proc_close(evh, conn);
 			break;
 		}
 		vec_set_elements(rbuf, offset + rlen);
@@ -142,8 +140,11 @@ STATIC i32 proc_write(Evh *evh, Connection *conn) {
 	    !connection_is_connected(conn)) {
 		i32 error = 0;
 		i32 len = sizeof(error);
-		if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
+		i32 ret;
+		if ((ret = getsockopt(sock, SOL_SOCKET, SO_ERROR, &error,
+				      &len)) < 0) {
 			return -1;
+		}
 		evh->on_connect(evh->ctx, conn, error);
 		connection_set_is_connected(conn);
 	}
@@ -165,10 +166,12 @@ STATIC void event_loop(Evh *evh) {
 				if (connection_type(conn) == Acceptor) {
 					proc_acceptor(evh, conn);
 				} else {
-					if (event_is_write(events[i]))
+					if (event_is_write(events[i])) {
 						proc_write(evh, conn);
-					if (event_is_read(events[i]))
+					}
+					if (event_is_read(events[i])) {
 						proc_read(evh, conn);
+					}
 				}
 			}
 		}
@@ -194,8 +197,9 @@ i32 evh_register(Evh *evh, Connection *conn) {
 	} else {
 		connection_set_mplex(conn, evh->mplex);
 		if (ctype == Outbound && !connection_is_connected(conn)) {
-			return mregister(evh->mplex, socket,
-					 MULTIPLEX_FLAG_WRITE, conn);
+			return mregister(
+			    evh->mplex, socket,
+			    MULTIPLEX_FLAG_WRITE | MULTIPLEX_FLAG_READ, conn);
 		} else {
 			if (ctype == Outbound)
 				evh->on_connect(evh->ctx, conn, 0);

@@ -55,7 +55,10 @@ i32 mregister(i32 multiplex, i32 fd, i32 flags, void *attach) {
 	if (flags & MULTIPLEX_FLAG_READ)
 		event_flags |= (EPOLLIN | EPOLLET | EPOLLRDHUP);
 	if (flags & MULTIPLEX_FLAG_ACCEPT) event_flags |= (EPOLLIN | EPOLLET);
-	if (flags & MULTIPLEX_FLAG_WRITE) event_flags |= (EPOLLOUT | EPOLLET);
+	if (flags & MULTIPLEX_FLAG_WRITE)
+		event_flags |= (EPOLLOUT | EPOLLERR
+
+				| EPOLLET);
 
 	ev.events = event_flags;
 	ev.data.ptr = attach;
@@ -78,12 +81,12 @@ i32 mwait(i32 multiplex, Event *events, i32 max_events, i32 timeout) {
 
 i32 event_is_read(Event event) {
 	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
-	return epoll_ev->events & EPOLLIN;
+	return (epoll_ev->events & EPOLLIN) != 0;
 }
 
 i32 event_is_write(Event event) {
 	struct epoll_event *epoll_ev = (struct epoll_event *)&event;
-	return epoll_ev->events & EPOLLOUT;
+	return (epoll_ev->events & EPOLLOUT) != 0;
 }
 
 void *event_attachment(Event event) {
