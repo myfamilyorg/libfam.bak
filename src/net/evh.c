@@ -34,7 +34,8 @@
 #include <sys.H>
 #include <syscall_const.H>
 
-#define MAX_EVENTS 128
+#define MAX_EVENTS 256
+#define MIN_CAPACITY 512
 
 #define GCOV_EXIT                        \
 	__gcov_dump();                   \
@@ -91,8 +92,6 @@ STATIC void proc_close(Evh *evh, Connection *conn) {
 	close(connection_socket(conn));
 	connection_release(conn);
 }
-
-#define MIN_CAPACITY 512
 
 STATIC i32 check_and_update_rbuf_capacity(Connection *conn) {
 	Vec *rbuf = connection_rbuf(conn);

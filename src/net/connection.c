@@ -36,13 +36,10 @@
 #include <syscall_const.H>
 #include <vec.H>
 
-#define MIN_EXCESS 1024
-#define MIN_RESIZE (MIN_EXCESS * 2)
-
-bool _debug_force_write_buffer = false;
-bool _debug_force_write_error = false;
-i32 _debug_write_error_code = EIO;
-u64 _debug_connection_wmax = 0;
+STATIC bool _debug_force_write_buffer = false;
+STATIC bool _debug_force_write_error = false;
+STATIC i32 _debug_write_error_code = EIO;
+STATIC u64 _debug_connection_wmax = 0;
 
 typedef struct {
 	u16 port;
@@ -126,6 +123,11 @@ i32 connection_write(Connection *conn, const void *buf, u64 len) {
 	i64 wlen = 0;
 	u64 capacity, elements;
 	ConnectionData *conn_data = &conn->data.conn_data;
+
+	if (len + elements < len) {
+		err = EOVERFLOW;
+		return -1;
+	}
 
 	if (conn->flags & CONN_FLAG_ACCEPTOR) {
 		err = EINVAL;
