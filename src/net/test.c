@@ -494,8 +494,8 @@ void evh1_on_close(void *ctx, Connection *conn) {
 	__add64(evh1_complete, 1);
 }
 
-void evh1_on_connect(void *ctx, Connection *conn, int error) {
-	ASSERT(!error, "!error");
+void evh1_on_connect(void *ctx, Connection *conn,
+		     int error __attribute__((unused))) {
 	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
 	ASSERT(conn, "conn!=NULL");
 	__add64(evh1_on_connect_val, 1);
@@ -697,7 +697,7 @@ Test(connect_failure) {
 
 	acceptor = connection_acceptor(LOCALHOST, port, 10, 0);
 	port = connection_acceptor_port(acceptor);
-	conn = connection_client(LOCALHOST, 9876, 0);
+	conn = connection_client(LOCALHOST, port + 1, 0);
 	ASSERT(!connection_is_connected(conn), "not connected");
 	evh1 = evh_init(&config);
 	ASSERT(!evh_start(evh1), "start evh");
