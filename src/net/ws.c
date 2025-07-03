@@ -39,16 +39,16 @@
 typedef struct {
 	u16 id;
 	Ws *ws;
+	Evh *evh;
+	RbTree connections;
+	Lock lock;
 } WsContext;
 
 struct Ws {
 	WsContext *ctxs;
-	Evh **evhs;
-	Lock *locks;
 	WsConfig config;
 	u64 next_id;
 	Connection *acceptor;
-	RbTree *connections;
 };
 
 struct WsConnection {
@@ -94,8 +94,8 @@ STATIC void ws_on_accept_proc(void *ctx, Connection *conn) {
 	connection_set_flag(conn, CONN_FLAG_USR1, false);
 	connection_set_flag_upper_bits(conn, ws_ctx->id);
 	{
-		LockGuard lg = wlock(&ws->locks[ws_ctx->id]);
-		rbtree_put(&ws->connections[ws_ctx->id], (RbTreeNode *)wsconn,
+		LockGuard lg = wlock(&ws_ctx->lock);
+		rbtree_put(&ws_ctx->connections, (RbTreeNode *)wsconn,
 			   ws_rbtree_search);
 	}
 	ws->config.on_open(ws, wsconn);
@@ -113,7 +113,15 @@ STATIC void ws_on_recv_proc(void *ctx, Connection *conn,
 }
 
 STATIC void ws_on_close_proc(void *ctx, Connection *conn) {
-	if (ctx || conn) {
+	WsContext *ws_ctx = (WsContext *)ctx;
+	Ws *ws = ws_ctx->ws;
+	WsConnection *wsconn = (WsConnection *)conn;
+
+	ws->config.on_close(ws, wsconn);
+	{
+		LockGuard lg = wlock(&ws_ctx->lock);
+		rbtree_remove(&ws_ctx->connections, (RbTreeNode *)wsconn,
+			      ws_rbtree_search);
 	}
 }
 
@@ -145,43 +153,17 @@ Ws *ws_init(const WsConfig *config) {
 
 	ret = alloc(sizeof(Ws));
 	if (ret == NULL) return NULL;
-	ret->evhs = alloc(sizeof(Evh *) * workers);
-	if (!ret->evhs) {
-		release(ret);
-		return NULL;
-	}
-	ret->locks = alloc(sizeof(Lock) * workers);
-	if (!ret->locks) {
-		release(ret->evhs);
-		release(ret);
-		return NULL;
-	}
 	ret->ctxs = alloc(sizeof(WsContext) * workers);
 	if (!ret->ctxs) {
-		release(ret->evhs);
-		release(ret->locks);
 		release(ret);
 		return NULL;
 	}
-	ret->connections = alloc(sizeof(RbTree) * workers);
-	if (!ret->connections) {
-		release(ret->evhs);
-		release(ret->locks);
-		release(ret->ctxs);
-		release(ret);
-		return NULL;
-	}
-
-	for (i = 0; i < workers; i++) ret->locks[i] = LOCK_INIT;
 
 	ret->acceptor =
 	    connection_acceptor(config->addr, config->port, backlog,
 				sizeof(WsConnection) - CONNECTION_SIZE);
 	if (!ret->acceptor) {
-		release(ret->evhs);
-		release(ret->locks);
 		release(ret->ctxs);
-		release(ret->connections);
 		release(ret);
 		return NULL;
 	}
@@ -190,9 +172,10 @@ Ws *ws_init(const WsConfig *config) {
 				    ws_on_connect_proc, ws_on_close_proc};
 		ret->ctxs[i].ws = ret;
 		ret->ctxs[i].id = i;
+		ret->ctxs[i].lock = LOCK_INIT;
+		ret->ctxs[i].connections = RBTREE_INIT;
 		config.ctx = &ret->ctxs[i];
-		ret->evhs[i] = evh_init(&config);
-		ret->connections[i] = RBTREE_INIT;
+		ret->ctxs[i].evh = evh_init(&config);
 	}
 	ret->config = *config;
 	ret->config.backlog = backlog;
@@ -214,10 +197,10 @@ Ws *ws_init(const WsConfig *config) {
 i32 ws_start(Ws *ws) {
 	u64 i;
 	for (i = 0; i < ws->config.workers; i++) {
-		if (!evh_start(ws->evhs[i]))
-			evh_register(ws->evhs[i], ws->acceptor);
+		if (!evh_start(ws->ctxs[i].evh))
+			evh_register(ws->ctxs[i].evh, ws->acceptor);
 		else {
-			while (i--) evh_stop(ws->evhs[i]);
+			while (i--) evh_stop(ws->ctxs[i].evh);
 			return -1;
 		}
 	}
@@ -227,18 +210,16 @@ i32 ws_start(Ws *ws) {
 i32 ws_stop(Ws *ws) {
 	u64 i;
 	i32 ret = 0;
-	for (i = 0; i < ws->config.workers; i++) ret |= evh_stop(ws->evhs[i]);
+	for (i = 0; i < ws->config.workers; i++)
+		ret |= evh_stop(ws->ctxs[i].evh);
 	return ret;
 }
 
 void ws_destroy(Ws *ws) {
 	u64 i;
 	connection_release(ws->acceptor);
-	release(ws->locks);
-	for (i = 0; i < ws->config.workers; i++) evh_destroy(ws->evhs[i]);
+	for (i = 0; i < ws->config.workers; i++) evh_destroy(ws->ctxs[i].evh);
 	release(ws->ctxs);
-	release(ws->connections);
-	release(ws->evhs);
 	release(ws);
 }
 
