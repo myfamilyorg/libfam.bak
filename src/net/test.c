@@ -250,6 +250,7 @@ Test(conn1) {
 	_debug_force_write_buffer = false;
 	_debug_force_write_error = true;
 	_debug_write_error_code = EINTR;
+	ASSERT(connection_write(c3, "c", U64_MAX), "overflow");
 	ASSERT(!connection_write_complete(c3), "write completea");
 	while (read(connection_socket(c2), buf, 2) != 1);
 	ASSERT_EQ(buf[0], 'a', "read a");
