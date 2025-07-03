@@ -73,7 +73,7 @@ Test(lock) {
 	if (pid) {
 		i32 timeout_ms = 1000;
 		while (ALOAD(&state->value1) == 0 && timeout_ms > 0) {
-			sleepm(1);
+			sleep(1);
 			timeout_ms -= 1;
 		}
 		ASSERT(timeout_ms > 0,
@@ -91,7 +91,7 @@ Test(lock) {
 		{
 			LockGuard lg2 = wlock(&state->lock1);
 			state->value1 = 1;
-			sleepm(10);
+			sleep(10);
 			state->value1 = 2;
 		}
 		exit(0);
@@ -106,7 +106,7 @@ Test(lock) {
 	if (pid) {
 		i32 timeout_ms = 10000;
 		while (ALOAD(&state->value1) == 0 && timeout_ms > 0) {
-			sleepm(1);
+			sleep(1);
 			timeout_ms -= 1;
 		}
 		ASSERT(timeout_ms > 0,
@@ -123,7 +123,7 @@ Test(lock) {
 		{
 			LockGuard lg2 = wlock(&state->lock1);
 			state->value1 = 1;
-			sleepm(10);
+			sleep(10);
 			state->value1 = 2;
 		}
 		exit(0);
@@ -139,13 +139,13 @@ Test(lock) {
 	if (pid) {
 		i32 timeout_ms = 1000;
 		while (ALOAD(&state->lock1) == 0 && timeout_ms > 0) {
-			sleepm(1);
+			sleep(1);
 			timeout_ms -= 1;
 		}
 		ASSERT(timeout_ms > 0,
 		       "Timed out waiting for lock1 in write starvation");
 		{
-			sleepm(10);
+			sleep(10);
 			{
 				LockGuard lg = wlock(&state->lock1);
 				ASSERT_EQ(state->value1, 0,
@@ -162,7 +162,7 @@ Test(lock) {
 		if (pid) {
 			{
 				LockGuard lg = wlock(&state->lock1);
-				sleepm(30);
+				sleep(30);
 			}
 			if (waitid(P_PID, pid, NULL, WEXITED) < 0) {
 				ASSERT(
@@ -173,7 +173,7 @@ Test(lock) {
 		} else {
 			i32 timeout_ms = 1000;
 			while (ALOAD(&state->lock1) == 0 && timeout_ms > 0) {
-				sleepm(1);
+				sleep(1);
 				timeout_ms -= 1;
 			}
 			ASSERT(timeout_ms > 0,
@@ -212,7 +212,7 @@ Test(robust1) {
 			exit(0);
 		} else {
 			{
-				sleepm(100);
+				sleep(100);
 				{
 					RobustGuard rg =
 					    robust_lock(&state->lock1);
@@ -235,7 +235,7 @@ Test(robust2) {
 	for (i = 0; i < 10; i++) waitid(P_PID, 0, NULL, WEXITED);
 
 	if ((cpid = two())) {
-		sleepm(10);
+		sleep(10);
 		{
 			RobustGuard rg = robust_lock(&state->lock1);
 			ASSERT_EQ(state->value1, 1, "value=1");
@@ -244,7 +244,7 @@ Test(robust2) {
 	} else {
 		{
 			RobustGuard rg = robust_lock(&state->lock1);
-			sleepm(100);
+			sleep(100);
 			state->value1 = 1;
 		}
 		exit(0);
@@ -367,7 +367,7 @@ Test(channel_notify) {
 	if (pid) {
 		TestMessage msg = {0}, msg2 = {0};
 		msg.x = 100;
-		sleepm(10);
+		sleep(10);
 		send(&ch2, &msg);
 
 		recv(&ch1, &msg2);
@@ -409,7 +409,7 @@ Test(channel_cycle) {
 		recv(&ch1, &msg);
 		ASSERT_EQ(msg.x, 1, "1");
 	} else {
-		sleepm(10);
+		sleep(10);
 		send(&ch1, &msg);
 		exit(0);
 	}

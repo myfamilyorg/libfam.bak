@@ -53,7 +53,7 @@ i32 open(const u8 *path, i32 flags, u32 mode) {
 
 i32 unlink(const u8 *path) { return unlinkat(-100, path, 0); }
 
-i32 sleepm(u64 millis) {
+i32 sleep(u64 millis) {
 	struct timespec req;
 	i32 ret;
 	req.tv_sec = millis / 1000;

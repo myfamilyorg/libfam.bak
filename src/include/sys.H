@@ -44,7 +44,7 @@ i64 fsize(i32 fd);
 i32 fresize(i32 fd, i64 length);
 i32 flush(i32 fd);
 i64 micros(void);
-i32 sleepm(u64 millis);
+i32 sleep(u64 millis);
 i32 two(void);
 i32 two2(bool share_fds);
 

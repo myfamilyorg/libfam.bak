@@ -70,7 +70,7 @@ i32 test_connect(const u8 addr[4], u16 port) {
 			return -1;
 		}
 
-		sleepm(10);
+		sleep(10);
 		attempt++;
 	}
 

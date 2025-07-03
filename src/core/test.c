@@ -840,14 +840,14 @@ Test(timeout3) {
 	pid = two();
 	if (pid) {
 		timeout(tfun3, 150);
-		for (i = 0; i < 3; i++) sleepm(200);
+		for (i = 0; i < 3; i++) sleep(200);
 		ASSERT_EQ(ALOAD(&tfunv1), 1, "v1 1");
 		ASSERT_EQ(ALOAD(&tfunv2), 1, "v2 1");
 		ASSERT_EQ(ALOAD(&tfunv3), 1, "v3 1");
 		while (!ALOAD(&state->value1));
 	} else {
 		timeout(tfun3, 150);
-		for (i = 0; i < 3; i++) sleepm(200);
+		for (i = 0; i < 3; i++) sleep(200);
 		ASSERT_EQ(ALOAD(&tfunv1), 0, "two v1");
 		ASSERT_EQ(ALOAD(&tfunv2), 0, "two v2");
 		ASSERT_EQ(ALOAD(&tfunv3), 1, "two v3");
