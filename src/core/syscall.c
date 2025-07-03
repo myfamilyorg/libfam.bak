@@ -548,6 +548,7 @@ i32 munmap(void *addr, u64 len) {
 
 i32 close(i32 fd) {
 	i32 ret = syscall_close(fd);
+	if (ret < 0) perror("close");
 	SET_ERR
 }
 

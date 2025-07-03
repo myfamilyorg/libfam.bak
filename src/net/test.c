@@ -35,6 +35,7 @@
 #include <syscall_const.H>
 #include <test.H>
 #include <vec.H>
+#include <ws.H>
 
 u8 LOCALHOST[4] = {127, 0, 0, 1};
 
@@ -718,3 +719,33 @@ Test(connect_failure) {
 	ASSERT_BYTES(0);
 }
 
+Test(connection_flags) {
+	Connection *acceptor = connection_acceptor(LOCALHOST, 0, 10, 0);
+	ASSERT(!connection_get_flag(acceptor, CONN_FLAG_USR1), "!USR1");
+	connection_set_flag(acceptor, CONN_FLAG_USR1, true);
+	ASSERT(connection_get_flag(acceptor, CONN_FLAG_USR1), "USR1");
+	connection_set_flag(acceptor, CONN_FLAG_USR1, false);
+	ASSERT(!connection_get_flag(acceptor, CONN_FLAG_USR1), "!USR1 (2)");
+	connection_release(acceptor);
+	ASSERT_BYTES(0);
+}
+
+void ws1_on_message(Ws *ws, WsConnection *conn, WsMessage *msg) {
+	if (ws || conn || msg) {
+	}
+}
+
+Test(ws1) {
+	Ws *ws;
+	WsConfig config = {0}; /* Use defaults */
+
+	config.on_message = ws1_on_message;
+	ws = ws_init(&config);
+	ASSERT(ws, "ws_init");
+	ASSERT(!ws_start(ws), "ws_start");
+
+	ASSERT(!ws_stop(ws), "ws_stop");
+	ws_destroy(ws);
+
+	ASSERT_BYTES(0);
+}

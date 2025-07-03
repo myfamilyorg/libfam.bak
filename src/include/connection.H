@@ -34,6 +34,8 @@
 #define CONN_FLAG_OUTBOUND (0x1 << 2)
 #define CONN_FLAG_CLOSED (0x1 << 3)
 #define CONN_FLAG_CONNECT_COMPLETE (0x1 << 4)
+#define CONN_FLAG_USR1 (0x1 << 5)
+#define CONN_FLAG_USR2 (0x1 << 6)
 
 typedef enum { Acceptor, Inbound, Outbound } ConnectionType;
 typedef struct Connection Connection;
@@ -58,6 +60,10 @@ ConnectionType connection_type(Connection *conn);
 i32 connection_socket(Connection *conn);
 bool connection_is_closed(Connection *conn);
 bool connection_is_connected(Connection *conn);
+void connection_set_flag(Connection *conn, u32 flag, bool value);
+bool connection_get_flag(Connection *conn, u32 flag);
+void connection_set_flag_upper_bits(Connection *conn, u16 upper);
+u16 connection_get_flag_upper_bits(Connection *conn);
 u64 connection_size(void);
 void connection_release(Connection *conn);
 

@@ -351,3 +351,28 @@ bool connection_is_closed(Connection *conn) {
 
 u64 connection_size(void) { return sizeof(Connection); }
 
+void connection_set_flag(Connection *conn, u32 flag, bool value) {
+	u32 expected, desired;
+	do {
+		expected = ALOAD(&conn->flags);
+		if (value)
+			desired = expected | flag;
+		else
+			desired = expected & ~flag;
+	} while (!__cas32(&conn->flags, &expected, desired));
+}
+bool connection_get_flag(Connection *conn, u32 flag) {
+	return (ALOAD(&conn->flags) & flag) != 0;
+}
+
+void connection_set_flag_upper_bits(Connection *conn, u16 upper) {
+	u32 expected, desired;
+	do {
+		expected = ALOAD(&conn->flags);
+		desired = (expected & 0xFFFF) | ((u32)upper << 16);
+	} while (!__cas32(&conn->flags, &expected, desired));
+}
+
+u16 connection_get_flag_upper_bits(Connection *conn) {
+	return ALOAD(&conn->flags) >> 16;
+}
