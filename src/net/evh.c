@@ -88,6 +88,7 @@ STATIC void proc_acceptor(Evh *evh, Connection *acceptor) {
 
 STATIC void proc_close(Evh *evh, Connection *conn) {
 	evh->on_close(evh->ctx, conn);
+	close(connection_socket(conn));
 	connection_release(conn);
 }
 
@@ -127,7 +128,9 @@ STATIC void proc_read(Evh *evh, Connection *conn) {
 			    capacity - offset);
 
 		if (rlen <= 0) {
-			if (err != EAGAIN) proc_close(evh, conn);
+			if (err != EAGAIN) {
+				proc_close(evh, conn);
+			}
 			break;
 		}
 		vec_set_elements(rbuf, offset + rlen);

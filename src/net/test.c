@@ -28,10 +28,12 @@
 #include <connection_internal.H>
 #include <error.H>
 #include <event.H>
+#include <evh.H>
 #include <socket.H>
 #include <sys.H>
 #include <syscall_const.H>
 #include <test.H>
+#include <vec.H>
 
 u8 LOCALHOST[4] = {127, 0, 0, 1};
 
@@ -450,3 +452,71 @@ Test(conn5) {
 	ASSERT_BYTES(0);
 }
 
+u64 *evh1_complete = NULL;
+u64 *evh1_on_connect_val = NULL;
+
+void evh1_on_accept(void *ctx, Connection *conn) {
+	ASSERT(conn, "conn!=NULL");
+	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
+}
+
+void evh1_on_recv(void *ctx, Connection *conn, u64 rlen) {
+	Vec *rbuf = connection_rbuf(conn);
+	u64 offset = vec_elements(rbuf);
+	u8 *data = vec_data(rbuf);
+	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
+	ASSERT_EQ(rlen, 1, "rlen=1");
+	ASSERT_EQ(offset, 1, "offset=1");
+	ASSERT_EQ(data[0], 'Z', "data[0]='Z'");
+	connection_close(conn);
+}
+
+void evh1_on_close(void *ctx, Connection *conn) {
+	ASSERT(conn, "conn!=NULL");
+	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
+	ASSERT(ALOAD(evh1_complete) <= 2, "evh1_complete <= 2");
+	__add64(evh1_complete, 1);
+}
+
+void evh1_on_connect(void *ctx, Connection *conn, int error) {
+	ASSERT(!error, "!error");
+	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
+	ASSERT(conn, "conn!=NULL");
+	__add64(evh1_on_connect_val, 1);
+}
+
+Test(evh1) {
+	i32 ctx = 102;
+	u16 port = 0;
+	Evh *evh1;
+	Connection *acceptor, *conn;
+	EvhConfig config = {&ctx, evh1_on_recv, evh1_on_accept, evh1_on_connect,
+			    evh1_on_close};
+
+	evh1_complete = alloc(sizeof(u64));
+	ASSERT(evh1_complete, "evh1_complete");
+	*evh1_complete = 0;
+
+	evh1_on_connect_val = alloc(sizeof(u64));
+	ASSERT(evh1_on_connect_val, "evh1_on_connect_val");
+	*evh1_on_connect_val = 0;
+
+	acceptor = connection_acceptor(LOCALHOST, port, 10, 0);
+	port = connection_acceptor_port(acceptor);
+	conn = connection_client(LOCALHOST, port, 0);
+	evh1 = evh_init(&config);
+	ASSERT(!evh_start(evh1), "start evh");
+	evh_register(evh1, acceptor);
+	evh_register(evh1, conn);
+	connection_write(conn, "Z", 1);
+	while (ALOAD(evh1_complete) < 2);
+	ASSERT_EQ(ALOAD(evh1_on_connect_val), 1, "connect success");
+	ASSERT_EQ(ALOAD(evh1_complete), 2, "2 closed conns");
+	release(evh1_complete);
+	release(evh1_on_connect_val);
+	ASSERT(!evh_stop(evh1), "stop evh");
+	evh_destroy(evh1);
+	connection_release(acceptor);
+
+	ASSERT_BYTES(0);
+}
