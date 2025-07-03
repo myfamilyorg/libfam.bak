@@ -346,7 +346,7 @@ void connection_set_rbuf(Connection *conn, Vec *v) {
 }
 
 bool connection_is_closed(Connection *conn) {
-	return (conn->flags & CONN_FLAG_CLOSED) != 0;
+	return (ALOAD(&conn->flags) & CONN_FLAG_CLOSED) != 0;
 }
 
 u64 connection_size(void) { return sizeof(Connection); }
