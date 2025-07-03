@@ -23,73 +23,26 @@
  *
  *******************************************************************************/
 
-#include <alloc.H>
-#include <error.H>
-#include <misc.H>
-#include <vec.H>
+#ifndef _EVH_H
+#define _EVH_H
 
-struct Vec {
-	u64 capacity;
-	u64 elements;
-};
+#include <connection.H>
+#include <types.H>
 
-u64 vec_capacity(Vec *v) {
-	if (!v) return 0;
-	return v->capacity;
-}
-u64 vec_elements(Vec *v) {
-	if (!v) return 0;
-	return v->elements;
-}
-void *vec_data(Vec *v) {
-	if (!v) return NULL;
-	return (u8 *)v + sizeof(Vec);
-}
-i32 vec_extend(Vec *v, void *data, u64 len) {
-	if (!v || len + v->elements > v->capacity) {
-		err = EFAULT;
-		return -1;
-	}
-	memcpy((u8 *)v + sizeof(Vec) + v->elements, data, len);
-	v->elements += len;
-	return 0;
-}
+typedef struct Evh Evh;
 
-Vec *vec_resize(Vec *v, u64 nsize) {
-	Vec *ret = resize(v, nsize + sizeof(Vec));
-	if (!ret) return NULL;
-	ret->capacity = nsize;
-	if (!v)
-		ret->elements = 0;
-	else if (ret->elements > ret->capacity)
-		ret->elements = ret->capacity;
-	return ret;
-}
+typedef struct {
+	void *ctx;
+	OnRecvFn on_recv;
+	OnAcceptFn on_accept;
+	OnConnectFn on_connect;
+	OnCloseFn on_close;
+} EvhConfig;
 
-i32 vec_set_elements(Vec *v, u64 elements) {
-	if (!v || v->capacity < elements) {
-		err = EFAULT;
-		return -1;
-	}
-	v->elements = elements;
-	return 0;
-}
+i32 evh_register(Evh *evh, Connection *connection);
+Evh *evh_init(EvhConfig *config);
+i32 evh_start(Evh *evh);
+i32 evh_stop(Evh *evh);
+void evh_destroy(Evh *evh);
 
-Vec *vec_new(u64 size) { return vec_resize(NULL, size); }
-
-void vec_release(Vec *v) {
-	if (v) release(v);
-}
-
-i32 vec_truncate(Vec *v, u64 nsize) {
-	u64 elems = vec_elements(v);
-	if (nsize > elems) {
-		err = EINVAL;
-		return -1;
-	}
-	if (elems) {
-		v->elements = nsize;
-	}
-	return 0;
-}
-
+#endif /* _EVH_H */

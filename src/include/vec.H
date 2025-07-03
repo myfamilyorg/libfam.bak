@@ -34,6 +34,7 @@ u64 vec_capacity(Vec *v);
 u64 vec_elements(Vec *v);
 void *vec_data(Vec *v);
 i32 vec_extend(Vec *v, void *data, u64 len);
+i32 vec_set_elements(Vec *v, u64 elements);
 Vec *vec_resize(Vec *v, u64 nsize);
 Vec *vec_new(u64 size);
 void vec_release(Vec *v);

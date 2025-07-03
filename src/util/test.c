@@ -698,6 +698,9 @@ Test(vec1) {
 	ASSERT_EQ(vec_elements(v), 3, "elem=3");
 	ASSERT_EQ(vec_capacity(v), 3, "capacity=3");
 	ASSERT(vec_truncate(v, 5), "truncate error");
+	ASSERT(!vec_set_elements(v, 2), "set elements");
+	ASSERT_EQ(vec_elements(v), 2, "elem=2");
+	ASSERT(vec_set_elements(v, 10), "set elements err");
 	vec_release(v);
 	ASSERT_BYTES(0);
 }
