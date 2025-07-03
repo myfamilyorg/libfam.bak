@@ -142,9 +142,8 @@ STATIC i32 proc_write(Evh *evh, Connection *conn) {
 	    !connection_is_connected(conn)) {
 		i32 error = 0;
 		i32 len = sizeof(error);
-		if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) < 0) {
+		if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
 			return -1;
-		}
 		evh->on_connect(evh->ctx, conn, error);
 		connection_set_is_connected(conn);
 	}
@@ -192,20 +191,17 @@ i32 evh_register(Evh *evh, Connection *conn) {
 	if (ctype == Acceptor) {
 		return mregister(evh->mplex, socket, MULTIPLEX_FLAG_ACCEPT,
 				 conn);
-	} else if (ctype == Outbound || ctype == Inbound) {
+	} else {
 		connection_set_mplex(conn, evh->mplex);
-		if (ctype == Inbound || connection_is_connected(conn)) {
+		if (ctype == Outbound && !connection_is_connected(conn)) {
+			return mregister(evh->mplex, socket,
+					 MULTIPLEX_FLAG_WRITE, conn);
+		} else {
 			if (ctype == Outbound)
 				evh->on_connect(evh->ctx, conn, 0);
 			return mregister(evh->mplex, socket,
 					 MULTIPLEX_FLAG_READ, conn);
-		} else {
-			return mregister(evh->mplex, socket,
-					 MULTIPLEX_FLAG_WRITE, conn);
 		}
-	} else {
-		err = EINVAL;
-		return -1;
 	}
 }
 

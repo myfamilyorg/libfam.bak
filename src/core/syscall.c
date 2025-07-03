@@ -32,6 +32,7 @@
 bool _debug_no_write = false;
 bool _debug_no_exit = false;
 bool _debug_fail_getsockbyname = false;
+bool _debug_fail_pipe2 = false;
 bool _debug_fail_listen = false;
 bool _debug_fail_setsockopt = false;
 bool _debug_fail_fcntl = false;
@@ -502,7 +503,9 @@ i32 clone3(struct clone_args *args, u64 size) {
 }
 
 i32 pipe2(i32 fds[2], i32 flags) {
-	i32 ret = syscall_pipe2(fds, flags);
+	i32 ret;
+	if (_debug_fail_pipe2) return -1;
+	ret = syscall_pipe2(fds, flags);
 	SET_ERR
 }
 i32 unlinkat(i32 dfd, const u8 *path, i32 flags) {

@@ -78,7 +78,9 @@ extern bool _debug_no_write;
 extern bool _debug_fail_getsockbyname;
 extern bool _debug_fail_listen;
 extern bool _debug_fail_setsockopt;
+extern bool _debug_fail_epoll_create1;
 extern bool _debug_fail_fcntl;
+extern bool _debug_fail_pipe2;
 #endif /* TEST */
 
 #endif /* _SYSCALL_H */

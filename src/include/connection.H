@@ -56,6 +56,7 @@ Vec *connection_wbuf(Connection *conn);
 void connection_set_rbuf(Connection *conn, Vec *v);
 ConnectionType connection_type(Connection *conn);
 i32 connection_socket(Connection *conn);
+bool connection_is_closed(Connection *conn);
 bool connection_is_connected(Connection *conn);
 u64 connection_size(void);
 void connection_release(Connection *conn);

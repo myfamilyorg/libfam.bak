@@ -31,6 +31,7 @@
 #include <evh.H>
 #include <socket.H>
 #include <sys.H>
+#include <syscall.H>
 #include <syscall_const.H>
 #include <test.H>
 #include <vec.H>
@@ -355,7 +356,6 @@ Test(conn3) {
 	ASSERT(connection_write(c2, "a", 1), "alloc failure");
 
 	_debug_force_write_buffer = false;
-	_debug_alloc_failure = false;
 
 	connection_release(c1);
 	connection_release(c2);
@@ -505,6 +505,7 @@ Test(evh1) {
 	acceptor = connection_acceptor(LOCALHOST, port, 10, 0);
 	port = connection_acceptor_port(acceptor);
 	conn = connection_client(LOCALHOST, port, 0);
+	ASSERT(!connection_is_connected(conn), "not connected");
 	evh1 = evh_init(&config);
 	ASSERT(!evh_start(evh1), "start evh");
 	evh_register(evh1, acceptor);
@@ -516,8 +517,146 @@ Test(evh1) {
 	release(evh1_complete);
 	release(evh1_on_connect_val);
 	ASSERT(!evh_stop(evh1), "stop evh");
+	ASSERT(evh_stop(evh1), "already stopped");
 	evh_destroy(evh1);
 	connection_release(acceptor);
 
 	ASSERT_BYTES(0);
 }
+
+Test(evh2) {
+	i32 ctx = 102;
+	u16 port = 0;
+	Evh *evh1;
+	Connection *acceptor, *conn;
+	EvhConfig config = {&ctx, evh1_on_recv, evh1_on_accept, evh1_on_connect,
+			    evh1_on_close};
+
+	evh1_complete = alloc(sizeof(u64));
+	ASSERT(evh1_complete, "evh1_complete");
+	*evh1_complete = 0;
+
+	evh1_on_connect_val = alloc(sizeof(u64));
+	ASSERT(evh1_on_connect_val, "evh1_on_connect_val");
+	*evh1_on_connect_val = 0;
+
+	acceptor = connection_acceptor(LOCALHOST, port, 10, 0);
+	port = connection_acceptor_port(acceptor);
+	conn = connection_client(LOCALHOST, port, 0);
+	ASSERT(!connection_is_connected(conn), "not connected");
+	connection_set_is_connected(conn);
+	evh1 = evh_init(&config);
+	ASSERT(!evh_start(evh1), "start evh");
+	evh_register(evh1, acceptor);
+	evh_register(evh1, conn);
+	connection_write(conn, "Z", 1);
+	while (ALOAD(evh1_complete) < 2);
+	ASSERT_EQ(ALOAD(evh1_on_connect_val), 1, "connect success");
+	ASSERT_EQ(ALOAD(evh1_complete), 2, "2 closed conns");
+	release(evh1_complete);
+	release(evh1_on_connect_val);
+	ASSERT(!evh_stop(evh1), "stop evh");
+	ASSERT(evh_stop(evh1), "already stopped");
+	evh_destroy(evh1);
+	connection_release(acceptor);
+
+	ASSERT_BYTES(0);
+}
+
+Test(evh_fail) {
+	i32 ctx = 1;
+	EvhConfig config1 = {0};
+	EvhConfig config2 = {&ctx, evh1_on_recv, evh1_on_accept,
+			     evh1_on_connect, evh1_on_close};
+
+	ASSERT(!evh_init(&config1), "NULL configs");
+
+	_debug_setnonblocking_err = true;
+	ASSERT(!evh_init(&config2), "nonblocking fail");
+	_debug_setnonblocking_err = false;
+
+	_debug_fail_epoll_create1 = true;
+	ASSERT(!evh_init(&config2), "epoll create");
+	_debug_fail_epoll_create1 = false;
+
+	_debug_fail_pipe2 = true;
+	ASSERT(!evh_init(&config2), "pipe2");
+	_debug_fail_pipe2 = false;
+
+	ASSERT_BYTES(0);
+}
+
+void proc_acceptor(Evh *evh, Connection *acceptor);
+
+Test(evh_accept_fail) {
+	i32 ctx = 102;
+	u16 port = 0;
+	Evh *evh1;
+	Connection *acceptor, *conn;
+	EvhConfig config = {&ctx, evh1_on_recv, evh1_on_accept, evh1_on_connect,
+			    evh1_on_close};
+
+	evh1_complete = alloc(sizeof(u64));
+	ASSERT(evh1_complete, "evh1_complete");
+	*evh1_complete = 0;
+
+	evh1_on_connect_val = alloc(sizeof(u64));
+	ASSERT(evh1_on_connect_val, "evh1_on_connect_val");
+	*evh1_on_connect_val = 0;
+
+	acceptor = connection_acceptor(LOCALHOST, port, 10, 0);
+	port = connection_acceptor_port(acceptor);
+	conn = connection_client(LOCALHOST, port, 0);
+	evh1 = evh_init(&config);
+	evh_start(evh1);
+	ASSERT(!ALOAD(evh1_on_connect_val), "evh1_on_connect_val");
+	connection_set_is_connected(conn);
+	_debug_alloc_failure = 1;
+	proc_acceptor(evh1, acceptor);
+	ASSERT(!ALOAD(evh1_on_connect_val), "evh1_on_connect_val");
+
+	release(evh1_complete);
+	release(evh1_on_connect_val);
+	evh_stop(evh1);
+	evh_destroy(evh1);
+	connection_release(conn);
+	connection_release(acceptor);
+
+	ASSERT_BYTES(0);
+}
+
+void proc_read(Evh *evh, Connection *conn);
+
+Test(evh_proc_read_fail) {
+	u16 port = 0;
+	Connection *acceptor = connection_acceptor(LOCALHOST, port, 10, 0);
+	Connection *conn =
+	    connection_client(LOCALHOST, connection_acceptor_port(acceptor), 0);
+	ASSERT(!connection_is_closed(conn), "!is_closed");
+	_debug_alloc_failure = 1;
+	proc_read(NULL, conn);
+	ASSERT(connection_is_closed(conn), "is_closed");
+
+	connection_release(conn);
+	connection_release(acceptor);
+
+	ASSERT_BYTES(0);
+}
+
+i32 proc_write(Evh *evh, Connection *conn);
+
+Test(evh_proc_write_fail) {
+	u16 port = 0;
+	Connection *acceptor = connection_acceptor(LOCALHOST, port, 10, 0);
+	Connection *conn =
+	    connection_client(LOCALHOST, connection_acceptor_port(acceptor), 0);
+	_debug_fail_setsockopt = true;
+	ASSERT(proc_write(NULL, conn), "proc_write_fail");
+	_debug_fail_setsockopt = false;
+
+	connection_release(conn);
+	connection_release(acceptor);
+
+	ASSERT_BYTES(0);
+}
+
