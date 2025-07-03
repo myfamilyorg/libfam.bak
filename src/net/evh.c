@@ -107,20 +107,19 @@ STATIC i32 check_and_update_rbuf_capacity(Connection *conn) {
 
 STATIC void proc_read(Evh *evh, Connection *conn) {
 	i64 rlen = 0;
-	i32 socket;
+	i32 socket = connection_socket(conn);
 	Vec *rbuf;
 	u64 capacity, offset;
 
 	while (true) {
 		if (check_and_update_rbuf_capacity(conn) < 0) {
-			proc_close(evh, conn);
+			connection_close(conn);
 			break;
 		}
 
 		rbuf = connection_rbuf(conn);
 		capacity = vec_capacity(rbuf);
 		offset = vec_elements(rbuf);
-		socket = connection_socket(conn);
 
 		err = 0;
 		rlen = read(socket, (u8 *)vec_data(rbuf) + offset,
@@ -211,7 +210,13 @@ i32 evh_register(Evh *evh, Connection *conn) {
 }
 
 Evh *evh_init(EvhConfig *config) {
-	Evh *ret = alloc(sizeof(Evh));
+	Evh *ret;
+	if (!config || !config->on_recv || !config->on_accept ||
+	    !config->on_connect || !config->on_close) {
+		err = EINVAL;
+		return NULL;
+	}
+	ret = alloc(sizeof(Evh));
 	if (!ret) return NULL;
 	ret->mplex = multiplex();
 	if (ret->mplex < 0) {

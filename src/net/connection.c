@@ -124,11 +124,6 @@ i32 connection_write(Connection *conn, const void *buf, u64 len) {
 	u64 capacity, elements;
 	ConnectionData *conn_data = &conn->data.conn_data;
 
-	if (len + elements < len) {
-		err = EOVERFLOW;
-		return -1;
-	}
-
 	if (conn->flags & CONN_FLAG_ACCEPTOR) {
 		err = EINVAL;
 		return -1;
@@ -170,6 +165,11 @@ i32 connection_write(Connection *conn, const void *buf, u64 len) {
 		}
 		capacity = vec_capacity(conn_data->wbuf);
 		elements = vec_elements(conn_data->wbuf);
+		if (len + elements < len) {
+			err = EOVERFLOW;
+			return -1;
+		}
+
 		if (capacity < (len + elements) - wlen) {
 			Vec *tmp = vec_resize(conn_data->wbuf, len + elements);
 			if (!tmp) {
