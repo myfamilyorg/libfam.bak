@@ -43,7 +43,6 @@ bool _debug_force_write_buffer = false;
 bool _debug_force_write_error = false;
 i32 _debug_write_error_code = EIO;
 u64 _debug_connection_wmax = 0;
-bool _debug_invalid_connection_type = false;
 
 typedef struct {
 	u16 port;
@@ -84,7 +83,7 @@ Connection *connection_acceptor(const u8 addr[4], u16 port, u16 backlog,
 	return conn;
 }
 
-u16 connection_acceptor_port(const Connection *conn) {
+i32 connection_acceptor_port(const Connection *conn) {
 	if ((conn->flags & CONN_FLAG_ACCEPTOR) == 0) {
 		err = EINVAL;
 		return -1;
@@ -181,7 +180,6 @@ i32 connection_write(Connection *conn, const void *buf, u64 len) {
 				   len - wlen);
 		}
 	}
-
 	return 0;
 }
 
@@ -205,9 +203,10 @@ i32 connection_write_complete(Connection *conn) {
 		}
 
 		while (cur < elems) {
-			if (_debug_force_write_error)
+			if (_debug_force_write_error) {
 				wlen = -1;
-			else {
+				err = _debug_write_error_code;
+			} else {
 				u64 wmax = !_debug_connection_wmax
 					       ? elems - cur
 					       : _debug_connection_wmax;
@@ -216,8 +215,13 @@ i32 connection_write_complete(Connection *conn) {
 				    wmax);
 			}
 			if (wlen < 0 && err == EAGAIN) break;
+			if (wlen < 0 && err == EINTR) {
+				_debug_force_write_error = false;
+				continue;
+			}
 			if (wlen < 0) {
 				shutdown(sock, SHUT_RD);
+				conn->flags |= CONN_FLAG_CLOSED;
 				return -1;
 			}
 			cur += wlen;
@@ -228,6 +232,7 @@ i32 connection_write_complete(Connection *conn) {
 			if (mregister(conn_data->mplex, sock,
 				      MULTIPLEX_FLAG_READ, conn) < 0) {
 				shutdown(sock, SHUT_RD);
+				conn->flags |= CONN_FLAG_CLOSED;
 				return -1;
 			}
 			vec_release(conn_data->wbuf);
@@ -254,7 +259,7 @@ i32 connection_close(Connection *conn) {
 			err = EALREADY;
 			return -1;
 		}
-	} else if (ctype == Outbound || ctype == Inbound) {
+	} else {
 		ConnectionData *conn_data = &conn->data.conn_data;
 		LockGuard lg = wlock(&conn_data->lock);
 		if (conn->flags & CONN_FLAG_CLOSED) {
@@ -263,9 +268,6 @@ i32 connection_close(Connection *conn) {
 		}
 		conn->flags |= CONN_FLAG_CLOSED;
 		return shutdown(conn->socket, SHUT_RD);
-	} else {
-		err = EINVAL;
-		return -1;
 	}
 }
 
@@ -285,17 +287,12 @@ Vec *connection_wbuf(Connection *conn) {
 }
 
 ConnectionType connection_type(Connection *conn) {
-	if (_debug_invalid_connection_type)
-		return -1;
-	else if (conn->flags & CONN_FLAG_ACCEPTOR)
+	if (conn->flags & CONN_FLAG_ACCEPTOR)
 		return Acceptor;
 	else if (conn->flags & CONN_FLAG_INBOUND)
 		return Inbound;
-	else if (conn->flags & CONN_FLAG_OUTBOUND)
+	else
 		return Outbound;
-
-	err = EINVAL;
-	return -1;
 }
 
 i32 connection_set_mplex(Connection *conn, i32 mplex) {
@@ -318,7 +315,14 @@ i64 connection_alloc_overhead(Connection *conn) {
 }
 
 void connection_release(Connection *conn) {
+	ConnectionType ctype = connection_type(conn);
 	connection_close(conn);
+	if (ctype == Inbound || ctype == Outbound) {
+		if (conn->data.conn_data.wbuf)
+			release(conn->data.conn_data.wbuf);
+		if (conn->data.conn_data.rbuf)
+			release(conn->data.conn_data.rbuf);
+	}
 	release(conn);
 }
 
@@ -332,6 +336,11 @@ void connection_set_is_connected(Connection *conn) {
 	    (flags & CONN_FLAG_CONNECT_COMPLETE))
 		return;
 	__cas32(&conn->flags, &flags, flags | CONN_FLAG_CONNECT_COMPLETE);
+}
+
+void connection_set_rbuf(Connection *conn, Vec *v) {
+	ConnectionType ct = connection_type(conn);
+	if (ct == Inbound || ct == Outbound) conn->data.conn_data.rbuf = v;
 }
 
 u64 connection_size(void) { return sizeof(Connection); }

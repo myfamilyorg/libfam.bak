@@ -48,11 +48,12 @@ Connection *connection_acceptor(const u8 addr[4], u16 port, u16 backlog,
 Connection *connection_client(const u8 addr[4], u16 port,
 			      u32 connection_alloc_overhead);
 
-u16 connection_acceptor_port(const Connection *conn);
+i32 connection_acceptor_port(const Connection *conn);
 i32 connection_close(Connection *connection);
 i32 connection_write(Connection *connection, const void *buf, u64 len);
 Vec *connection_rbuf(Connection *conn);
 Vec *connection_wbuf(Connection *conn);
+void connection_set_rbuf(Connection *conn, Vec *v);
 ConnectionType connection_type(Connection *conn);
 i32 connection_socket(Connection *conn);
 bool connection_is_connected(Connection *conn);

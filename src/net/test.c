@@ -25,6 +25,7 @@
 
 #include <alloc.H>
 #include <atomic.H>
+#include <connection_internal.H>
 #include <error.H>
 #include <event.H>
 #include <socket.H>
@@ -195,3 +196,256 @@ Test(socket_fails) {
 	ASSERT_EQ(mregister(-1, -1, 0, NULL), -1, "mreg invalid");
 	ASSERT_EQ(mwait(-1, NULL, 0, -1), -1, "mwait invalid");
 }
+
+u8 BAD_ADDR[4] = {255, 255, 255, 255};
+
+Test(conn1) {
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 10, 0);
+	Connection *c2, *c3;
+	u8 buf[2] = {0};
+	i32 fd, mplex;
+	u16 port;
+	ASSERT(c1, "c1!=NULL");
+
+	mplex = multiplex();
+
+	port = connection_acceptor_port(c1);
+	ASSERT(!connection_acceptor(LOCALHOST, port, 10, 0), "port conflict");
+	c2 = connection_client(LOCALHOST, port, 0);
+	connection_set_mplex(c2, mplex);
+	ASSERT(c2, "c2!=NULL");
+	ASSERT_EQ(connection_acceptor_port(c2), -1, "not acceptor");
+	ASSERT(!connection_client(BAD_ADDR, port, 0), "bad addr");
+	while ((fd = accept(connection_socket(c1), NULL, NULL)) < 0);
+	c3 = connection_accepted(fd, mplex, 0);
+	ASSERT(c3, "c3!=NULL");
+
+	ASSERT(!connection_write(c3, "x", 1), "write success");
+
+	while (read(connection_socket(c2), buf, 2) != 1);
+	ASSERT_EQ(buf[0], 'x', "read x");
+
+	_debug_force_write_buffer = true;
+	ASSERT(!connection_write(c2, "y", 1), "write success2");
+	_debug_force_write_buffer = false;
+	ASSERT(!connection_write_complete(c2), "write complete");
+	while (read(connection_socket(c3), buf, 2) != 1);
+	ASSERT_EQ(buf[0], 'y', "read y");
+
+	ASSERT(connection_set_mplex(c1, 0), "set mplex on acceptor");
+	ASSERT(connection_write(c1, "test", 4), "write acceptor");
+
+	_debug_force_write_error = true;
+	_debug_write_error_code = EINTR;
+	ASSERT(!connection_write(c2, "z", 1), "write success3");
+	_debug_force_write_error = false;
+	_debug_write_error_code = SUCCESS;
+	while (read(connection_socket(c3), buf, 2) != 1);
+	ASSERT_EQ(buf[0], 'z', "read z");
+
+	_debug_force_write_buffer = true;
+	ASSERT(!connection_write(c3, "a", 1), "write successa");
+	_debug_force_write_buffer = false;
+	_debug_force_write_error = true;
+	_debug_write_error_code = EINTR;
+	ASSERT(!connection_write_complete(c3), "write completea");
+	while (read(connection_socket(c2), buf, 2) != 1);
+	ASSERT_EQ(buf[0], 'a', "read a");
+
+	_debug_force_write_error = true;
+	_debug_write_error_code = EPIPE;
+	ASSERT(connection_write(c2, "z", 1), "write fail");
+	_debug_force_write_error = false;
+	_debug_write_error_code = SUCCESS;
+
+	ASSERT(connection_write(c2, "test", 4), "write closed");
+
+	ASSERT(connection_write_complete(c1), "write complete on acceptor");
+	ASSERT(connection_write_complete(c2), "write complete on closed");
+
+	connection_release(c1);
+	connection_release(c2);
+	connection_release(c3);
+	close(mplex);
+
+	ASSERT_BYTES(0);
+}
+
+Test(conn2) {
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 10, 16);
+	Connection *c2, *c3;
+	i32 fd, mplex;
+	u16 port;
+	ASSERT(c1, "c1!=NULL");
+
+	mplex = multiplex();
+
+	port = connection_acceptor_port(c1);
+	ASSERT(!connection_acceptor(LOCALHOST, port, 10, 0), "port conflict");
+	c2 = connection_client(LOCALHOST, port, 0);
+	connection_set_mplex(c2, mplex);
+	ASSERT(c2, "c2!=NULL");
+	ASSERT_EQ(connection_acceptor_port(c2), -1, "not acceptor");
+	ASSERT(!connection_client(BAD_ADDR, port, 0), "bad addr");
+	while ((fd = accept(connection_socket(c1), NULL, NULL)) < 0);
+	c3 = connection_accepted(fd, mplex, 0);
+	ASSERT(c3, "c3!=NULL");
+
+	ASSERT(!connection_rbuf(c2), "rbuf c2==NULL");
+	ASSERT(!connection_rbuf(c1), "rbuf c1==NULL");
+	ASSERT(!connection_wbuf(c2), "wbuf c2==NULL");
+	ASSERT(!connection_wbuf(c1), "wbuf c1==NULL");
+
+	ASSERT_EQ(connection_alloc_overhead(c1), 16, "c1 alloc overhead == 16");
+	ASSERT_EQ(connection_alloc_overhead(c2), -1, "c2 alloc overhead err");
+	ASSERT(!connection_is_connected(c3), "c3 not conn");
+	connection_set_is_connected(c3);
+	ASSERT(connection_is_connected(c3), "c3 conn");
+	ASSERT(connection_size() <= 64, "size fits in cache line");
+
+	_debug_force_write_buffer = true;
+	ASSERT(!connection_write(c2, "a", 1), "write successa");
+	_debug_force_write_buffer = false;
+	_debug_force_write_error = true;
+	_debug_write_error_code = EPIPE;
+	ASSERT(connection_write_complete(c2), "write completea fail");
+	_debug_force_write_error = false;
+
+	ASSERT(!connection_close(c1), "close c1");
+	ASSERT(connection_close(c1), "double close c1");
+
+	ASSERT(!connection_close(c3), "close c3");
+	ASSERT(connection_close(c3), "double close c3");
+
+	connection_release(c1);
+	connection_release(c2);
+	connection_release(c3);
+	close(mplex);
+
+	ASSERT_BYTES(0);
+}
+
+Test(conn3) {
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 10, 16);
+	Connection *c2, *c3;
+	i32 fd, mplex;
+	u16 port;
+	ASSERT(c1, "c1!=NULL");
+
+	mplex = multiplex();
+
+	port = connection_acceptor_port(c1);
+	ASSERT(!connection_acceptor(LOCALHOST, port, 10, 0), "port conflict");
+	c2 = connection_client(LOCALHOST, port, 0);
+	connection_set_mplex(c2, mplex);
+	ASSERT(c2, "c2!=NULL");
+	ASSERT_EQ(connection_acceptor_port(c2), -1, "not acceptor");
+	while ((fd = accept(connection_socket(c1), NULL, NULL)) < 0);
+	c3 = connection_accepted(fd, -1, 0);
+	ASSERT(c3, "c3!=NULL");
+
+	_debug_force_write_buffer = true;
+	ASSERT(connection_write(c3, "a", 1), "invalid mplex");
+
+	_debug_alloc_failure = 1;
+	ASSERT(connection_write(c2, "a", 1), "alloc failure");
+
+	_debug_force_write_buffer = false;
+	_debug_alloc_failure = false;
+
+	connection_release(c1);
+	connection_release(c2);
+	connection_release(c3);
+	close(mplex);
+
+	ASSERT_BYTES(0);
+}
+
+Test(conn4) {
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 10, 16);
+	Connection *c2, *c3;
+	i32 fd, mplex;
+	u16 port;
+	ASSERT(c1, "c1!=NULL");
+
+	mplex = multiplex();
+
+	port = connection_acceptor_port(c1);
+	ASSERT(!connection_acceptor(LOCALHOST, port, 10, 0), "port conflict");
+	c2 = connection_client(LOCALHOST, port, 0);
+	connection_set_mplex(c2, mplex);
+	ASSERT(c2, "c2!=NULL");
+	ASSERT_EQ(connection_acceptor_port(c2), -1, "not acceptor");
+	while ((fd = accept(connection_socket(c1), NULL, NULL)) < 0);
+	c3 = connection_accepted(fd, mplex, 0);
+	ASSERT(c3, "c3!=NULL");
+
+	_debug_force_write_buffer = true;
+	ASSERT(!connection_write(c3, "a", 1), "write with force to buffer");
+
+	connection_set_mplex(c3, -1);
+	ASSERT(connection_write_complete(c3), "write complete fail");
+
+	_debug_force_write_buffer = false;
+
+	connection_release(c1);
+	connection_release(c2);
+	connection_release(c3);
+	close(mplex);
+
+	ASSERT_BYTES(0);
+}
+
+Test(conn5) {
+	Connection *c1 = connection_acceptor(LOCALHOST, 0, 10, 16);
+	Connection *c2, *c3;
+	i32 fd, mplex;
+	u8 buf[10];
+	u16 port;
+	Vec *v;
+	ASSERT(c1, "c1!=NULL");
+
+	mplex = multiplex();
+
+	port = connection_acceptor_port(c1);
+	ASSERT(!connection_acceptor(LOCALHOST, port, 10, 0), "port conflict");
+	c2 = connection_client(LOCALHOST, port, 0);
+	connection_set_mplex(c2, mplex);
+	ASSERT(c2, "c2!=NULL");
+	ASSERT_EQ(connection_acceptor_port(c2), -1, "not acceptor");
+	while ((fd = accept(connection_socket(c1), NULL, NULL)) < 0);
+	c3 = connection_accepted(fd, mplex, 0);
+	ASSERT(c3, "c3!=NULL");
+
+	_debug_force_write_buffer = true;
+	ASSERT(!connection_write(c3, "ab", 2), "write with force to buffer");
+
+	_debug_connection_wmax = 1;
+	ASSERT(!connection_write_complete(c3), "write complete 1");
+	_debug_connection_wmax = 0;
+
+	while (read(connection_socket(c2), buf, 2) != 1);
+	ASSERT_EQ(buf[0], 'a', "a");
+
+	ASSERT(!connection_write_complete(c3), "write complete 2");
+
+	while (read(connection_socket(c2), buf, 2) != 1);
+	ASSERT_EQ(buf[0], 'b', "b");
+
+	_debug_force_write_buffer = false;
+
+	v = connection_rbuf(c2);
+	ASSERT(!v, "connection_rbuf1");
+	v = vec_resize(v, 100);
+	connection_set_rbuf(c2, v);
+	v = connection_rbuf(c2);
+	ASSERT(v, "connection_rbuf2");
+
+	connection_release(c1);
+	connection_release(c2);
+	connection_release(c3);
+	close(mplex);
+
+	ASSERT_BYTES(0);
+}
+

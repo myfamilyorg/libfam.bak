@@ -68,7 +68,9 @@ Vec *vec_resize(Vec *v, u64 nsize) {
 
 Vec *vec_new(u64 size) { return vec_resize(NULL, size); }
 
-void vec_release(Vec *v) { release(v); }
+void vec_release(Vec *v) {
+	if (v) release(v);
+}
 
 i32 vec_truncate(Vec *v, u64 nsize) {
 	u64 elems = vec_elements(v);

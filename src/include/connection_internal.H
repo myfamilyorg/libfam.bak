@@ -41,9 +41,6 @@ extern bool _debug_force_write_buffer;
 extern bool _debug_force_write_error;
 extern i32 _debug_write_error_code;
 extern u64 _debug_connection_wmax;
-extern bool _debug_invalid_connection_type;
-extern bool _debug_fail_epoll_create1;
-extern bool _debug_fail_clone3;
 #endif /* TEST */
 
 #endif /* _CONNECTION_INTERNAL_H */
