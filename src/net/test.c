@@ -300,6 +300,7 @@ Test(conn2) {
 	ASSERT_EQ(connection_alloc_overhead(c2), -1, "c2 alloc overhead err");
 	ASSERT(!connection_is_connected(c3), "c3 not conn");
 	connection_set_is_connected(c3);
+	connection_set_is_connected(c1);
 	ASSERT(connection_is_connected(c3), "c3 conn");
 	ASSERT(connection_size() <= 64, "size fits in cache line");
 
