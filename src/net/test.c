@@ -267,6 +267,9 @@ Test(conn1) {
 	ASSERT(connection_write_complete(c1), "write complete on acceptor");
 	ASSERT(connection_write_complete(c2), "write complete on closed");
 
+	close(connection_socket(c2));
+	close(connection_socket(c3));
+
 	connection_release(c1);
 	connection_release(c2);
 	connection_release(c3);
@@ -322,6 +325,9 @@ Test(conn2) {
 	ASSERT(!connection_close(c3), "close c3");
 	ASSERT(connection_close(c3), "double close c3");
 
+	close(connection_socket(c2));
+	close(connection_socket(c3));
+
 	connection_release(c1);
 	connection_release(c2);
 	connection_release(c3);
@@ -357,6 +363,9 @@ Test(conn3) {
 
 	_debug_force_write_buffer = false;
 
+	close(connection_socket(c2));
+	close(connection_socket(c3));
+
 	connection_release(c1);
 	connection_release(c2);
 	connection_release(c3);
@@ -391,6 +400,9 @@ Test(conn4) {
 	ASSERT(connection_write_complete(c3), "write complete fail");
 
 	_debug_force_write_buffer = false;
+
+	close(connection_socket(c2));
+	close(connection_socket(c3));
 
 	connection_release(c1);
 	connection_release(c2);
@@ -444,6 +456,9 @@ Test(conn5) {
 	connection_set_rbuf(c2, v);
 	v = connection_rbuf(c2);
 	ASSERT(v, "connection_rbuf2");
+
+	close(connection_socket(c2));
+	close(connection_socket(c3));
 
 	connection_release(c1);
 	connection_release(c2);
@@ -619,6 +634,8 @@ Test(evh_accept_fail) {
 	release(evh1_on_connect_val);
 	evh_stop(evh1);
 	evh_destroy(evh1);
+
+	close(connection_socket(conn));
 	connection_release(conn);
 	connection_release(acceptor);
 
@@ -637,6 +654,7 @@ Test(evh_proc_read_fail) {
 	proc_read(NULL, conn);
 	ASSERT(connection_is_closed(conn), "is_closed");
 
+	close(connection_socket(conn));
 	connection_release(conn);
 	connection_release(acceptor);
 
@@ -654,6 +672,7 @@ Test(evh_proc_write_fail) {
 	ASSERT(proc_write(NULL, conn), "proc_write_fail");
 	_debug_fail_setsockopt = false;
 
+	close(connection_socket(conn));
 	connection_release(conn);
 	connection_release(acceptor);
 
@@ -693,6 +712,7 @@ Test(connect_failure) {
 	ASSERT(!evh_stop(evh1), "stop evh");
 	ASSERT(evh_stop(evh1), "already stopped");
 	evh_destroy(evh1);
+
 	connection_release(acceptor);
 
 	ASSERT_BYTES(0);

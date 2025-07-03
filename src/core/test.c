@@ -384,6 +384,9 @@ Test(pipe) {
 		exit(0);
 	}
 	waitid(P_PID, fv, NULL, WEXITED);
+
+	close(fds[0]);
+	close(fds[1]);
 	ASSERT_BYTES(0);
 }
 
