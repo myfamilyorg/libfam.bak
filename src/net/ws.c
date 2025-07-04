@@ -457,6 +457,57 @@ i32 ws_send(Ws *ws, WsConnection *conn, WsMessage *msg) {
 	}
 }
 
+i32 ws_close(Ws *ws, WsConnection *conn, i32 code, const u8 *reason) {
+	u16 index = connection_get_flag_upper_bits((Connection *)conn);
+	RbTreeNode *root = ws->ctxs[index].connections.root;
+	RbTreeNodePair retval = {0};
+	WsMessage msg = {0};
+	u8 close_frame[125 + 2] = {0};
+	u64 reason_len = reason ? strlen((const char *)reason) : 0;
+	u16 payload_len = 0;
+	i32 send_result;
+
+	if (code != 0 &&
+	    !((code >= 1000 && code <= 1015 && code != 1004 && code != 1006) ||
+	      (code >= 3000 && code <= 4999))) {
+		err = EINVAL;
+		return -1;
+	}
+
+	if (reason_len > 123) {
+		reason_len = 123;
+	}
+
+	if (code > 0) {
+		close_frame[0] = (code >> 8) & 0xFF;
+		close_frame[1] = code & 0xFF;
+		payload_len = 2;
+
+		if (reason_len > 0) {
+			memcpy(&close_frame[2], reason, reason_len);
+			payload_len += reason_len;
+		}
+	}
+
+	msg.buffer = close_frame;
+	msg.len = payload_len;
+	msg.op = 0x08;
+
+	send_result = ws_send(ws, conn, &msg);
+	if (send_result < 0) return send_result;
+
+	{
+		LockGuard lg = wlock(&ws->ctxs[index].lock);
+		Connection *sres;
+		ws_rbtree_search(root, (RbTreeNode *)conn, &retval);
+		sres = (Connection *)retval.self;
+		if (!sres) return -1;
+		connection_close(sres);
+	}
+
+	return 0;
+}
+
 u16 ws_port(Ws *ws) { return connection_acceptor_port(ws->acceptor); }
 
 u64 ws_conn_id(WsConnection *conn) { return conn->id; }

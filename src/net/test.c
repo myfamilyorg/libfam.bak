@@ -736,12 +736,21 @@ void ws1_on_message(Ws *ws, WsConnection *conn, WsMessage *msg) {
 	memcpy(buf, msg->buffer, msg->len);
 	buf[msg->len] = 0;
 	println("recv msg='{}'", buf);
-	resp.buffer = buf;
-	resp.op = 2;
-	resp.len = msg->len;
-	ws_send(ws, conn, &resp);
+	if (!strcmp(buf, "exit")) ws_close(ws, conn, 1001, "Going Away");
+	if (msg->op == 8) {
+		ws_close(ws, conn, 1000, "Close requested");
+	}
 
-	if (ws || conn || msg) {
+	if (msg->op == 2) {
+		resp.buffer = buf;
+		resp.op = 2;
+		resp.len = msg->len;
+		ws_send(ws, conn, &resp);
+	} else {
+		println("got op = {}", msg->op);
+	}
+
+	if (ws) {
 	}
 }
 
