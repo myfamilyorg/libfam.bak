@@ -791,6 +791,7 @@ Test(ws1) {
 	Ws *wsc;
 	WsConfig client_conf = {0};
 	WsConnection *client;
+	u16 port;
 
 	ws1_success = alloc(sizeof(u64));
 	*ws1_success = 0;
@@ -803,18 +804,18 @@ Test(ws1) {
 
 	wsc = ws_init(&client_conf);
 
-	config.port = 9090;
 	config.on_message = ws1_on_message;
 	config.on_open = ws1_on_open;
 	config.on_close = ws1_on_close;
 	config.on_connect = ws1_on_connect;
 	ws = ws_init(&config);
+	port = ws_port(ws);
 	ASSERT(ws, "ws_init");
 	ASSERT(!ws_start(ws), "ws_start");
 
 	ASSERT(wsc, "ws_initc");
 	ASSERT(!ws_start(wsc), "wsc_start");
-	client = ws_connect(wsc, LOCALHOST, 9090);
+	client = ws_connect(wsc, LOCALHOST, port);
 	ASSERT(client, "client!=NULL");
 
 	while (!ALOAD(ws1_success));
