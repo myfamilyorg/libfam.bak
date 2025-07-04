@@ -123,13 +123,6 @@ STATIC i32 ws_proc_handshake(WsConnection *wsconn) {
 	i32 lendec;
 	const u8 *guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
-	{
-		char tmp[1024 * 100];
-		memcpy(tmp, data, rbuf_offset);
-		tmp[rbuf_offset] = 0;
-		println("buf='{}'", tmp);
-	}
-
 	if ((end = substrn(data, "\r\n\r\n", rbuf_offset))) {
 		u64 len = end - data, i;
 		u8 *sec_websocket_key = NULL;
@@ -170,19 +163,13 @@ STATIC i32 ws_proc_handshake(WsConnection *wsconn) {
 			return -1;
 		}
 
-		println("switch protos");
 		connection_write((Connection *)wsconn, SWITCHING_PROTOS,
 				 strlen(SWITCHING_PROTOS));
-		sleep(10);
-		println("accept: {}", accept);
 		connection_write((Connection *)wsconn, accept, strlen(accept));
-		sleep(10);
 		connection_write((Connection *)wsconn, "\r\n\r\n", 4);
-		println("len={},rbuf_offset={}", len, rbuf_offset);
 		if (len + 4 > rbuf_offset) {
 			memorymove(data, (void *)((u64)data + len + 4),
 				   len + 4);
-			println("memmove");
 		}
 		vec_truncate(rbuf, rbuf_offset - (len + 4));
 
@@ -203,10 +190,7 @@ STATIC i32 ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 	u64 data_start;
 	u8 masking_key[4] = {0};
 
-	println("proc frames {}", rbuf_offset);
-
 	if (rbuf_offset < 2) {
-		println("eagain");
 		err = EAGAIN;
 		return -1;
 	}
@@ -238,7 +222,6 @@ STATIC i32 ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 
 	/* Accept continuation, binary, close, and ping frames only */
 	if (op != 0 && op != 1 && op != 2 && op != 8 && op != 9) {
-		println("err proto op = {}", (u64)op);
 		err = EPROTO;
 		return -1;
 	}
@@ -257,8 +240,6 @@ STATIC i32 ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 	}
 
 	if (fin && data_start + len <= rbuf_offset) {
-		println("rbuf_offset={},len={},data_start={}", rbuf_offset, len,
-			data_start);
 		proc_message_single(ws, wsconn, data_start, len, op);
 		if (len + data_start < rbuf_offset)
 			memorymove(data, (void *)((u64)data + len + data_start),
@@ -299,7 +280,6 @@ STATIC void ws_on_recv_proc(void *ctx, Connection *conn,
 	WsContext *ws_ctx = (WsContext *)ctx;
 	Ws *ws = ws_ctx->ws;
 	WsConnection *wsconn = (WsConnection *)conn;
-	println("on_recv");
 
 	while (true) {
 		err = 0;
@@ -435,20 +415,15 @@ void ws_destroy(Ws *ws) {
 	release(ws);
 }
 
-i32 ws_send(Ws *ws, u64 id, WsMessage *msg) {
-	if (ws || id || msg) {
-	}
-	return 0;
-	/*
-	WsConnection conn;
+i32 ws_send(Ws *ws, WsConnection *conn, WsMessage *msg) {
 	u8 buf[10];
 	u64 header_len;
 	RbTreeNodePair retval = {0};
 	RbTreeNode *root;
+	u16 index = connection_get_flag_upper_bits((Connection *)conn);
 
 	buf[0] = 0x80 | msg->op;
-	conn.id = id;
-	root = ws->connections.root;
+	root = ws->ctxs[index].connections.root;
 
 	if (msg->len <= 125) {
 		buf[1] = (u8)msg->len;
@@ -472,15 +447,14 @@ i32 ws_send(Ws *ws, u64 id, WsMessage *msg) {
 	}
 
 	{
-		LockGuard lg = wlock(&ws->lock);
+		LockGuard lg = wlock(&ws->ctxs[index].lock);
 		Connection *sres;
-		ws_rbtree_search(root, (RbTreeNode *)&conn, &retval);
+		ws_rbtree_search(root, (RbTreeNode *)conn, &retval);
 		sres = (Connection *)retval.self;
 		if (!sres) return -1;
 		if (connection_write(sres, buf, header_len) < 0) return -1;
 		return connection_write(sres, msg->buffer, msg->len);
 	}
-	*/
 }
 
 u16 ws_port(Ws *ws) { return connection_acceptor_port(ws->acceptor); }

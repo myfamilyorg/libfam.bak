@@ -732,10 +732,25 @@ Test(connection_flags) {
 
 void ws1_on_message(Ws *ws, WsConnection *conn, WsMessage *msg) {
 	u8 buf[1024];
+	WsMessage resp;
 	memcpy(buf, msg->buffer, msg->len);
 	buf[msg->len] = 0;
+	println("recv msg='{}'", buf);
+	resp.buffer = buf;
+	resp.op = 2;
+	resp.len = msg->len;
+	ws_send(ws, conn, &resp);
+
 	if (ws || conn || msg) {
 	}
+}
+
+void ws1_on_open(Ws *ws, WsConnection *conn) {
+	if (ws) println("on open {x}: {}", (u64)conn, ws_conn_id(conn));
+}
+
+void ws1_on_close(Ws *ws, WsConnection *conn) {
+	if (ws) println("on close {x}: {}", (u64)conn, ws_conn_id(conn));
 }
 
 Test(ws1) {
@@ -744,6 +759,8 @@ Test(ws1) {
 
 	config.port = 9090;
 	config.on_message = ws1_on_message;
+	config.on_open = ws1_on_open;
+	config.on_close = ws1_on_close;
 	ws = ws_init(&config);
 	ASSERT(ws, "ws_init");
 	ASSERT(!ws_start(ws), "ws_start");
