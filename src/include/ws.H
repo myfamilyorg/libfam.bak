@@ -32,6 +32,7 @@ typedef struct {
 	u8 *buffer;
 	u64 len;
 	u8 op;
+	bool fin;
 } WsMessage;
 
 typedef struct WsConnection WsConnection;
@@ -62,6 +63,7 @@ i32 ws_send(Ws *ws, WsConnection *conn, WsMessage *msg);
 u64 ws_conn_id(WsConnection *connection);
 WsConnection *ws_connect(Ws *ws, u8 addr[4], u16 port);
 i32 ws_close(Ws *ws, WsConnection *conn, i32 code, const u8 *reason);
+WsConnection ws_conn_copy(WsConnection *connection);
 u16 ws_port(Ws *ws);
 
 #endif /* _WS_H */

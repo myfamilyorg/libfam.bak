@@ -25,6 +25,7 @@
 
 #include <alloc.H>
 #include <atomic.H>
+#include <channel.H>
 #include <connection_internal.H>
 #include <error.H>
 #include <event.H>
@@ -830,5 +831,87 @@ Test(ws1) {
 	ASSERT(!ws_stop(wsc), "wsc_stop");
 	ws_destroy(wsc);
 
+	ASSERT_BYTES(0);
+}
+
+/* Channel for use in test */
+Channel *ws_simple_channel;
+
+/* Process the message, assert it matches as expected, on the server side and
+ * close the connection */
+void ws_simple_on_message(Ws *ws, WsConnection *conn, WsMessage *msg) {
+	if (msg->op == 2) {
+		ASSERT_EQ(msg->len, 4, "msg->len==4");
+		ASSERT(msg->fin, "fin=true");
+		ASSERT(!strcmpn(msg->buffer, "test", 4), "test");
+		ws_close(ws, conn, 1000, "Going Away");
+	}
+}
+
+/* OnConnect handler asserts no errors and sends a simple message to the server
+ */
+void ws_simple_on_connect(Ws *ws, WsConnection *conn, i32 error) {
+	WsMessage msg = {0};
+
+	ASSERT(!error, "!error");
+	msg.op = 2;
+	msg.buffer = "test";
+	msg.len = 4;
+	msg.fin = true;
+	ws_send(ws, conn, &msg);
+}
+
+/* OnClose handler does a simple assertion and sends a message on the channel
+ * (value disregarded). */
+void ws_simple_on_close(Ws *ws, WsConnection *conn) {
+	i32 v = 1;
+	ASSERT(conn && ws, "conn&&ws!=NULL");
+	send(ws_simple_channel, &v);
+}
+
+/* Demonstration of simple websocket/channel implementation */
+Test(ws_simple) {
+	u16 port; /* Port we bind/connect to */
+	/* Use defaults except what's overwritten. Including port = 0,
+	 * indicating tcp/ip should select an open ephemeral port. */
+	WsConfig conf = {0};
+	Ws *ws; /* Websocket instance pointer */
+	i32 v;	/* Used for the channel, but discarded. */
+
+	/* Allocate the space for our channel */
+	ws_simple_channel = alloc(sizeof(Channel));
+	/* Initialize the channel for i32 values */
+	*ws_simple_channel = channel(sizeof(i32));
+
+	/* Set our handlers */
+	conf.on_message = ws_simple_on_message;
+	conf.on_connect = ws_simple_on_connect;
+	conf.on_close = ws_simple_on_close;
+
+	/* Init the websocket server */
+	ws = ws_init(&conf);
+
+	/* Start the websocket server */
+	ws_start(ws);
+	/* Get port that was assigned */
+	port = ws_port(ws);
+	/* Connect a client */
+	ws_connect(ws, LOCALHOST, port);
+
+	/* Recv two close messages (our client and the inbound accepted
+	 * websocket). */
+	recv(ws_simple_channel, &v);
+	recv(ws_simple_channel, &v);
+
+	/* Destroy the channel */
+	channel_destroy(ws_simple_channel);
+	/* Release the channel's allocate memory */
+	release(ws_simple_channel);
+	/* Stop the websocket server */
+	ws_stop(ws);
+	/* Destroy the websocket server */
+	ws_destroy(ws);
+
+	/* Assert that there were no memory leaks. */
 	ASSERT_BYTES(0);
 }

@@ -102,13 +102,14 @@ STATIC i32 ws_rbtree_search(RbTreeNode *cur, const RbTreeNode *value,
 }
 
 STATIC i32 proc_message_single(Ws *ws, WsConnection *wsconn, u64 offset,
-			       u64 len, u8 op) {
+			       u64 len, u8 op, bool fin) {
 	WsMessage msg;
 	Vec *rbuf = connection_rbuf((Connection *)wsconn);
 	u8 *data = vec_data(rbuf);
 	msg.buffer = data + offset;
 	msg.len = len;
 	msg.op = op;
+	msg.fin = fin;
 	ws->config.on_message(ws, wsconn, &msg);
 	return 0;
 }
@@ -118,16 +119,13 @@ STATIC i32 ws_proc_handshake_client(WsConnection *wsconn) {
 	u64 rbuf_offset = vec_elements(rbuf);
 	u8 *data = vec_data(rbuf);
 	u8 *end;
-	if (wsconn || rbuf_offset) {
-	}
 
 	if ((end = substrn(data, "\r\n\r\n", rbuf_offset))) {
 		u64 len = (u64)end - (u64)data;
 		if (substrn(data, "Upgrade: websocket", len)) {
-			if (len + 4 < rbuf_offset) {
+			if (len + 4 < rbuf_offset)
 				memorymove(data, (u8 *)((u64)data + len + 4),
 					   rbuf_offset - (len + 4));
-			}
 			vec_truncate(rbuf, rbuf_offset - (len + 4));
 			return 0;
 		} else {
@@ -269,15 +267,12 @@ STATIC i32 ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 		}
 	}
 
-	if (fin && data_start + len <= rbuf_offset) {
-		proc_message_single(ws, wsconn, data_start, len, op);
+	if (data_start + len <= rbuf_offset) {
+		proc_message_single(ws, wsconn, data_start, len, op, fin);
 		if (len + data_start < rbuf_offset)
 			memorymove(data, (u8 *)((u64)data + len + data_start),
 				   rbuf_offset - (len + data_start));
 		vec_truncate(rbuf, rbuf_offset - (len + data_start));
-		return 0;
-	} else if (!fin && data_start + len <= rbuf_offset) {
-		/* TODO: implement fragmentation handling */
 		return 0;
 	} else {
 		err = EAGAIN;
@@ -576,3 +571,4 @@ u16 ws_port(Ws *ws) { return connection_acceptor_port(ws->acceptor); }
 
 u64 ws_conn_id(WsConnection *conn) { return conn->id; }
 
+WsConnection ws_conn_copy(WsConnection *connection) { return *connection; }
