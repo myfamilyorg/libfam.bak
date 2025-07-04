@@ -1621,3 +1621,16 @@ Test(test_hex) {
 	format_clear(&f);
 	ASSERT_BYTES(0);
 }
+
+Test(test_perror_close) {
+	const char *path = "/tmp/perror_test";
+	i32 fd;
+	unlink(path);
+	fd = file(path);
+	ASSERT(fd > 0, "fd>0");
+	ASSERT(!close(fd), "close");
+	_debug_no_write = true;
+	ASSERT(close(fd), "close fail");
+	_debug_no_write = false;
+	unlink(path);
+}
