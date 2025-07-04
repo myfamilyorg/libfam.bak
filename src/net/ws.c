@@ -273,7 +273,7 @@ STATIC i32 ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 		proc_message_single(ws, wsconn, data_start, len, op);
 		if (len + data_start < rbuf_offset)
 			memorymove(data, (u8 *)((u64)data + len + data_start),
-				   len + data_start);
+				   rbuf_offset - (len + data_start));
 		vec_truncate(rbuf, rbuf_offset - (len + data_start));
 		return 0;
 	} else if (!fin && data_start + len <= rbuf_offset) {
