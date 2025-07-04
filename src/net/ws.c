@@ -36,6 +36,18 @@
 
 #define CONNECTION_SIZE 56
 
+static const u8 *BAD_REQUEST =
+    "HTTP/1.1 400 Bad Request\r\n\
+Connection: close\r\n\
+Content-Length: 0\r\n\
+\r\n";
+
+static const u8 *SWITCHING_PROTOS =
+    "HTTP/1.1 101 Switching Protocols\r\n\
+Upgrade: websocket\r\n\
+Connection: Upgrade\r\n\
+Sec-WebSocket-Accept: ";
+
 typedef struct {
 	u16 id;
 	Ws *ws;
@@ -86,6 +98,182 @@ STATIC i32 ws_rbtree_search(RbTreeNode *cur, const RbTreeNode *value,
 	return 0;
 }
 
+STATIC i32 proc_message_single(Ws *ws, WsConnection *wsconn, u64 offset,
+			       u64 len, u8 op) {
+	WsMessage msg;
+	Vec *rbuf = connection_rbuf((Connection *)wsconn);
+	u8 *data = vec_data(rbuf);
+	msg.buffer = data + offset;
+	msg.len = len;
+	msg.op = op;
+	ws->config.on_message(ws, wsconn, &msg);
+	return 0;
+}
+
+STATIC i32 ws_proc_handshake(WsConnection *wsconn) {
+	Vec *rbuf = connection_rbuf((Connection *)wsconn);
+	u64 rbuf_offset = vec_elements(rbuf);
+	u8 *data = vec_data(rbuf);
+	u8 *end;
+	u8 key[24];
+	SHA1_CTX sha1;
+	u8 accept[32];
+	u8 hash[20];
+	u8 decoded_key[16];
+	i32 lendec;
+	const u8 *guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+
+	{
+		char tmp[1024 * 100];
+		memcpy(tmp, data, rbuf_offset);
+		tmp[rbuf_offset] = 0;
+		println("buf='{}'", tmp);
+	}
+
+	if ((end = substrn(data, "\r\n\r\n", rbuf_offset))) {
+		u64 len = end - data, i;
+		u8 *sec_websocket_key = NULL;
+		sec_websocket_key = substrn(data, "Sec-WebSocket-Key: ", len);
+		if (sec_websocket_key == NULL) {
+			err = EPROTO;
+			return -1;
+		}
+		sec_websocket_key += 19;
+		if ((u64)(sec_websocket_key - data) + 24 > len) {
+			err = EOVERFLOW;
+			return -1;
+		}
+		memcpy(key, sec_websocket_key, 24);
+
+		if (substrn(data, "GET ", len) != data) {
+			err = EPROTO;
+			return -1;
+		}
+		for (i = 4; i < len; i++)
+			if (data[i] == ' ' || data[i] == '\r' ||
+			    data[i] == '\n')
+				break;
+
+		lendec = b64_decode((u8 *)key, 24, decoded_key, 16);
+		if (lendec != 16) {
+			err = EINVAL;
+			return -1;
+		}
+
+		sha1_init(&sha1);
+		sha1_update(&sha1, (u8 *)key, 24);
+		sha1_update(&sha1, (u8 *)guid, strlen(guid));
+		sha1_final(&sha1, hash);
+
+		if (!b64_encode(hash, 20, (u8 *)accept, sizeof(accept))) {
+			err = EINVAL;
+			return -1;
+		}
+
+		println("switch protos");
+		connection_write((Connection *)wsconn, SWITCHING_PROTOS,
+				 strlen(SWITCHING_PROTOS));
+		sleep(10);
+		println("accept: {}", accept);
+		connection_write((Connection *)wsconn, accept, strlen(accept));
+		sleep(10);
+		connection_write((Connection *)wsconn, "\r\n\r\n", 4);
+		println("len={},rbuf_offset={}", len, rbuf_offset);
+		if (len + 4 > rbuf_offset) {
+			memorymove(data, (void *)((u64)data + len + 4),
+				   len + 4);
+			println("memmove");
+		}
+		vec_truncate(rbuf, rbuf_offset - (len + 4));
+
+		return 0;
+	} else {
+		err = EAGAIN;
+		return -1;
+	}
+}
+
+STATIC i32 ws_proc_frames(Ws *ws, WsConnection *wsconn) {
+	Vec *rbuf = connection_rbuf((Connection *)wsconn);
+	u8 *data = vec_data(rbuf);
+	u64 rbuf_offset = vec_elements(rbuf);
+	bool fin, mask;
+	u8 op;
+	u64 len;
+	u64 data_start;
+	u8 masking_key[4] = {0};
+
+	println("proc frames {}", rbuf_offset);
+
+	if (rbuf_offset < 2) {
+		println("eagain");
+		err = EAGAIN;
+		return -1;
+	}
+
+	fin = (data[0] & 0x80) != 0;
+	op = data[0] & 0xF;
+	mask = (data[1] & 0x80) != 0;
+
+	len = data[1] & 0x7F;
+	if (len == 126) {
+		if (rbuf_offset < 4) {
+			err = EAGAIN;
+			return -1;
+		}
+		len = (data[2] << 8) | data[3];
+		data_start = mask ? 8 : 4;
+	} else if (len == 127) {
+		if (rbuf_offset < 10) {
+			err = EAGAIN;
+			return -1;
+		}
+		len = ((u64)data[2] << 56) | ((u64)data[3] << 48) |
+		      ((u64)data[4] << 40) | ((u64)data[5] << 32) |
+		      ((u64)data[6] << 24) | ((u64)data[7] << 16) |
+		      ((u64)data[8] << 8) | data[9];
+		data_start = mask ? 14 : 10;
+	} else
+		data_start = mask ? 6 : 2;
+
+	/* Accept continuation, binary, close, and ping frames only */
+	if (op != 0 && op != 1 && op != 2 && op != 8 && op != 9) {
+		println("err proto op = {}", (u64)op);
+		err = EPROTO;
+		return -1;
+	}
+	if (mask) {
+		u64 i;
+		u8 *payload;
+		masking_key[0] = data[data_start - 4];
+		masking_key[1] = data[data_start - 3];
+		masking_key[2] = data[data_start - 2];
+		masking_key[3] = data[data_start - 1];
+
+		payload = data + data_start;
+		for (i = 0; i < len; i++) {
+			payload[i] ^= masking_key[i % 4];
+		}
+	}
+
+	if (fin && data_start + len <= rbuf_offset) {
+		println("rbuf_offset={},len={},data_start={}", rbuf_offset, len,
+			data_start);
+		proc_message_single(ws, wsconn, data_start, len, op);
+		if (len + data_start < rbuf_offset)
+			memorymove(data, (void *)((u64)data + len + data_start),
+				   len + data_start);
+		vec_truncate(rbuf, rbuf_offset - (len + data_start));
+		return 0;
+	} else if (!fin && data_start + len <= rbuf_offset) {
+		/* TODO: implement fragmentation handling */
+		return 0;
+	} else {
+		err = EAGAIN;
+		return -1;
+	}
+}
+
 STATIC void ws_on_accept_proc(void *ctx, Connection *conn) {
 	WsContext *ws_ctx = (WsContext *)ctx;
 	Ws *ws = ws_ctx->ws;
@@ -108,7 +296,31 @@ STATIC void ws_on_connect_proc(void *ctx, Connection *conn, int error) {
 
 STATIC void ws_on_recv_proc(void *ctx, Connection *conn,
 			    u64 rlen __attribute__((unused))) {
-	if (ctx || conn) {
+	WsContext *ws_ctx = (WsContext *)ctx;
+	Ws *ws = ws_ctx->ws;
+	WsConnection *wsconn = (WsConnection *)conn;
+	println("on_recv");
+
+	while (true) {
+		err = 0;
+		if (!connection_get_flag(conn, CONN_FLAG_USR1)) {
+			i32 res = ws_proc_handshake(wsconn);
+			if (res == 0) {
+				connection_set_flag(conn, CONN_FLAG_USR1, true);
+				continue;
+			} else if (err != EAGAIN) {
+				connection_write((Connection *)wsconn,
+						 BAD_REQUEST,
+						 strlen(BAD_REQUEST));
+				connection_close((Connection *)wsconn);
+			}
+		} else {
+			if (ws_proc_frames(ws, wsconn) == 0) continue;
+			if (err != EAGAIN) {
+				connection_close((Connection *)wsconn);
+			}
+		}
+		break;
 	}
 }
 
@@ -222,4 +434,56 @@ void ws_destroy(Ws *ws) {
 	release(ws->ctxs);
 	release(ws);
 }
+
+i32 ws_send(Ws *ws, u64 id, WsMessage *msg) {
+	if (ws || id || msg) {
+	}
+	return 0;
+	/*
+	WsConnection conn;
+	u8 buf[10];
+	u64 header_len;
+	RbTreeNodePair retval = {0};
+	RbTreeNode *root;
+
+	buf[0] = 0x80 | msg->op;
+	conn.id = id;
+	root = ws->connections.root;
+
+	if (msg->len <= 125) {
+		buf[1] = (u8)msg->len;
+		header_len = 2;
+	} else if (msg->len <= 65535) {
+		buf[1] = 126;
+		buf[2] = (msg->len >> 8) & 0xFF;
+		buf[3] = msg->len & 0xFF;
+		header_len = 4;
+	} else {
+		buf[1] = 127;
+		buf[2] = (msg->len >> 56) & 0xFF;
+		buf[3] = (msg->len >> 48) & 0xFF;
+		buf[4] = (msg->len >> 40) & 0xFF;
+		buf[5] = (msg->len >> 32) & 0xFF;
+		buf[6] = (msg->len >> 24) & 0xFF;
+		buf[7] = (msg->len >> 16) & 0xFF;
+		buf[8] = (msg->len >> 8) & 0xFF;
+		buf[9] = msg->len & 0xFF;
+		header_len = 10;
+	}
+
+	{
+		LockGuard lg = wlock(&ws->lock);
+		Connection *sres;
+		ws_rbtree_search(root, (RbTreeNode *)&conn, &retval);
+		sres = (Connection *)retval.self;
+		if (!sres) return -1;
+		if (connection_write(sres, buf, header_len) < 0) return -1;
+		return connection_write(sres, msg->buffer, msg->len);
+	}
+	*/
+}
+
+u16 ws_port(Ws *ws) { return connection_acceptor_port(ws->acceptor); }
+
+u64 ws_conn_id(WsConnection *conn) { return conn->id; }
 

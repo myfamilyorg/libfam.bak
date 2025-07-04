@@ -731,6 +731,9 @@ Test(connection_flags) {
 }
 
 void ws1_on_message(Ws *ws, WsConnection *conn, WsMessage *msg) {
+	u8 buf[1024];
+	memcpy(buf, msg->buffer, msg->len);
+	buf[msg->len] = 0;
 	if (ws || conn || msg) {
 	}
 }
@@ -739,11 +742,12 @@ Test(ws1) {
 	Ws *ws;
 	WsConfig config = {0}; /* Use defaults */
 
+	config.port = 9090;
 	config.on_message = ws1_on_message;
 	ws = ws_init(&config);
 	ASSERT(ws, "ws_init");
 	ASSERT(!ws_start(ws), "ws_start");
-
+	/*sleep(10000000);*/
 	ASSERT(!ws_stop(ws), "ws_stop");
 	ws_destroy(ws);
 
