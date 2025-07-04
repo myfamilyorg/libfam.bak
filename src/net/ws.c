@@ -36,6 +36,9 @@
 
 #define CONNECTION_SIZE 56
 
+static const u8 *CLIENT_INIT_PREFIX =
+    "GET / HTTP/1.1\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n";
+
 static const u8 *BAD_REQUEST =
     "HTTP/1.1 400 Bad Request\r\n\
 Connection: close\r\n\
@@ -110,7 +113,34 @@ STATIC i32 proc_message_single(Ws *ws, WsConnection *wsconn, u64 offset,
 	return 0;
 }
 
-STATIC i32 ws_proc_handshake(WsConnection *wsconn) {
+STATIC i32 ws_proc_handshake_client(WsConnection *wsconn) {
+	Vec *rbuf = connection_rbuf((Connection *)wsconn);
+	u64 rbuf_offset = vec_elements(rbuf);
+	u8 *data = vec_data(rbuf);
+	u8 *end;
+	if (wsconn || rbuf_offset) {
+	}
+
+	if ((end = substrn(data, "\r\n\r\n", rbuf_offset))) {
+		u64 len = (u64)end - (u64)data;
+		if (substrn(data, "Upgrade: websocket", len)) {
+			if (len + 4 < rbuf_offset) {
+				memorymove(data, (u8 *)((u64)data + len + 4),
+					   rbuf_offset - (len + 4));
+			}
+			vec_truncate(rbuf, rbuf_offset - (len + 4));
+			return 0;
+		} else {
+			err = EPROTO;
+			return -1;
+		}
+	} else {
+		err = EAGAIN;
+		return -1;
+	}
+}
+
+STATIC i32 ws_proc_handshake_server(WsConnection *wsconn) {
 	Vec *rbuf = connection_rbuf((Connection *)wsconn);
 	u64 rbuf_offset = vec_elements(rbuf);
 	u8 *data = vec_data(rbuf);
@@ -167,9 +197,9 @@ STATIC i32 ws_proc_handshake(WsConnection *wsconn) {
 				 strlen(SWITCHING_PROTOS));
 		connection_write((Connection *)wsconn, accept, strlen(accept));
 		connection_write((Connection *)wsconn, "\r\n\r\n", 4);
-		if (len + 4 > rbuf_offset) {
-			memorymove(data, (void *)((u64)data + len + 4),
-				   len + 4);
+		if (len + 4 < rbuf_offset) {
+			memorymove(data, (u8 *)((u64)data + len + 4),
+				   rbuf_offset - (len + 4));
 		}
 		vec_truncate(rbuf, rbuf_offset - (len + 4));
 
@@ -242,7 +272,7 @@ STATIC i32 ws_proc_frames(Ws *ws, WsConnection *wsconn) {
 	if (fin && data_start + len <= rbuf_offset) {
 		proc_message_single(ws, wsconn, data_start, len, op);
 		if (len + data_start < rbuf_offset)
-			memorymove(data, (void *)((u64)data + len + data_start),
+			memorymove(data, (u8 *)((u64)data + len + data_start),
 				   len + data_start);
 		vec_truncate(rbuf, rbuf_offset - (len + data_start));
 		return 0;
@@ -271,8 +301,19 @@ STATIC void ws_on_accept_proc(void *ctx, Connection *conn) {
 }
 
 STATIC void ws_on_connect_proc(void *ctx, Connection *conn, int error) {
-	if (ctx || conn || error) {
+	WsContext *ws_ctx = (WsContext *)ctx;
+	Ws *ws = ws_ctx->ws;
+	WsConnection *wsconn = (WsConnection *)conn;
+
+	wsconn->id = __add64(&ws->next_id, 1);
+	connection_set_flag(conn, CONN_FLAG_USR1, false);
+	connection_set_flag_upper_bits(conn, ws_ctx->id);
+	{
+		LockGuard lg = wlock(&ws_ctx->lock);
+		rbtree_put(&ws_ctx->connections, (RbTreeNode *)wsconn,
+			   ws_rbtree_search);
 	}
+	ws->config.on_connect(ws, wsconn, error);
 }
 
 STATIC void ws_on_recv_proc(void *ctx, Connection *conn,
@@ -284,7 +325,13 @@ STATIC void ws_on_recv_proc(void *ctx, Connection *conn,
 	while (true) {
 		err = 0;
 		if (!connection_get_flag(conn, CONN_FLAG_USR1)) {
-			i32 res = ws_proc_handshake(wsconn);
+			ConnectionType ctype =
+			    connection_type((Connection *)wsconn);
+			i32 res;
+			if (ctype == Inbound)
+				res = ws_proc_handshake_server(wsconn);
+			else
+				res = ws_proc_handshake_client(wsconn);
 			if (res == 0) {
 				connection_set_flag(conn, CONN_FLAG_USR1, true);
 				continue;
@@ -451,8 +498,12 @@ i32 ws_send(Ws *ws, WsConnection *conn, WsMessage *msg) {
 		Connection *sres;
 		ws_rbtree_search(root, (RbTreeNode *)conn, &retval);
 		sres = (Connection *)retval.self;
-		if (!sres) return -1;
-		if (connection_write(sres, buf, header_len) < 0) return -1;
+		if (!sres) {
+			return -1;
+		}
+		if (connection_write(sres, buf, header_len) < 0) {
+			return -1;
+		}
 		return connection_write(sres, msg->buffer, msg->len);
 	}
 }
@@ -506,6 +557,19 @@ i32 ws_close(Ws *ws, WsConnection *conn, i32 code, const u8 *reason) {
 	}
 
 	return 0;
+}
+
+WsConnection *ws_connect(Ws *ws, u8 addr[4], u16 port) {
+	WsConnection *client = (WsConnection *)connection_client(
+	    addr, port, sizeof(WsConnection) - CONNECTION_SIZE);
+	if (!client) return NULL;
+	if (evh_register(ws->ctxs[0].evh, (Connection *)client) < 0) {
+		close(connection_socket((Connection *)client));
+		connection_release((Connection *)client);
+	}
+	connection_write((Connection *)client, CLIENT_INIT_PREFIX,
+			 strlen(CLIENT_INIT_PREFIX));
+	return client;
 }
 
 u16 ws_port(Ws *ws) { return connection_acceptor_port(ws->acceptor); }

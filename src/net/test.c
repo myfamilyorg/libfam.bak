@@ -730,52 +730,104 @@ Test(connection_flags) {
 	ASSERT_BYTES(0);
 }
 
+u64 *ws1_success;
+u64 *ws1_close_count;
+
 void ws1_on_message(Ws *ws, WsConnection *conn, WsMessage *msg) {
 	u8 buf[1024];
 	WsMessage resp;
 	memcpy(buf, msg->buffer, msg->len);
 	buf[msg->len] = 0;
-	println("recv msg='{}'", buf);
-	if (!strcmp(buf, "exit")) ws_close(ws, conn, 1001, "Going Away");
 	if (msg->op == 8) {
 		ws_close(ws, conn, 1000, "Close requested");
-	}
-
-	if (msg->op == 2) {
+	} else if (msg->op == 2) {
 		resp.buffer = buf;
 		resp.op = 2;
 		resp.len = msg->len;
 		ws_send(ws, conn, &resp);
-	} else {
-		println("got op = {}", msg->op);
-	}
-
-	if (ws) {
 	}
 }
 
-void ws1_on_open(Ws *ws, WsConnection *conn) {
-	if (ws) println("on open {x}: {}", (u64)conn, ws_conn_id(conn));
+void ws1_on_open(Ws *ws, WsConnection *conn) { ASSERT(ws && conn, "non-null"); }
+
+void ws1_on_connect(Ws *ws, WsConnection *conn, int error) {
+	ASSERT(ws && conn && !error, "non-null and no errors");
 }
 
 void ws1_on_close(Ws *ws, WsConnection *conn) {
-	if (ws) println("on close {x}: {}", (u64)conn, ws_conn_id(conn));
+	ASSERT(ws && conn, "non_null");
+	__add64(ws1_close_count, 1);
+}
+
+void wsc1_on_message(Ws *ws, WsConnection *conn, WsMessage *msg) {
+	if (msg->op == 8) {
+		ws_close(ws, conn, 1000, "Close requested");
+	} else {
+		ASSERT_EQ(msg->op, 2, "msg->op == 2");
+		ASSERT_EQ(msg->len, 4, "msg->len == 4");
+		ASSERT(!strcmpn(msg->buffer, "test", 4), "test");
+		__add64(ws1_success, 1);
+		ws_close(ws, conn, 1000, "Going Away");
+	}
+}
+
+void wsc1_on_close(Ws *ws, WsConnection *conn) {
+	ASSERT(ws && conn, "non-null");
+	__add64(ws1_close_count, 1);
+}
+
+void wsc1_on_connect(Ws *ws, WsConnection *conn, int error) {
+	WsMessage msg;
+	ASSERT(!error, "!error");
+	msg.op = 2;
+	msg.buffer = "test";
+	msg.len = 4;
+	ws_send(ws, conn, &msg);
 }
 
 Test(ws1) {
 	Ws *ws;
-	WsConfig config = {0}; /* Use defaults */
+	WsConfig config = {0};
+	Ws *wsc;
+	WsConfig client_conf = {0};
+	WsConnection *client;
+
+	ws1_success = alloc(sizeof(u64));
+	*ws1_success = 0;
+	ws1_close_count = alloc(sizeof(u64));
+	*ws1_close_count = 0;
+
+	client_conf.on_message = wsc1_on_message;
+	client_conf.on_close = wsc1_on_close;
+	client_conf.on_connect = wsc1_on_connect;
+
+	wsc = ws_init(&client_conf);
 
 	config.port = 9090;
 	config.on_message = ws1_on_message;
 	config.on_open = ws1_on_open;
 	config.on_close = ws1_on_close;
+	config.on_connect = ws1_on_connect;
 	ws = ws_init(&config);
 	ASSERT(ws, "ws_init");
 	ASSERT(!ws_start(ws), "ws_start");
-	/*sleep(10000000);*/
+
+	ASSERT(wsc, "ws_initc");
+	ASSERT(!ws_start(wsc), "wsc_start");
+	client = ws_connect(wsc, LOCALHOST, 9090);
+	ASSERT(client, "client!=NULL");
+
+	while (!ALOAD(ws1_success));
+	ASSERT_EQ(ALOAD(ws1_success), 1, "success=1");
+	while (ALOAD(ws1_close_count) != 2);
+	ASSERT_EQ(ALOAD(ws1_close_count), 2, "close_count=2");
+
+	release(ws1_success);
+	release(ws1_close_count);
 	ASSERT(!ws_stop(ws), "ws_stop");
 	ws_destroy(ws);
+	ASSERT(!ws_stop(wsc), "wsc_stop");
+	ws_destroy(wsc);
 
 	ASSERT_BYTES(0);
 }
