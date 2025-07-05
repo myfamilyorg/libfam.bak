@@ -760,25 +760,18 @@ Test(compress1) {
 	ASSERT_EQ(res, -1, "res=-1");
 	ASSERT_EQ(err, EINVAL, "err=EINVAL");
 
-	/*
 	u8 *large_input = alloc(258);
 	memcpy(large_input, "test", 4);
 	memset(large_input + 4, 'x', 250);
 	memcpy(large_input + 254, "test", 4);
 	res = lzx_compress_block(large_input, 258, out, sizeof(out));
-	println("res={}", res);
-	{
-		int i;
-		for (i = 0; i < res; i++) println("{} = {}", i, out[i]);
-	}
-	ASSERT_EQ(res, 256, "res=256");
+	ASSERT_EQ(res, 258, "res=258");
 	ASSERT(!memcmp(out, (u8[]){'t', 'e', 's', 't'}, 4),
 	       "large match first 4 bytes");
 	ASSERT(!memcmp(out + 4, (u8[]){'x', 'x', 'x', 'x'}, 4),
 	       "large match middle 4 bytes");
-	ASSERT(!memcmp(out + 252, (u8[]){0xFD, 0xFA, 0xFE, 0x00}, 4),
+	ASSERT(!memcmp(out + 254, (u8[]){0xFD, 0x4, 0x00, 0x00}, 4),
 	       "large match last 4 bytes");
 	release(large_input);
-	*/
 }
 

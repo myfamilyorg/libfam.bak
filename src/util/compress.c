@@ -66,14 +66,9 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 	lzx_hash_init(&hash);
 
 	for (i = 0; i < in_len; i++) {
-		/*println("i={}", i);*/
 		if (i + sizeof(u32) <= in_len) {
 			u32 key = *(u32 *)(input + i);
 			u16 value = lzx_hash_get(&hash, key);
-			/*
-			println("i={},key={}", i, key);
-			*/
-
 			if (i < value) {
 				if (itt + (input[i] == MATCH_SENTINEL ? 2 : 1) >
 				    out_capacity) {
@@ -85,10 +80,6 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 					output[itt++] = 0x0;
 				if (itt >= 4) {
 					key = *(u32 *)(output + (itt - 4));
-					/*
-					println("insert at itt={},key={}", itt,
-						key);
-						*/
 					lzx_hash_set(&hash, key, itt - 4);
 				}
 			} else {
@@ -108,10 +99,6 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 					output[itt++] = input[i];
 					if (input[i] == MATCH_SENTINEL)
 						output[itt++] = 0x0;
-
-					/*
-					lzx_hash_set(&hash, key, i);
-					*/
 				} else {
 					if (itt + 4 >= out_capacity) {
 						err = ENOBUFS;
@@ -122,9 +109,6 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 					output[itt++] = j;
 					output[itt++] = value & 0xFF;
 					output[itt++] = value >> 8;
-					/*
-					lzx_hash_set(&hash, key, i);
-					*/
 					i += j - 1;
 				}
 			}
