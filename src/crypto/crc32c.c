@@ -50,7 +50,7 @@ u32 crc_test1(u32 value) {
 
 u32 crc_test1(u32 value) {
 	u32 crc;
-	crc = 0x0;
+	crc = 0xFFFFFFFF;
 #ifdef __x86_64__
 	__asm__ volatile("crc32l %2, %0"
 			 : "=r"(crc)
@@ -63,5 +63,5 @@ u32 crc_test1(u32 value) {
 #else
 #error Unsupported platform: only x86-64 and ARM64 are supported
 #endif
-	return crc;
+	return crc ^ 0xFFFFFFFF;
 }
