@@ -1,20 +1,3 @@
-/*
-#include <crc32c.H>
-
-__attribute__((target("sse4.2"))) u32 crc32c(const void *data, u64 len) {
-	const u8 *src = data;
-	u64 i;
-	u32 crc = 0xFFFFFFFF;
-
-	for (i = 0; i < len; ++i) {
-		crc = __builtin_ia32_crc32qi(crc, *src++);
-	}
-
-	return crc ^ 0xFFFFFFFF;
-}
-
-*/
-
 #include <crc32c.H>
 #include <format.H>
 #include <types.H>
@@ -45,11 +28,11 @@ u32 crc32c(const void* data, u64 length) {
 #elif defined(__aarch64__)
 	for (i = 0; i + 4 <= length; i = i + 4) {
 		memcpy(&chunk32, (const u8*)data + i, 4);
-		crc = __builtin_arm_crc32w(crc, chunk32);
+		crc = __builtin_aarch64_crc32w(crc, chunk32);
 	}
 	for (; i < length; i = i + 1) {
 		byte = ((const u8*)data)[i];
-		crc = __builtin_arm_crc32b(crc, byte);
+		crc = __builtin_aarch64_crc32b(crc, byte);
 	}
 #endif
 

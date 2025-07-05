@@ -49,10 +49,10 @@ ARCH_FLAGS_aarch64 = -march=armv8-a+crc
 
 # Detect architecture (default to x86_64)
 ARCH = $(shell uname -m)
-ifeq ($(ARCH),aarch64)
-    ARCH_FLAGS = $(ARCH_FLAGS_aarch64)
-else
+ifeq ($(ARCH),x86_64)
     ARCH_FLAGS = $(ARCH_FLAGS_x86_64)
+else
+    ARCH_FLAGS = $(ARCH_FLAGS_aarch64)
 endif
 
 # Specific flags
