@@ -2,10 +2,7 @@
 #include <format.H>
 #include <types.H>
 
-#if !defined(__x86_64__) && !defined(__aarch64__)
-#error Unsupported platform: only x86-64 and ARM64 are supported
-#endif
-
+/*
 u32 crc32c(const void* data, u64 length) {
 	u64 crc;
 	u64 i;
@@ -38,7 +35,9 @@ u32 crc32c(const void* data, u64 length) {
 
 	return (u32)(crc ^ 0xFFFFFFFF);
 }
+*/
 
+/*
 u32 crc_test1(u32 value) {
 	u32 crc = 0x0;
 #ifdef __x86_64__
@@ -46,4 +45,23 @@ u32 crc_test1(u32 value) {
 #else
 	return __builtin_aarch64_crc32w(crc, value);
 #endif
+}
+*/
+
+u32 crc_test1(u32 value) {
+	u32 crc;
+	crc = 0x0;
+#ifdef __x86_64__
+	__asm__ volatile("crc32l %2, %0"
+			 : "=r"(crc)
+			 : "0"(crc), "r"(value)
+			 : "cc");
+#elif defined(__aarch64__)
+	__asm__ volatile("crc32cw %w0, %w0, %w1"
+			 : "=r"(crc)
+			 : "0"(crc), "r"(value));
+#else
+#error Unsupported platform: only x86-64 and ARM64 are supported
+#endif
+	return crc;
 }
