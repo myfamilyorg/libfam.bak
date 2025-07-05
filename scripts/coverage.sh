@@ -32,6 +32,20 @@ COVDIR=".cov"
 # Compiler and flags
 CC="gcc"
 CFLAGS="-DPAGE_SIZE=16384 -I${INCLDIR} -O0 -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -Wno-int-conversion -Wno-discarded-qualifiers -Wno-builtin-declaration-mismatch -Wno-pointer-sign -Wno-error=pointer-sign -Wno-attributes -DMEMSAN=0 -DSTATIC= -g -Wno-format-truncation -Wno-format -D_FORTIFY_SOURCE=0"
+
+# Architecture-specific flags
+ARCH_CFLAGS_x86_64="-msse4.2"
+ARCH_CFLAGS_aarch64="-march=armv8-a+crc"
+
+# Detect architecture (default to x86_64)
+ARCH=$(uname -m)
+if [ "$ARCH" = "aarch64" ]; then
+    ARCH_CFLAGS="$ARCH_CFLAGS_aarch64"
+else
+    ARCH_CFLAGS="$ARCH_CFLAGS_x86_64"
+fi
+
+
 COVFLAGS="--coverage -O1 -DTEST=1 -DCOVERAGE"
 LDFLAGS="--coverage -Wno-builtin-declaration-mismatch -DTEST=1"
 LIBCGCOV=""
@@ -61,14 +75,14 @@ mkdir -p ${BINDIR}
 for src in ${TEST_SRC}; do
     obj=${src/${SRCDIR}/${TOBJDIR}}
     obj=${obj/.c/.cov.o}
-    ${CC} ${CFLAGS} ${COVFLAGS} -c ${src} -o ${obj}
+    ${CC} ${CFLAGS} ${ARCH_CFLAGS} ${COVFLAGS} -c ${src} -o ${obj}
 done
 
 # Compile library source files
 for src in ${CORE_SRC}; do
     obj=${src/${SRCDIR}/${TEST_OBJDIR}}
     obj=${obj/.c/.cov.o}
-    COMMAND="${CC} ${CFLAGS} ${COVFLAGS} -fPIC -c ${src} -o ${obj}"
+    COMMAND="${CC} ${CFLAGS} ${ARCH_CFLAGS} ${COVFLAGS} -fPIC -c ${src} -o ${obj}"
     echo ${COMMAND}
     ${COMMAND}
 done
