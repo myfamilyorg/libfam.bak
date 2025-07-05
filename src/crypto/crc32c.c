@@ -38,3 +38,12 @@ u32 crc32c(const void* data, u64 length) {
 
 	return (u32)(crc ^ 0xFFFFFFFF);
 }
+
+u32 crc_test1(u32 value) {
+	u32 crc = 0x0;
+#ifdef __x86_64__
+	return __builtin_ia32_crc32si(crc, value);
+#else
+	return __builtin_aarch64_crc32w(crc, value);
+#endif
+}
