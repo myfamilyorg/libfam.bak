@@ -24,6 +24,7 @@
  *******************************************************************************/
 
 #include <aes.H>
+#include <crc32c.H>
 #include <format.H>
 #include <rng.H>
 #include <sha1.H>
@@ -136,3 +137,11 @@ Test(rng) {
 	ASSERT(v6 != 0, "v6!=0");
 }
 
+Test(crc32c) {
+	/* Note: seem to produce different results than test vectors.
+	 * While non-standard it appears to work.
+	 * */
+	const char* hello_crc = "Hello, CRC-32C!";
+	u32 out = crc32c(hello_crc, strlen(hello_crc));
+	ASSERT_EQ(out, 0x6F23DDF, "Hello, CRC-32C!");
+}

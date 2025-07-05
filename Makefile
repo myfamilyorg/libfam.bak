@@ -39,13 +39,26 @@ COMMON_FLAGS =             -Wall \
 			   -fno-stack-protector \
 			   -Wno-attributes \
 			   -Wno-pointer-sign \
+			   -msse4.2 \
 			   -DPAGE_SIZE=$(PAGE_SIZE) \
 			   -DMEMSAN=$(MEMSAN)
 
+# Arch specific flags
+ARCH_FLAGS_x86_64 = -msse4.2
+ARCH_FLAGS_aarch64 = -march=armv8-a+crc
+
+# Detect architecture (default to x86_64)
+ARCH = $(shell uname -m)
+ifeq ($(ARCH),aarch64)
+    ARCH_FLAGS = $(ARCH_FLAGS_aarch64)
+else
+    ARCH_FLAGS = $(ARCH_FLAGS_x86_64)
+endif
+
 # Specific flags
-LIB_CFLAGS		= $(COMMON_FLAGS) -fPIC -O3 -DSTATIC=static
-TEST_CFLAGS	   = $(COMMON_FLAGS) -fPIC -O1 -DSTATIC= -DTEST=1
-TEST_BINARY_CFLAGS = $(COMMON_FLAGS) -ffreestanding -nostdlib -O1 -DSTATIC= -DTEST=1
+LIB_CFLAGS		= $(COMMON_FLAGS) $(ARCH_FLAGS) -fPIC -O3 -DSTATIC=static
+TEST_CFLAGS	   = $(COMMON_FLAGS) $(ARCH_FLAGS) -fPIC -O1 -DSTATIC= -DTEST=1
+TEST_BINARY_CFLAGS = $(COMMON_FLAGS) $(ARCH_FLAGS) -ffreestanding -nostdlib -O1 -DSTATIC= -DTEST=1
 LDFLAGS		   = -shared -nostdlib -ffreestanding
 
 # Default target
