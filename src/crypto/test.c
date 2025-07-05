@@ -142,9 +142,8 @@ Test(crc32c) {
 	 * While non-standard it appears to work.
 	 * */
 	const char* hello_crc = "Hello, CRC-32C!";
-	u32 out = crc32c(hello_crc, strlen(hello_crc));
-	println("out={x}", out);
-	println("test1={x}", crc_test1(1234));
-	println("test={x}", crc32c("test", 4));
-	/*ASSERT_EQ(out, 0x6F23DDF, "Hello, CRC-32C!");*/
+	u32 v = 1234;
+	ASSERT_EQ(crc32c(hello_crc, strlen(hello_crc)), 0x6f23ddf, "0x6f23ddf");
+	ASSERT_EQ(crc32c((u8*)&v, sizeof(u32)), 0x79bcebb9, "0x79bcebb9");
+	ASSERT_EQ(crc32c("test", 4), 0x86a072c0, "0x86a072c0");
 }
