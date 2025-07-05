@@ -26,6 +26,7 @@
 #include <alloc.H>
 #include <atomic.H>
 #include <channel.H>
+#include <compress.H>
 #include <error.H>
 #include <lock.H>
 #include <rbtree.H>
@@ -704,3 +705,80 @@ Test(vec1) {
 	vec_release(v);
 	ASSERT_BYTES(0);
 }
+
+i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
+		       u64 out_capacity);
+
+Test(compress1) {
+	u8 out[4096];
+	i32 res;
+
+	res = lzx_compress_block("testtest", 8, out, sizeof(out));
+	ASSERT_EQ(res, 8, "res=8");
+	ASSERT(!memcmp(out, (u8[]){'t', 'e', 's', 't', 0xFD, 4, 0, 0}, 8),
+	       "testtest");
+
+	res = lzx_compress_block("hellohello", 10, out, sizeof(out));
+	ASSERT_EQ(res, 9, "res=9");
+
+	ASSERT(!memcmp(out, (u8[]){'h', 'e', 'l', 'l', 'o', 0xFD, 5, 0, 0}, 9),
+	       "hellohello");
+
+	res = lzx_compress_block("hellohello2", 11, out, sizeof(out));
+	ASSERT_EQ(res, 10, "res=10");
+	ASSERT(!memcmp(out, (u8[]){'h', 'e', 'l', 'l', 'o', 0xFD, 5, 0, 0, '2'},
+		       10),
+	       "hellohello2");
+
+	res = lzx_compress_block("1hellohello2", 12, out, sizeof(out));
+	ASSERT_EQ(res, 11, "res=11");
+	ASSERT(!memcmp(out,
+		       (u8[]){'1', 'h', 'e', 'l', 'l', 'o', 0xFD, 5, 1, 0, '2'},
+		       11),
+	       "1hellohello2");
+
+	res = lzx_compress_block((u8 *)"test\xFDtest", 9, out, sizeof(out));
+	ASSERT_EQ(res, 10, "res=10");
+	ASSERT(
+	    !memcmp(out, (u8[]){'t', 'e', 's', 't', 0xFD, 0x00, 0xFD, 4, 0, 0},
+		    10),
+	    "test\xFDtest");
+
+	res = lzx_compress_block((u8 *)"abc", 3, out, sizeof(out));
+	ASSERT_EQ(res, 3, "res=3");
+	ASSERT(!memcmp(out, (u8[]){'a', 'b', 'c'}, 3), "abc");
+
+	res = lzx_compress_block((u8 *)"testtest", 8, out, 4);
+	ASSERT_EQ(res, -1, "res=-1");
+	ASSERT_EQ(err, ENOBUFS, "err=ENOBUFS");
+
+	res = lzx_compress_block(NULL, 8, out, sizeof(out));
+	ASSERT_EQ(res, -1, "res=-1");
+	ASSERT_EQ(err, EINVAL, "err=EINVAL");
+
+	res = lzx_compress_block((u8 *)"test", 0, out, sizeof(out));
+	ASSERT_EQ(res, -1, "res=-1");
+	ASSERT_EQ(err, EINVAL, "err=EINVAL");
+
+	/*
+	u8 *large_input = alloc(258);
+	memcpy(large_input, "test", 4);
+	memset(large_input + 4, 'x', 250);
+	memcpy(large_input + 254, "test", 4);
+	res = lzx_compress_block(large_input, 258, out, sizeof(out));
+	println("res={}", res);
+	{
+		int i;
+		for (i = 0; i < res; i++) println("{} = {}", i, out[i]);
+	}
+	ASSERT_EQ(res, 256, "res=256");
+	ASSERT(!memcmp(out, (u8[]){'t', 'e', 's', 't'}, 4),
+	       "large match first 4 bytes");
+	ASSERT(!memcmp(out + 4, (u8[]){'x', 'x', 'x', 'x'}, 4),
+	       "large match middle 4 bytes");
+	ASSERT(!memcmp(out + 252, (u8[]){0xFD, 0xFA, 0xFE, 0x00}, 4),
+	       "large match last 4 bytes");
+	release(large_input);
+	*/
+}
+

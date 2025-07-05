@@ -147,3 +147,11 @@ Test(crc32c) {
 	ASSERT_EQ(crc32c((u8*)&v, sizeof(u32)), 0x79bcebb9, "0x79bcebb9");
 	ASSERT_EQ(crc32c("test", 4), 0x86a072c0, "0x86a072c0");
 }
+
+Test(crc32c_error) {
+	const char* test = "test";
+	u32 out1 = crc32c(test, 4);
+	char modified[4] = {'t', 'e', 's', 'u'};
+	u32 out2 = crc32c(modified, 4);
+	ASSERT(out1 != out2, "Detects single-byte change");
+}
