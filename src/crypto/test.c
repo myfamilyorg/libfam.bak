@@ -145,5 +145,6 @@ Test(crc32c) {
 	/*u32 out = crc32c(hello_crc, strlen(hello_crc));*/
 	/*println("out={x}", out);*/
 	println("test1={x}", crc_test1(1234));
+	println("test={x}", crc32c("test", 4));
 	/*ASSERT_EQ(out, 0x6F23DDF, "Hello, CRC-32C!");*/
 }
