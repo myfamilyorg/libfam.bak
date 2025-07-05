@@ -39,7 +39,6 @@ COMMON_FLAGS =             -Wall \
 			   -fno-stack-protector \
 			   -Wno-attributes \
 			   -Wno-pointer-sign \
-			   -msse4.2 \
 			   -DPAGE_SIZE=$(PAGE_SIZE) \
 			   -DMEMSAN=$(MEMSAN)
 
