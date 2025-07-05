@@ -59,7 +59,7 @@ u32 crc_test1(u32 value) {
 #elif defined(__aarch64__)
 	__asm__ volatile("crc32cw %w0, %w0, %w1"
 			 : "=r"(crc)
-			 : "0"(crc), "r"(value));
+			 : "r"(value), "0"(crc));
 #else
 #error Unsupported platform: only x86-64 and ARM64 are supported
 #endif
