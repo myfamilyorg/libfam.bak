@@ -162,18 +162,122 @@ STATIC u8 lzx_match_len(const u8 *input, u16 in_len, u16 in_pos, u8 *output,
 	return ret;
 }
 
+STATIC i32 lzx_decompress_block_impl(const u8 *input, u16 in_len, u16 in_start,
+				     u8 *output, u64 out_start,
+				     u64 out_capacity, u64 limit) {
+	u32 i;
+	u64 itt = out_start;
+	if (!input || !output || !in_len || !limit ||
+	    out_capacity <= out_start) {
+		err = EINVAL;
+		return -1;
+	}
+
+	for (i = in_start; i < in_len; i++) {
+		if (input[i] != MATCH_SENTINEL)
+			output[itt++] = input[i];
+		else {
+			if (i + 1 >= in_len) {
+				err = EOVERFLOW;
+				return -1;
+			}
+			if (input[i + 1] == 0x0) {
+				output[itt++] = MATCH_SENTINEL;
+				i++; /* advanced past escape */
+			} else {
+				i32 res;
+				u8 len = input[i + 1];
+				u16 offset;
+				u64 remaining_limit = limit - (itt - out_start);
+				if (i + 3 >= in_len) {
+					err = EOVERFLOW;
+					return -1;
+				}
+				offset = (input[i + 2] & 0xFF) | input[i + 3]
+								     << 8;
+				if (offset >= in_len) {
+					err = EINVAL;
+					return -1;
+				}
+				if (len < 6) {
+					err = EPROTO;
+					return -1;
+				}
+				if (itt + len > out_capacity) {
+					err = EOVERFLOW;
+					return -1;
+				}
+				res = lzx_decompress_block_impl(
+				    input, in_len, offset, output, itt,
+				    out_capacity,
+				    len < remaining_limit ? len
+							  : remaining_limit);
+				if (res < 0) return -1;
+				itt += len;
+				i += 3; /* advanced past tuple */
+			}
+		}
+		if (itt - out_start >= limit) break;
+		if (itt >= out_capacity) {
+			err = EOVERFLOW;
+			return -1;
+		}
+	}
+
+	return itt;
+}
+
+i32 lzx_decompress_block(const u8 *input, u16 in_len, u8 *output,
+			 u64 out_capacity) {
+	return lzx_decompress_block_impl(input, in_len, 0, output, 0,
+					 out_capacity, U64_MAX);
+	/*
+	u32 i, j;
+	u64 itt = 0;
+	if (!input || !output || !in_len || !out_capacity) {
+		err = EINVAL;
+		return -1;
+	}
+
+	for (i = 0; i < in_len; i++) {
+		if (input[i] != MATCH_SENTINEL)
+			output[itt++] = input[i];
+		else {
+			if (i + 1 >= in_len) {
+				err = EOVERFLOW;
+				return -1;
+			}
+			if (input[i + 1] == 0x0)
+				output[itt++] = MATCH_SENTINEL;
+			else {
+				u8 len = input[i + 1];
+				u16 offset;
+				if (i + 3 >= in_len) {
+					err = EOVERFLOW;
+					return -1;
+				}
+				offset = (input[i + 2] & 0xFF) | input[i + 3]
+								     << 8;
+				for (j = 0; j < len; j++) {
+					output[itt++] = input[j + offset];
+				}
+			}
+		}
+	}
+
+	return 0;
+	*/
+}
+
 i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 		       u64 out_capacity) {
 	LzxHash hash;
-	u32 count = 0;
 	u32 itt = 0, i;
 	if (!input || !output || !in_len || !out_capacity) {
 		err = EINVAL;
 		return -1;
 	}
 
-	if (count) {
-	}
 	lzx_hash_init(&hash);
 
 	for (i = 0; i < in_len; i++) {
@@ -189,7 +293,11 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 				output[itt++] = input[i];
 				if (input[i] == MATCH_SENTINEL)
 					output[itt++] = 0x0;
-				if (itt >= 4) {
+				if (itt >= 4 &&
+				    output[itt - 4] != MATCH_SENTINEL &&
+				    output[itt - 3] != MATCH_SENTINEL &&
+				    output[itt - 2] != MATCH_SENTINEL &&
+				    output[itt - 1] != MATCH_SENTINEL) {
 					key = *(u32 *)(output + (itt - 4));
 					lzx_hash_set(&hash, key, itt - 4);
 				}
@@ -219,11 +327,6 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 						    input, in_len, output,
 						    out_capacity);
 
-					/*
-					println("match[{}] found off={},len={}",
-						++count, i, j);
-						*/
-
 					output[itt++] = MATCH_SENTINEL;
 					output[itt++] = j;
 					output[itt++] = value & 0xFF;
@@ -239,6 +342,13 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 			}
 			output[itt++] = input[i];
 			if (input[i] == MATCH_SENTINEL) output[itt++] = 0x0;
+			if (itt >= 4 && output[itt - 4] != MATCH_SENTINEL &&
+			    output[itt - 3] != MATCH_SENTINEL &&
+			    output[itt - 2] != MATCH_SENTINEL &&
+			    output[itt - 1] != MATCH_SENTINEL) {
+				u32 key = *(u32 *)(output + (itt - 4));
+				lzx_hash_set(&hash, key, itt - 4);
+			}
 		}
 	}
 

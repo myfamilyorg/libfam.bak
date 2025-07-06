@@ -28,7 +28,9 @@
 
 #include <types.H>
 
-i32 compress(u8* input, u64 in_len, u8* output, u64 out_size, u64* out_len);
-i32 decompress(u8* input, u64 in_len, u8* output, u64 out_size, u64* out_len);
+i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
+		       u64 out_capacity);
+i32 lzx_decompress_block(const u8 *input, u16 in_len, u8 *output,
+			 u64 out_capacity);
 
 #endif /* _COMPRESS_H */

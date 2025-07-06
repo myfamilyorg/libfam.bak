@@ -707,9 +707,6 @@ Test(vec1) {
 	ASSERT_BYTES(0);
 }
 
-i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
-		       u64 out_capacity);
-
 Test(compress1) {
 	u8 out[131070];
 	i32 res, i = 0, j = 0;
@@ -901,19 +898,30 @@ Test(compress_file1) {
 }
 
 Test(compress_rle) {
-	i32 res, i = 0;
-	u8 out[120000];
+	i32 res;
+	u8 out[27];
+	u8 verify[512];
 	const char *x =
+	    "xxxxxxxxxxxx"
+	    "xxxxxxxxxxxx"
+	    "xxxxxxxxxxxx"
+	    "xxxxxxxxxxxx"
+	    "xxxxxxxxxxxx"
+	    "xxxxxxxxxxxx"
+	    "xxxxxxxxxxxx"
+	    "xxxxxxxxxxxx"
+	    "xxxxxxxxxxxx"
+	    "xxxxxxxxxxxx"
+	    "xxxxxxxxxxxx"
+	    "xxxxxxxxxxxx"
+	    "xxxxxxxxxxxx"
+	    "xxxxxxxxxxxx"
 	    "xxxxxxxxxxxx"
 	    "xxxxxxxxxxxx";
 
-	ASSERT(!i, "i==0");
 	res = lzx_compress_block(x, strlen(x), out, sizeof(out));
-	ASSERT_EQ(res, 14, "res=14");
-	/*
-	println("res={}", res);
-	for (i = 0; i < res; i++) {
-		println("{} = {}", i, out[i]);
-	}
-	*/
+	ASSERT_EQ(res, 26, "res=26");
+	res = lzx_decompress_block(out, res, verify, sizeof(verify));
+	ASSERT_EQ((u64)res, strlen(x), "res=strlen(x)");
+	ASSERT(!strcmpn(x, verify, res), "in=out");
 }

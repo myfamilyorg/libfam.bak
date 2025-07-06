@@ -138,18 +138,21 @@ void free_tree(Node *root) {
 
 int main(int argc, char **argv) {
 	// Step 1: Read file and calculate frequencies
-	FILE *file = fopen(argv[0], "rb");
+	FILE *file = fopen(argv[1], "rb");
 	if (!file) {
 		printf("Cannot open file\n");
 		return 1;
 	}
 
 	uint64_t freq[MAX_SYMBOLS] = {0};
-	int c;
+	int c, count = 0;
 	while ((c = fgetc(file)) != EOF) {
+		count++;
 		freq[c]++;
 	}
 	fclose(file);
+	for (c = 0; c < MAX_SYMBOLS; c++)
+		if (!freq[c]) freq[c]++;
 
 	Node *root = build_huffman_tree(freq);
 
