@@ -54,6 +54,20 @@ STATIC void lzx_hash_set(LzxHash *hash, u32 key, u16 value) {
 	*(u16 *)(hash->table + h * 2) = value;
 }
 
+STATIC i32 lzx_escape_only(const u8 *input, u16 in_len, u8 *output,
+			   u64 out_capacity) {
+	u32 itt = 0, i;
+	if (!input || !output || !in_len || out_capacity < 2 * in_len) {
+		err = in_len ? ENOBUFS : EINVAL;
+		return -1;
+	}
+	for (i = 0; i < in_len; i++) {
+		output[itt++] = input[i];
+		if (input[i] == MATCH_SENTINEL) output[itt++] = 0x0;
+	}
+	return itt;
+}
+
 i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 		       u64 out_capacity) {
 	LzxHash hash;
@@ -69,7 +83,7 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 		if (i + sizeof(u32) <= in_len) {
 			u32 key = *(u32 *)(input + i);
 			u16 value = lzx_hash_get(&hash, key);
-			if (i < value) {
+			if (value == U16_MAX || value >= itt) {
 				if (itt + (input[i] == MATCH_SENTINEL ? 2 : 1) >
 				    out_capacity) {
 					err = ENOBUFS;
@@ -85,6 +99,7 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 			} else {
 				u32 j = 0;
 				while (j < 255 && j + i < in_len &&
+				       value + j < itt &&
 				       input[i + j] == output[value + j])
 					j++;
 
@@ -104,6 +119,10 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 						err = ENOBUFS;
 						return -1;
 					}
+					if (itt + 4 > U16_MAX)
+						return lzx_escape_only(
+						    input, in_len, output,
+						    out_capacity);
 
 					output[itt++] = MATCH_SENTINEL;
 					output[itt++] = j;
