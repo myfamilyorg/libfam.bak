@@ -878,23 +878,26 @@ Test(compress1) {
 }
 
 Test(compress_file1) {
-	const u8 *path = "./resources/test.txt";
-	i32 fd = file(path);
-	u64 len = fsize(fd);
-	i32 res = 0;
-	void *ptr;
-	u8 out[120000];
+	int i;
+	for (i = 0; i < 1000; i++) {
+		const u8 *path = "./resources/test.txt";
+		i32 fd = file(path);
+		u64 len = fsize(fd);
+		i32 res = 0;
+		void *ptr;
+		u8 out[120000];
 
-	ASSERT(fd > 0, "fd>0");
-	ptr = fmap(fd, len, 0);
-	ASSERT(ptr, "ptr");
+		ASSERT(fd > 0, "fd>0");
+		ptr = fmap(fd, len, 0);
+		ASSERT(ptr, "ptr");
 
-	res = lzx_compress_block(ptr, len, out, sizeof(out));
-	ASSERT(res, "res!=0");
-	/*println("res={}", res);*/
+		res = lzx_compress_block(ptr, len, out, sizeof(out));
+		ASSERT(res, "res!=0");
+		/*println("res={}", res);*/
 
-	munmap(ptr, len);
-	close(fd);
+		munmap(ptr, len);
+		close(fd);
+	}
 }
 
 Test(compress_rle) {

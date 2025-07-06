@@ -135,8 +135,11 @@ STATIC u8 lzx_match_len(const u8 *input, u16 in_len, u16 in_pos, u8 *output,
 				u8 sub_match =
 				    lzx_match_len(input, in_len, in_idx, output,
 						  output_len, match_offset);
-				if (sub_match == match_len &&
-				    ret + match_len <= 255) {
+				if (sub_match == match_len) {
+					if ((u16)ret + (u16)match_len > 255) {
+						ret = 255;
+						break;
+					}
 					ret += match_len;
 					in_idx += match_len;
 					out_idx +=
@@ -162,12 +165,15 @@ STATIC u8 lzx_match_len(const u8 *input, u16 in_len, u16 in_pos, u8 *output,
 i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 		       u64 out_capacity) {
 	LzxHash hash;
+	u32 count = 0;
 	u32 itt = 0, i;
 	if (!input || !output || !in_len || !out_capacity) {
 		err = EINVAL;
 		return -1;
 	}
 
+	if (count) {
+	}
 	lzx_hash_init(&hash);
 
 	for (i = 0; i < in_len; i++) {
@@ -191,12 +197,6 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 				u32 j = 0;
 				j = lzx_match_len(input, in_len, i, output, itt,
 						  value);
-				/*
-		while (j < 255 && j + i < in_len &&
-		       value + j < itt &&
-		       input[i + j] == output[value +
-j]) j++;
-			*/
 
 				if (j < MIN_MATCH) {
 					if (itt + (input[i] == MATCH_SENTINEL
@@ -218,6 +218,11 @@ j]) j++;
 						return lzx_escape_only(
 						    input, in_len, output,
 						    out_capacity);
+
+					/*
+					println("match[{}] found off={},len={}",
+						++count, i, j);
+						*/
 
 					output[itt++] = MATCH_SENTINEL;
 					output[itt++] = j;
