@@ -42,6 +42,7 @@ STATIC const char *find_next_placeholder(const char *p) {
 	const char *v1 = substr(p, "{x}");
 	const char *v2 = substr(p, "{X}");
 	const char *v3 = substr(p, "{}");
+	const char *v4 = substr(p, "{c}");
 
 	/* If no placeholders found, return NULL */
 	if (!v1 && !v2 && !v3) return NULL;
@@ -51,6 +52,7 @@ STATIC const char *find_next_placeholder(const char *p) {
 	if (v1 && (!result || v1 < result)) result = v1;
 	if (v2 && (!result || v2 < result)) result = v2;
 	if (v3 && (!result || v3 < result)) result = v3;
+	if (v4 && (!result || v4 < result)) result = v4;
 
 	return result;
 }
@@ -58,7 +60,7 @@ STATIC const char *find_next_placeholder(const char *p) {
 /* Main format_append implementation */
 int format_append(Formatter *f, const char *fmt, ...) {
 	u8 buf[64] = {0};
-	bool hex = false, upper = false;
+	bool hex = false, upper = false, is_char = false;
 	u64 len;
 	__builtin_va_list args;
 	const char *p, *next_placeholder;
@@ -86,12 +88,18 @@ int format_append(Formatter *f, const char *fmt, ...) {
 		if (next_placeholder[1] == 'X') {
 			hex = true;
 			upper = true;
+			is_char = false;
 		} else if (next_placeholder[1] == 'x') {
 			hex = true;
 			upper = false;
+			is_char = false;
+		} else if (next_placeholder[1] == 'c') {
+			hex = false;
+			is_char = true;
 		} else {
 			hex = false;
 			upper = false;
+			is_char = false;
 		}
 
 		len = next_placeholder - p;
@@ -100,7 +108,13 @@ int format_append(Formatter *f, const char *fmt, ...) {
 		f->pos += len;
 
 		next = __builtin_va_arg(args, Printable);
-		if (next.t == I128_T) {
+		if (is_char && next.t == U128_T) {
+			if (format_check_resize(f, 1) < 0) return -1;
+			f->buf[f->pos++] = next.data.uvalue;
+		} else if (is_char && next.t == I128_T) {
+			if (format_check_resize(f, 1) < 0) return -1;
+			f->buf[f->pos++] = next.data.ivalue;
+		} else if (next.t == I128_T) {
 			len = i128_to_string_impl(buf, next.data.ivalue, hex,
 						  upper);
 			if (format_check_resize(f, len) < 0) return -1;

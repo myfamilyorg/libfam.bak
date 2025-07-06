@@ -151,15 +151,19 @@ int main(int argc, char **argv) {
 		freq[c]++;
 	}
 	fclose(file);
+	for (int i = 0; i < MAX_SYMBOLS; i++) {
+		printf("sym[%d]=%ld\n", i, freq[i]);
+	}
+
 	for (c = 0; c < MAX_SYMBOLS; c++)
 		if (!freq[c]) freq[c]++;
+	freq[0xFD] = 258989;
 
 	Node *root = build_huffman_tree(freq);
 
 	HuffmanCode codes[MAX_SYMBOLS] = {0};
 	generate_codes(root, 0, 0, codes);
 
-	printf("Huffman Codes:\n");
 	printf("Huffman Codes:\n");
 	for (int i = 0; i < MAX_SYMBOLS; i++) {
 		if (codes[i].length > 0) {

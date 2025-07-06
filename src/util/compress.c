@@ -320,7 +320,76 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 	return itt;
 }
 
-i32 compress(u8 *input, u64 len, u8 *output, u64 output_capacity) {
+i32 compress_block(u8 *input, u16 len, u8 *output, u64 output_capacity) {
+	u16 i;
+	u64 x = 0;
+	i32 bitsInBuffer = 0;
+	u64 output_pos = 0;
+	u8 lz_output[U16_MAX * 2];
+	i32 lz_out_len;
+
+	if (!input || len == 0 || !output || output_capacity == 0) {
+		err = EINVAL;
+		return -1;
+	}
+
+	lz_out_len = lzx_compress_block(input, len, lz_output, U16_MAX * 2);
+	if (lz_out_len < 0) return -1;
+
+	for (i = 0; i < (u16)lz_out_len; i++) {
+		u8 symbol = lz_output[i];
+		u8 bits_needed = huffman_lengths[symbol];
+		if (symbol == MATCH_SENTINEL && lz_output[i + 1] != 0x0)
+			bits_needed += 24;
+		if (bitsInBuffer + bits_needed > 64) {
+			while (bitsInBuffer >= 8) {
+				if (output_pos >= output_capacity) {
+					err = EOVERFLOW;
+					return -1;
+				}
+				bitsInBuffer -= 8;
+				u8 byte = (x >> bitsInBuffer) & 0xFF;
+				output[output_pos++] = byte;
+				x &= (1ULL << bitsInBuffer) - 1;
+			}
+		}
+		x = (x << huffman_lengths[symbol]) | huffman_values[symbol];
+		if (symbol == MATCH_SENTINEL && lz_output[i + 1] != 0x0) {
+			x = (x << 8) | lz_output[++i];
+			x = (x << 8) | lz_output[++i];
+			x = (x << 8) | lz_output[++i];
+		}
+		bitsInBuffer += bits_needed;
+		while (bitsInBuffer >= 8) {
+			if (output_pos >= output_capacity) {
+				err = EOVERFLOW;
+				return -1;
+			}
+			bitsInBuffer -= 8;
+			u8 byte = (x >> bitsInBuffer) & 0xFF;
+			output[output_pos++] = byte;
+
+			x &= (1ULL << bitsInBuffer) - 1;
+		}
+	}
+	if (bitsInBuffer > 0) {
+		if (output_pos >= output_capacity) {
+			err = EOVERFLOW;
+			return -1;
+		}
+		x <<= (8 - bitsInBuffer);
+		u8 byte = (x & 0xFF);
+		output[output_pos++] = byte;
+	}
+
+	if (output_pos > I32_MAX) {
+		err = EOVERFLOW;
+		return -1;
+	}
+	return (i32)output_pos;
+}
+
+i32 compress(u8 *input, u16 len, u8 *output, u64 output_capacity) {
 	if (!input || len == 0 || !output || !output_capacity) {
 		err = EINVAL;
 		return -1;

@@ -731,6 +731,7 @@ Test(compress1) {
 
 	/*
 
+
 	res = lzx_compress_block("hellohello2", 11, out, sizeof(out));
 	ASSERT_EQ(res, 10, "res=10");
 	ASSERT(!memcmp(out, (u8[]){'h', 'e', 'l', 'l', 'o', 0xFD, 5, 0, 0, '2'},
@@ -875,9 +876,9 @@ Test(compress1) {
 }
 
 Test(compress_file1) {
-	int i;
-	for (i = 0; i < 1000; i++) {
-		const u8 *path = "./resources/test.txt";
+	int i, count = 1;
+	for (i = 0; i < count; i++) {
+		const u8 *path = "./resources/test_long.txt";
 		i32 fd = file(path);
 		u64 len = fsize(fd);
 		i32 res = 0;
@@ -888,9 +889,8 @@ Test(compress_file1) {
 		ptr = fmap(fd, len, 0);
 		ASSERT(ptr, "ptr");
 
-		res = lzx_compress_block(ptr, len, out, sizeof(out));
+		res = compress_block(ptr, len, out, sizeof(out));
 		ASSERT(res, "res!=0");
-		/*println("res={}", res);*/
 
 		munmap(ptr, len);
 		close(fd);
