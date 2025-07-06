@@ -30,6 +30,7 @@
 #define LZX_HASH_ENTRIES 4096
 #define HASH_CONSTANT 2654435761U
 #define MATCH_SENTINEL 0xFD
+#define MIN_MATCH 6
 
 typedef struct {
 	u8 table[LZX_HASH_ENTRIES * 2] __attribute__((aligned(16)));
@@ -68,6 +69,26 @@ STATIC i32 lzx_escape_only(const u8 *input, u16 in_len, u8 *output,
 	return itt;
 }
 
+/* Get logical byte from output, decoding tuples and escapes */
+static u8 get_output_byte(const u8 *output, u32 pos, u32 itt) {
+	if (pos >= itt) {
+		return 0; /* Invalid position */
+	}
+	if (output[pos] != MATCH_SENTINEL) {
+		return output[pos]; /* Literal */
+	}
+	if (pos + 1 < itt && output[pos + 1] == 0x00) {
+		return MATCH_SENTINEL; /* Escaped 0xFD */
+	}
+	if (pos + 3 < itt) {
+		u32 offset = output[pos + 2] | (output[pos + 3] << 8);
+		if (offset < pos) {
+			return get_output_byte(output, offset, pos);
+		}
+	}
+	return 0; /* Invalid tuple */
+}
+
 i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 		       u64 out_capacity) {
 	LzxHash hash;
@@ -98,12 +119,15 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 				}
 			} else {
 				u32 j = 0;
-				while (j < 255 && j + i < in_len &&
-				       value + j < itt &&
-				       input[i + j] == output[value + j])
+				while (j < 255 && i + j < in_len) {
+					u8 input_byte = input[i + j];
+					u8 output_byte = get_output_byte(
+					    output, value + j, itt);
+					if (input_byte != output_byte) break;
 					j++;
+				}
 
-				if (j < 4) {
+				if (j < MIN_MATCH) {
 					if (itt + (input[i] == MATCH_SENTINEL
 						       ? 2
 						       : 1) >

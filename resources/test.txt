@@ -1,0 +1,237 @@
+{{short description|GNU file compression/decompression tool}}
+{{Use dmy dates|date=June 2023}}
+{{Lowercase title}}
+{{Infobox software
+| name =  gzip (software)
+| logo = Gzip-Logo.svg
+| author = {{plainlist|
+* [[Jean-loup Gailly]]<!--He prefers lowercase l (ell), see his article.-->
+* [[Mark Adler]]
+}}
+| developer = [[GNU Project]]
+| released = {{Start date and age|df=yes|1992|10|31}}
+| latest release version = {{wikidata|property|preferred|references|edit|Q283647|P348|P548=Q2804309}}
+| latest release date = {{wikidata|qualifier|preferred|single|Q283647|P348|P548=Q2804309|P577}}
+| latest preview version = {{wikidata|property|preferred|references|edit|Q283647|P348|P548=Q51930650}}
+| latest preview date = {{wikidata|qualifier|preferred|single|Q283647|P348|P548=Q51930650|P577}}
+| operating system = [[Unix-like]], [[Plan 9 from Bell Labs|Plan 9]], [[Inferno (operating system)|Inferno]]
+| genre = [[Data compression]]
+| programming language = [[C (programming language)|C]]
+| license = [[GNU General Public License|GPL-3.0-or-later]]
+| website = {{URL|//www.gnu.org/software/gzip/}}
+| repo = {{URL|//git.savannah.gnu.org/cgit/gzip.git}}
+}}
+
+'''gzip''' is a [[file format]] and a [[software application]] for file [[Data compression|compression and decompression]]. The program was created by [[Jean-loup Gailly]]<!--Person prefers lowercase l (ell), see his article--> and [[Mark Adler]] as a [[free software]] replacement for the [[compress]] program used in early [[Unix]] systems, and intended for use by [[GNU]] (from which the "g" of gzip is derived). Version 0.1 was first publicly released on 31 October 1992, and version 1.0 followed in February 1993.
+
+As the file format can be decompressed via a [[streaming algorithm]], it is commonly used in stream-based technology such as [[HTTP compression|Web protocols]], [[Electronic data interchange|data interchange]] and [[Extract, transform, load|ETL]] (in [[Standard streams|standard pipes]]).
+
+== File format ==
+{{Infobox file format
+| name = gzip (file format)
+| extension = <code>.gz</code>, <code>.tgz</code>, <code>.gzip</code>
+| mime = application/gzip<ref>{{cite IETF|title=The 'application/zlib' and 'application/gzip' Media Types|rfc=6713|publisher=Internet Engineering Task Force|access-date=2014-03-01}}</ref>
+| uniform type = org.gnu.gnu-zip-archive
+| magic = <code>1F 8B</code>
+| owner = Jean-loup Gailly and Mark Adler
+| genre = [[Data compression]]
+| url = {{URL|http://gzip.org}} (obsolete)
+| open = Yes
+| standard = [[IETF]] {{IETF RFC|1952}}
+| uniform_type = org.gnu.gnu-zip-archive, org.gnu.gnu-zip-tar-archive
+| max_size = Unlimited
+}}
+
+A gzip file (described in the table below) contains a 10-[[byte]] header, optional extra headers, a [[DEFLATE]]-compressed [[Payload (computing)|payload]] and an 8-byte trailer.
+
+gzip is based on the DEFLATE algorithm, which is a combination of [[LZ77 and LZ78|LZ77]] and [[Huffman coding]]. DEFLATE was intended as a replacement for [[LZW]] and other [[patent]]-encumbered [[data compression]] [[algorithm]]s which, at the time, limited the usability of the [[compress]] utility and other popular archivers.
+
+[[File:Targzip.svg|thumb|gzip can be combined with the [[tar (file format)|tar]] program to compress multiple files.]]
+
+Although its file format also allows for multiple such streams to be [[Concatenation|concatenated]] (gzipped files are simply decompressed concatenated as if they were originally one file),<ref>{{cite web| title=GNU Gzip: Advanced usage| url=https://www.gnu.org/software/gzip/manual/html_node/Advanced-usage.html| website=Gnu.org| access-date=2012-11-28| archive-date=24 December 2012| archive-url=https://web.archive.org/web/20121224211417/https://www.gnu.org/software/gzip/manual/html_node/Advanced-usage.html| url-status=live}}</ref> gzip is normally used to compress just single files.<ref>{{cite web| title=Can gzip compress several files into a single archive?| url=http://www.gzip.org/#faq16|website=Gnu.org| access-date=2010-01-27 |archive-url=https://web.archive.org/web/20100722004012/http://www.gzip.org/#faq16 |archive-date=2010-07-22}}</ref> Compressed archives are typically created by assembling collections of files into a single [[tar (file format)|tar]] archive (also called [[tar (file format)|tarball]]),<ref>{{cite web|title=tarball, The Jargon File, version 4.4.7|url=http://www.catb.org/jargon/html/T/tarball.html|website=Catb.org|access-date=2010-01-27|archive-date=20 March 2017|archive-url=https://web.archive.org/web/20170320183848/http://www.catb.org/jargon/html/T/tarball.html|url-status=live}}</ref> and then compressing that archive with gzip. The final compressed file usually has the extension <code>.tar.gz</code> or <code>.tgz</code>.
+
+gzip is not to be confused with the [[ZIP (file format)|ZIP]] archive format, which also uses [[Deflate|DEFLATE]]. The ZIP format can hold collections of files without an external archiver, but is less compact than compressed [[tar (computing)|tarballs]] holding the same data, because it compresses files individually and cannot take advantage of redundancy between files ([[solid compression]]).
+The gzip file format is also not to be confused with that of the compress utility, based on LZW, with extension <code>.Z</code>; however, the gunzip utility is able to decompress <code>.Z</code> files.<ref>{{cite web | title=GNU Gzip | website=The GNU Operating System and the Free Software Movement | date=2023-02-05 | url=https://www.gnu.org/software/gzip/manual/gzip.html | access-date=2024-04-03 |quote=gunzip can currently decompress files created by gzip, zip, compress or pack. The detection of the input format is automatic. }}</ref>
+
+All multi-byte values are encoded in [[little-endian]].<ref>{{Cite IETF|rfc=1952|title=Overall conventions|page=4}}</ref>
+
+{| class="wikitable"
+|+GZIP file structure<ref>{{Cite IETF|rfc=1952|title=Member format|page=5}}</ref>
+![[Offset (computer science)|Offset]]<br/>(in&nbsp;bytes)
+!Field
+!Size<br/>(in&nbsp;bytes)
+!Description
+|-
+|0
+|ID1
+|1
+| rowspan="2" |'''[[File format#Magic number|Magic number]]'''. Must be <code>1F 8B</code>.
+|-
+|1
+|ID2
+|1
+|-
+|2
+|CM
+|1
+|'''Compression method'''.
+* '''0–7''': Reserved
+* '''8''': Deflate
+|-
+|3
+|FLG
+|1
+|'''Flags'''. Reserved bits must be zero.
+* '''Bit 0''' ([[Least significant bit|LSb]]): <code>FTEXT</code>. Set by the compressor to indicate the file encoding is probably [[ASCII]].
+* '''Bit 1''': <code>FHCRC</code>
+* '''Bit 2''': <code>FEXTRA</code>
+* '''Bit 3''': <code>FNAME</code>
+* '''Bit 4''': <code>FCOMMENT</code>
+* '''Bit 5''': Reserved
+* '''Bit 6''': Reserved
+* '''Bit 7''' ([[Most significant bit|MSb]]): Reserved
+|-
+|4
+|MTIME
+|4
+|[[Unix time]] when the file was '''last modified'''. If the compressed data did not come from a file, <code>MTIME</code> is the timestamp '''when compression started'''. 0 means the timestamp is not available.
+|-
+|8
+|XFL
+|1
+|'''Extra flags'''.
+
+* Deflate-specific flags.
+** '''0''': None ('''default value''')
+** '''2''': Best compression (level 9)
+** '''4''': Fastest compression (level 1)
+|-
+|9
+|OS
+|1
+|'''Filesystem''' on which compression occurred.
+* '''255''': Unknown ('''default value''')
+* '''0''': [[File Allocation Table|FAT]] filesystem (MS-DOS, OS/2, NT/Win32)
+* '''1''': [[Amiga]]
+* '''2''': [[OpenVMS]] (or VMS)
+* '''3''': [[Unix]]
+* '''4''': [[VM/CMS]]
+* '''5''': [[Atari TOS]]
+* '''6''': [[High Performance File System|HPFS]] filesystem (OS/2, NT)
+* '''7''': [[Macintosh]]
+* '''8''': Z-System
+* '''9''': [[CP/M]]
+* '''10''': [[TOPS-20]]
+* '''11''': [[NTFS]] filesystem (NT)
+* '''12''': QDOS
+* '''13''': Acorn [[RISCOS]]
+|-
+|10
+|XLEN
+|0 or 2
+| rowspan="2" |'''Extra field''' is a sequence of subfields. Present if the '''FEXTRA''' flag is set. <code>XLEN</code> is the size in bytes of the extra field. Each subfield starts with <code>SI1 SI2</code> (a two-byte identifier; typically two ASCII letters) followed by a two-byte <code>LEN</code> value indicating the remaining number of bytes in the subfield. Subfield IDs with <code>SI2 = 0</code> are reserved for future use.
+|-
+|12
+|Extra field
+|0 or <code>XLEN</code>
+|-
+|{{varies}}
+|File name
+|{{varies|0 or varies}}
+|[[Null-terminated string|Null-terminated]] '''name of the file being compressed'''. Present if the '''FNAME''' flag is set. Encoded as [[ISO/IEC 8859-1|ISO 8859-1]] (<code>latin-1</code>). Converted to lowercase on [[case-insensitive]] filesystems. Empty if the compressed data did not come from a named file.
+|-
+|{{varies}}
+|File comment
+|{{varies|0 or varies}}
+|Null-terminated '''file comment''' intended for human consumption. Present if the '''FCOMMENT''' flag is set. Encoded as ISO 8859-1 (<code>latin-1</code>). [[Newline|Newlines]] should use a single line feed (LF) character.
+|-
+|{{varies}}
+|CRC16
+|0 or 2
+|Two least significant bytes of the [[CRC-32]] (ISO 3309) of all bytes in the gzip header up to (not including) this field. Present if the '''FHCRC''' flag is set.
+|-
+|{{varies}}
+|Compressed data
+|{{varies}}
+|The '''compressed data'''.
+|-
+|{{varies}}
+|CRC32
+|4
+|'''CRC-32''' (ISO 3309) of the '''uncompressed data'''. 
+|-
+|{{varies}}
+|ISIZE
+|4
+|'''Size''' (in bytes) of the '''uncompressed data''' modulo <math>2^{32}</math>.
+|}
+
+==Implementations==
+{{Infobox software
+| name                 = NetBSD Gzip / FreeBSD Gzip
+| developer            = The NetBSD Foundation
+| genre                = [[Data compression]]
+| programming language = [[C (programming language)|C]]
+| license              = [[BSD licenses|Simplified BSD License]]
+| website              = hide <!-- Don't display the GNU Gzip URL from Wikidata on the BSD Gzip infobox -->
+| repo                 = {{URL|//cvsweb.netbsd.org/bsdweb.cgi/src/usr.bin/gzip/}}
+}}
+Various implementations of the program have been written. The most commonly known is the GNU Project's implementation using [[LZ77|Lempel-Ziv]] coding (LZ77). [[OpenBSD]]'s version of gzip is actually the [[compress]] program, to which support for the gzip format was added in OpenBSD 3.4. The "g" in this specific version stands for ''[[wikt:gratis|gratis]]''.<ref>{{cite web|url=https://man.openbsd.org/gzip.1#HISTORY|title=OpenBSD gzip(1) manual page|website=Openbsd.org|access-date=2018-02-04|publisher=OpenBSD}}</ref> [[FreeBSD]], [[DragonFly BSD]] and [[NetBSD]] use a BSD-licensed implementation instead of the GNU version; it is actually a [[command-line interface]] for [[zlib]] intended to be compatible with the GNU implementations' options.<ref>{{cite web|url=http://man.freebsd.org/gzip|title=gzip|publisher=Man.freebsd.org|date=2011-10-09|access-date=2014-03-01|archive-date=17 December 2019|archive-url=https://web.archive.org/web/20191217104949/https://www.freebsd.org/cgi/man.cgi?gzip|url-status=live}}</ref> These implementations originally come from [[NetBSD]], and support decompression of [[bzip2]] and the Unix [[pack (compression)|pack]] format.
+
+An alternative compression program achieving 3-8% better compression is [[Zopfli]]. It achieves gzip-compatible compression using more exhaustive algorithms, at the expense of compression time required.  It does not affect decompression time.
+
+<code>pigz</code>, written by Mark Adler, is compatible with gzip and speeds up compression by using all available CPU cores and threads.<ref>{{cite web|url=https://zlib.net/pigz/|author=Mark Adler|website=zlib.net|title=pigz: A parallel implementation of gzip for modern multi-processor, multi-core machines|date=2017|access-date=23 December 2018|archive-date=18 December 2018|archive-url=https://web.archive.org/web/20181218151754/http://zlib.net/pigz/|url-status=live}}</ref>
+
+=== Damage recovery ===
+Data in blocks prior to the first damaged part of the archive is usually fully readable. Data from blocks not demolished by damage that are located afterward ''may'' be [[Data recovery|recoverable]] through difficult workarounds.<ref>[https://web.archive.org/web/20180708075208/http://www.gzip.org/recover.txt Recovering a damaged .gz file – Jean-loup Gailly, GZip.org]</ref>
+
+== Derivatives and other uses ==
+The [[tar (computing)|tar]] utility included in most Linux distributions can extract .tar.gz files by passing the {{mono|z}} option, e.g., {{mono|tar -zxf file.tar.gz}}, where <code>-z</code> instructs decompression, <code>-x</code> means extraction, and <code>-f</code> specifies the name of the compressed archive file to extract from. Optionally, <code>-v</code> (''verbose'') lists files as they are being extracted.<ref>{{cite web |title=How To Extract / Unzip tar.gz Files From Linux Command Line |url=https://phoenixnap.com/kb/extract-tar-gz-files-linux-command-line |website=Knowledge Base by phoenixNAP |access-date=12 January 2022 |date=14 November 2019}}</ref>
+
+[[zlib]] is an abstraction of the DEFLATE algorithm in library form which includes support both for the gzip file format and a lightweight [[Data stream#General|data stream]] format in its API. The zlib stream format, DEFLATE, and the gzip file format were standardized respectively as RFC 1950, RFC 1951, and RFC 1952.
+
+The gzip format is used in [[HTTP compression]], a technique used to speed up the sending of [[HTML]] and other content on the [[World Wide Web]]. It is one of the three standard formats for HTTP compression as specified in RFC 2616. This [[Request for Comments|RFC]] also specifies a zlib format (called "DEFLATE"), which is equal to the gzip format except that gzip adds eleven bytes of overhead in the form of headers and trailers. Still, the gzip format is sometimes recommended over zlib because [[Internet Explorer]] does not implement the standard correctly and cannot handle the zlib format as specified in RFC 1950.<ref>{{cite web |first=Eric |last=Lawrence |title=Compressing the Web |url=http://blogs.msdn.com/b/ieinternals/archive/2014/10/21/http-compression-optimize-file-formats-with-deflate.aspx |date=21 November 2014 |website=MSDN Blogs > IEInternals |publisher=[[Microsoft]] |access-date=2 November 2015 |archive-date=28 October 2015 |archive-url=https://web.archive.org/web/20151028172035/http://blogs.msdn.com/b/ieinternals/archive/2014/10/21/http-compression-optimize-file-formats-with-deflate.aspx |url-status=live }}</ref>
+
+zlib DEFLATE is used internally by the [[Portable Network Graphics]] (PNG) format.
+
+Since the late 1990s, [[bzip2]], a file compression utility based on a block-sorting algorithm, has gained some popularity as a gzip replacement. It produces considerably smaller files (especially for source code and other structured text), but at the cost of memory and processing time (up to a factor of 4).<ref name="benchmark">{{cite web |url=http://compressionratings.com/comp.cgi?7-zip+9.12b++bzip2+1.0.5++gzip+1.3.3+-5 |title=Comparison Tool: 7-zip vs bzip2 vs gzip | website=compressionratings.com |access-date=1 November 2014 |url-status=dead |archive-url=https://web.archive.org/web/20141101212919/http://compressionratings.com/comp.cgi?7-zip+9.12b++bzip2+1.0.5++gzip+1.3.3+-5 |archive-date=1 November 2014 }}</ref>
+
+AdvanceCOMP, [[Zopfli]], libdeflate and [[7-Zip]] can produce gzip-compatible files, using an internal DEFLATE implementation with better compression ratios than gzip itself—at the cost of more processor time compared to the reference implementation.{{citation needed|date=December 2018}}
+
+Research published in 2023 showed that simple lossless compression techniques such as gzip could be combined with a [[K-nearest neighbors algorithm|k-nearest-neighbor classifier]] to create an attractive alternative to [[deep neural networks]] for text classification in [[natural language processing]]. This approach has been shown to equal and in some cases outperform conventional approaches such as [[BERT (language model)|BERT]] due to low resource requirements, e.g. no requirement for [[GPU]] hardware.<ref>{{Cite journal |last1=Jiang |first1=Zhiying |last2=Yang |first2=Matthew |last3=Tsirlin |first3=Mikhail |last4=Tang |first4=Raphael |last5=Dai |first5=Yiqin |last6=Lin |first6=Jimmy |date=July 2023 |title="Low-Resource" Text Classification: A Parameter-Free Classification Method with Compressors |url=https://aclanthology.org/2023.findings-acl.426 |journal=Findings of the Association for Computational Linguistics: ACL 2023 |location=Toronto, Canada |publisher=Association for Computational Linguistics |pages=6810–6828|doi=10.18653/v1/2023.findings-acl.426 |s2cid=260668487 |doi-access=free }}</ref>
+
+==See also==
+{{Portal|Free and open-source software}}
+* {{Annotated link|Brotli}}
+* {{Annotated link|Libarc}}
+* {{Annotated link|Comparison of file archivers}}
+* {{Annotated link|List of archive formats}}
+* {{Annotated link|List of POSIX commands}}
+* {{Annotated link|Open file format}}
+* {{Annotated link|zlib}}
+
+==Notes==
+{{Reflist}}
+
+==References==
+{{Refbegin}}
+* [https://tools.ietf.org/html/rfc1952 RFC 1952] {{Webarchive|url=https://web.archive.org/web/20190728213743/https://tools.ietf.org/html/rfc1952 |date=28 July 2019 }} – GZIP file format specification version 4.3
+{{Refend}}
+
+==External links==
+* {{Official website|//gnu.org/software/gzip/}}
+
+{{Archive formats}}
+{{Compression software implementations}}
+{{GNU}}
+
+[[Category:Archive formats]]
+[[Category:Cross-platform software]]
+[[Category:Free data compression software]]
+[[Category:Free software programmed in C]]
+[[Category:GNU Project software]]
+[[Category:IBM i Qshell commands]]
+[[Category:Inferno (operating system) commands]]
+[[Category:Lossless compression algorithms]]
+[[Category:Plan 9 commands]]
+[[Category:Unix archivers and compression-related utilities]]
