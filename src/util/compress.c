@@ -69,24 +69,94 @@ STATIC i32 lzx_escape_only(const u8 *input, u16 in_len, u8 *output,
 	return itt;
 }
 
-/* Get logical byte from output, decoding tuples and escapes */
-static u8 get_output_byte(const u8 *output, u32 pos, u32 itt) {
-	if (pos >= itt) {
-		return 0; /* Invalid position */
+/*
+STATIC u8 lzx_match_len(const u8 *input, u16 in_len, u16 in_pos, u8 *output,
+			u32 output_len, u16 out_pos) {
+	u8 ret = 0;
+	while (ret < 255 && ret + in_pos < in_len &&
+	       out_pos + ret < output_len &&
+	       input[in_pos + ret] == output[out_pos + ret]) {
+		ret++;
 	}
-	if (output[pos] != MATCH_SENTINEL) {
-		return output[pos]; /* Literal */
-	}
-	if (pos + 1 < itt && output[pos + 1] == 0x00) {
-		return MATCH_SENTINEL; /* Escaped 0xFD */
-	}
-	if (pos + 3 < itt) {
-		u32 offset = output[pos + 2] | (output[pos + 3] << 8);
-		if (offset < pos) {
-			return get_output_byte(output, offset, pos);
+
+	return ret;
+}
+*/
+
+STATIC u8 lzx_match_len(const u8 *input, u16 in_len, u16 in_pos, u8 *output,
+			u32 output_len, u16 out_pos) {
+	u8 ret = 0;
+	u16 in_idx;
+	u32 out_idx;
+	u8 match_len;
+	u16 match_offset;
+
+	in_idx = in_pos;
+	out_idx = out_pos;
+
+	/* Base case: out of bounds or max match length reached */
+	while (ret < 255 && in_idx < in_len && out_idx < output_len) {
+		/* Handle MATCH_SENTINEL in output buffer */
+		if (output[out_idx] == MATCH_SENTINEL) {
+			/* Check for incomplete sequence */
+			if (out_idx + 1 >= output_len) {
+				break; /* Incomplete sequence, stop matching */
+			}
+
+			/* Escaped sentinel */
+			if (output[out_idx + 1] == 0x00) {
+				if (input[in_idx] != MATCH_SENTINEL) {
+					break; /* Mismatch, stop matching */
+				}
+				ret++;
+				in_idx++;
+				out_idx += 2; /* Skip 0xFD 0x00 */
+				continue;
+			}
+
+			/* Match sequence */
+			if (out_idx + 3 >= output_len) {
+				break; /* Incomplete match sequence, stop
+					  matching */
+			}
+			match_len = output[out_idx + 1];
+			match_offset =
+			    output[out_idx + 2] | (output[out_idx + 3] << 8);
+
+			/* Validate offset and length */
+			if (match_offset >= output_len ||
+			    match_len < MIN_MATCH) {
+				break; /* Invalid offset or length, stop
+					  matching */
+			}
+
+			/* Recursively match the referenced sequence */
+			if (in_idx + match_len <= in_len) {
+				u8 sub_match =
+				    lzx_match_len(input, in_len, in_idx, output,
+						  output_len, match_offset);
+				if (sub_match == match_len &&
+				    ret + match_len <= 255) {
+					ret += match_len;
+					in_idx += match_len;
+					out_idx +=
+					    4; /* Skip 0xFD, len, offset */
+					continue;
+				}
+			}
+			break; /* Sub-match failed or too long, stop matching */
 		}
+
+		/* Literal character */
+		if (input[in_idx] != output[out_idx]) {
+			break; /* Mismatch, stop matching */
+		}
+		ret++;
+		in_idx++;
+		out_idx++;
 	}
-	return 0; /* Invalid tuple */
+
+	return ret;
 }
 
 i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
@@ -119,13 +189,14 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 				}
 			} else {
 				u32 j = 0;
-				while (j < 255 && i + j < in_len) {
-					u8 input_byte = input[i + j];
-					u8 output_byte = get_output_byte(
-					    output, value + j, itt);
-					if (input_byte != output_byte) break;
-					j++;
-				}
+				j = lzx_match_len(input, in_len, i, output, itt,
+						  value);
+				/*
+		while (j < 255 && j + i < in_len &&
+		       value + j < itt &&
+		       input[i + j] == output[value +
+j]) j++;
+			*/
 
 				if (j < MIN_MATCH) {
 					if (itt + (input[i] == MATCH_SENTINEL

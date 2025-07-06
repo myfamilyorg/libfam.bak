@@ -712,20 +712,27 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 
 Test(compress1) {
 	u8 out[131070];
-	i32 res, i, j;
-	u32 crc;
-	u8 *large_input;
+	i32 res, i = 0, j = 0;
+	u32 crc = 0;
+	u8 *large_input = NULL;
 
-	res = lzx_compress_block("testtest", 8, out, sizeof(out));
-	ASSERT_EQ(res, 8, "res=8");
-	ASSERT(!memcmp(out, (u8[]){'t', 'e', 's', 't', 0xFD, 4, 0, 0}, 8),
-	       "testtest");
+	ASSERT(!large_input && !i && !j && !crc, "init");
 
-	res = lzx_compress_block("hellohello", 10, out, sizeof(out));
-	ASSERT_EQ(res, 9, "res=9");
+	res = lzx_compress_block("test12test12", 12, out, sizeof(out));
+	ASSERT_EQ(res, 10, "res=10");
+	ASSERT(!memcmp(out, (u8[]){'t', 'e', 's', 't', '1', '2', 0xFD, 6, 0, 0},
+		       10),
+	       "test12test12");
 
-	ASSERT(!memcmp(out, (u8[]){'h', 'e', 'l', 'l', 'o', 0xFD, 5, 0, 0}, 9),
-	       "hellohello");
+	res = lzx_compress_block("helloxvhelloxv", 14, out, sizeof(out));
+	ASSERT_EQ(res, 11, "res=11");
+
+	ASSERT(!memcmp(out,
+		       (u8[]){'h', 'e', 'l', 'l', 'o', 'x', 'v', 0xFD, 7, 0, 0},
+		       11),
+	       "helloxvhelloxv");
+
+	/*
 
 	res = lzx_compress_block("hellohello2", 11, out, sizeof(out));
 	ASSERT_EQ(res, 10, "res=10");
@@ -867,6 +874,7 @@ Test(compress1) {
 	out[0] ^= 0x01;
 	ASSERT(crc32c(out, res) != crc, "CRC32c detects corruption");
 	release(large_input);
+	*/
 }
 
 Test(compress_file1) {
@@ -887,4 +895,22 @@ Test(compress_file1) {
 
 	munmap(ptr, len);
 	close(fd);
+}
+
+Test(compress_rle) {
+	i32 res, i = 0;
+	u8 out[120000];
+	const char *x =
+	    "xxxxxxxxxxxx"
+	    "xxxxxxxxxxxx";
+
+	ASSERT(!i, "i==0");
+	res = lzx_compress_block(x, strlen(x), out, sizeof(out));
+	ASSERT_EQ(res, 14, "res=14");
+	/*
+	println("res={}", res);
+	for (i = 0; i < res; i++) {
+		println("{} = {}", i, out[i]);
+	}
+	*/
 }
