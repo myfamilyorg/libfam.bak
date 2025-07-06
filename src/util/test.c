@@ -27,6 +27,7 @@
 #include <atomic.H>
 #include <channel.H>
 #include <compress.H>
+#include <crc32c.H>
 #include <error.H>
 #include <lock.H>
 #include <rbtree.H>
@@ -710,8 +711,10 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 		       u64 out_capacity);
 
 Test(compress1) {
-	u8 out[4096];
-	i32 res;
+	u8 out[131070];
+	i32 res, i, j;
+	u32 crc;
+	u8 *large_input;
 
 	res = lzx_compress_block("testtest", 8, out, sizeof(out));
 	ASSERT_EQ(res, 8, "res=8");
@@ -760,7 +763,7 @@ Test(compress1) {
 	ASSERT_EQ(res, -1, "res=-1");
 	ASSERT_EQ(err, EINVAL, "err=EINVAL");
 
-	u8 *large_input = alloc(258);
+	large_input = alloc(258);
 	memcpy(large_input, "test", 4);
 	memset(large_input + 4, 'x', 250);
 	memcpy(large_input + 254, "test", 4);
@@ -773,5 +776,115 @@ Test(compress1) {
 	ASSERT(!memcmp(out + 254, (u8[]){0xFD, 0x4, 0x00, 0x00}, 4),
 	       "large match last 4 bytes");
 	release(large_input);
+
+	large_input = alloc(65535);
+	memset(large_input, 0xFD, 65535);
+	res = lzx_compress_block(large_input, 65535, out, sizeof(out));
+	ASSERT_EQ(res, 131070, "res=131070 (all 0xFD, escape-only)");
+	for (i = 0; i < 131070; i += 2) {
+		ASSERT_EQ(out[i], 0xFD, "all 0xFD: FD at even indices");
+		ASSERT_EQ(out[i + 1], 0x00, "all 0xFD: 0x00 at odd indices");
+	}
+	release(large_input);
+
+	large_input = alloc(65535);
+	for (i = 0; i < 65535; i++) {
+		large_input[i] = (i % 10 == 0) ? 0xFD : 'a';
+	}
+	res = lzx_compress_block(large_input, 65535, out, sizeof(out));
+	ASSERT_EQ(res, 72089, "res=72089 (10% 0xFD, escape-only)");
+	for (i = 0, j = 0; i < 65535; i++) {
+		if (i % 10 == 0) {
+			ASSERT_EQ(out[j], 0xFD, "mixed 0xFD: FD");
+			ASSERT_EQ(out[j + 1], 0x00, "mixed 0xFD: 0x00");
+			j += 2;
+		} else {
+			ASSERT_EQ(out[j], 'a', "mixed 0xFD: 'a'");
+			j++;
+		}
+	}
+	release(large_input);
+
+	large_input = alloc(65535);
+	{
+		u32 x = 0;
+		for (i = 0; i < 65535; i++) {
+			x = (1664525 * x + 1013904223);
+			large_input[i] =
+			    (u8)(x >> 24) == 0xFD ? 0xFE : (u8)(x >> 24);
+		}
+	}
+	res = lzx_compress_block(large_input, 65535, out, sizeof(out));
+	ASSERT_EQ(res, 65535, "res=65535 (incompressible, no matches)");
+	ASSERT(!memcmp(out, large_input, 65535),
+	       "incompressible: output matches input");
+	release(large_input);
+
+	large_input = alloc(65535);
+	{
+		u64 x = 0;
+		memcpy(large_input, "test", 4);
+		for (i = 4; i < 65531; i++) {
+			x = (1664525 * x + 1013904223);
+			large_input[i] =
+			    (u8)(x >> 24) == 0xFD ? 0xFE : (u8)(x >> 24);
+		}
+	}
+	memcpy(large_input + 65531, "test\0", 4);
+	large_input[65534] = 0xFD;
+	res = lzx_compress_block(large_input, 65535, out, sizeof(out));
+	ASSERT_EQ(res, 65536, "res=65536 (match after 64KB, escape-only)");
+	ASSERT(!memcmp(out, large_input, 65534),
+	       "near-overflow: first 65534 bytes");
+	ASSERT_EQ(out[65534], 0xFD, "near-overflow: FD");
+	ASSERT_EQ(out[65535], 0x00, "near-overflow: 0x00");
+	release(large_input);
+
+	large_input = alloc(32768);
+	memset(large_input, 0xFD, 32768);
+	res = lzx_compress_block(large_input, 32768, out, sizeof(out));
+	ASSERT_EQ(res, 65536, "res=65536 (exactly 64KB, escape-only)");
+	for (i = 0; i < 65536; i += 2) {
+		ASSERT_EQ(out[i], 0xFD, "64KB: FD at even indices");
+		ASSERT_EQ(out[i + 1], 0x00, "64KB: 0x00 at odd indices");
+	}
+	release(large_input);
+
+	large_input = alloc(65535);
+	memset(large_input, 0xFD, 65535);
+	res = lzx_compress_block(large_input, 65535, out, 131069);
+	ASSERT_EQ(res, -1, "res=-1 (insufficient out_capacity)");
+	ASSERT_EQ(err, ENOBUFS, "err=ENOBUFS (insufficient out_capacity)");
+	release(large_input);
+
+	large_input = alloc(65535);
+	memcpy(large_input, "test", 4);
+	memset(large_input + 4, 'x', 65531);
+	res = lzx_compress_block(large_input, 65535, out, sizeof(out));
+	ASSERT(res > 0, "res>0 (large input for CRC32c)");
+	crc = crc32c(out, res);
+	ASSERT(crc != 0, "CRC32c non-zero");
+	out[0] ^= 0x01;
+	ASSERT(crc32c(out, res) != crc, "CRC32c detects corruption");
+	release(large_input);
 }
 
+Test(compress_file1) {
+	const u8 *path = "./resources/akjv.txt";
+	i32 fd = file(path);
+	u64 len = fsize(fd);
+	i32 res = 0;
+	void *ptr;
+	u8 out[120000];
+
+	ASSERT(fd > 0, "fd>0");
+	ptr = fmap(fd, len, 0);
+	ASSERT(ptr, "ptr");
+
+	res = lzx_compress_block(ptr, 60000, out, sizeof(out));
+	ASSERT(res, "res!=0");
+	/*println("res={}", res);*/
+
+	munmap(ptr, len);
+	close(fd);
+}
