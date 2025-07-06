@@ -1,0 +1,83 @@
+/********************************************************************************
+ * MIT License
+ *
+ * Copyright (c) 2025 Christopher Gilliard
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
+#ifndef _HUFFMAN_H
+#define _HUFFMAN_H
+
+static u32 huffman_values[256] = {
+    0x2BC168, 0x2BC169, 0x2BC11D, 0x2BC183, 0x2BC111, 0x2BC11E, 0x2BC14F,
+    0x2BC185, 0x2BC1C5, 0x2BC112, 0x23,	    0x2BC11F, 0x2BC1DA, 0x26,
+    0x2BC196, 0x2BC187, 0x2BC151, 0x2BC166, 0x2BC16F, 0x2BC113, 0x2BC1C0,
+    0x2BC117, 0x2BC1A4, 0x2BC11A, 0x2BC147, 0x2BC1DB, 0x2BC1AA, 0x2BC1AE,
+    0x2BC14B, 0x2BC197, 0x2BC192, 0x2BC16B, 0x6,      0x2BC2,	0x2BC181,
+    0x2BC167, 0x2BC1C9, 0x2BC174, 0x2BC1CF, 0x540,    0x2BC0,	0x5787,
+    0x2BC18D, 0x2BC15C, 0x23,	  0x15E0F,  0xFD,     0x2BC11B, 0x2BD,
+    0x22,     0xE0,	0x1F1,	  0x154,    0x082,    0x3F1,	0x3F0,
+    0x3E0,    0x2BF,	0x1F9,	  0x15D,    0x15E081, 0x2BC193, 0x2BC106,
+    0x102,    0x2BC179, 0xAB,	  0x2A7,    0x2A1,    0x15C,	0x3E1,
+    0x54D,    0x087,	0x10D,	  0x42,	    0x1C3,    0x541,	0x1C2,
+    0x2AB,    0x103,	0x152,	  0x2BE,    0x57821,  0x151,	0x080,
+    0x083,    0x5786,	0x15E09,  0x554,    0x2BC15D, 0xAF1,	0xA99,
+    0x2BC1A5, 0x2BC1DE, 0x2BC1C2, 0x2BC1D5, 0x2BC1A0, 0x2BC119, 0x7,
+    0x71,     0x7F,	0x14,	  0x0,	    0x2C,     0x7D,	0x6,
+    0x1E,     0x555,	0xF9,	  0x10,	    0x2D,     0x3,	0x5,
+    0x56,     0xA98,	0x17,	  0x2,	    0x9,      0x39,	0x27,
+    0x12,     0x579,	0x22,	  0x10C,    0x2BC156, 0x1D,	0x2BC107,
+    0x15E082, 0x2BC1B3, 0x2BC17B, 0x2BC1B1, 0x2BC1D3, 0x2BC170, 0x2BC171,
+    0x2BC1D1, 0x2BC150, 0x2BC153, 0x2BC172, 0x2BC173, 0x2BC180, 0x2BC1C6,
+    0x2BC1C7, 0x2BC163, 0x2BC1C4, 0x2BC1CC, 0x2BC1CD, 0x2BC165, 0x2BC1C8,
+    0x2BC160, 0x2BC161, 0x2BC1CA, 0x2BC1CB, 0x2BC175, 0x2BC16C, 0x2BC16D,
+    0x2BC1CE, 0x2BC1D7, 0x2BC14C, 0x2BC14D, 0x2BC110, 0x2BC155, 0x2BC176,
+    0x2BC177, 0x2BC18A, 0x2BC18B, 0x2BC18E, 0x2BC18F, 0x2BC15B, 0x2BC1C1,
+    0x2BC158, 0x2BC159, 0x2BC18C, 0x2BC1B5, 0x2BC1B6, 0x2BC1B7, 0x2BC116,
+    0x2BC17D, 0x2BC114, 0x2BC115, 0x2BC17E, 0x2BC17F, 0x2BC1B8, 0x2BC1B9,
+    0x2BC1BD, 0x2BC1A6, 0x2BC1A7, 0x2BC1DF, 0x2BC1BB, 0x2BC1C3, 0x2BC1D4,
+    0x2BC1A2, 0x2BC1A3, 0x2BC1A1, 0x2BC118, 0x2BC144, 0x2BC145, 0x2BC1DC,
+    0x2BC1DD, 0x2BC146, 0x2BC11C, 0x2BC142, 0x2BC143, 0x2BC1D8, 0x2BC1BA,
+    0x2BC1D9, 0x2BC1A8, 0x2BC1A9, 0x2BC1BC, 0x2BC19C, 0x2BC19D, 0x2BC1BE,
+    0x2BC17C, 0x2BC1BF, 0x2BC19E, 0x2BC19F, 0x2BC1B4, 0x2BC1AB, 0x2BC140,
+    0x2BC141, 0x2BC15A, 0x2BC15E, 0x2BC15F, 0x2BC14E, 0x2BC154, 0x2BC1AF,
+    0x2BC148, 0x2BC149, 0x2BC1D6, 0x2BC19A, 0x2BC19B, 0x2BC14A, 0x2BC16E,
+    0x2BC1AC, 0x2BC1AD, 0x2BC194, 0x2BC164, 0x2BC195, 0x2BC190, 0x2BC191,
+    0x2BC162, 0x2BC198, 0x2BC199, 0x15E080, 0x2BC152, 0x2BC188, 0x2BC1D0,
+    0x2BC189, 0x2BC1D2, 0x2BC1B0, 0x2BC178, 0x2BC157, 0x2BC1B2, 0x2BC16A,
+    0x2BC186, 0x2BC184, 0x2BC182, 0x2BC17A};
+static u8 huffman_lengths[256] = {
+    22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 7,	22, 22, 7,  22, 22, 22, 22, 22,
+    22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 3,  14, 22, 22, 22, 22,
+    22, 11, 14, 15, 22, 22, 6,	17, 8,	22, 10, 7,  8,	9,  9,	9,  10, 10, 10,
+    10, 9,  9,	21, 22, 22, 10, 22, 8,	10, 10, 9,  10, 11, 9,	10, 8,	9,  11,
+    9,	10, 10, 9,  10, 19, 9,	9,  9,	15, 17, 11, 22, 12, 12, 22, 22, 22, 22,
+    22, 22, 4,	7,  7,	5,  3,	6,  7,	4,  5,	11, 8,	5,  6,	4,  4,	7,  12,
+    5,	4,  4,	6,  7,	6,  11, 6,  10, 22, 5,	22, 21, 22, 22, 22, 22, 22, 22,
+    22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22,
+    22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22,
+    22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22,
+    22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22,
+    22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22,
+    22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 21, 22, 22, 22, 22, 22,
+    22, 22, 22, 22, 22, 22, 22, 22, 22};
+
+#endif /* _HUFFMAN_H */

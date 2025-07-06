@@ -160,16 +160,35 @@ int main(int argc, char **argv) {
 	generate_codes(root, 0, 0, codes);
 
 	printf("Huffman Codes:\n");
+	printf("Huffman Codes:\n");
 	for (int i = 0; i < MAX_SYMBOLS; i++) {
 		if (codes[i].length > 0) {
 			printf("Symbol: %c (0x%02X), Code: ",
 			       isprint(i) ? i : '.', i);
+			// Print binary
 			for (int j = codes[i].length - 1; j >= 0; j--) {
 				printf("%d", (codes[i].code >> j) & 1);
 			}
-			printf(", Length: %d\n", codes[i].length);
+			// Print hex
+			printf(" (0x%0*X), Length: %d\n",
+			       (codes[i].length + 3) /
+				   4,  // Number of hex digits needed
+			       codes[i].code, codes[i].length);
 		}
 	}
+
+	printf("u32 huffman_values[%d] = {\n", MAX_SYMBOLS);
+	for (int i = 0; i < MAX_SYMBOLS; i++) {
+		if (i) printf(",\n");
+		printf("\t0x%0*X", (codes[i].length + 3) / 4, codes[i].code);
+	}
+	printf("\n};\n");
+	printf("u8 huffman_lengths[%d] = {\n", MAX_SYMBOLS);
+	for (int i = 0; i < MAX_SYMBOLS; i++) {
+		if (i) printf(",\n");
+		printf("\t%d", codes[i].length);
+	}
+	printf("\n};\n");
 
 	free_tree(root);
 	return 0;

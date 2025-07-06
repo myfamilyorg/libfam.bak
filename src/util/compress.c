@@ -26,6 +26,7 @@
 #include <compress.H>
 #include <error.H>
 #include <format.H>
+#include <huffman.H>
 
 #define LZX_HASH_ENTRIES 4096
 #define HASH_CONSTANT 2654435761U
@@ -183,7 +184,7 @@ STATIC i32 lzx_decompress_block_impl(const u8 *input, u16 in_len, u16 in_start,
 			}
 			if (input[i + 1] == 0x0) {
 				output[itt++] = MATCH_SENTINEL;
-				i++; /* advanced past escape */
+				i++; /* advance past escape */
 			} else {
 				i32 res;
 				u8 len = input[i + 1];
@@ -199,7 +200,7 @@ STATIC i32 lzx_decompress_block_impl(const u8 *input, u16 in_len, u16 in_start,
 					err = EINVAL;
 					return -1;
 				}
-				if (len < 6) {
+				if (len < MIN_MATCH) {
 					err = EPROTO;
 					return -1;
 				}
@@ -214,7 +215,7 @@ STATIC i32 lzx_decompress_block_impl(const u8 *input, u16 in_len, u16 in_start,
 							  : remaining_limit);
 				if (res < 0) return -1;
 				itt += len;
-				i += 3; /* advanced past tuple */
+				i += 3; /* advance past tuple */
 			}
 		}
 		if (itt - out_start >= limit) break;
@@ -231,42 +232,6 @@ i32 lzx_decompress_block(const u8 *input, u16 in_len, u8 *output,
 			 u64 out_capacity) {
 	return lzx_decompress_block_impl(input, in_len, 0, output, 0,
 					 out_capacity, U64_MAX);
-	/*
-	u32 i, j;
-	u64 itt = 0;
-	if (!input || !output || !in_len || !out_capacity) {
-		err = EINVAL;
-		return -1;
-	}
-
-	for (i = 0; i < in_len; i++) {
-		if (input[i] != MATCH_SENTINEL)
-			output[itt++] = input[i];
-		else {
-			if (i + 1 >= in_len) {
-				err = EOVERFLOW;
-				return -1;
-			}
-			if (input[i + 1] == 0x0)
-				output[itt++] = MATCH_SENTINEL;
-			else {
-				u8 len = input[i + 1];
-				u16 offset;
-				if (i + 3 >= in_len) {
-					err = EOVERFLOW;
-					return -1;
-				}
-				offset = (input[i + 2] & 0xFF) | input[i + 3]
-								     << 8;
-				for (j = 0; j < len; j++) {
-					output[itt++] = input[j + offset];
-				}
-			}
-		}
-	}
-
-	return 0;
-	*/
 }
 
 i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
@@ -355,3 +320,12 @@ i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 	return itt;
 }
 
+i32 compress(u8 *input, u64 len, u8 *output, u64 output_capacity) {
+	if (!input || len == 0 || !output || !output_capacity) {
+		err = EINVAL;
+		return -1;
+	}
+	if (huffman_lengths[0] || huffman_values[0]) {
+	}
+	return 0;
+}
