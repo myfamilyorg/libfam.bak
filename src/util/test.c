@@ -740,6 +740,7 @@ Test(huffman_encode1) {
 	const u8 *in = "alkjsdfasghalshgaslfdjadslf;l54(*4";
 	huffman_gen(&lookup, in, strlen(in));
 	out_len = huffman_encode(&lookup, in, strlen(in), buf, sizeof(buf));
+	ASSERT(out_len > 0, "out_len>0");
 	out_len = huffman_decode(buf, out_len, verify, sizeof(verify));
 	ASSERT_EQ(strlen(in), (u64)out_len, "len match");
 	verify[out_len] = 0;
