@@ -66,7 +66,7 @@ bool is_prefix_free(HuffmanLookup *lookup) {
 	return true;
 }
 
-STATIC void print_tree(HuffmanNode *node, int depth) {
+STATIC void __attribute__((unused)) print_tree(HuffmanNode *node, int depth) {
 	int i;
 	if (!node) return;
 	for (i = 0; i < depth; i++) print("  ");
