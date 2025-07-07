@@ -56,8 +56,8 @@ endif
 
 # Specific flags
 LIB_CFLAGS		= $(COMMON_FLAGS) $(ARCH_FLAGS) -fPIC -O3 -DSTATIC=static
-TEST_CFLAGS	   = $(COMMON_FLAGS) $(ARCH_FLAGS) -fPIC -O1 -DSTATIC= -DTEST=1
-TEST_BINARY_CFLAGS = $(COMMON_FLAGS) $(ARCH_FLAGS) -ffreestanding -nostdlib -O1 -DSTATIC= -DTEST=1
+TEST_CFLAGS	   = $(COMMON_FLAGS) $(ARCH_FLAGS) -fPIC -O3 -DSTATIC= -DTEST=1
+TEST_BINARY_CFLAGS = $(COMMON_FLAGS) $(ARCH_FLAGS) -ffreestanding -nostdlib -O3 -DSTATIC= -DTEST=1
 LDFLAGS		   = -shared -nostdlib -ffreestanding
 
 # Default target

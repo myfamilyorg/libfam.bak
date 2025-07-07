@@ -57,11 +57,6 @@ bool is_prefix_free(HuffmanLookup *lookup) {
 						       lookup->lengths[i]);
 					if ((code_j & full_mask) ==
 					    shifted_code_i) {
-						println(
-						    "Code 0x{X} (len={}) is "
-						    "prefix of 0x{X} (len={})",
-						    code_i, lookup->lengths[i],
-						    code_j, lookup->lengths[j]);
 						return false;
 					}
 				}
@@ -181,6 +176,59 @@ STATIC void huffman_generate_codes(HuffmanNode *root, u32 code, u8 length,
 			       lookup);
 }
 
+STATIC HuffmanNode *huffman_reconstruct_tree(HuffmanLookup *lookup,
+					     u8 *stack_ptr) {
+	u16 node_counter = 0, i;
+	u8 j;
+	HuffmanNode *root =
+	    (HuffmanNode *)(stack_ptr + sizeof(HuffmanNode) * node_counter++);
+	root->symbol = '$';
+	root->freq = 0;
+	root->left = NULL;
+	root->right = NULL;
+
+	for (i = 0; i < 256; i++) {
+		if (lookup->lengths[i] == 0) continue;
+		u32 code = lookup->codes[i];
+		u8 len = lookup->lengths[i];
+		HuffmanNode *current = root;
+
+		for (j = 0; j < len; j++) {
+			u8 bit = (code >> (len - 1 - j)) & 1;
+			if (bit == 0) {
+				if (!current->left) {
+					current->left =
+					    (HuffmanNode *)(stack_ptr +
+							    sizeof(
+								HuffmanNode) *
+								node_counter++);
+					current->left->symbol = '$';
+					current->left->freq = 0;
+					current->left->left = NULL;
+					current->left->right = NULL;
+				}
+				current = current->left;
+			} else {
+				if (!current->right) {
+					current->right =
+					    (HuffmanNode *)(stack_ptr +
+							    sizeof(
+								HuffmanNode) *
+								node_counter++);
+					current->right->symbol = '$';
+					current->right->freq = 0;
+					current->right->left = NULL;
+					current->right->right = NULL;
+				}
+				current = current->right;
+			}
+		}
+		current->symbol = (u8)i;
+	}
+
+	return root;
+}
+
 const u8 *huffman_lookup_compress(const HuffmanLookup *lookup, u16 *size);
 i32 huffmean_lookup_decompress(HuffmanLookup *lookup, const u8 *compressed,
 			       u16 size);
@@ -203,3 +251,123 @@ i32 huffman_gen(HuffmanLookup *lookup, const u8 *input, u16 len) {
 	return 0;
 }
 
+i32 huffman_encode(HuffmanLookup *lookup, const u8 *input, u16 len, u8 *output,
+		   u32 output_capacity) {
+	if (!lookup || !input || !len || !output || output_capacity < 2) {
+		err = EINVAL;
+		return -1;
+	}
+
+	if (output_capacity < 2) {
+		err = EOVERFLOW;
+		return -1;
+	}
+	output[0] = (len >> 8) & 0xFF;
+	output[1] = len & 0xFF;
+	u32 byte_pos = 2;
+	u32 bit_pos = 0;
+	u8 current_byte = 0;
+	u16 i;
+	u8 j;
+
+	for (i = 0; i < len; i++) {
+		u8 symbol = input[i];
+		if (lookup->lengths[symbol] == 0) {
+			err = EINVAL;
+			return -1;
+		}
+
+		u32 code = lookup->codes[symbol];
+		u8 code_len = lookup->lengths[symbol];
+
+		for (j = 0; j < code_len; j++) {
+			if (byte_pos >= output_capacity) {
+				err = EOVERFLOW;
+				return -1;
+			}
+
+			u32 bit = (code >> (code_len - 1 - j)) & 1;
+			current_byte |= bit << (7 - (bit_pos % 8));
+			bit_pos++;
+
+			if (bit_pos % 8 == 0) {
+				output[byte_pos++] = current_byte;
+				current_byte = 0;
+			}
+		}
+	}
+
+	if (bit_pos % 8 != 0) {
+		if (byte_pos >= output_capacity) {
+			err = EOVERFLOW;
+			return -1;
+		}
+		output[byte_pos++] = current_byte;
+	}
+
+	return (i32)byte_pos;
+}
+
+i32 huffman_decode(HuffmanLookup *lookup, const u8 *input, u32 len, u8 *output,
+		   u32 output_capacity) {
+	if (!lookup || !input || len < 2 || !output || !output_capacity) {
+		err = EINVAL;
+		return -1;
+	}
+
+	u16 expected_symbols = ((u16)input[0] << 8) | input[1];
+	if (expected_symbols > output_capacity) {
+		err = EOVERFLOW;
+		return -1;
+	}
+
+	u8 stack[MAX_HUFFMAN_SYMBOLS * 2 * sizeof(HuffmanNode)];
+	HuffmanNode *root = huffman_reconstruct_tree(lookup, stack);
+	if (!root) {
+		err = EINVAL;
+		return -1;
+	}
+
+	u32 bit_pos = 0;
+	u32 byte_pos = 2;
+	u32 output_pos = 0;
+	HuffmanNode *current = root;
+
+	while (output_pos < expected_symbols && bit_pos < (len - 2) * 8) {
+		if (byte_pos >= len) {
+			err = EINVAL;
+			return -1;
+		}
+
+		u8 bit = (input[byte_pos] >> (7 - (bit_pos % 8))) & 1;
+		bit_pos++;
+		current = bit ? current->right : current->left;
+
+		if (!current) {
+			err = EINVAL;
+			return -1;
+		}
+
+		if (!current->left && !current->right &&
+		    current->symbol != '$') {
+			output[output_pos++] = current->symbol;
+			current = root;
+		}
+
+		if (bit_pos % 8 == 0) {
+			byte_pos++;
+		}
+	}
+
+	if (output_pos != expected_symbols) {
+		err = EINVAL;
+		return -1;
+	}
+
+	if (current != root) {
+		err = EINVAL;
+		return -1;
+	}
+
+	return (i32)output_pos;
+}
