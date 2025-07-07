@@ -31,7 +31,7 @@ COVDIR=".cov"
 
 # Compiler and flags
 CC="gcc"
-CFLAGS="-DPAGE_SIZE=16384 -I${INCLDIR} -O0 -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -Wno-int-conversion -Wno-discarded-qualifiers -Wno-builtin-declaration-mismatch -Wno-pointer-sign -Wno-error=pointer-sign -Wno-attributes -DMEMSAN=0 -DSTATIC= -g -Wno-format-truncation -Wno-format -D_FORTIFY_SOURCE=0"
+CFLAGS="-DPAGE_SIZE=16384 -I${INCLDIR} -O3 -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -Wno-int-conversion -Wno-discarded-qualifiers -Wno-builtin-declaration-mismatch -Wno-pointer-sign -Wno-error=pointer-sign -Wno-attributes -DMEMSAN=0 -DSTATIC= -g -Wno-format-truncation -Wno-format -D_FORTIFY_SOURCE=0"
 
 # Architecture-specific flags
 ARCH_CFLAGS_x86_64="-msse4.2"
