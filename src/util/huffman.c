@@ -257,37 +257,35 @@ i32 huffman_gen(HuffmanLookup *lookup, const u8 *input, u16 len) {
 	return 0;
 }
 
-i32 huffman_encode(HuffmanLookup *lookup, const u8 *input, u16 len, u8 *output,
-		   u32 output_capacity) {
+i32 huffman_encode(const u8 *input, u16 len, u8 *output, u32 output_capacity) {
 	HuffmanLookup huffman = {0};
-	if (!lookup || !input || !len || !output || output_capacity < 2) {
+	if (!input || !len || !output || output_capacity < 3) {
 		err = EINVAL;
 		return -1;
 	}
 
-	if (output_capacity < (u32)3 + lookup->count * 7) {
+	huffman_gen(&huffman, input, len);
+	if (output_capacity < (u32)3 + huffman.count * 7) {
 		err = EOVERFLOW;
 		return -1;
 	}
 
-	huffman_gen(&huffman, input, len);
-
 	output[0] = (len >> 8) & 0xFF;
 	output[1] = len & 0xFF;
-	output[2] = lookup->count;
-	u32 byte_pos = 3 + lookup->count * 7;
+	output[2] = huffman.count;
+	u32 byte_pos = 3 + huffman.count * 7;
 	u32 bit_pos = 0;
 	u8 current_byte = 0;
 	u16 i;
 	u8 j = 0;
 
 	for (i = 0; i < 256; i++) {
-		if (lookup->lengths[i]) {
+		if (huffman.lengths[i]) {
 			u8 v = (u8)i;
 			memcpy(output + 3 + j * 7, &v, sizeof(u8));
-			memcpy(output + 3 + j * 7 + 1, &lookup->lengths[i],
+			memcpy(output + 3 + j * 7 + 1, &huffman.lengths[i],
 			       sizeof(u8));
-			memcpy(output + 3 + j * 7 + 2, &lookup->codes[i],
+			memcpy(output + 3 + j * 7 + 2, &huffman.codes[i],
 			       sizeof(u32));
 			j++;
 		}
@@ -295,13 +293,13 @@ i32 huffman_encode(HuffmanLookup *lookup, const u8 *input, u16 len, u8 *output,
 
 	for (i = 0; i < len; i++) {
 		u8 symbol = input[i];
-		if (lookup->lengths[symbol] == 0) {
+		if (huffman.lengths[symbol] == 0) {
 			err = EINVAL;
 			return -1;
 		}
 
-		u32 code = lookup->codes[symbol];
-		u8 code_len = lookup->lengths[symbol];
+		u32 code = huffman.codes[symbol];
+		u8 code_len = huffman.lengths[symbol];
 
 		for (j = 0; j < code_len; j++) {
 			if (byte_pos >= output_capacity) {

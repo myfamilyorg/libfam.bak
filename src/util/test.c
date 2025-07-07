@@ -739,7 +739,7 @@ Test(huffman_encode1) {
 	u8 verify[1024];
 	const u8 *in = "alkjsdfasghalshgaslfdjadslf;l54(*4";
 	huffman_gen(&lookup, in, strlen(in));
-	out_len = huffman_encode(&lookup, in, strlen(in), buf, sizeof(buf));
+	out_len = huffman_encode(in, strlen(in), buf, sizeof(buf));
 	ASSERT(out_len > 0, "out_len>0");
 	out_len = huffman_decode(buf, out_len, verify, sizeof(verify));
 	ASSERT_EQ(strlen(in), (u64)out_len, "len match");
@@ -764,8 +764,7 @@ Test(huffman_encode2) {
 		ASSERT(ptr, "ptr");
 
 		huffman_gen(&lookup, ptr, len);
-		out_len = huffman_encode(&lookup, ptr, len, buf, sizeof(buf));
-		println("compress={},data={}", out_len, len);
+		out_len = huffman_encode(ptr, len, buf, sizeof(buf));
 		out_len = huffman_decode(buf, out_len, verify, sizeof(verify));
 		ASSERT_EQ((u64)out_len, len, "len match");
 		ASSERT(!strcmpn(ptr, verify, len), "data equal");
