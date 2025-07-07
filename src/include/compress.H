@@ -28,11 +28,12 @@
 
 #include <types.H>
 
-i32 compress_block(u8 *input, u16 len, u8 *output, u64 output_capacity);
+i32 compress_block(u8 *input, u16 in_len, u8 *output, u32 output_capacity);
+i32 decompress_block(u8 *input, u32 in_len, u8 *output, u32 output_capacity);
 
 i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 		       u64 out_capacity);
-i32 lzx_decompress_block(const u8 *input, u16 in_len, u8 *output,
+i32 lzx_decompress_block(const u8 *input, u32 in_len, u8 *output,
 			 u64 out_capacity);
 
 #endif /* _COMPRESS_H */

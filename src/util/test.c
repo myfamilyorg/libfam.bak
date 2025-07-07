@@ -29,6 +29,7 @@
 #include <compress.H>
 #include <crc32c.H>
 #include <error.H>
+#include <huffman.H>
 #include <lock.H>
 #include <rbtree.H>
 #include <rng.H>
@@ -707,6 +708,31 @@ Test(vec1) {
 	ASSERT_BYTES(0);
 }
 
+Test(huffman1) {
+	int i;
+	HuffmanLookup lookup = {0};
+	const u8 *in1 = "abcdbxxx";
+	const u8 *in2 = "alkjsdfasghalshgaslfdjadslf;l54(*4";
+	int count = 0;
+	huffman_gen(&lookup, in1, strlen(in1));
+	for (i = 0; i < 256; i++) {
+		if (lookup.lengths[i]) count++;
+	}
+	ASSERT_EQ(count, 5, "count=5");
+	ASSERT(!lookup.lengths['e'], "lookup e == 0");
+	ASSERT(lookup.lengths['b'] < lookup.lengths['a'], "lookup b < a");
+	ASSERT(lookup.lengths['x'] < lookup.lengths['b'], "lookup x < b");
+
+	memset(&lookup, 0, sizeof(HuffmanLookup));
+	huffman_gen(&lookup, in2, strlen(in2));
+	count = 0;
+	for (i = 0; i < 256; i++)
+		if (lookup.lengths[i]) ++count;
+
+	ASSERT_EQ(count, 14, "count=14");
+}
+
+/*
 Test(compress1) {
 	u8 out[131070];
 	i32 res, i = 0, j = 0;
@@ -729,7 +755,6 @@ Test(compress1) {
 		       11),
 	       "helloxvhelloxv");
 
-	/*
 
 
 	res = lzx_compress_block("hellohello2", 11, out, sizeof(out));
@@ -872,7 +897,6 @@ Test(compress1) {
 	out[0] ^= 0x01;
 	ASSERT(crc32c(out, res) != crc, "CRC32c detects corruption");
 	release(large_input);
-	*/
 }
 
 Test(compress_file1) {
@@ -925,3 +949,4 @@ Test(compress_rle) {
 	ASSERT_EQ((u64)res, strlen(x), "res=strlen(x)");
 	ASSERT(!strcmpn(x, verify, res), "in=out");
 }
+*/

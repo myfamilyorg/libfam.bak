@@ -41,11 +41,11 @@ STATIC i32 format_check_resize(Formatter *f, u64 size) {
 STATIC const char *find_next_placeholder(const char *p) {
 	const char *v1 = substr(p, "{x}");
 	const char *v2 = substr(p, "{X}");
-	const char *v3 = substr(p, "{}");
-	const char *v4 = substr(p, "{c}");
+	const char *v3 = substr(p, "{c}");
+	const char *v4 = substr(p, "{}");
 
 	/* If no placeholders found, return NULL */
-	if (!v1 && !v2 && !v3) return NULL;
+	if (!v1 && !v2 && !v3 && !v4) return NULL;
 
 	/* Initialize result to NULL; update with earliest non-NULL pointer */
 	const char *result = NULL;
