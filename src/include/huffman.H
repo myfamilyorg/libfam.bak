@@ -33,6 +33,7 @@
 typedef struct {
 	u8 lengths[MAX_HUFFMAN_SYMBOLS];
 	u32 codes[MAX_HUFFMAN_SYMBOLS];
+	u8 count;
 } HuffmanLookup;
 
 const u8 *huffman_lookup_compress(const HuffmanLookup *lookup, u16 *size);
@@ -41,7 +42,6 @@ i32 huffmean_lookup_decompress(HuffmanLookup *lookup, const u8 *compressed,
 i32 huffman_gen(HuffmanLookup *lookup, const u8 *input, u16 len);
 i32 huffman_encode(HuffmanLookup *lookup, const u8 *input, u16 len, u8 *output,
 		   u32 output_capacity);
-i32 huffman_decode(HuffmanLookup *lookup, const u8 *input, u32 len, u8 *output,
-		   u32 output_capacity);
+i32 huffman_decode(const u8 *input, u32 len, u8 *output, u32 output_capacity);
 
 #endif /* _HUFFMAN_H */

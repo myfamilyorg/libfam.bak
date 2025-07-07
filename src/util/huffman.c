@@ -244,7 +244,13 @@ i32 huffman_gen(HuffmanLookup *lookup, const u8 *input, u16 len) {
 		err = EINVAL;
 		return -1;
 	}
-	for (i = 0; i < len; i++) freq[input[i]]++;
+	lookup->count = 0;
+	for (i = 0; i < len; i++) {
+		if (!freq[input[i]]) {
+			lookup->count++;
+		}
+		freq[input[i]]++;
+	}
 	root = build_huffman_tree(&heap, freq, stack_ptr);
 	huffman_generate_codes(root, 0, 0, lookup);
 
@@ -253,22 +259,39 @@ i32 huffman_gen(HuffmanLookup *lookup, const u8 *input, u16 len) {
 
 i32 huffman_encode(HuffmanLookup *lookup, const u8 *input, u16 len, u8 *output,
 		   u32 output_capacity) {
+	HuffmanLookup huffman = {0};
 	if (!lookup || !input || !len || !output || output_capacity < 2) {
 		err = EINVAL;
 		return -1;
 	}
 
-	if (output_capacity < 2) {
+	if (output_capacity < (u32)3 + output[3] * 7) {
 		err = EOVERFLOW;
 		return -1;
 	}
+
+	huffman_gen(&huffman, input, len);
+
 	output[0] = (len >> 8) & 0xFF;
 	output[1] = len & 0xFF;
-	u32 byte_pos = 2;
+	output[2] = lookup->count;
+	u32 byte_pos = 3 + lookup->count * 7;
 	u32 bit_pos = 0;
 	u8 current_byte = 0;
 	u16 i;
-	u8 j;
+	u8 j = 0;
+
+	for (i = 0; i < 256; i++) {
+		if (lookup->lengths[i]) {
+			u8 v = (u8)i;
+			memcpy(output + 3 + j * 7, &v, sizeof(u8));
+			memcpy(output + 3 + j * 7 + 1, &lookup->lengths[i],
+			       sizeof(u8));
+			memcpy(output + 3 + j * 7 + 2, &lookup->codes[i],
+			       sizeof(u32));
+			j++;
+		}
+	}
 
 	for (i = 0; i < len; i++) {
 		u8 symbol = input[i];
@@ -308,28 +331,35 @@ i32 huffman_encode(HuffmanLookup *lookup, const u8 *input, u16 len, u8 *output,
 	return (i32)byte_pos;
 }
 
-i32 huffman_decode(HuffmanLookup *lookup, const u8 *input, u32 len, u8 *output,
-		   u32 output_capacity) {
-	if (!lookup || !input || len < 2 || !output || !output_capacity) {
+i32 huffman_decode(const u8 *input, u32 len, u8 *output, u32 output_capacity) {
+	if (!input || len < 2 || !output || !output_capacity) {
 		err = EINVAL;
 		return -1;
 	}
 
+	HuffmanLookup huffman = {0};
+	u16 i;
 	u16 expected_symbols = ((u16)input[0] << 8) | input[1];
 	if (expected_symbols > output_capacity) {
 		err = EOVERFLOW;
 		return -1;
 	}
+	huffman.count = input[2];
+	for (i = 0; i < huffman.count; i++) {
+		u8 index = *(u8 *)(input + 3 + i * 7);
+		huffman.lengths[index] = *(u8 *)(input + 3 + i * 7 + 1);
+		huffman.codes[index] = *(u32 *)(input + 3 + i * 7 + 2);
+	}
 
 	u8 stack[MAX_HUFFMAN_SYMBOLS * 2 * sizeof(HuffmanNode)];
-	HuffmanNode *root = huffman_reconstruct_tree(lookup, stack);
+	HuffmanNode *root = huffman_reconstruct_tree(&huffman, stack);
 	if (!root) {
 		err = EINVAL;
 		return -1;
 	}
 
 	u32 bit_pos = 0;
-	u32 byte_pos = 2;
+	u32 byte_pos = 3 + huffman.count * 7;
 	u32 output_pos = 0;
 	HuffmanNode *current = root;
 

@@ -740,7 +740,7 @@ Test(huffman_encode1) {
 	const u8 *in = "alkjsdfasghalshgaslfdjadslf;l54(*4";
 	huffman_gen(&lookup, in, strlen(in));
 	out_len = huffman_encode(&lookup, in, strlen(in), buf, sizeof(buf));
-	out_len = huffman_decode(&lookup, buf, out_len, verify, sizeof(verify));
+	out_len = huffman_decode(buf, out_len, verify, sizeof(verify));
 	ASSERT_EQ(strlen(in), (u64)out_len, "len match");
 	verify[out_len] = 0;
 	ASSERT(!strcmp(in, verify), "in=verify");
@@ -757,21 +757,15 @@ Test(huffman_encode2) {
 		void *ptr;
 		u8 buf[U16_MAX * 2];
 		u8 verify[U16_MAX];
-		int count = 0, i;
 
 		ASSERT(fd > 0, "fd>0");
 		ptr = fmap(fd, len, 0);
 		ASSERT(ptr, "ptr");
 
 		huffman_gen(&lookup, ptr, len);
-		for (i = 0; i < 256; i++) {
-			if (lookup.codes[i] != 0) count++;
-		}
 		out_len = huffman_encode(&lookup, ptr, len, buf, sizeof(buf));
-		/*println("compress={},data={},count={}", out_len, len,
-		 * count);*/
-		out_len = huffman_decode(&lookup, buf, out_len, verify,
-					 sizeof(verify));
+		println("compress={},data={}", out_len, len);
+		out_len = huffman_decode(buf, out_len, verify, sizeof(verify));
 		ASSERT_EQ((u64)out_len, len, "len match");
 		ASSERT(!strcmpn(ptr, verify, len), "data equal");
 
