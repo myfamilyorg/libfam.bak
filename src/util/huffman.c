@@ -348,7 +348,6 @@ i32 huffman_decode(const u8 *input, u32 len, u8 *output, u32 output_capacity) {
 		huffman.lengths[index] = *(u8 *)(input + 3 + i * 7 + 1);
 		huffman.codes[index] = *(u32 *)(input + 3 + i * 7 + 2);
 	}
-
 	u8 stack[MAX_HUFFMAN_SYMBOLS * 2 * sizeof(HuffmanNode)];
 	HuffmanNode *root = huffman_reconstruct_tree(&huffman, stack);
 	if (!root) {

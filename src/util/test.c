@@ -941,6 +941,23 @@ Test(compress1) {
 	release(large_input);
 }
 
+*/
+
+/*
+ * HuffmanLookup lookup = {0};
+	i32 out_len;
+	u8 buf[1024];
+	u8 verify[1024];
+	const u8 *in = "alkjsdfasghalshgaslfdjadslf;l54(*4";
+	huffman_gen(&lookup, in, strlen(in));
+	out_len = huffman_encode(in, strlen(in), buf, sizeof(buf));
+	ASSERT(out_len > 0, "out_len>0");
+	out_len = huffman_decode(buf, out_len, verify, sizeof(verify));
+	ASSERT_EQ(strlen(in), (u64)out_len, "len match");
+	verify[out_len] = 0;
+	ASSERT(!strcmp(in, verify), "in=verify");
+*/
+
 Test(compress_file1) {
 	int i, count = 1;
 	for (i = 0; i < count; i++) {
@@ -949,14 +966,31 @@ Test(compress_file1) {
 		u64 len = fsize(fd);
 		i32 res = 0;
 		void *ptr;
-		u8 out[120000];
+		u8 verify[120000];
+		u8 huffman[120000];
 
 		ASSERT(fd > 0, "fd>0");
 		ptr = fmap(fd, len, 0);
 		ASSERT(ptr, "ptr");
 
-		res = compress_block(ptr, len, out, sizeof(out));
+		/*
+		res = lzx_compress_block(ptr, len, out, sizeof(out));
 		ASSERT(res, "res!=0");
+		println("res={},len={}", res, len);
+		*/
+
+		res = huffman_encode(ptr, len, huffman, sizeof(huffman));
+		res = huffman_decode(huffman, res, verify, sizeof(verify));
+		/*
+		res = lzx_decompress_block(out, res, verify, sizeof(verify));
+		*/
+
+		/*
+				res = lzx_decompress_block(out, res, verify,
+		   sizeof(verify));*/
+		ASSERT_EQ((u64)res, len, "res=len");
+		verify[res] = 0;
+		ASSERT(!strcmpn(ptr, verify, len), "in=out");
 
 		munmap(ptr, len);
 		close(fd);
@@ -965,7 +999,7 @@ Test(compress_file1) {
 
 Test(compress_rle) {
 	i32 res;
-	u8 out[27];
+	u8 out[270];
 	u8 verify[512];
 	const char *x =
 	    "xxxxxxxxxxxx"
@@ -986,9 +1020,9 @@ Test(compress_rle) {
 	    "xxxxxxxxxxxx";
 
 	res = lzx_compress_block(x, strlen(x), out, sizeof(out));
-	ASSERT_EQ(res, 26, "res=26");
+	ASSERT_EQ(res, 21, "res=21");
 	res = lzx_decompress_block(out, res, verify, sizeof(verify));
+	verify[res] = 0;
 	ASSERT_EQ((u64)res, strlen(x), "res=strlen(x)");
 	ASSERT(!strcmpn(x, verify, res), "in=out");
 }
-*/
