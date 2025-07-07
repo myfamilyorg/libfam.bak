@@ -265,7 +265,7 @@ i32 huffman_encode(HuffmanLookup *lookup, const u8 *input, u16 len, u8 *output,
 		return -1;
 	}
 
-	if (output_capacity < (u32)3 + output[3] * 7) {
+	if (output_capacity < (u32)3 + lookup->count * 7) {
 		err = EOVERFLOW;
 		return -1;
 	}
