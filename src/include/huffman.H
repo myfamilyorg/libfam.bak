@@ -23,12 +23,7 @@
  *
  *******************************************************************************/
 
-#ifndef _HUFFMAN_H
-#define _HUFFMAN_H
-
-#include <types.H>
-
-#define MAX_HUFFMAN_SYMBOLS 256
+#define MAX_HUFFMAN_SYMBOLS 257 /* One symbol or sentinel value */
 
 typedef struct {
 	u8 lengths[MAX_HUFFMAN_SYMBOLS];
@@ -36,11 +31,3 @@ typedef struct {
 	u8 count;
 } HuffmanLookup;
 
-const u8 *huffman_lookup_compress(const HuffmanLookup *lookup, u16 *size);
-i32 huffmean_lookup_decompress(HuffmanLookup *lookup, const u8 *compressed,
-			       u16 size);
-i32 huffman_gen(HuffmanLookup *lookup, const u8 *input, u16 len);
-i32 huffman_encode(const u8 *input, u16 len, u8 *output, u32 output_capacity);
-i32 huffman_decode(const u8 *input, u32 len, u8 *output, u32 output_capacity);
-
-#endif /* _HUFFMAN_H */

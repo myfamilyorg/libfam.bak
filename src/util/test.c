@@ -26,10 +26,10 @@
 #include <alloc.H>
 #include <atomic.H>
 #include <channel.H>
-#include <compress.H>
 #include <crc32c.H>
 #include <error.H>
 #include <huffman.H>
+#include <limits.H>
 #include <lock.H>
 #include <rbtree.H>
 #include <rng.H>
@@ -708,321 +708,111 @@ Test(vec1) {
 	ASSERT_BYTES(0);
 }
 
+#define LZX_HASH_ENTRIES 4096
+#define HASH_CONSTANT 2654435761U
+#define MIN_MATCH 6
+
+typedef struct {
+	u8 table[LZX_HASH_ENTRIES * 2] __attribute__((aligned(16)));
+} LzxHash;
+
+void lzx_hash_init(LzxHash *hash);
+u16 lzx_hash_get(LzxHash *hash, u32 key);
+void lzx_hash_set(LzxHash *hash, u32 key, u16 value);
+
+Test(lz_hash) {
+	LzxHash hash;
+	lzx_hash_init(&hash);
+	ASSERT_EQ(lzx_hash_get(&hash, 1), U16_MAX, "1 not found");
+	lzx_hash_set(&hash, 1, 2);
+	ASSERT_EQ(lzx_hash_get(&hash, 1), 2, "1 found");
+}
+
+i32 lzx_decompress_block(const u8 *input, u32 in_len, u8 *output,
+			 u64 out_capacity);
+i32 lzx_compress_block(const u8 *in, u16 ilen, u8 *out, u64 cap);
+
+Test(lz_compress) {
+	const u8 *in1 = "a012345012345";
+	u8 buf[1024];
+	u8 verify[1024];
+	i32 res;
+
+	res = lzx_compress_block(in1, strlen(in1), buf, sizeof(buf));
+	res = lzx_decompress_block(buf, res, verify, sizeof(verify));
+	ASSERT_EQ(res, (i32)strlen(in1), "strlen(in1) == res");
+	ASSERT(!strcmpn(verify, in1, res), "in=out");
+}
+
+Test(lzx_compress_file1) {
+	const u8 *path = "./resources/test_long.txt";
+	i32 fd = file(path);
+	u64 len = fsize(fd);
+	i32 res = 0;
+	void *ptr;
+	u8 verify[120000];
+	u8 out[120000];
+
+	ASSERT(fd > 0, "fd>0");
+	ptr = fmap(fd, len, 0);
+	ASSERT(ptr, "ptr");
+
+	res = lzx_compress_block(ptr, len, out, sizeof(out));
+	res = lzx_decompress_block(out, res, verify, sizeof(verify));
+	ASSERT_EQ(res, (i32)len, "len == res");
+	ASSERT(!strcmpn(verify, ptr, res), "in=out");
+}
+
+i32 huffman_gen(HuffmanLookup *lookup, const u8 *input, u16 len);
+i32 huffman_decode(const u8 *input, u32 len, u8 *output, u32 output_capacity);
+i32 huffman_encode(const u8 *input, u16 len, u8 *output, u32 output_capacity);
+
 Test(huffman1) {
-	int i;
+	u8 test_buf[6] = "abc";
+	u8 out[1024];
+	u8 verify[6];
+	i32 res;
 	HuffmanLookup lookup = {0};
-	const u8 *in1 = "abcdbxxx";
-	const u8 *in2 = "alkjsdfasghalshgaslfdjadslf;l54(*4";
-	int count = 0;
-	huffman_gen(&lookup, in1, strlen(in1));
-	for (i = 0; i < 256; i++) {
-		if (lookup.lengths[i]) count++;
-	}
-	ASSERT_EQ(count, 5, "count=5");
-	ASSERT(!lookup.lengths['e'], "lookup e == 0");
-	ASSERT(lookup.lengths['b'] < lookup.lengths['a'], "lookup b < a");
-	ASSERT(lookup.lengths['x'] < lookup.lengths['b'], "lookup x < b");
-
+	huffman_gen(&lookup, "abc", 3);
+	ASSERT_EQ(lookup.count, 3, "count=3");
+	test_buf[3] = 0xFD;
+	test_buf[4] = 0xFF;
+	test_buf[5] = 'a';
 	memset(&lookup, 0, sizeof(HuffmanLookup));
-	huffman_gen(&lookup, in2, strlen(in2));
-	count = 0;
-	for (i = 0; i < 256; i++)
-		if (lookup.lengths[i]) ++count;
+	huffman_gen(&lookup, test_buf, 6);
+	ASSERT_EQ(lookup.count, 5, "count=4");
+	test_buf[3] = 0x83;
+	test_buf[4] = 0x0;
+	test_buf[5] = 0x0;
+	huffman_gen(&lookup, test_buf, 5);
+	memset(&lookup, 0, sizeof(HuffmanLookup));
+	huffman_gen(&lookup, test_buf, 6);
+	ASSERT_EQ(lookup.count, 5, "2count=3");
 
-	ASSERT_EQ(count, 14, "count=14");
+	res = huffman_encode(test_buf, 6, out, sizeof(out));
+	ASSERT(res > 0, "res>0");
+	res = huffman_decode(out, res, verify, sizeof(verify));
+	ASSERT_EQ(res, sizeof(test_buf), "res=len");
+	ASSERT(!memcmp(test_buf, verify, 6), "verify");
 }
-
-Test(huffman_encode1) {
-	HuffmanLookup lookup = {0};
-	i32 out_len;
-	u8 buf[1024];
-	u8 verify[1024];
-	const u8 *in = "alkjsdfasghalshgaslfdjadslf;l54(*4";
-	huffman_gen(&lookup, in, strlen(in));
-	out_len = huffman_encode(in, strlen(in), buf, sizeof(buf));
-	ASSERT(out_len > 0, "out_len>0");
-	out_len = huffman_decode(buf, out_len, verify, sizeof(verify));
-	ASSERT_EQ(strlen(in), (u64)out_len, "len match");
-	verify[out_len] = 0;
-	ASSERT(!strcmp(in, verify), "in=verify");
-}
-
-Test(huffman_encode2) {
-	int i;
-	for (i = 0; i < 10; i++) {
-		HuffmanLookup lookup = {0};
-		const u8 *path = "./resources/test_long.txt";
-		i32 fd = file(path);
-		u64 len = fsize(fd);
-		i32 out_len;
-		void *ptr;
-		u8 buf[U16_MAX * 2];
-		u8 verify[U16_MAX];
-
-		ASSERT(fd > 0, "fd>0");
-		ptr = fmap(fd, len, 0);
-		ASSERT(ptr, "ptr");
-
-		huffman_gen(&lookup, ptr, len);
-		out_len = huffman_encode(ptr, len, buf, sizeof(buf));
-		out_len = huffman_decode(buf, out_len, verify, sizeof(verify));
-		ASSERT_EQ((u64)out_len, len, "len match");
-		ASSERT(!strcmpn(ptr, verify, len), "data equal");
-
-		munmap(ptr, len);
-		close(fd);
-	}
-}
-
-/*
-Test(compress1) {
-	u8 out[131070];
-	i32 res, i = 0, j = 0;
-	u32 crc = 0;
-	u8 *large_input = NULL;
-
-	ASSERT(!large_input && !i && !j && !crc, "init");
-
-	res = lzx_compress_block("test12test12", 12, out, sizeof(out));
-	ASSERT_EQ(res, 10, "res=10");
-	ASSERT(!memcmp(out, (u8[]){'t', 'e', 's', 't', '1', '2', 0xFD, 6, 0, 0},
-		       10),
-	       "test12test12");
-
-	res = lzx_compress_block("helloxvhelloxv", 14, out, sizeof(out));
-	ASSERT_EQ(res, 11, "res=11");
-
-	ASSERT(!memcmp(out,
-		       (u8[]){'h', 'e', 'l', 'l', 'o', 'x', 'v', 0xFD, 7, 0, 0},
-		       11),
-	       "helloxvhelloxv");
-
-
-
-	res = lzx_compress_block("hellohello2", 11, out, sizeof(out));
-	ASSERT_EQ(res, 10, "res=10");
-	ASSERT(!memcmp(out, (u8[]){'h', 'e', 'l', 'l', 'o', 0xFD, 5, 0, 0, '2'},
-		       10),
-	       "hellohello2");
-
-	res = lzx_compress_block("1hellohello2", 12, out, sizeof(out));
-	ASSERT_EQ(res, 11, "res=11");
-	ASSERT(!memcmp(out,
-		       (u8[]){'1', 'h', 'e', 'l', 'l', 'o', 0xFD, 5, 1, 0, '2'},
-		       11),
-	       "1hellohello2");
-
-	res = lzx_compress_block((u8 *)"test\xFDtest", 9, out, sizeof(out));
-	ASSERT_EQ(res, 10, "res=10");
-	ASSERT(
-	    !memcmp(out, (u8[]){'t', 'e', 's', 't', 0xFD, 0x00, 0xFD, 4, 0, 0},
-		    10),
-	    "test\xFDtest");
-
-	res = lzx_compress_block((u8 *)"abc", 3, out, sizeof(out));
-	ASSERT_EQ(res, 3, "res=3");
-	ASSERT(!memcmp(out, (u8[]){'a', 'b', 'c'}, 3), "abc");
-
-	res = lzx_compress_block((u8 *)"testtest", 8, out, 4);
-	ASSERT_EQ(res, -1, "res=-1");
-	ASSERT_EQ(err, ENOBUFS, "err=ENOBUFS");
-
-	res = lzx_compress_block(NULL, 8, out, sizeof(out));
-	ASSERT_EQ(res, -1, "res=-1");
-	ASSERT_EQ(err, EINVAL, "err=EINVAL");
-
-	res = lzx_compress_block((u8 *)"test", 0, out, sizeof(out));
-	ASSERT_EQ(res, -1, "res=-1");
-	ASSERT_EQ(err, EINVAL, "err=EINVAL");
-
-	large_input = alloc(258);
-	memcpy(large_input, "test", 4);
-	memset(large_input + 4, 'x', 250);
-	memcpy(large_input + 254, "test", 4);
-	res = lzx_compress_block(large_input, 258, out, sizeof(out));
-	ASSERT_EQ(res, 258, "res=258");
-	ASSERT(!memcmp(out, (u8[]){'t', 'e', 's', 't'}, 4),
-	       "large match first 4 bytes");
-	ASSERT(!memcmp(out + 4, (u8[]){'x', 'x', 'x', 'x'}, 4),
-	       "large match middle 4 bytes");
-	ASSERT(!memcmp(out + 254, (u8[]){0xFD, 0x4, 0x00, 0x00}, 4),
-	       "large match last 4 bytes");
-	release(large_input);
-
-	large_input = alloc(65535);
-	memset(large_input, 0xFD, 65535);
-	res = lzx_compress_block(large_input, 65535, out, sizeof(out));
-	ASSERT_EQ(res, 131070, "res=131070 (all 0xFD, escape-only)");
-	for (i = 0; i < 131070; i += 2) {
-		ASSERT_EQ(out[i], 0xFD, "all 0xFD: FD at even indices");
-		ASSERT_EQ(out[i + 1], 0x00, "all 0xFD: 0x00 at odd indices");
-	}
-	release(large_input);
-
-	large_input = alloc(65535);
-	for (i = 0; i < 65535; i++) {
-		large_input[i] = (i % 10 == 0) ? 0xFD : 'a';
-	}
-	res = lzx_compress_block(large_input, 65535, out, sizeof(out));
-	ASSERT_EQ(res, 72089, "res=72089 (10% 0xFD, escape-only)");
-	for (i = 0, j = 0; i < 65535; i++) {
-		if (i % 10 == 0) {
-			ASSERT_EQ(out[j], 0xFD, "mixed 0xFD: FD");
-			ASSERT_EQ(out[j + 1], 0x00, "mixed 0xFD: 0x00");
-			j += 2;
-		} else {
-			ASSERT_EQ(out[j], 'a', "mixed 0xFD: 'a'");
-			j++;
-		}
-	}
-	release(large_input);
-
-	large_input = alloc(65535);
-	{
-		u32 x = 0;
-		for (i = 0; i < 65535; i++) {
-			x = (1664525 * x + 1013904223);
-			large_input[i] =
-			    (u8)(x >> 24) == 0xFD ? 0xFE : (u8)(x >> 24);
-		}
-	}
-	res = lzx_compress_block(large_input, 65535, out, sizeof(out));
-	ASSERT_EQ(res, 65535, "res=65535 (incompressible, no matches)");
-	ASSERT(!memcmp(out, large_input, 65535),
-	       "incompressible: output matches input");
-	release(large_input);
-
-	large_input = alloc(65535);
-	{
-		u64 x = 0;
-		memcpy(large_input, "test", 4);
-		for (i = 4; i < 65531; i++) {
-			x = (1664525 * x + 1013904223);
-			large_input[i] =
-			    (u8)(x >> 24) == 0xFD ? 0xFE : (u8)(x >> 24);
-		}
-	}
-	memcpy(large_input + 65531, "test\0", 4);
-	large_input[65534] = 0xFD;
-	res = lzx_compress_block(large_input, 65535, out, sizeof(out));
-	ASSERT_EQ(res, 65536, "res=65536 (match after 64KB, escape-only)");
-	ASSERT(!memcmp(out, large_input, 65534),
-	       "near-overflow: first 65534 bytes");
-	ASSERT_EQ(out[65534], 0xFD, "near-overflow: FD");
-	ASSERT_EQ(out[65535], 0x00, "near-overflow: 0x00");
-	release(large_input);
-
-	large_input = alloc(32768);
-	memset(large_input, 0xFD, 32768);
-	res = lzx_compress_block(large_input, 32768, out, sizeof(out));
-	ASSERT_EQ(res, 65536, "res=65536 (exactly 64KB, escape-only)");
-	for (i = 0; i < 65536; i += 2) {
-		ASSERT_EQ(out[i], 0xFD, "64KB: FD at even indices");
-		ASSERT_EQ(out[i + 1], 0x00, "64KB: 0x00 at odd indices");
-	}
-	release(large_input);
-
-	large_input = alloc(65535);
-	memset(large_input, 0xFD, 65535);
-	res = lzx_compress_block(large_input, 65535, out, 131069);
-	ASSERT_EQ(res, -1, "res=-1 (insufficient out_capacity)");
-	ASSERT_EQ(err, ENOBUFS, "err=ENOBUFS (insufficient out_capacity)");
-	release(large_input);
-
-	large_input = alloc(65535);
-	memcpy(large_input, "test", 4);
-	memset(large_input + 4, 'x', 65531);
-	res = lzx_compress_block(large_input, 65535, out, sizeof(out));
-	ASSERT(res > 0, "res>0 (large input for CRC32c)");
-	crc = crc32c(out, res);
-	ASSERT(crc != 0, "CRC32c non-zero");
-	out[0] ^= 0x01;
-	ASSERT(crc32c(out, res) != crc, "CRC32c detects corruption");
-	release(large_input);
-}
-
-*/
-
-/*
- * HuffmanLookup lookup = {0};
-	i32 out_len;
-	u8 buf[1024];
-	u8 verify[1024];
-	const u8 *in = "alkjsdfasghalshgaslfdjadslf;l54(*4";
-	huffman_gen(&lookup, in, strlen(in));
-	out_len = huffman_encode(in, strlen(in), buf, sizeof(buf));
-	ASSERT(out_len > 0, "out_len>0");
-	out_len = huffman_decode(buf, out_len, verify, sizeof(verify));
-	ASSERT_EQ(strlen(in), (u64)out_len, "len match");
-	verify[out_len] = 0;
-	ASSERT(!strcmp(in, verify), "in=verify");
-*/
 
 Test(compress_file1) {
-	int i, count = 1;
-	for (i = 0; i < count; i++) {
-		const u8 *path = "./resources/test_long.txt";
-		i32 fd = file(path);
-		u64 len = fsize(fd);
-		i32 res = 0;
-		void *ptr;
-		u8 verify[120000];
-		u8 huffman[120000];
+	const u8 *path = "./resources/test_long.txt";
+	i32 fd = file(path);
+	u64 len = fsize(fd);
+	i32 res = 0;
+	void *ptr;
+	u8 buf1[120000], buf2[120000], buf3[120000], buf4[120000];
 
-		ASSERT(fd > 0, "fd>0");
-		ptr = fmap(fd, len, 0);
-		ASSERT(ptr, "ptr");
+	ASSERT(fd > 0, "fd>0");
+	ptr = fmap(fd, len, 0);
+	ASSERT(ptr, "ptr");
 
-		/*
-		res = lzx_compress_block(ptr, len, out, sizeof(out));
-		ASSERT(res, "res!=0");
-		println("res={},len={}", res, len);
-		*/
-
-		res = huffman_encode(ptr, len, huffman, sizeof(huffman));
-		res = huffman_decode(huffman, res, verify, sizeof(verify));
-		/*
-		res = lzx_decompress_block(out, res, verify, sizeof(verify));
-		*/
-
-		/*
-				res = lzx_decompress_block(out, res, verify,
-		   sizeof(verify));*/
-		ASSERT_EQ((u64)res, len, "res=len");
-		verify[res] = 0;
-		ASSERT(!strcmpn(ptr, verify, len), "in=out");
-
-		munmap(ptr, len);
-		close(fd);
-	}
-}
-
-Test(compress_rle) {
-	i32 res;
-	u8 out[270];
-	u8 verify[512];
-	const char *x =
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx"
-	    "xxxxxxxxxxxx";
-
-	res = lzx_compress_block(x, strlen(x), out, sizeof(out));
-	ASSERT_EQ(res, 21, "res=21");
-	res = lzx_decompress_block(out, res, verify, sizeof(verify));
-	verify[res] = 0;
-	ASSERT_EQ((u64)res, strlen(x), "res=strlen(x)");
-	ASSERT(!strcmpn(x, verify, res), "in=out");
+	res = lzx_compress_block(ptr, len, buf1, 120000);
+	res = huffman_encode(buf1, res, buf2, 120000);
+	res = huffman_decode(buf2, res, buf3, 120000);
+	ASSERT(res > 0, "res>0");
+	res = lzx_decompress_block(buf3, res, buf4, 120000);
+	ASSERT_EQ(res, (i32)len, "len == res");
+	ASSERT(!strcmpn(buf4, ptr, res), "in=out");
 }
