@@ -26,6 +26,7 @@
 #include <alloc.H>
 #include <atomic.H>
 #include <channel.H>
+#include <compress.H>
 #include <crc32c.H>
 #include <error.H>
 #include <huffman.H>
@@ -815,4 +816,30 @@ Test(compress_file1) {
 	res = lzx_decompress_block(buf3, res, buf4, 120000);
 	ASSERT_EQ(res, (i32)len, "len == res");
 	ASSERT(!strcmpn(buf4, ptr, res), "in=out");
+
+	munmap(ptr, len);
+	close(fd);
+}
+
+Test(compress_file_full1) {
+	const u8 *path = "./resources/test_long.txt";
+	i32 fd = file(path);
+	u64 len = fsize(fd);
+	i32 res = 0;
+	void *ptr;
+	u8 buf[120000];
+	u8 verify[120000];
+
+	ASSERT(fd > 0, "fd>0");
+	ptr = fmap(fd, len, 0);
+	ASSERT(ptr, "ptr");
+
+	res = compress(ptr, len, buf, sizeof(buf));
+	ASSERT(res > 0, "res>0");
+	res = decompress(buf, res, verify, sizeof(verify));
+	ASSERT_EQ(res, (i32)len, "res=len");
+	ASSERT(!strcmpn(ptr, verify, len), "in=out");
+
+	munmap(ptr, len);
+	close(fd);
 }

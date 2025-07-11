@@ -610,8 +610,8 @@ i64 decompress(u8 *in, u64 len, u8 *out, u64 capacity) {
 		return -1;
 	}
 
-	res = lzx_decompress_block(in, len, buf, sizeof(buf));
+	res = huffman_decode(in, len, buf, sizeof(buf));
 	if (res < 0) return -1;
-	return huffman_decode(buf, res, out, capacity);
+	return lzx_decompress_block(buf, res, out, capacity);
 }
 
