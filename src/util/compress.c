@@ -192,21 +192,6 @@ STATIC i32 huffman_gen(HuffmanLookup *lookup, const u8 *input, u16 len) {
 	}
 	lookup->count = 0;
 
-	/*
-	for (i = 0; i < len; i++) {
-		if ((input[i] & MATCH_SENTINEL) == 0) {
-			if (!freq[input[i]]) lookup->count++;
-			freq[input[i]]++;
-		} else if ((i + 1 < len && input[i + 1] == ESC)) {
-			if (!freq[input[i]]) lookup->count++;
-			freq[input[i]]++;
-			i++;
-		} else {
-			i += 2;
-		}
-	}
-	*/
-
 	for (i = 0; i < len; i++) {
 		if (!freq[input[i]]) lookup->count++;
 		freq[input[i]]++;
@@ -342,22 +327,6 @@ STATIC i32 huffman_decode(const u8 *input, u32 len, u8 *output,
 	return (i32)output_pos;
 }
 
-/*
-			     if (byte_pos >= output_capacity) {
-				     err = EOVERFLOW;
-				     return -1;
-			     }
-
-			     u32 bit = (code >> (code_len - 1 - j)) & 1;
-			     current_byte |= bit << (7 - (bit_pos % 8));
-			     bit_pos++;
-
-			     if (bit_pos % 8 == 0) {
-				     output[byte_pos++] = current_byte;
-				     current_byte = 0;
-			     }
-			     */
-
 STATIC i32 huffman_pc(u32 code, u8 code_len, u32 *bit_pos, u32 *byte_pos,
 		      u8 *current_byte, u8 *output, u64 output_capacity) {
 	u8 j;
@@ -415,21 +384,6 @@ STATIC i32 huffman_encode(const u8 *input, u16 len, u8 *out, u32 cap) {
 	for (i = 0; i < len; i++) {
 		u8 symbol = input[i];
 
-		/*
-		 *   for (i = 0; i < len; i++) {
-		if ((input[i] & MATCH_SENTINEL) == 0) {
-			if (!freq[input[i]]) lookup->count++;
-			freq[input[i]]++;
-		} else if ((i + 1 < len && input[i + 1] == ESC)) {
-			if (!freq[input[i]]) lookup->count++;
-			freq[input[i]]++;
-			i++;
-		} else {
-			i += 2;
-		}
-	}
-*/
-
 		if (huffman.lengths[symbol] == 0) {
 			err = EINVAL;
 			return -1;
@@ -469,18 +423,6 @@ STATIC void lzx_hash_set(LzxHash *hash, u32 key, u16 value) {
 	u32 h = (key * HASH_CONSTANT) >> 20;
 	h &= (LZX_HASH_ENTRIES - 1);
 	*(u16 *)(hash->table + h * 2) = value;
-}
-
-STATIC i32 lzx_proc_no_match(const u8 *input, i32 i, u8 *output, u64 cap,
-			     i32 *itt) {
-	bool is_sentinel = input[i] & MATCH_SENTINEL;
-	if ((u64)(*itt + (is_sentinel ? 2 : 1)) > cap) {
-		err = ENOBUFS;
-		return -1;
-	}
-	output[(*itt)++] = input[i];
-	if (is_sentinel) output[(*itt)++] = ESC;
-	return 0;
 }
 
 STATIC u8 lzx_match_len(const u8 *input, u32 in_len, u16 in_pos, u8 *out,
@@ -647,20 +589,29 @@ STATIC i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 }
 
 i64 compress(u8 *in, u64 len, u8 *out, u64 capacity) {
+	u8 buf[U16_MAX * 2];
+	i32 res;
 	if (!in || !out || !len || !capacity) {
 		err = EINVAL;
 		return -1;
 	}
 
-	return 0;
+	res = lzx_compress_block(in, len, buf, sizeof(buf));
+	if (res < 0) return -1;
+	return huffman_encode(buf, res, out, capacity);
 }
 
 i64 decompress(u8 *in, u64 len, u8 *out, u64 capacity) {
+	u8 buf[U16_MAX * 2];
+	i32 res;
+
 	if (!in || !out || !len || !capacity) {
 		err = EINVAL;
 		return -1;
 	}
 
-	return 0;
+	res = lzx_decompress_block(in, len, buf, sizeof(buf));
+	if (res < 0) return -1;
+	return huffman_decode(buf, res, out, capacity);
 }
 
