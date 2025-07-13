@@ -29,12 +29,13 @@
 #include <huffman.H>
 #include <limits.H>
 
-#define LZX_HASH_ENTRIES (4096)
+#define LZX_HASH_ENTRIES 4096
 #define HASH_CONSTANT 2654435761U
 #define MIN_MATCH 6
 #define MAX_MATCH 127
 #define MATCH_SENTINEL 0x80
 #define ESC 0xFF
+#define BLOCK_SIZE 32767U
 
 #define APPEND_SYMBOL                                            \
 	bool is_sentinel = input[i] & MATCH_SENTINEL;            \
@@ -528,7 +529,7 @@ STATIC i32 lzx_decompress_block_impl(const u8 *in, u16 in_len, u16 in_start,
 			}
 		}
 		if (itt - out_start >= limit) break;
-		if (itt >= out_capacity) {
+		if (itt > out_capacity) {
 			err = EOVERFLOW;
 			return -1;
 		}
@@ -589,29 +590,104 @@ STATIC i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 }
 
 i64 compress(u8 *in, u64 len, u8 *out, u64 capacity) {
-	u8 buf[U16_MAX * 2];
+	u8 buf[BLOCK_SIZE * 2];
+	u64 in_pos = 0;
+	u64 out_pos = 0;
+	u64 num_blocks;
 	i32 res;
+
 	if (!in || !out || !len || !capacity) {
 		err = EINVAL;
 		return -1;
 	}
+	if (capacity < sizeof(u64)) {
+		err = ENOBUFS;
+		return -1;
+	}
 
-	res = lzx_compress_block(in, len, buf, sizeof(buf));
-	if (res < 0) return -1;
-	return huffman_encode(buf, res, out, capacity);
+	num_blocks = len / BLOCK_SIZE + (len % BLOCK_SIZE != 0 ? 1 : 0);
+	memcpy(out + out_pos, &num_blocks, sizeof(u64));
+	out_pos += sizeof(u64);
+
+	while (in_pos < len) {
+		u16 block_len =
+		    (u16)((len - in_pos < BLOCK_SIZE) ? (len - in_pos)
+						      : BLOCK_SIZE);
+		if (out_pos + sizeof(u32) > capacity) {
+			err = ENOBUFS;
+			return -1;
+		}
+
+		res = lzx_compress_block(in + in_pos, block_len, buf,
+					 sizeof(buf));
+		if (res < 0) return -1;
+
+		if (out_pos + sizeof(u32) + 3 > capacity) {
+			err = ENOBUFS;
+			return -1;
+		}
+		i32 comp_len =
+		    huffman_encode(buf, (u16)res, out + out_pos + sizeof(u32),
+				   (u32)(capacity - out_pos - sizeof(u32)));
+		if (comp_len < 0) return -1;
+
+		u32 u_comp_len = (u32)comp_len;
+		memcpy(out + out_pos, &u_comp_len, sizeof(u32));
+		out_pos += sizeof(u32) + (u64)comp_len;
+		in_pos += (u64)block_len;
+	}
+
+	return (i64)out_pos;
 }
 
 i64 decompress(u8 *in, u64 len, u8 *out, u64 capacity) {
-	u8 buf[U16_MAX * 2];
+	u8 buf[BLOCK_SIZE * 2];
+	u64 in_pos = 0;
+	u64 out_pos = 0;
+	u64 num_blocks, b;
 	i32 res;
 
 	if (!in || !out || !len || !capacity) {
 		err = EINVAL;
 		return -1;
 	}
+	if (len < sizeof(u64)) {
+		err = EINVAL;
+		return -1;
+	}
 
-	res = huffman_decode(in, len, buf, sizeof(buf));
-	if (res < 0) return -1;
-	return lzx_decompress_block(buf, res, out, capacity);
+	memcpy(&num_blocks, in + in_pos, sizeof(u64));
+	in_pos += sizeof(u64);
+
+	for (b = 0; b < num_blocks; b++) {
+		u32 block_comp_len;
+		if (in_pos + sizeof(u32) > len) {
+			err = EINVAL;
+			return -1;
+		}
+		memcpy(&block_comp_len, in + in_pos, sizeof(u32));
+		in_pos += sizeof(u32);
+		if (in_pos + (u64)block_comp_len > len) {
+			err = EINVAL;
+			return -1;
+		}
+
+		res = huffman_decode(in + in_pos, block_comp_len, buf,
+				     sizeof(buf));
+		if (res < 0) return -1;
+
+		i32 decomp_len = lzx_decompress_block(
+		    buf, (u32)res, out + out_pos, capacity - out_pos);
+		if (decomp_len < 0) return -1;
+		if ((u64)decomp_len > capacity - out_pos) {
+			err = EOVERFLOW;
+			return -1;
+		}
+
+		out_pos += (u64)decomp_len;
+		in_pos += (u64)block_comp_len;
+	}
+
+	return (i64)out_pos;
 }
 

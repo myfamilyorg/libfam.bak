@@ -822,24 +822,26 @@ Test(compress_file1) {
 }
 
 Test(compress_file_full1) {
-	const u8 *path = "./resources/test_long.txt";
+	const u8 *path = "./resources/test_xlong.txt";
 	i32 fd = file(path);
 	u64 len = fsize(fd);
 	i32 res = 0;
 	void *ptr;
-	u8 buf[120000];
-	u8 verify[120000];
+	u8 *buf = alloc(len);
+	u8 *verify = alloc(len);
 
 	ASSERT(fd > 0, "fd>0");
 	ptr = fmap(fd, len, 0);
 	ASSERT(ptr, "ptr");
 
-	res = compress(ptr, len, buf, sizeof(buf));
+	res = compress(ptr, len, buf, len);
 	ASSERT(res > 0, "res>0");
-	res = decompress(buf, res, verify, sizeof(verify));
+	res = decompress(buf, res, verify, len);
 	ASSERT_EQ(res, (i32)len, "res=len");
 	ASSERT(!strcmpn(ptr, verify, len), "in=out");
 
+	release(buf);
+	release(verify);
 	munmap(ptr, len);
 	close(fd);
 }
