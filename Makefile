@@ -12,6 +12,15 @@ TOBJDIR	= .tobj
 ASM_DIR	= $(SRCDIR)/asm
 SRC_DIRS   = core store net crypto util
 
+PREFIX ?= /usr
+INSTALL_LIBDIR = $(PREFIX)/lib64
+INCDIR = $(PREFIX)/include
+INSTALL = install
+INSTALL_LIB = $(INSTALL) -m 755
+INSTALL_DATA = $(INSTALL) -m 644
+INSTALL_DIR = $(INSTALL) -d
+
+
 # Source and object files
 C_SOURCES   = $(foreach dir,$(SRC_DIRS),$(filter-out $(SRCDIR)/$(dir)/test.c,$(wildcard $(SRCDIR)/$(dir)/*.c)))
 ASM_SOURCES = $(wildcard $(ASM_DIR)/*.S)
@@ -118,5 +127,18 @@ clean:
 	$(BINDIR)/* \
 	*.gcno *.gcda *.gcov
 
+# Install rule
+install: lib/libfam.so
+	$(INSTALL_DIR) $(DESTDIR)$(INSTALL_LIBDIR)
+	$(INSTALL_DIR) $(DESTDIR)$(INCDIR)
+	$(INSTALL_LIB) lib/libfam.so $(INSTALL_LIBDIR)/libfam.so
+	mkdir -p $(DESTDIR)$(INCDIR)/libfam
+	$(INSTALL_DATA) src/include/*.H $(DESTDIR)$(INCDIR)/libfam
+
+# Uninstall rule
+uninstall:
+	rm -f $(INSTALL_LIBDIR)/libfam.so
+	rm -f $(DESTDIR)$(INCDIR)/libfam/*.H
+
 # Phony targets
-.PHONY: all test clean
+.PHONY: all test clean install uninstall
