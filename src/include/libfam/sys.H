@@ -23,17 +23,33 @@
  *
  *******************************************************************************/
 
-#ifndef _INIT_H
-#define _INIT_H
+#ifndef _SYS_H
+#define _SYS_H
 
-#include <types.H>
+#include <libfam/syscall.H>
+#include <libfam/types.H>
 
-/* Init tasks */
-void begin(void);
-void signals_init(void);
+/* system calls applied */
+i32 unlink(const u8 *path);
+i32 open(const u8 *pathname, i32 flags, u32 mode);
+i32 getentropy(void *buffer, u64 length);
+i32 yield(void);
+i32 timeout(void (*task)(void), u64 milliseconds);
+void *map(u64 length);
+void *fmap(i32 fd, i64 size, i64 offset);
+void *smap(u64 length);
+i32 exists(const u8 *path);
+i32 file(const u8 *path);
+i64 fsize(i32 fd);
+i32 fresize(i32 fd, i64 length);
+i32 flush(i32 fd);
+i64 micros(void);
+i32 sleep(u64 millis);
+i32 two(void);
+i32 two2(bool share_fds);
 
-/* Exit tasks */
-void execute_exits(void);
-i32 register_exit(void (*fn)(void));
+#if TEST == 1
+extern bool _debug_set_timeout_fail;
+#endif /* TEST */
 
-#endif /* _INIT_H */
+#endif /* _SYS_H */

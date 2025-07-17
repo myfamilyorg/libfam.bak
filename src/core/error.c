@@ -23,9 +23,9 @@
  *
  *******************************************************************************/
 
-#include <error.H>
-#include <misc.H>
-#include <sys.H>
+#include <libfam/error.H>
+#include <libfam/misc.H>
+#include <libfam/sys.H>
 
 i32 err = 0;
 i32 *__error(void) { return &err; }

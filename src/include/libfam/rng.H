@@ -23,23 +23,22 @@
  *
  *******************************************************************************/
 
-#ifndef _CHANNEL_H
-#define _CHANNEL_H
+#ifndef _RNG_H
+#define _RNG_H
 
-#include <types.H>
-
-typedef struct ChannelInner ChannelInner;
+#include <libfam/aes.H>
+#include <libfam/types.H>
 
 typedef struct {
-	ChannelInner *inner;
-} Channel;
+	AesContext ctx;
+} Rng;
 
-void channel_destroy(Channel *channel);
-Channel channel(u64 element_size);
-Channel channel2(u64 element_size, u64 capacity);
-bool channel_ok(Channel *channel);
-void recv(Channel *channel, void *dst);
-i32 recv_now(Channel *channel, void *dst);
-i32 send(Channel *channel, const void *src);
+i32 rng_init(Rng *rng);
+i32 rng_reseed(Rng *rng);
+void rng_gen(Rng *rng, void *v, u64 size);
 
-#endif /* _CHANNEL_H */
+#if TEST == 1
+void rng_test_seed(Rng *rng, u8 key[32], u8 iv[16]);
+#endif /* TEST */
+
+#endif /* _RNG_H */

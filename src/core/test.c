@@ -23,14 +23,14 @@
  *
  *******************************************************************************/
 
-#include <alloc.H>
-#include <atomic.H>
-#include <env.H>
-#include <error.H>
-#include <format.H>
-#include <init.H>
-#include <syscall_const.H>
-#include <test.H>
+#include <libfam/alloc.H>
+#include <libfam/atomic.H>
+#include <libfam/env.H>
+#include <libfam/error.H>
+#include <libfam/format.H>
+#include <libfam/init.H>
+#include <libfam/syscall_const.H>
+#include <libfam/test.H>
 
 typedef struct {
 	i32 value1;

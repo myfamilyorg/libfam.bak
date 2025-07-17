@@ -23,9 +23,9 @@
  *
  *******************************************************************************/
 
-#include <alloc.H>
-#include <format.H>
-#include <misc.H>
+#include <libfam/alloc.H>
+#include <libfam/format.H>
+#include <libfam/misc.H>
 
 STATIC i32 format_check_resize(Formatter *f, u64 size) {
 	void *tmp;

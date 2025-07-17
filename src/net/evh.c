@@ -23,16 +23,16 @@
  *
  *******************************************************************************/
 
-#include <alloc.H>
-#include <atomic.H>
-#include <connection_internal.H>
-#include <error.H>
-#include <event.H>
-#include <evh.H>
-#include <format.H>
-#include <socket.H>
-#include <sys.H>
-#include <syscall_const.H>
+#include <libfam/alloc.H>
+#include <libfam/atomic.H>
+#include <libfam/connection_internal.H>
+#include <libfam/error.H>
+#include <libfam/event.H>
+#include <libfam/evh.H>
+#include <libfam/format.H>
+#include <libfam/socket.H>
+#include <libfam/sys.H>
+#include <libfam/syscall_const.H>
 
 #define MAX_EVENTS 256
 #define MIN_CAPACITY 512

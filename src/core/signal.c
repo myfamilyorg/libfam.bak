@@ -23,12 +23,12 @@
  *
  *******************************************************************************/
 
-#include <error.H>
-#include <format.H>
-#include <limits.H>
-#include <misc.H>
-#include <sys.H>
-#include <syscall_const.H>
+#include <libfam/error.H>
+#include <libfam/format.H>
+#include <libfam/limits.H>
+#include <libfam/misc.H>
+#include <libfam/sys.H>
+#include <libfam/syscall_const.H>
 
 bool _debug_set_timeout_fail = false;
 

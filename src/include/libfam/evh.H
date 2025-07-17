@@ -23,21 +23,26 @@
  *
  *******************************************************************************/
 
-#ifndef _SOCKET_H
-#define _SOCKET_H
+#ifndef _EVH_H
+#define _EVH_H
 
-#include <types.H>
+#include <libfam/connection.H>
+#include <libfam/types.H>
 
-i32 set_nonblocking(i32 socket);
-i32 socket_connect(i32 *fd, const u8 addr[4], u16 port);
-i32 socket_listen(i32 *fd, const u8 addr[4], u16 port, u16 backlog);
-i32 socket_accept(i32 fd);
+typedef struct Evh Evh;
 
-u16 htons(u16 host);
-u16 ntohs(u16 net);
+typedef struct {
+	void *ctx;
+	OnRecvFn on_recv;
+	OnAcceptFn on_accept;
+	OnConnectFn on_connect;
+	OnCloseFn on_close;
+} EvhConfig;
 
-#if TEST == 1
-extern bool _debug_setnonblocking_err;
-#endif /* TEST */
+i32 evh_register(Evh *evh, Connection *connection);
+Evh *evh_init(EvhConfig *config);
+i32 evh_start(Evh *evh);
+i32 evh_stop(Evh *evh);
+void evh_destroy(Evh *evh);
 
-#endif /* _SOCKET_H */
+#endif /* _EVH_H */

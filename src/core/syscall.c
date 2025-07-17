@@ -23,11 +23,11 @@
  *
  *******************************************************************************/
 
-#include <error.H>
-#include <init.H>
-#include <sys.H>
-#include <syscall_const.H>
-#include <types.H>
+#include <libfam/error.H>
+#include <libfam/init.H>
+#include <libfam/sys.H>
+#include <libfam/syscall_const.H>
+#include <libfam/types.H>
 
 bool _debug_no_write = false;
 bool _debug_no_exit = false;

@@ -23,12 +23,12 @@
  *
  *******************************************************************************/
 
-#include <alloc.H>
-#include <env.H>
-#include <format.H>
-#include <misc.H>
-#include <sys.H>
-#include <test.H>
+#include <libfam/alloc.H>
+#include <libfam/env.H>
+#include <libfam/format.H>
+#include <libfam/misc.H>
+#include <libfam/sys.H>
+#include <libfam/test.H>
 
 u8 **environ = 0;
 i32 cur_tests = 0;

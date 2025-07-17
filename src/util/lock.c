@@ -23,13 +23,13 @@
  *
  *******************************************************************************/
 
-#include <atomic.H>
-#include <limits.H>
-#include <lock.H>
-#include <misc.H>
-#include <sys.H>
-#include <syscall.H>
-#include <syscall_const.H>
+#include <libfam/atomic.H>
+#include <libfam/limits.H>
+#include <libfam/lock.H>
+#include <libfam/misc.H>
+#include <libfam/sys.H>
+#include <libfam/syscall.H>
+#include <libfam/syscall_const.H>
 
 #define WFLAG (0x1 << 31)
 #define WREQUEST (0x1 << 30)

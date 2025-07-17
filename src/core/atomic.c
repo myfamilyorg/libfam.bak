@@ -23,7 +23,7 @@
  *
  *******************************************************************************/
 
-#include <types.H>
+#include <libfam/types.H>
 
 #ifdef __aarch64__
 i32 __cas32(volatile u32 *a, u32 *expected, u32 desired) {

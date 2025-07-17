@@ -23,13 +23,13 @@
  *
  *******************************************************************************/
 
-#include <alloc.H>
-#include <atomic.H>
-#include <channel.H>
-#include <error.H>
-#include <misc.H>
-#include <syscall.H>
-#include <syscall_const.H>
+#include <libfam/alloc.H>
+#include <libfam/atomic.H>
+#include <libfam/channel.H>
+#include <libfam/error.H>
+#include <libfam/misc.H>
+#include <libfam/syscall.H>
+#include <libfam/syscall_const.H>
 
 #define DEFAULT_CAPACITY 1024
 

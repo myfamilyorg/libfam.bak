@@ -23,26 +23,17 @@
  *
  *******************************************************************************/
 
-#ifndef _LOCK_H
-#define _LOCK_H
+#ifndef _INIT_H
+#define _INIT_H
 
-#include <types.H>
+#include <libfam/types.H>
 
-typedef u32 Lock;
+/* Init tasks */
+void begin(void);
+void signals_init(void);
 
-#define LOCK_INIT 0
+/* Exit tasks */
+void execute_exits(void);
+i32 register_exit(void (*fn)(void));
 
-typedef struct {
-	Lock *lock;
-	bool is_write;
-} LockGuardImpl;
-
-void lockguard_cleanup(LockGuardImpl *lg);
-
-#define LockGuard \
-	LockGuardImpl __attribute__((unused, cleanup(lockguard_cleanup)))
-
-LockGuard rlock(Lock *lock);
-LockGuard wlock(Lock *lock);
-
-#endif /* _LOCK_H */
+#endif /* _INIT_H */

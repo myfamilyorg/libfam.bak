@@ -23,14 +23,14 @@
  *
  *******************************************************************************/
 
-#include <atomic.H>
-#include <error.H>
-#include <format.H>
-#include <misc.H>
-#include <robust.H>
-#include <sys.H>
-#include <syscall.H>
-#include <types.H>
+#include <libfam/atomic.H>
+#include <libfam/error.H>
+#include <libfam/format.H>
+#include <libfam/misc.H>
+#include <libfam/robust.H>
+#include <libfam/sys.H>
+#include <libfam/syscall.H>
+#include <libfam/types.H>
 
 RobustGuard robust_lock(RobustLock *lock) {
 	RobustGuardImpl ret;

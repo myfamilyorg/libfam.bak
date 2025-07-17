@@ -23,7 +23,7 @@
  *
  *******************************************************************************/
 
-#include <limits.H>
+#include <libfam/limits.H>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wvariadic-macros"

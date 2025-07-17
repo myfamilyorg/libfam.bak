@@ -23,10 +23,10 @@
  *
  *******************************************************************************/
 
-#include <error.H>
-#include <rng.H>
-#include <syscall.H>
-#include <syscall_const.H>
+#include <libfam/error.H>
+#include <libfam/rng.H>
+#include <libfam/syscall.H>
+#include <libfam/syscall_const.H>
 
 i32 rng_init(Rng *rng) {
 	u8 iv[16], key[32];

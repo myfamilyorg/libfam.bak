@@ -23,22 +23,30 @@
  *
  *******************************************************************************/
 
-#ifndef _AES_H
-#define _AES_H
+#ifndef _STORAGE_H
+#define _STORAGE_H
 
-#include <types.H>
+#include <libfam/types.H>
 
-#define AES_BLOCKLEN 16
-#define AES_KEYLEN 32
-#define AES_KEYEXPSIZE 240
+#ifndef NODE_SIZE
+#ifndef PAGE_SIZE
+#define PAGE_SIZE (4 * 4096)
+#endif /* PAGE_SIZE */
+#define NODE_SIZE ((u64)PAGE_SIZE)
+#endif /* NODE_SIZE */
 
-typedef struct {
-	u8 RoundKey[AES_KEYEXPSIZE];
-	u8 Iv[AES_BLOCKLEN];
-} AesContext;
+typedef struct Env Env;
 
-void aes_init(AesContext *ctx, const u8 *key, const u8 *iv);
-void aes_set_iv(AesContext *ctx, const u8 *iv);
-void aes_ctr_xcrypt_buffer(AesContext *ctx, u8 *buf, u64 length);
+Env *env_open(const u8 *path);
+i32 env_close(Env *);
 
-#endif /* _AES_H */
+u64 env_alloc(Env *);
+void env_release(Env *, u64);
+i64 env_register_on_sync(Env *, i32 wakeupfd);
+i64 env_counter(Env *);
+i32 env_set_root(Env *, u64 seqno, u64 root);
+u64 env_root_seqno(Env *);
+u64 env_root(Env *);
+void *env_base(Env *);
+
+#endif /* _STORAGE_H */

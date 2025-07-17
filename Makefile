@@ -133,7 +133,7 @@ install: lib/libfam.so
 	$(INSTALL_DIR) $(DESTDIR)$(INCDIR)
 	$(INSTALL_LIB) lib/libfam.so $(INSTALL_LIBDIR)/libfam.so
 	mkdir -p $(DESTDIR)$(INCDIR)/libfam
-	$(INSTALL_DATA) src/include/*.H $(DESTDIR)$(INCDIR)/libfam
+	$(INSTALL_DATA) src/include/libfam/*.H $(DESTDIR)$(INCDIR)/libfam
 
 # Uninstall rule
 uninstall:

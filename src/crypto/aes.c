@@ -23,10 +23,10 @@
  *
  *******************************************************************************/
 
-#include <aes.H>
-#include <format.H>
-#include <misc.H>
-#include <types.H>
+#include <libfam/aes.H>
+#include <libfam/format.H>
+#include <libfam/misc.H>
+#include <libfam/types.H>
 
 #define Nb 4
 #define Nk 8

@@ -23,8 +23,8 @@
  *
  *******************************************************************************/
 
-#include <misc.H>
-#include <types.H>
+#include <libfam/misc.H>
+#include <libfam/types.H>
 
 typedef struct {
 	u32 state[5];

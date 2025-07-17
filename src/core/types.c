@@ -23,9 +23,9 @@
  *
  *******************************************************************************/
 
-#include <misc.H>
-#include <syscall.H>
-#include <types.H>
+#include <libfam/misc.H>
+#include <libfam/syscall.H>
+#include <libfam/types.H>
 
 #define CheckEndian()                                                        \
 	u16 test = 0x1234;                                                   \

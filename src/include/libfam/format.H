@@ -26,10 +26,10 @@
 #ifndef _FORMMAT2_H
 #define _FORMMAT2_H
 
-#include <macro_util.H>
-#include <misc.H>
-#include <sys.H>
-#include <types.H>
+#include <libfam/macro_util.H>
+#include <libfam/misc.H>
+#include <libfam/sys.H>
+#include <libfam/types.H>
 
 extern bool _debug_no_exit;
 extern bool _debug_no_write;

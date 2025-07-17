@@ -23,11 +23,11 @@
  *
  *******************************************************************************/
 
-#include <compress.H>
-#include <error.H>
-#include <format.H>
-#include <huffman.H>
-#include <limits.H>
+#include <libfam/compress.H>
+#include <libfam/error.H>
+#include <libfam/format.H>
+#include <libfam/huffman.H>
+#include <libfam/limits.H>
 
 #define LZX_HASH_ENTRIES 4096
 #define HASH_CONSTANT 2654435761U

@@ -23,12 +23,12 @@
  *
  *******************************************************************************/
 
-#include <error.H>
-#include <format.H>
-#include <limits.H>
-#include <misc.H>
-#include <sys.H>
-#include <types.H>
+#include <libfam/error.H>
+#include <libfam/format.H>
+#include <libfam/limits.H>
+#include <libfam/misc.H>
+#include <libfam/sys.H>
+#include <libfam/types.H>
 
 u64 strlen(const u8 *X) {
 	const u8 *Y;

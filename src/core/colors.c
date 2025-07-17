@@ -23,10 +23,10 @@
  *
  *******************************************************************************/
 
-#include <colors.H>
-#include <env.H>
-#include <misc.H>
-#include <types.H>
+#include <libfam/colors.H>
+#include <libfam/env.H>
+#include <libfam/misc.H>
+#include <libfam/types.H>
 
 i32 no_color(void) {
 	u8 *noc = getenv("NO_COLOR");

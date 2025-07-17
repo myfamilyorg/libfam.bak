@@ -23,32 +23,21 @@
  *
  *******************************************************************************/
 
-#ifndef _EVENT_H
-#define _EVENT_H
+#ifndef _VEC_H
+#define _VEC_H
 
-#include <types.H>
+#include <libfam/types.H>
 
-#define MULTIPLEX_FLAG_NONE 0
-#define MULTIPLEX_FLAG_READ 0x1
-#define MULTIPLEX_FLAG_ACCEPT (0x1 << 1)
-#define MULTIPLEX_FLAG_WRITE (0x1 << 2)
+typedef struct Vec Vec;
 
-typedef struct {
-	u8 opaque[12];
-#ifdef __aarch64__
-	u8 opaque2[4]; /* to account for non packing */
-#endif
-} Event;
+u64 vec_capacity(Vec *v);
+u64 vec_elements(Vec *v);
+void *vec_data(Vec *v);
+i32 vec_extend(Vec *v, void *data, u64 len);
+i32 vec_set_elements(Vec *v, u64 elements);
+Vec *vec_resize(Vec *v, u64 nsize);
+Vec *vec_new(u64 size);
+void vec_release(Vec *v);
+i32 vec_truncate(Vec *v, u64 nsize);
 
-i32 multiplex(void);
-i32 mregister(i32 multiplex, i32 fd, i32 flags, void *attach);
-i32 mwait(i32 multiplex, Event events[], i32 max_events, i32 timeout);
-i32 event_is_read(Event event);
-i32 event_is_write(Event event);
-void *event_attachment(Event event);
-
-#if TEST == 1
-extern bool _debug_fail_mregister;
-#endif /* TEST */
-
-#endif /* _EVENT_H */
+#endif /* _VEC_H */

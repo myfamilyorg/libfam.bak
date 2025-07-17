@@ -26,7 +26,7 @@
 #ifndef _SYSCALL_H
 #define _SYSCALL_H
 
-#include <types.H>
+#include <libfam/types.H>
 
 i32 pipe(i32 fds[2]);
 i32 pipe2(i32 fds[2], i32 flags);

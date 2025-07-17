@@ -26,8 +26,8 @@
 #ifndef _CONNECTION_H
 #define _CONNECTION_H
 
-#include <types.H>
-#include <vec.H>
+#include <libfam/types.H>
+#include <libfam/vec.H>
 
 #define CONN_FLAG_ACCEPTOR (0x1 << 0)
 #define CONN_FLAG_INBOUND (0x1 << 1)

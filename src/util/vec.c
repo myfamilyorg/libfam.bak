@@ -23,10 +23,10 @@
  *
  *******************************************************************************/
 
-#include <alloc.H>
-#include <error.H>
-#include <misc.H>
-#include <vec.H>
+#include <libfam/alloc.H>
+#include <libfam/error.H>
+#include <libfam/misc.H>
+#include <libfam/vec.H>
 
 struct Vec {
 	u64 capacity;

@@ -23,8 +23,8 @@
  *
  *******************************************************************************/
 
-#include <misc.H>
-#include <rbtree.H>
+#include <libfam/misc.H>
+#include <libfam/rbtree.H>
 
 #define RED 1
 #define BLACK 0

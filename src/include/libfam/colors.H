@@ -23,41 +23,36 @@
  *
  *******************************************************************************/
 
-#ifndef _RBTREE_H
-#define _RBTREE_H
+#ifndef _COLORS_H
+#define _COLORS_H
 
-#include <types.H>
+#include <libfam/types.H>
 
-typedef struct RbTreeNode {
-	struct RbTreeNode *parent_color;
-	struct RbTreeNode *right;
-	struct RbTreeNode *left;
-} RbTreeNode;
+const u8 *get_dimmed(void);
+#define DIMMED get_dimmed()
 
-typedef struct {
-	RbTreeNode *parent;
-	RbTreeNode *self;
-	i32 is_right;
-} RbTreeNodePair;
+const u8 *get_red(void);
+#define RED get_red()
 
-typedef struct {
-	RbTreeNode *root;
-} RbTree;
+const u8 *get_bright_red(void);
+#define BRIGHT_RED get_bright_red()
 
-static const RbTree RBTREE_INIT = {NULL};
+const u8 *get_green(void);
+#define GREEN get_green()
 
-static __attribute__((unused)) void rbtree_init_node(RbTreeNode *value) {
-        value->parent_color = value->right = value->left = NULL;
-}
+const u8 *get_yellow(void);
+#define YELLOW get_yellow()
 
+const u8 *get_cyan(void);
+#define CYAN get_cyan()
 
+const u8 *get_magenta(void);
+#define MAGENTA get_magenta()
 
-typedef i32 (*RbTreeSearch)(RbTreeNode *base, const RbTreeNode *value,
-			    RbTreeNodePair *retval);
+const u8 *get_blue(void);
+#define BLUE get_blue()
 
-RbTreeNode *rbtree_put(RbTree *tree, RbTreeNode *value,
-		       const RbTreeSearch search);
-RbTreeNode *rbtree_remove(RbTree *tree, RbTreeNode *value,
-			  const RbTreeSearch search);
+const u8 *get_reset(void);
+#define RESET get_reset()
 
-#endif	/* _RBTREE_H */
+#endif /* _COLORS_H */

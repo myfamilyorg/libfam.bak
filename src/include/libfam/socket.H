@@ -23,30 +23,21 @@
  *
  *******************************************************************************/
 
-#ifndef _STORAGE_H
-#define _STORAGE_H
+#ifndef _SOCKET_H
+#define _SOCKET_H
 
-#include <types.H>
+#include <libfam/types.H>
 
-#ifndef NODE_SIZE
-#ifndef PAGE_SIZE
-#define PAGE_SIZE (4 * 4096)
-#endif /* PAGE_SIZE */
-#define NODE_SIZE ((u64)PAGE_SIZE)
-#endif /* NODE_SIZE */
+i32 set_nonblocking(i32 socket);
+i32 socket_connect(i32 *fd, const u8 addr[4], u16 port);
+i32 socket_listen(i32 *fd, const u8 addr[4], u16 port, u16 backlog);
+i32 socket_accept(i32 fd);
 
-typedef struct Env Env;
+u16 htons(u16 host);
+u16 ntohs(u16 net);
 
-Env *env_open(const u8 *path);
-i32 env_close(Env *);
+#if TEST == 1
+extern bool _debug_setnonblocking_err;
+#endif /* TEST */
 
-u64 env_alloc(Env *);
-void env_release(Env *, u64);
-i64 env_register_on_sync(Env *, i32 wakeupfd);
-i64 env_counter(Env *);
-i32 env_set_root(Env *, u64 seqno, u64 root);
-u64 env_root_seqno(Env *);
-u64 env_root(Env *);
-void *env_base(Env *);
-
-#endif /* _STORAGE_H */
+#endif /* _SOCKET_H */

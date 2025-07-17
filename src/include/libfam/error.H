@@ -30,7 +30,7 @@
 #define TEST 0
 #endif /* TEST */
 
-#include <types.H>
+#include <libfam/types.H>
 
 /* Error codes for libfam */
 #define SUCCESS 0

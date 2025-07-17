@@ -23,11 +23,11 @@
  *
  *******************************************************************************/
 
-#include <error.H>
-#include <event.H>
-#include <syscall.H>
-#include <syscall_const.H>
-#include <types.H>
+#include <libfam/error.H>
+#include <libfam/event.H>
+#include <libfam/syscall.H>
+#include <libfam/syscall_const.H>
+#include <libfam/types.H>
 
 #define STATIC_ASSERT(condition, message) \
 	typedef u8 static_assert_##message[(condition) ? 1 : -1]

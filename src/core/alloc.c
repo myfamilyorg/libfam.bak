@@ -23,12 +23,12 @@
  *
  *******************************************************************************/
 
-#include <alloc.H>
-#include <atomic.H>
-#include <env.H>
-#include <error.H>
-#include <format.H>
-#include <misc.H>
+#include <libfam/alloc.H>
+#include <libfam/atomic.H>
+#include <libfam/env.H>
+#include <libfam/error.H>
+#include <libfam/format.H>
+#include <libfam/misc.H>
 
 u64 _debug_cas_loop = 0;
 u64 _debug_alloc_failure = 0;

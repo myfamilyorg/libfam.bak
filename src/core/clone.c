@@ -23,12 +23,12 @@
  *
  *******************************************************************************/
 
-#include <format.H>
-#include <init.H>
-#include <sys.H>
-#include <syscall.H>
-#include <syscall_const.H>
-#include <types.H>
+#include <libfam/format.H>
+#include <libfam/init.H>
+#include <libfam/sys.H>
+#include <libfam/syscall.H>
+#include <libfam/syscall_const.H>
+#include <libfam/types.H>
 
 i32 two(void) { return two2(true); }
 

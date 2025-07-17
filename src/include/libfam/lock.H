@@ -23,47 +23,26 @@
  *
  *******************************************************************************/
 
-#ifndef _WS_H
-#define _WS_H
+#ifndef _LOCK_H
+#define _LOCK_H
 
-#include <types.H>
+#include <libfam/types.H>
 
-typedef struct {
-	u8 *buffer;
-	u64 len;
-	u8 op;
-	bool fin;
-} WsMessage;
+typedef u32 Lock;
 
-typedef struct WsConnection WsConnection;
-typedef struct Ws Ws;
-
-typedef void (*OnOpen)(Ws *ws, WsConnection *conn);
-typedef void (*OnClose)(Ws *ws, WsConnection *conn);
-typedef void (*OnMessage)(Ws *ws, WsConnection *conn, WsMessage *msg);
-typedef void (*OnConnect)(Ws *ws, WsConnection *conn, i32 error);
+#define LOCK_INIT 0
 
 typedef struct {
-	u8 addr[4];
-	u16 port;
-	u16 backlog;
-	u16 workers;
-	OnMessage on_message;
-	OnOpen on_open;
-	OnConnect on_connect;
-	OnClose on_close;
-} WsConfig;
+	Lock *lock;
+	bool is_write;
+} LockGuardImpl;
 
-Ws *ws_init(const WsConfig *config);
-i32 ws_start(Ws *ws);
-i32 ws_stop(Ws *ws);
-void ws_destroy(Ws *ws);
+void lockguard_cleanup(LockGuardImpl *lg);
 
-i32 ws_send(Ws *ws, WsConnection *conn, WsMessage *msg);
-u64 ws_conn_id(WsConnection *connection);
-WsConnection *ws_connect(Ws *ws, u8 addr[4], u16 port);
-i32 ws_close(Ws *ws, WsConnection *conn, i32 code, const u8 *reason);
-WsConnection ws_conn_copy(WsConnection *connection);
-u16 ws_port(Ws *ws);
+#define LockGuard \
+	LockGuardImpl __attribute__((unused, cleanup(lockguard_cleanup)))
 
-#endif /* _WS_H */
+LockGuard rlock(Lock *lock);
+LockGuard wlock(Lock *lock);
+
+#endif /* _LOCK_H */

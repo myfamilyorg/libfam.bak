@@ -23,21 +23,21 @@
  *
  *******************************************************************************/
 
-#include <alloc.H>
-#include <atomic.H>
-#include <channel.H>
-#include <compress.H>
-#include <crc32c.H>
-#include <error.H>
-#include <huffman.H>
-#include <limits.H>
-#include <lock.H>
-#include <rbtree.H>
-#include <rng.H>
-#include <robust.H>
-#include <syscall_const.H>
-#include <test.H>
-#include <vec.H>
+#include <libfam/alloc.H>
+#include <libfam/atomic.H>
+#include <libfam/channel.H>
+#include <libfam/compress.H>
+#include <libfam/crc32c.H>
+#include <libfam/error.H>
+#include <libfam/huffman.H>
+#include <libfam/limits.H>
+#include <libfam/lock.H>
+#include <libfam/rbtree.H>
+#include <libfam/rng.H>
+#include <libfam/robust.H>
+#include <libfam/syscall_const.H>
+#include <libfam/test.H>
+#include <libfam/vec.H>
 
 typedef struct {
 	Lock lock1;

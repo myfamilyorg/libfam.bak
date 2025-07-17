@@ -23,12 +23,12 @@
  *
  *******************************************************************************/
 
-#include <aes.H>
-#include <crc32c.H>
-#include <format.H>
-#include <rng.H>
-#include <sha1.H>
-#include <test.H>
+#include <libfam/aes.H>
+#include <libfam/crc32c.H>
+#include <libfam/format.H>
+#include <libfam/rng.H>
+#include <libfam/sha1.H>
+#include <libfam/test.H>
 
 Test(aes1) {
 	u8 key[32] = {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe,

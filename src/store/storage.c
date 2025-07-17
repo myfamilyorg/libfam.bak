@@ -23,14 +23,14 @@
  *
  *******************************************************************************/
 
-#include <alloc.H>
-#include <atomic.H>
-#include <channel.H>
-#include <error.H>
-#include <format.H>
-#include <limits.H>
-#include <storage.H>
-#include <sys.H>
+#include <libfam/alloc.H>
+#include <libfam/atomic.H>
+#include <libfam/channel.H>
+#include <libfam/error.H>
+#include <libfam/format.H>
+#include <libfam/limits.H>
+#include <libfam/storage.H>
+#include <libfam/sys.H>
 
 #define MIN_SIZE (NODE_SIZE * 8)
 #define BUFFER1(env) ((BufferNode *)env->base)

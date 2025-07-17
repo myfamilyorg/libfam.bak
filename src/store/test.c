@@ -23,10 +23,10 @@
  *
  *******************************************************************************/
 
-#include <alloc.H>
-#include <error.H>
-#include <storage.H>
-#include <test.H>
+#include <libfam/alloc.H>
+#include <libfam/error.H>
+#include <libfam/storage.H>
+#include <libfam/test.H>
 
 Test(storage1) {
 	const u8 *path = "/tmp/storage1.dat";

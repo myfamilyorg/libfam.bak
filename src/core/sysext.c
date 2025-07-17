@@ -23,10 +23,10 @@
  *
  *******************************************************************************/
 
-#include <error.H>
-#include <init.H>
-#include <sys.H>
-#include <syscall_const.H>
+#include <libfam/error.H>
+#include <libfam/init.H>
+#include <libfam/sys.H>
+#include <libfam/syscall_const.H>
 
 i32 file(const u8 *path) {
 	i32 ret = open(path, O_CREAT | O_RDWR, 0600);

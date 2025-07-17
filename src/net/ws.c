@@ -23,16 +23,16 @@
  *
  *******************************************************************************/
 
-#include <alloc.H>
-#include <atomic.H>
-#include <connection.H>
-#include <error.H>
-#include <evh.H>
-#include <format.H>
-#include <lock.H>
-#include <rbtree.H>
-#include <sha1.H>
-#include <ws.H>
+#include <libfam/alloc.H>
+#include <libfam/atomic.H>
+#include <libfam/connection.H>
+#include <libfam/error.H>
+#include <libfam/evh.H>
+#include <libfam/format.H>
+#include <libfam/lock.H>
+#include <libfam/rbtree.H>
+#include <libfam/sha1.H>
+#include <libfam/ws.H>
 
 #define CONNECTION_SIZE 56
 

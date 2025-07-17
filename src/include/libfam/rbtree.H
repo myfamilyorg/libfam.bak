@@ -23,32 +23,41 @@
  *
  *******************************************************************************/
 
-#ifndef _MISC_H
-#define _MISC_H
+#ifndef _RBTREE_H
+#define _RBTREE_H
 
-#include <types.H>
+#include <libfam/types.H>
 
-u64 strlen(const u8 *S);
-u8 *strcpy(u8 *dest, const u8 *src);
-u8 *strcat(u8 *dest, const u8 *src);
-i32 strcmp(const u8 *s1, const u8 *s2);
-i32 strcmpn(const u8 *s1, const u8 *s2, u64 n);
-u8 *substr(const u8 *s, const u8 *sub);
-u8 *substrn(const u8 *s, const u8 *sub, u64 n);
-u8 *strchr(const u8 *s, i32 c);
-void *memset(void *ptr, i32 x, u64 n);
-void *memcpy(void *dst, const void *src, u64 n);
-i32 memcmp(const void *s1, const void *s2, u64 n);
-void *memorymove(void *dst, const void *src, u64 n);
-void byteszero(void *dst, u64 n);
-u64 u128_to_string(u8 *buf, u128 v);
-u64 i128_to_string(u8 *buf, i128 v);
-u64 u128_to_string_impl(u8 *buf, u128 v, bool hex, bool upper);
-u64 i128_to_string_impl(u8 *buf, i128 v, bool hex, bool upper);
-u64 double_to_string(u8 *buf, double v, i32 max_decimals);
-u64 b64_encode(const u8 *in, u64 in_len, u8 *out, u64 out_max);
-u64 b64_decode(const u8 *in, u64 in_len, u8 *out, u64 out_max);
-u128 string_to_uint128(const u8 *buf, u64 len);
-i128 string_to_int128(const u8 *buf, u64 len);
+typedef struct RbTreeNode {
+	struct RbTreeNode *parent_color;
+	struct RbTreeNode *right;
+	struct RbTreeNode *left;
+} RbTreeNode;
 
-#endif /* _MISC_H */
+typedef struct {
+	RbTreeNode *parent;
+	RbTreeNode *self;
+	i32 is_right;
+} RbTreeNodePair;
+
+typedef struct {
+	RbTreeNode *root;
+} RbTree;
+
+static const RbTree RBTREE_INIT = {NULL};
+
+static __attribute__((unused)) void rbtree_init_node(RbTreeNode *value) {
+        value->parent_color = value->right = value->left = NULL;
+}
+
+
+
+typedef i32 (*RbTreeSearch)(RbTreeNode *base, const RbTreeNode *value,
+			    RbTreeNodePair *retval);
+
+RbTreeNode *rbtree_put(RbTree *tree, RbTreeNode *value,
+		       const RbTreeSearch search);
+RbTreeNode *rbtree_remove(RbTree *tree, RbTreeNode *value,
+			  const RbTreeSearch search);
+
+#endif	/* _RBTREE_H */

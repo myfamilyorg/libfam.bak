@@ -23,26 +23,23 @@
  *
  *******************************************************************************/
 
-#ifndef _EVH_H
-#define _EVH_H
+#ifndef _CHANNEL_H
+#define _CHANNEL_H
 
-#include <connection.H>
-#include <types.H>
+#include <libfam/types.H>
 
-typedef struct Evh Evh;
+typedef struct ChannelInner ChannelInner;
 
 typedef struct {
-	void *ctx;
-	OnRecvFn on_recv;
-	OnAcceptFn on_accept;
-	OnConnectFn on_connect;
-	OnCloseFn on_close;
-} EvhConfig;
+	ChannelInner *inner;
+} Channel;
 
-i32 evh_register(Evh *evh, Connection *connection);
-Evh *evh_init(EvhConfig *config);
-i32 evh_start(Evh *evh);
-i32 evh_stop(Evh *evh);
-void evh_destroy(Evh *evh);
+void channel_destroy(Channel *channel);
+Channel channel(u64 element_size);
+Channel channel2(u64 element_size, u64 capacity);
+bool channel_ok(Channel *channel);
+void recv(Channel *channel, void *dst);
+i32 recv_now(Channel *channel, void *dst);
+i32 send(Channel *channel, const void *src);
 
-#endif /* _EVH_H */
+#endif /* _CHANNEL_H */

@@ -23,10 +23,10 @@
  *
  *******************************************************************************/
 
-#include <error.H>
-#include <format.H>
-#include <init.H>
-#include <types.H>
+#include <libfam/error.H>
+#include <libfam/format.H>
+#include <libfam/init.H>
+#include <libfam/types.H>
 
 #define MAX_EXIT 64
 

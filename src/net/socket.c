@@ -23,11 +23,11 @@
  *
  *******************************************************************************/
 
-#include <error.H>
-#include <misc.H>
-#include <socket.H>
-#include <syscall.H>
-#include <syscall_const.H>
+#include <libfam/error.H>
+#include <libfam/misc.H>
+#include <libfam/socket.H>
+#include <libfam/syscall.H>
+#include <libfam/syscall_const.H>
 
 bool _debug_setnonblocking_err = false;
 

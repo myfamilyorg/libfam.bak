@@ -23,36 +23,14 @@
  *
  *******************************************************************************/
 
-#ifndef _COLORS_H
-#define _COLORS_H
+#ifndef _ENV_H
+#define _ENV_H
 
-#include <types.H>
+#include <libfam/types.H>
 
-const u8 *get_dimmed(void);
-#define DIMMED get_dimmed()
+u8 *getenv(const u8 *name);
+i32 unsetenv(const u8 *name);
+i32 setenv(const u8 *name, const u8 *value, i32 overwrite);
+void init_environ(void);
 
-const u8 *get_red(void);
-#define RED get_red()
-
-const u8 *get_bright_red(void);
-#define BRIGHT_RED get_bright_red()
-
-const u8 *get_green(void);
-#define GREEN get_green()
-
-const u8 *get_yellow(void);
-#define YELLOW get_yellow()
-
-const u8 *get_cyan(void);
-#define CYAN get_cyan()
-
-const u8 *get_magenta(void);
-#define MAGENTA get_magenta()
-
-const u8 *get_blue(void);
-#define BLUE get_blue()
-
-const u8 *get_reset(void);
-#define RESET get_reset()
-
-#endif /* _COLORS_H */
+#endif /* _ENV_H */

@@ -23,21 +23,24 @@
  *
  *******************************************************************************/
 
-#ifndef _VEC_H
-#define _VEC_H
+#ifndef _CONNECTION_INTERNAL_H
+#define _CONNECTION_INTERNAL_H
 
-#include <types.H>
+#include <libfam/connection.H>
 
-typedef struct Vec Vec;
+/* Internal Only functions */
+Connection *connection_accepted(i32 fd, i32 mplex,
+				u32 connection_alloc_overhead);
+void connection_set_is_connected(Connection *conn);
+i64 connection_alloc_overhead(Connection *conn);
+i32 connection_set_mplex(Connection *conn, i32 mplex);
+i32 connection_write_complete(Connection *connection);
 
-u64 vec_capacity(Vec *v);
-u64 vec_elements(Vec *v);
-void *vec_data(Vec *v);
-i32 vec_extend(Vec *v, void *data, u64 len);
-i32 vec_set_elements(Vec *v, u64 elements);
-Vec *vec_resize(Vec *v, u64 nsize);
-Vec *vec_new(u64 size);
-void vec_release(Vec *v);
-i32 vec_truncate(Vec *v, u64 nsize);
+#if TEST == 1
+extern bool _debug_force_write_buffer;
+extern bool _debug_force_write_error;
+extern i32 _debug_write_error_code;
+extern u64 _debug_connection_wmax;
+#endif /* TEST */
 
-#endif /* _VEC_H */
+#endif /* _CONNECTION_INTERNAL_H */

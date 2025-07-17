@@ -26,7 +26,7 @@
 #ifndef _COMPRESS_H
 #define _COMPRESS_H
 
-#include <types.H>
+#include <libfam/types.H>
 
 i64 compress(u8 *in, u64 len, u8 *out, u64 capacity);
 i64 decompress(u8 *in, u64 len, u8 *out, u64 capacity);

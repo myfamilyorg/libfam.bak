@@ -26,7 +26,7 @@
 #ifndef _ROBUST_H
 #define _ROBUST_H
 
-#include <types.H>
+#include <libfam/types.H>
 
 typedef u32 RobustLock;
 

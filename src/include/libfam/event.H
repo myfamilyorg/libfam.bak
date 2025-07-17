@@ -23,33 +23,32 @@
  *
  *******************************************************************************/
 
-#ifndef _SYS_H
-#define _SYS_H
+#ifndef _EVENT_H
+#define _EVENT_H
 
-#include <syscall.H>
-#include <types.H>
+#include <libfam/types.H>
 
-/* system calls applied */
-i32 unlink(const u8 *path);
-i32 open(const u8 *pathname, i32 flags, u32 mode);
-i32 getentropy(void *buffer, u64 length);
-i32 yield(void);
-i32 timeout(void (*task)(void), u64 milliseconds);
-void *map(u64 length);
-void *fmap(i32 fd, i64 size, i64 offset);
-void *smap(u64 length);
-i32 exists(const u8 *path);
-i32 file(const u8 *path);
-i64 fsize(i32 fd);
-i32 fresize(i32 fd, i64 length);
-i32 flush(i32 fd);
-i64 micros(void);
-i32 sleep(u64 millis);
-i32 two(void);
-i32 two2(bool share_fds);
+#define MULTIPLEX_FLAG_NONE 0
+#define MULTIPLEX_FLAG_READ 0x1
+#define MULTIPLEX_FLAG_ACCEPT (0x1 << 1)
+#define MULTIPLEX_FLAG_WRITE (0x1 << 2)
+
+typedef struct {
+	u8 opaque[12];
+#ifdef __aarch64__
+	u8 opaque2[4]; /* to account for non packing */
+#endif
+} Event;
+
+i32 multiplex(void);
+i32 mregister(i32 multiplex, i32 fd, i32 flags, void *attach);
+i32 mwait(i32 multiplex, Event events[], i32 max_events, i32 timeout);
+i32 event_is_read(Event event);
+i32 event_is_write(Event event);
+void *event_attachment(Event event);
 
 #if TEST == 1
-extern bool _debug_set_timeout_fail;
+extern bool _debug_fail_mregister;
 #endif /* TEST */
 
-#endif /* _SYS_H */
+#endif /* _EVENT_H */

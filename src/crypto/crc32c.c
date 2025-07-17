@@ -1,6 +1,6 @@
-#include <crc32c.H>
-#include <format.H>
-#include <types.H>
+#include <libfam/crc32c.H>
+#include <libfam/format.H>
+#include <libfam/types.H>
 
 u32 crc32c(const u8* data, u64 length) {
 	u32 crc;

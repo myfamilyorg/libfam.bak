@@ -26,7 +26,7 @@
 #ifndef _ATOMIC_H
 #define _ATOMIC_H
 
-#include <types.H>
+#include <libfam/types.H>
 
 #define __cas128(a, expected, desired)                            \
         __atomic_compare_exchange_n(a, expected, desired, false, \
