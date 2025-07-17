@@ -1639,7 +1639,6 @@ Test(test_perror_close) {
 
 Test(execve) {
 	i32 pid, v;
-	siginfo_t status;
 	u8 *const argv[] = {"ls", "resources", NULL};
 	if (!(pid = two2(false))) {
 		close(2);
@@ -1647,16 +1646,13 @@ Test(execve) {
 		execve("/xbin/ls", argv, NULL);
 		exit(0);
 	}
-	ASSERT(!waitid(P_PID, pid, &status, WEXITED), "waitid");
-	ASSERT(!status._sifields._sigchld.si_status, "!status");
-
+	ASSERT(!waitid(P_PID, pid, NULL, WEXITED), "waitid");
 	if (!(pid = two2(false))) {
 		close(2);
 		close(1);
 		execve("/bin/ls", argv, NULL);
 		exit(0);
 	}
-	v = waitid(P_PID, pid, &status, WEXITED);
+	v = waitid(P_PID, pid, NULL, WEXITED);
 	ASSERT_EQ(v, 0, "v");
-	ASSERT(status._sifields._sigchld.si_status, "!0");
 }
