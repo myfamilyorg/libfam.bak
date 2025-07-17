@@ -43,7 +43,7 @@ typedef struct Connection Connection;
 typedef void (*OnRecvFn)(void *ctx, Connection *conn, u64 rlen);
 typedef void (*OnAcceptFn)(void *ctx, Connection *conn);
 typedef void (*OnCloseFn)(void *ctx, Connection *conn);
-typedef void (*OnConnectFn)(void *ctx, Connection *conn, int error);
+typedef void (*OnConnectFn)(void *ctx, Connection *conn, i32 error);
 
 Connection *connection_acceptor(const u8 addr[4], u16 port, u16 backlog,
 				u32 connection_alloc_overhead);

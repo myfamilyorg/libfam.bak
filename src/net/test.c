@@ -497,7 +497,7 @@ void evh1_on_close(void *ctx, Connection *conn) {
 }
 
 void evh1_on_connect(void *ctx, Connection *conn,
-		     int error __attribute__((unused))) {
+		     i32 error __attribute__((unused))) {
 	ASSERT_EQ(*((i32 *)ctx), 102, "ctx==102");
 	ASSERT(conn, "conn!=NULL");
 	__add64(evh1_on_connect_val, 1);
@@ -751,7 +751,7 @@ void ws1_on_message(Ws *ws, WsConnection *conn, WsMessage *msg) {
 
 void ws1_on_open(Ws *ws, WsConnection *conn) { ASSERT(ws && conn, "non-null"); }
 
-void ws1_on_connect(Ws *ws, WsConnection *conn, int error) {
+void ws1_on_connect(Ws *ws, WsConnection *conn, i32 error) {
 	ASSERT(ws && conn && !error, "non-null and no errors");
 }
 
@@ -777,7 +777,7 @@ void wsc1_on_close(Ws *ws, WsConnection *conn) {
 	__add64(ws1_close_count, 1);
 }
 
-void wsc1_on_connect(Ws *ws, WsConnection *conn, int error) {
+void wsc1_on_connect(Ws *ws, WsConnection *conn, i32 error) {
 	WsMessage msg;
 	ASSERT(!error, "!error");
 	msg.op = 2;

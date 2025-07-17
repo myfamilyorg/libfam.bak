@@ -383,7 +383,7 @@ Test(pipe) {
 		write(fds[1], "test", 4);
 		exit(0);
 	}
-	waitid(P_PID, fv, NULL, WEXITED);
+	fv = waitid(P_PID, fv, NULL, WEXITED);
 
 	close(fds[0]);
 	close(fds[1]);
@@ -1357,7 +1357,7 @@ Test(small_bitmap) {
 Test(concurrent_free) {
 	Alloc *a;
 	void *ptrs[10];
-	int i;
+	i32 i;
 	i32 fv;
 	a = alloc_init(ALLOC_TYPE_SMAP, CHUNK_SIZE * 16);
 	for (i = 0; i < 10; i++) {
@@ -1451,7 +1451,7 @@ Test(alignment_check) {
 Test(memsan_concurrent) {
 	Alloc *a;
 	void *ptrs[100];
-	int i;
+	i32 i;
 	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
 	for (i = 0; i < 48; i++) {
 		ptrs[i] = alloc_impl(a, CHUNK_SIZE / 4);
@@ -1469,7 +1469,7 @@ Test(memsan_concurrent) {
 Test(resize_concurrent) {
 	Alloc *a;
 	void *ptrs[10];
-	int i;
+	i32 i;
 	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
 	for (i = 0; i < 10; i++) {
 		ptrs[i] = alloc_impl(a, 8);
@@ -1489,7 +1489,7 @@ Test(resize_concurrent) {
 Test(slab_concurrent) {
 	Alloc *a;
 	void *ptrs[100];
-	int i;
+	i32 i;
 	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
 	for (i = 0; i < 100; i++) {
 		ptrs[i] = alloc_impl(a, CHUNK_SIZE / 16);
@@ -1545,7 +1545,7 @@ Test(alloc_edge_cases) {
 Test(multi_chunk_concurrent) {
 	Alloc *a;
 	void *ptrs[3];
-	int i;
+	i32 i;
 	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
 	for (i = 0; i < 3; i++) {
 		ptrs[i] = alloc_impl(a, CHUNK_SIZE * 2);
@@ -1562,7 +1562,7 @@ Test(multi_chunk_concurrent) {
 Test(multi_chunk_fragmentation) {
 	Alloc *a;
 	void *ptrs[100];
-	int i;
+	i32 i;
 	void *p;
 	a = alloc_init(ALLOC_TYPE_MAP, CHUNK_SIZE * 16);
 	for (i = 0; i < 12; i += 2) {
@@ -1612,9 +1612,11 @@ Test(resize_edge_cases) {
 
 Test(test_hex) {
 	Formatter f = {0};
-	format(&f, "x={x},y={X},z={}", 123456, 123456, 123456);
-	ASSERT(!strcmp(format_to_string(&f), "x=0x1e240,y=0x1E240,z=123456"),
-	       "strcmp");
+	format(&f, "x={x},y={X},z={},{c},{c}", 123456, 123456, 123456, 'x',
+	       (u128)'y');
+	ASSERT(
+	    !strcmp(format_to_string(&f), "x=0x1e240,y=0x1E240,z=123456,x,y"),
+	    "strcmp");
 	format_clear(&f);
 	format(&f, "x={X}", -0xccd);
 	ASSERT(!strcmp(format_to_string(&f), "x=-0xCCD"), "strcmp2");
@@ -1633,4 +1635,28 @@ Test(test_perror_close) {
 	ASSERT(close(fd), "close fail");
 	_debug_no_write = false;
 	unlink(path);
+}
+
+Test(execve) {
+	i32 pid, v;
+	siginfo_t status;
+	u8 *const argv[] = {"ls", "resources", NULL};
+	if (!(pid = two2(false))) {
+		close(2);
+		close(1);
+		execve("/xbin/ls", argv, NULL);
+		exit(0);
+	}
+	ASSERT(!waitid(P_PID, pid, &status, WEXITED), "waitid");
+	ASSERT(!status._sifields._sigchld.si_status, "!status");
+
+	if (!(pid = two2(false))) {
+		close(2);
+		close(1);
+		execve("/bin/ls", argv, NULL);
+		exit(0);
+	}
+	v = waitid(P_PID, pid, &status, WEXITED);
+	ASSERT_EQ(v, 0, "v");
+	ASSERT(status._sifields._sigchld.si_status, "!0");
 }

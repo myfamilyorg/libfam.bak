@@ -72,6 +72,7 @@ void restorer(void);
 i64 futex(u32 *uaddr, i32 futex_op, u32 val, const struct timespec *timeout,
 	  u32 *uaddr2, u32 val3);
 i32 waitid(i32 i32ype, i32 id, siginfo_t *sigs, i32 options);
+i32 execve(const u8 *pathname, u8 *const argv[], u8 *const envp[]);
 
 #if TEST == 1
 extern bool _debug_no_write;

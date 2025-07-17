@@ -295,7 +295,7 @@ STATIC void ws_on_accept_proc(void *ctx, Connection *conn) {
 	ws->config.on_open(ws, wsconn);
 }
 
-STATIC void ws_on_connect_proc(void *ctx, Connection *conn, int error) {
+STATIC void ws_on_connect_proc(void *ctx, Connection *conn, i32 error) {
 	WsContext *ws_ctx = (WsContext *)ctx;
 	Ws *ws = ws_ctx->ws;
 	WsConnection *wsconn = (WsConnection *)conn;

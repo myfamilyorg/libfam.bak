@@ -45,7 +45,7 @@ u64 _debug_alloc_failure_bypass_count = 0;
 		u64 *bitmap = (u64 *)((u8 *)(base));                                         \
 		u64 local_last_free = ALOAD(last_free_ptr);                                  \
 		u64 start_word = local_last_free;                                            \
-		int wrapped = 0;                                                             \
+		i32 wrapped = 0;                                                             \
 		(result) = (u64) - 1;                                                        \
 		while (1) {                                                                  \
 			u64 word_idx = local_last_free;                                      \
@@ -59,7 +59,7 @@ u64 _debug_alloc_failure_bypass_count = 0;
 				u64 temp_word = ~word;                                       \
 				u64 bit_start =                                              \
 				    (bits) == 1 ? ctz64(temp_word) : 0;                      \
-				int found = 0;                                               \
+				i32 found = 0;                                               \
 				for (; bit_start <= (u64)64 - (bits);                        \
 				     bit_start++) {                                          \
 					u64 mask = ((1UL << (bits)) - 1)                     \
@@ -337,7 +337,7 @@ STATIC void *allocate_chunk_multi(Alloc *a, u64 size) {
 
 Alloc *alloc_init(AllocType t, u64 size, ...) {
 	Alloc *ret = NULL;
-	int i;
+	i32 i;
 	u64 bitmap_bits = size / CHUNK_SIZE;
 	u64 bitmap_bytes = (bitmap_bits + 7) / 8;
 	u64 bitmap_pages = (bitmap_bytes + PAGE_SIZE - 1) / PAGE_SIZE;

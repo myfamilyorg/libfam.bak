@@ -133,22 +133,84 @@ struct itimerval {
 	struct timeval it_value;
 };
 
+#define __SI_MAX_SIZE 128
+#define __SI_PAD_SIZE ((__SI_MAX_SIZE / sizeof(i32)) - 4)
+typedef u32 __uid_t;
+typedef i64 __clock_t;
+
+union sigval {
+	i32 sival_int;
+	void *sival_ptr;
+};
+typedef union sigval __sigval_t;
+
 typedef struct {
-	i32 si_signo;
-	i32 si_errno;
-	i32 si_code;
+	i32 si_signo; /* Signal number.  */
+	i32 si_errno; /* If non-zero, an errno value associated with
+			 this signal, as defined in <errno.h>.  */
+	i32 si_code;  /* Signal code.  */
+	i32 __pad0;   /* Explicit padding.  */
 	union {
+		i32 _pad[__SI_PAD_SIZE];
+
+		/* kill().  */
 		struct {
-			i32 si_pid;
-			i32 si_uid;
-			i32 si_status;
-			i32 si_utime;
+			i32 si_pid;	/* Sending process ID.  */
+			__uid_t si_uid; /* Real user ID of sending process.  */
+		} _kill;
 
-			i32 si_stime;
+		/* POSIX.1b timers.  */
+		struct {
+			i32 si_tid;	      /* Timer ID.  */
+			i32 si_overrun;	      /* Overrun count.  */
+			__sigval_t si_sigval; /* Signal value.  */
+		} _timer;
 
+		/* POSIX.1b signals.  */
+		struct {
+			i32 si_pid;	/* Sending process ID.  */
+			__uid_t si_uid; /* Real user ID of sending process.  */
+			__sigval_t si_sigval; /* Signal value.  */
+		} _rt;
+
+		/* SIGCHLD.  */
+		struct {
+			i32 si_pid;	/* Which child.	 */
+			__uid_t si_uid; /* Real user ID of sending process.  */
+			i32 si_status;	/* Exit value or signal.  */
+			__clock_t si_utime;
+			__clock_t si_stime;
 		} _sigchld;
+
+		/* SIGILL, SIGFPE, SIGSEGV, SIGBUS.  */
+		struct {
+			void *si_addr;	 /* Faulting insn/memory ref.  */
+			i16 si_addr_lsb; /* Valid LSB of the reported
+						  address.  */
+			union {
+				/* used when si_code=SEGV_BNDERR */
+				struct {
+					void *_lower;
+					void *_upper;
+				} _addr_bnd;
+				/* used when si_code=SEGV_PKUERR */
+				u32 _pkey;
+			} _bounds;
+		} _sigfault;
+
+		/* SIGPOLL.  */
+		struct {
+			i64 si_band; /* Band event for SIGPOLL.  */
+			i32 si_fd;
+		} _sigpoll;
+
+		/* SIGSYS.  */
+		struct {
+			void *_call_addr; /* Calling user insn.  */
+			i32 _syscall;	  /* Triggering system call number.  */
+			u32 _arch;	  /* AUDIT_ARCH_* of syscall.  */
+		} _sigsys;
 	} _sifields;
-	u8 pad[128 - 7 * sizeof(i32)];
 } siginfo_t;
 
 typedef struct {

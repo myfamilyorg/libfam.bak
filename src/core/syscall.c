@@ -440,6 +440,9 @@ DEFINE_SYSCALL4(134, i32, rt_sigaction, i32, signum,
 		u64, sigsetsize)
 DEFINE_SYSCALL0(172, i32, getpid)
 DEFINE_SYSCALL2(129, i32, kill, i32, pid, i32, signal)
+DEFINE_SYSCALL3(221, i32, execve, const u8 *, pathname, u8 *const *, argv,
+		u8 *const *, envp)
+
 #elif defined(__amd64__)
 /* System call definitions */
 DEFINE_SYSCALL2(293, i32, pipe2, i32 *, fds, i32, flags)
@@ -492,6 +495,9 @@ DEFINE_SYSCALL4(13, i32, rt_sigaction, i32, signum, const struct rt_sigaction *,
 		act, struct rt_sigaction *, oldact, u64, sigsetsize)
 DEFINE_SYSCALL0(39, i32, getpid)
 DEFINE_SYSCALL2(62, i32, kill, i32, pid, i32, signal)
+DEFINE_SYSCALL3(59, i32, execve, const u8 *, pathname, u8 *const *, argv,
+		u8 *const *, envp)
+
 #endif /* Arch */
 
 i32 clone3(struct clone_args *args, u64 size) {
@@ -757,5 +763,10 @@ i32 getpid(void) {
 }
 i32 kill(i32 pid, i32 signal) {
 	i32 ret = syscall_kill(pid, signal);
+	SET_ERR
+}
+
+i32 execve(const u8 *pathname, u8 *const argv[], u8 *const envp[]) {
+	i32 ret = syscall_execve(pathname, argv, envp);
 	SET_ERR
 }

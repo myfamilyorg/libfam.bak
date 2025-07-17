@@ -58,7 +58,7 @@ STATIC const char *find_next_placeholder(const char *p) {
 }
 
 /* Main format_append implementation */
-int format_append(Formatter *f, const char *fmt, ...) {
+i32 format_append(Formatter *f, const char *fmt, ...) {
 	u8 buf[64] = {0};
 	bool hex = false, upper = false, is_char = false;
 	u64 len;
