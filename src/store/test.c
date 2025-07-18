@@ -168,6 +168,16 @@ Test(bptree_node1) {
 	item1.vardata.kv.value = "z";
 
 	ASSERT(!bptree_node_insert_entry(&node1, 0, &item1), "insert ab");
+
+	err = SUCCESS;
+	ASSERT(!bptree_node_overflow_start(&node1, 0),
+	       "!bptree_node_overflow_start");
+	ASSERT_EQ(err, EINVAL, "einval");
+	err = SUCCESS;
+	ASSERT(!bptree_node_overflow_end(&node1, 0),
+	       "!bptree_node_overflow_end");
+	ASSERT_EQ(err, EINVAL, "einval");
+
 	ASSERT_EQ(bptree_node_key_len(&node1, 0), 2, "key_len=2");
 	ASSERT_EQ(bptree_node_value_len(&node1, 0), 1, "value_len=1");
 	ASSERT(!strcmpn(bptree_node_key(&node1, 0), "ab", 2), "key=ab");
@@ -1621,4 +1631,12 @@ Test(bptree_node22) {
 	ASSERT(bptree_node_insert_entry(&node, 0, &item) < 0,
 	       "insert bytes overflow internal");
 	ASSERT_EQ(err, EOVERFLOW, "err bytes overflow internal");
+}
+
+Test(bptree_node23) {
+	ASSERT_EQ(bptree_node_calculate_needed(NULL, NULL), -1,
+		  "bptree_node_calculate_needed NULL");
+	err = SUCCESS;
+	bptree_node_copy(NULL, NULL);
+	ASSERT_EQ(err, EINVAL, "einval");
 }
