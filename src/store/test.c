@@ -70,11 +70,13 @@ Test(storage1) {
 
 	n = env_alloc(e1);
 	env_release(e1, n);
-	/*env_release(e1, n);*/
 
 	env_close(e1);
 	release(e1);
 	unlink(path);
+
+	close(wakeups[0]);
+	close(wakeups[1]);
 }
 
 #define ITT 5
@@ -92,6 +94,7 @@ Test(storage2) {
 
 	e1 = env_open(path);
 	ASSERT_EQ(env_root(e1), 0, "root=0");
+	ASSERT(env_base(e1), "e1");
 	env_set_root(e1, env_root_seqno(e1), 4);
 	ASSERT_EQ(env_root(e1), 4, "root=4");
 
@@ -109,3 +112,45 @@ Test(storage2) {
 	release(e1);
 	unlink(path);
 }
+
+Test(storage3) {
+	const u8 *path = "/tmp/storage3.dat";
+	u64 ptrs[ITT];
+	i32 fd, i;
+	Env *e1;
+
+	unlink(path);
+	fd = file(path);
+	fresize(fd, 1);
+	close(fd);
+
+	e1 = env_open(path);
+	ASSERT(!e1, "e1=NULL");
+
+	unlink(path);
+}
+
+Test(storage4) {
+	const u8 *path = "/tmp/storage4.dat";
+	u64 ptrs[ITT];
+	i32 fd, i;
+	Env *e1;
+
+	unlink(path);
+	fd = file(path);
+	fresize(fd, 8 * NODE_SIZE);
+	close(fd);
+
+	_debug_alloc_failure = 1;
+	e1 = env_open(path);
+	ASSERT(!e1, "e1=NULL");
+
+	ASSERT_EQ(env_close(NULL), -1, "env_close NULL");
+	ASSERT_EQ(env_set_root(NULL, 0, 0), -1, "set_root NULL");
+	err = SUCCESS;
+	ASSERT_EQ(env_alloc(NULL), 0, "env_alloc(NULL)=0");
+	ASSERT_EQ(err, EINVAL, "einval");
+
+	unlink(path);
+}
+
