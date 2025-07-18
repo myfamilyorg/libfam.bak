@@ -440,7 +440,7 @@ i32 bptree_node_insert_entry(BpTreeNode *node, u16 index, BpTreeItem *item) {
 	u16 *entry_offsets;
 
 	if (!node || !item || index > impl->num_entries) {
-		err = EOVERFLOW;
+		err = EINVAL;
 		return -1;
 	}
 
@@ -544,26 +544,31 @@ u64 bptree_node_parent_id(const BpTreeNode *node) {
 
 u16 bptree_node_num_entries(const BpTreeNode *node) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
+	if (!impl) return 0;
 	return impl->num_entries;
 }
 
 u16 bptree_node_used_bytes(const BpTreeNode *node) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
+	if (!impl) return 0;
 	return impl->used_bytes;
 }
 
 bool bptree_node_is_copy(const BpTreeNode *node) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
+	if (!impl) return false;
 	return impl->is_copy;
 }
 
 bool bptree_node_is_internal(const BpTreeNode *node) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
+	if (!impl) return false;
 	return impl->is_internal;
 }
 
 u64 bptree_node_aux(const BpTreeNode *node) {
 	BpTreeNodeImpl *impl = (BpTreeNodeImpl *)node;
+	if (!impl) return 0;
 	return impl->aux;
 }
 

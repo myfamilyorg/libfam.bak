@@ -1047,13 +1047,10 @@ Test(bptree_node12) {
 }
 
 Test(bptree_node13) {
-	/*
 	BpTreeNode node;
 	BpTreeNode internal_node;
 	BpTreeItem item;
 	u64 i;
-
-
 
 	ASSERT(bptree_node_init_node(NULL, 0, false) < 0, "init null");
 	ASSERT_EQ(err, EINVAL, "err init null");
@@ -1074,8 +1071,7 @@ Test(bptree_node13) {
 	ASSERT_EQ(err, EINVAL, "err set_next_leaf null");
 
 	ASSERT(bptree_node_insert_entry(NULL, 0, &item) < 0, "insert null");
-	ASSERT_EQ(err, EOVERFLOW,
-		  "err insert null");
+	ASSERT_EQ(err, EINVAL, "err insert null");
 
 	ASSERT(bptree_node_delete_entry(NULL, 0) < 0, "delete null");
 	ASSERT_EQ(err, EINVAL, "err delete null");
@@ -1097,11 +1093,9 @@ Test(bptree_node13) {
 
 	ASSERT_EQ(bptree_node_used_bytes(NULL), 0, "used_bytes null");
 
-	ASSERT(!bptree_node_is_copy(NULL),
-	       "is_copy null");
+	ASSERT(!bptree_node_is_copy(NULL), "is_copy null");
 
-	ASSERT(!bptree_node_is_internal(NULL),
-	       "is_internal null");
+	ASSERT(!bptree_node_is_internal(NULL), "is_internal null");
 
 	ASSERT_EQ(bptree_node_aux(NULL), 0, "aux null");
 
@@ -1165,8 +1159,7 @@ Test(bptree_node13) {
 		  "overflow_end invalid");
 	ASSERT_EQ(err, EINVAL, "err overflow_end invalid");
 
-	ASSERT_EQ(bptree_node_node_id(&node, 0), 0,
-		  "node_id on leaf");
+	ASSERT_EQ(bptree_node_node_id(&node, 0), 0, "node_id on leaf");
 
 	ASSERT_EQ(bptree_node_offset(&internal_node, MAX_INTERNAL_ENTRIES), 0,
 		  "offset max internal");
@@ -1179,16 +1172,14 @@ Test(bptree_node13) {
 	item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
 	ASSERT(bptree_node_insert_entry(&node, 0, &item) < 0,
 	       "insert wrong type leaf");
-	ASSERT_EQ(err, EINVAL,
-		  "err insert wrong");
+	ASSERT_EQ(err, EINVAL, "err insert wrong");
 
 	item.item_type = BPTREE_ITEM_TYPE_LEAF;
 	ASSERT(bptree_node_insert_entry(&internal_node, 0, &item) < 0,
 	       "insert wrong type internal");
 	ASSERT_EQ(err, EINVAL, "err insert wrong internal");
 
-	ASSERT(bptree_node_set_entry(&node, 0, &item) < 0,
-	       "set wrong type");
+	ASSERT(bptree_node_set_entry(&node, 0, &item) < 0, "set wrong type");
 	ASSERT_EQ(err, EINVAL, "err set invalid index");
 
 	ASSERT(!bptree_node_init_node(&internal_node, 0, true),
@@ -1213,6 +1204,7 @@ Test(bptree_node13) {
 	ASSERT(bptree_node_delete_entry(&node, 0) < 0, "delete empty");
 	ASSERT_EQ(err, EINVAL, "err delete empty");
 
+	ASSERT(!bptree_node_unset_copy(&node), "unset_copy");
 	ASSERT(!bptree_node_set_copy(&node), "set_copy");
 	ASSERT(bptree_node_set_copy(&node) < 0, "set_copy already");
 	ASSERT_EQ(err, EINVAL, "err set_copy already");
@@ -1220,7 +1212,6 @@ Test(bptree_node13) {
 	ASSERT(!bptree_node_unset_copy(&internal_node), "unset_copy");
 	ASSERT(bptree_node_unset_copy(&internal_node) < 0, "unset_copy not");
 	ASSERT_EQ(err, EINVAL, "err unset_copy not");
-	*/
 }
 
 Test(bptree_node14) {
