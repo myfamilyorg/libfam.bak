@@ -115,8 +115,7 @@ Test(storage2) {
 
 Test(storage3) {
 	const u8 *path = "/tmp/storage3.dat";
-	u64 ptrs[ITT];
-	i32 fd, i;
+	i32 fd;
 	Env *e1;
 
 	unlink(path);
@@ -132,8 +131,7 @@ Test(storage3) {
 
 Test(storage4) {
 	const u8 *path = "/tmp/storage4.dat";
-	u64 ptrs[ITT];
-	i32 fd, i;
+	i32 fd;
 	Env *e1;
 
 	unlink(path);
