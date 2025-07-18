@@ -1230,8 +1230,11 @@ Test(bptree_node14) {
 	u64 i;
 
 	/* Test move_entries bytes overflow */
+	println("a");
 	ASSERT(!bptree_node_init_node(&dst, 0, false), "dst init leaf");
+	println("b");
 	ASSERT(!bptree_node_init_node(&src, 0, false), "src init leaf");
+	println("c");
 
 	/* Fill dst with some small entries to take space */
 	for (i = 0; i < 10; i++) {
@@ -1244,6 +1247,8 @@ Test(bptree_node14) {
 		       "dst small insert");
 	}
 
+	println("d");
+
 	/* Insert large entries in src */
 	item.key_len = 10;
 	item.item_type = BPTREE_ITEM_TYPE_LEAF;
@@ -1255,18 +1260,26 @@ Test(bptree_node14) {
 	item.vardata.kv.value = "longvalue..."; /* Assume filled */
 	ASSERT(!bptree_node_insert_entry(&src, 0, &item), "src large insert1");
 
+	println("e");
+
 	item.vardata.kv.value_len =
 	    (LEAF_ARRAY_SIZE / 2) - /*sizeof(BpTreeLeafEntry)*/ 8 - 10;
 	ASSERT(!bptree_node_insert_entry(&src, 1, &item), "src large insert2");
+
+	println("f");
 
 	/* Move should overflow bytes in dst */
 	ASSERT(bptree_node_move_entries(&dst, 0, &src, 0, 2) < 0,
 	       "move bytes overflow");
 	ASSERT_EQ(err, EOVERFLOW, "err move bytes overflow");
 
+	println("g");
+
 	/* Similar for internal */
 	ASSERT(!bptree_node_init_node(&dst, 0, true), "dst init internal");
+	println("h");
 	ASSERT(!bptree_node_init_node(&src, 0, true), "src init internal");
+	println("i");
 
 	/* Small in dst */
 	for (i = 0; i < 10; i++) {
@@ -1277,6 +1290,7 @@ Test(bptree_node14) {
 		ASSERT(!bptree_node_insert_entry(&dst, i, &item),
 		       "dst small internal");
 	}
+	println("j");
 
 	/* Large key in src */
 	item.key_len =
@@ -1285,14 +1299,19 @@ Test(bptree_node14) {
 	ASSERT(!bptree_node_insert_entry(&src, 0, &item),
 	       "src large internal1");
 
+	println("k");
+
 	item.key_len =
 	    (INTERNAL_ARRAY_SIZE / 2) - /*sizeof(BpTreeInternalEntry)*/ 16;
 	ASSERT(!bptree_node_insert_entry(&src, 1, &item),
 	       "src large internal2");
 
+	println("l");
+
 	ASSERT(bptree_node_move_entries(&dst, 0, &src, 0, 2) < 0,
 	       "move bytes overflow internal");
 	ASSERT_EQ(err, EOVERFLOW, "err move bytes overflow internal");
+	println("m");
 }
 
 Test(bptree_node15) {
