@@ -1046,6 +1046,353 @@ Test(bptree_node12) {
 	       "set size overflow"); /* EOVERFLOW */
 }
 
+Test(bptree_node13) {
+	/*
+	BpTreeNode node;
+	BpTreeNode internal_node;
+	BpTreeItem item;
+	u64 i;
+
+
+
+	ASSERT(bptree_node_init_node(NULL, 0, false) < 0, "init null");
+	ASSERT_EQ(err, EINVAL, "err init null");
+
+	ASSERT(bptree_node_set_aux(NULL, 123) < 0, "set_aux null");
+	ASSERT_EQ(err, EINVAL, "err set_aux null");
+
+	ASSERT(bptree_node_set_parent(NULL, 456) < 0, "set_parent null");
+	ASSERT_EQ(err, EINVAL, "err set_parent null");
+
+	ASSERT(bptree_node_set_copy(NULL) < 0, "set_copy null");
+	ASSERT_EQ(err, EINVAL, "err set_copy null");
+
+	ASSERT(bptree_node_unset_copy(NULL) < 0, "unset_copy null");
+	ASSERT_EQ(err, EINVAL, "err unset_copy null");
+
+	ASSERT(bptree_node_set_next_leaf(NULL, 789) < 0, "set_next_leaf null");
+	ASSERT_EQ(err, EINVAL, "err set_next_leaf null");
+
+	ASSERT(bptree_node_insert_entry(NULL, 0, &item) < 0, "insert null");
+	ASSERT_EQ(err, EOVERFLOW,
+		  "err insert null");
+
+	ASSERT(bptree_node_delete_entry(NULL, 0) < 0, "delete null");
+	ASSERT_EQ(err, EINVAL, "err delete null");
+
+	ASSERT(bptree_node_set_entry(NULL, 0, &item) < 0, "set_entry null");
+	ASSERT_EQ(err, EINVAL, "err set_entry null");
+
+	ASSERT(bptree_node_move_entries(NULL, 0, &node, 0, 1) < 0,
+	       "move dst null");
+	ASSERT_EQ(err, EINVAL, "err move dst null");
+
+	ASSERT(bptree_node_move_entries(&node, 0, NULL, 0, 1) < 0,
+	       "move src null");
+	ASSERT_EQ(err, EINVAL, "err move src null");
+
+	ASSERT_EQ(bptree_node_parent_id(NULL), 0, "parent_id null");
+
+	ASSERT_EQ(bptree_node_num_entries(NULL), 0, "num_entries null");
+
+	ASSERT_EQ(bptree_node_used_bytes(NULL), 0, "used_bytes null");
+
+	ASSERT(!bptree_node_is_copy(NULL),
+	       "is_copy null");
+
+	ASSERT(!bptree_node_is_internal(NULL),
+	       "is_internal null");
+
+	ASSERT_EQ(bptree_node_aux(NULL), 0, "aux null");
+
+	ASSERT_EQ(bptree_node_next_leaf(NULL), 0, "next_leaf null");
+
+	ASSERT_EQ(bptree_node_key_len(NULL, 0), 0, "key_len null");
+	ASSERT_EQ(err, EINVAL, "err key_len null");
+
+	ASSERT_EQ(bptree_node_value_len(NULL, 0), 0, "value_len null");
+
+	ASSERT(bptree_node_key(NULL, 0) == NULL, "key null");
+	ASSERT_EQ(err, EINVAL, "err key null");
+
+	ASSERT(bptree_node_value(NULL, 0) == NULL, "value null");
+	ASSERT_EQ(err, EINVAL, "err value null");
+
+	ASSERT_EQ(bptree_node_offset(NULL, 0), 0, "offset null");
+	ASSERT_EQ(err, EINVAL, "err offset null");
+
+	ASSERT(bptree_node_is_overflow(NULL, 0) < 0, "is_overflow null");
+	ASSERT_EQ(err, EINVAL, "err is_overflow null");
+
+	ASSERT_EQ(bptree_node_overflow_start(NULL, 0), -1ULL,
+		  "overflow_start null");
+	ASSERT_EQ(err, EINVAL, "err overflow_start null");
+
+	ASSERT_EQ(bptree_node_overflow_end(NULL, 0), -1ULL,
+		  "overflow_end null");
+	ASSERT_EQ(err, EINVAL, "err overflow_end null");
+
+	ASSERT_EQ(bptree_node_node_id(NULL, 0), 0, "node_id null");
+
+	ASSERT(!bptree_node_init_node(&node, 0, false), "init leaf");
+	ASSERT(!bptree_node_init_node(&internal_node, 0, true),
+	       "init internal");
+
+	ASSERT_EQ(bptree_node_key_len(&node, 0), 0, "key_len invalid index");
+	ASSERT_EQ(err, EINVAL, "err key_len invalid");
+
+	ASSERT_EQ(bptree_node_value_len(&node, 0), 0,
+		  "value_len invalid index");
+
+	ASSERT(bptree_node_key(&node, 0) == NULL, "key invalid index");
+	ASSERT_EQ(err, EINVAL, "err key invalid");
+
+	ASSERT(bptree_node_value(&node, 0) == NULL, "value invalid index");
+	ASSERT_EQ(err, EINVAL, "err value invalid");
+
+	ASSERT_EQ(bptree_node_offset(&node, 0), 0, "offset invalid index");
+	ASSERT_EQ(err, EINVAL, "err offset invalid");
+
+	ASSERT(bptree_node_is_overflow(&node, 0) < 0,
+	       "is_overflow invalid index");
+	ASSERT_EQ(err, EINVAL, "err is_overflow invalid");
+
+	ASSERT_EQ(bptree_node_overflow_start(&node, 0), -1ULL,
+		  "overflow_start invalid");
+	ASSERT_EQ(err, EINVAL, "err overflow_start invalid");
+
+	ASSERT_EQ(bptree_node_overflow_end(&node, 0), -1ULL,
+		  "overflow_end invalid");
+	ASSERT_EQ(err, EINVAL, "err overflow_end invalid");
+
+	ASSERT_EQ(bptree_node_node_id(&node, 0), 0,
+		  "node_id on leaf");
+
+	ASSERT_EQ(bptree_node_offset(&internal_node, MAX_INTERNAL_ENTRIES), 0,
+		  "offset max internal");
+	ASSERT_EQ(err, EINVAL, "err offset max internal");
+
+	ASSERT_EQ(bptree_node_offset(&node, MAX_LEAF_ENTRIES), 0,
+		  "offset max leaf");
+	ASSERT_EQ(err, EINVAL, "err offset max leaf");
+
+	item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+	ASSERT(bptree_node_insert_entry(&node, 0, &item) < 0,
+	       "insert wrong type leaf");
+	ASSERT_EQ(err, EINVAL,
+		  "err insert wrong");
+
+	item.item_type = BPTREE_ITEM_TYPE_LEAF;
+	ASSERT(bptree_node_insert_entry(&internal_node, 0, &item) < 0,
+	       "insert wrong type internal");
+	ASSERT_EQ(err, EINVAL, "err insert wrong internal");
+
+	ASSERT(bptree_node_set_entry(&node, 0, &item) < 0,
+	       "set wrong type");
+	ASSERT_EQ(err, EINVAL, "err set invalid index");
+
+	ASSERT(!bptree_node_init_node(&internal_node, 0, true),
+	       "reinit internal");
+
+	for (i = 0; i < MAX_INTERNAL_ENTRIES; i++) {
+		item.key_len = 1;
+		item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+		item.vardata.internal.node_id = i;
+		item.key = "k";
+		ASSERT(!bptree_node_insert_entry(&internal_node, i, &item),
+		       "insert max internal");
+	}
+	ASSERT_EQ(bptree_node_num_entries(&internal_node), MAX_INTERNAL_ENTRIES,
+		  "max internal entries");
+
+	ASSERT(bptree_node_insert_entry(&internal_node, MAX_INTERNAL_ENTRIES,
+					&item) < 0,
+	       "insert overflow internal entries");
+	ASSERT_EQ(err, EOVERFLOW, "err overflow internal entries");
+
+	ASSERT(bptree_node_delete_entry(&node, 0) < 0, "delete empty");
+	ASSERT_EQ(err, EINVAL, "err delete empty");
+
+	ASSERT(!bptree_node_set_copy(&node), "set_copy");
+	ASSERT(bptree_node_set_copy(&node) < 0, "set_copy already");
+	ASSERT_EQ(err, EINVAL, "err set_copy already");
+
+	ASSERT(!bptree_node_unset_copy(&internal_node), "unset_copy");
+	ASSERT(bptree_node_unset_copy(&internal_node) < 0, "unset_copy not");
+	ASSERT_EQ(err, EINVAL, "err unset_copy not");
+	*/
+}
+
+Test(bptree_node14) {
+	BpTreeNode dst;
+	BpTreeNode src;
+	BpTreeItem item;
+	u64 i;
+
+	/* Test move_entries bytes overflow */
+	ASSERT(!bptree_node_init_node(&dst, 0, false), "dst init leaf");
+	ASSERT(!bptree_node_init_node(&src, 0, false), "src init leaf");
+
+	/* Fill dst with some small entries to take space */
+	for (i = 0; i < 10; i++) {
+		item.key_len = 1;
+		item.item_type = BPTREE_ITEM_TYPE_LEAF;
+		item.vardata.kv.value_len = 1;
+		item.key = "a";
+		item.vardata.kv.value = "b";
+		ASSERT(!bptree_node_insert_entry(&dst, i, &item),
+		       "dst small insert");
+	}
+
+	/* Insert large entries in src */
+	item.key_len = 10;
+	item.item_type = BPTREE_ITEM_TYPE_LEAF;
+
+	item.vardata.kv.value_len = (LEAF_ARRAY_SIZE / 2) -
+				    /*sizeof(BpTreeLeafEntry)*/ 8 -
+				    10; /* Large but fit one */
+	item.key = "longkey00";
+	item.vardata.kv.value = "longvalue..."; /* Assume filled */
+	ASSERT(!bptree_node_insert_entry(&src, 0, &item), "src large insert1");
+
+	item.vardata.kv.value_len =
+	    (LEAF_ARRAY_SIZE / 2) - /*sizeof(BpTreeLeafEntry)*/ 8 - 10;
+	ASSERT(!bptree_node_insert_entry(&src, 1, &item), "src large insert2");
+
+	/* Move should overflow bytes in dst */
+	ASSERT(bptree_node_move_entries(&dst, 0, &src, 0, 2) < 0,
+	       "move bytes overflow");
+	ASSERT_EQ(err, EOVERFLOW, "err move bytes overflow");
+
+	/* Similar for internal */
+	ASSERT(!bptree_node_init_node(&dst, 0, true), "dst init internal");
+	ASSERT(!bptree_node_init_node(&src, 0, true), "src init internal");
+
+	/* Small in dst */
+	for (i = 0; i < 10; i++) {
+		item.key_len = 1;
+		item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+		item.vardata.internal.node_id = i;
+		item.key = "k";
+		ASSERT(!bptree_node_insert_entry(&dst, i, &item),
+		       "dst small internal");
+	}
+
+	/* Large key in src */
+	item.key_len =
+	    (INTERNAL_ARRAY_SIZE / 2) - /*sizeof(BpTreeInternalEntry)*/ 16;
+	item.key = "longkey..."; /* Assume */
+	ASSERT(!bptree_node_insert_entry(&src, 0, &item),
+	       "src large internal1");
+
+	item.key_len =
+	    (INTERNAL_ARRAY_SIZE / 2) - /*sizeof(BpTreeInternalEntry)*/ 16;
+	ASSERT(!bptree_node_insert_entry(&src, 1, &item),
+	       "src large internal2");
+
+	ASSERT(bptree_node_move_entries(&dst, 0, &src, 0, 2) < 0,
+	       "move bytes overflow internal");
+	ASSERT_EQ(err, EOVERFLOW, "err move bytes overflow internal");
+}
+
+Test(bptree_node15) {
+	BpTreeNode internal_node;
+	BpTreeItem item;
+	BpTreeItem new_item;
+
+	/* Test set_entry on internal node */
+	ASSERT(!bptree_node_init_node(&internal_node, 0, true),
+	       "init internal");
+
+	item.key_len = 3;
+	item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+	item.vardata.internal.node_id = 100;
+	item.key = "abc";
+	ASSERT(!bptree_node_insert_entry(&internal_node, 0, &item),
+	       "insert internal");
+
+	item.key_len = 4;
+	item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+	item.vardata.internal.node_id = 200;
+	item.key = "defg";
+	ASSERT(!bptree_node_insert_entry(&internal_node, 1, &item),
+	       "insert internal2");
+
+	/* Set to smaller key */
+	new_item.key_len = 2;
+	new_item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+	new_item.vardata.internal.node_id = 300;
+	new_item.key = "hi";
+	ASSERT(!bptree_node_set_entry(&internal_node, 0, &new_item),
+	       "set smaller internal");
+
+	ASSERT_EQ(bptree_node_key_len(&internal_node, 0), 2,
+		  "key_len smaller internal");
+	ASSERT(!strcmpn(bptree_node_key(&internal_node, 0), "hi", 2),
+	       "key smaller internal");
+	ASSERT_EQ(bptree_node_node_id(&internal_node, 0), 300,
+		  "node_id smaller internal");
+
+	/* Set to larger key */
+	new_item.key_len = 5;
+	new_item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+	new_item.vardata.internal.node_id = 400;
+	new_item.key = "jklmn";
+	ASSERT(!bptree_node_set_entry(&internal_node, 1, &new_item),
+	       "set larger internal");
+
+	ASSERT_EQ(bptree_node_key_len(&internal_node, 1), 5,
+		  "key_len larger internal");
+	ASSERT(!strcmpn(bptree_node_key(&internal_node, 1), "jklmn", 5),
+	       "key larger internal");
+	ASSERT_EQ(bptree_node_node_id(&internal_node, 1), 400,
+		  "node_id larger internal");
+
+	/* Test overflow set on internal */
+	new_item.key_len =
+	    INTERNAL_ARRAY_SIZE - /*sizeof(BpTreeInternalEntry)*/ 16 + 1;
+	new_item.key = "overflowkey...";
+	ASSERT(bptree_node_set_entry(&internal_node, 0, &new_item) < 0,
+	       "set overflow internal");
+	ASSERT_EQ(err, EOVERFLOW, "err set overflow internal");
+
+	/* Wrong type for set on internal */
+	new_item.item_type = BPTREE_ITEM_TYPE_LEAF;
+	ASSERT(bptree_node_set_entry(&internal_node, 0, &new_item) < 0,
+	       "set wrong type internal");
+	ASSERT_EQ(err, EINVAL, "err set wrong type internal");
+}
+
+Test(bptree_node16) {
+	BpTreeNode node;
+	BpTreeNode internal_node;
+	BpTreeItem item;
+
+	/* Test bptree_node_is_internal */
+	ASSERT(!bptree_node_init_node(&node, 0, false), "init leaf");
+	ASSERT(!bptree_node_is_internal(&node), "leaf not internal");
+
+	ASSERT(!bptree_node_init_node(&internal_node, 0, true),
+	       "init internal");
+	ASSERT(bptree_node_is_internal(&internal_node), "internal is internal");
+
+	/* Test offset on internal */
+	item.key_len = 3;
+	item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+	item.vardata.internal.node_id = 123;
+	item.key = "abc";
+	ASSERT(!bptree_node_insert_entry(&internal_node, 0, &item),
+	       "insert offset test");
+
+	ASSERT_EQ(bptree_node_offset(&internal_node, 0), 0,
+		  "offset internal 0");
+
+	/* Invalid offset on internal */
+	ASSERT_EQ(bptree_node_offset(&internal_node, 1), 0,
+		  "offset invalid index internal");
+	ASSERT_EQ(err, EINVAL, "err offset invalid internal");
+}
+
 Test(bptree_node17) {
 	BpTreeNode node;
 	BpTreeItem item;
@@ -1271,11 +1618,10 @@ Test(bptree_node22) {
 	ASSERT_EQ(err, EOVERFLOW, "err overflow internal entries");
 
 	/* Test bytes overflow insert internal */
-	/*
-	item.key_len = INTERNAL_ARRAY_SIZE - sizeof(BpTreeInternalEntry) + 1;
+	item.key_len =
+	    INTERNAL_ARRAY_SIZE - /*sizeof(BpTreeInternalEntry)*/ 16 + 1;
 	item.key = "longkeyoverflow";
 	ASSERT(bptree_node_insert_entry(&node, 0, &item) < 0,
 	       "insert bytes overflow internal");
 	ASSERT_EQ(err, EOVERFLOW, "err bytes overflow internal");
-	*/
 }
