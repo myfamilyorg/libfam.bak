@@ -167,6 +167,55 @@
 #ifndef _LMDB_H_
 #define _LMDB_H_
 
+/* Temp dfns */
+
+typedef int i32;
+typedef unsigned long u64;
+typedef unsigned short int u16;
+typedef unsigned int u32;
+typedef long i64;
+typedef unsigned char u8;
+
+#define F_DUPFD 0
+#define F_GETFD 1
+#define F_SETFD 2
+#define F_GETFL 3
+#define F_SETFL 4
+#define F_GETLK 5
+#define F_SETLK 6
+#define F_SETLKW 7
+#define F_GETOWN 8
+#define F_SETOWN 9
+#define F_GETLEASE 10
+#define F_SETLEASE 1024
+
+#ifndef F_RDLCK
+#define F_RDLCK 0
+#define F_WRLCK 1
+#define F_UNLCK 2
+#endif
+
+#define O_CREAT 0100
+#define O_WRONLY 00000001
+#define O_RDWR 02
+#define O_EXCL 00000200
+#define O_SYNC 04000000
+#define O_RDONLY 00000000
+#define O_NONBLOCK 04000
+
+#define FD_CLOEXEC 1
+
+struct flock {
+	short l_type;
+	short l_whence;
+	i64 l_start;
+	i64 l_len;
+	i32 l_pid;
+};
+
+#include <libfam/limits.H>
+/* end temp defns */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -186,7 +235,7 @@ typedef i32 mdb_mode_t;
  *	uint64_t, but do not try this unless you know what you are doing.
  */
 typedef u64 mdb_size_t;
-#define MDB_SIZE_MAX SIZE_MAX /**< max #mdb_size_t */
+#define MDB_SIZE_MAX U64_MAX /**< max #mdb_size_t */
 /** #mdb_size_t printf formats, \b t = one of [diouxX] without quotes */
 #define MDB_PRIy(t) MDB_FMT_Z #t
 /** #mdb_size_t scanf formats, \b t = one of [dioux] without quotes */

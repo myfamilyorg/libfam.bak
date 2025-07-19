@@ -71,4 +71,6 @@
 #define FOR_EACH(m, arg, delim, ...) \
 	EVAL(__VA_OPT__(MAP(m, arg, delim, __VA_ARGS__)))
 
+#define offsetof(type, member) ((u64) & (((type *)0)->member))
+
 #pragma GCC diagnostic pop
