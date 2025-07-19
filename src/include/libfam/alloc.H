@@ -58,6 +58,7 @@ void *resize_impl(Alloc *a, void *ptr, u64 size);
 void *alloc(u64 size);
 void release(void *ptr);
 void *resize(void *ptr, u64 size);
+void *calloc(u64 nelem, u64 elsize);
 
 #if TEST == 1
 u64 allocated_bytes_impl(Alloc *a);

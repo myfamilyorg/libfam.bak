@@ -186,6 +186,138 @@ STATIC BpTreeNode *copy_node(BpTxn *txn, BpTreeNode *node,
 	return ret;
 }
 
+STATIC i32 try_merge(BpTxn *txn, BpTreeSearchResult *res, BpTreeNode *node,
+		     const void *key, u16 key_len, const void *value,
+		     u16 value_len) {
+	/* TODO: unimplemneted */
+	if (!txn || !node || !key || key_len == 0 || !value || value_len == 0 ||
+	    !res) {
+		err = EINVAL;
+		return -1;
+	}
+
+	return -1;
+}
+
+STATIC i32 bptree_split(BpTxn *txn, BpTreeSearchResult *res, BpTreeNode *node,
+			const void *key, u16 key_len, const void *value,
+			u32 value_len) {
+	BpTreeNode *parent = NULL, *sibling = NULL;
+	BpTreeItem item, to_insert;
+	u64 parent_id;
+	u16 partition_point, num_entries, used_left, used_right;
+	BpRbTreeNode *rbvalue;
+
+	if (!txn || !res || !key || !value || key_len == 0 || value_len == 0) {
+		err = EINVAL;
+		return -1;
+	}
+
+	/* Try to merge if we can */
+	if (try_merge(txn, res, node, key, key_len, value, value_len) == 0)
+		return 0;
+
+	if ((parent_id = bptree_node_parent_id(node))) {
+		parent = bptxn_get_node(txn, parent_id);
+	} else {
+		BpRbTreeNode *overwrite;
+		rbvalue = alloc(sizeof(BpRbTreeNode));
+		if (!rbvalue) return -1;
+		parent = allocate_node(txn);
+		if (!parent) {
+			release(rbvalue);
+			return -1;
+		}
+		bptree_node_set_aux(parent, bptree_node_aux(bptree_root(txn)));
+		parent_id = bptree_node_id(txn, parent);
+		bptree_node_init_node(parent, 0, true);
+		bptree_node_set_parent(node, parent_id);
+		rbtree_init_node((RbTreeNode *)rbvalue);
+		rbvalue->override = bptree_node_id(txn, parent);
+		rbvalue->node_id = txn->root;
+		overwrite = (BpRbTreeNode *)rbtree_put(&txn->overrides,
+						       (RbTreeNode *)rbvalue,
+						       bptree_rbtree_search);
+		if (overwrite) {
+			overwrite->node_id = txn->counter--;
+			rbtree_put(&txn->overrides, (RbTreeNode *)overwrite,
+				   bptree_rbtree_search);
+		}
+	}
+
+	sibling = allocate_node(txn);
+	if (!sibling || !parent) {
+		/* TODO: memory cleanup */
+		return -1;
+	}
+
+	rbvalue = alloc(sizeof(BpRbTreeNode));
+	if (!rbvalue) return -1; /* TODO: memory cleanup */
+
+	rbvalue->override = bptree_node_id(txn, sibling);
+	rbvalue->node_id = txn->counter--;
+	rbtree_put(&txn->overrides, (RbTreeNode *)rbvalue,
+		   bptree_rbtree_search);
+
+	bptree_node_init_node(sibling, parent_id, false);
+	num_entries = bptree_node_num_entries(node);
+	partition_point = (num_entries + 1) / 2;
+	to_insert.key_len = key_len;
+	to_insert.item_type = BPTREE_ITEM_TYPE_LEAF;
+	to_insert.vardata.kv.value_len = value_len;
+	to_insert.key = key;
+	to_insert.vardata.kv.value = value;
+
+	do {
+		u16 needed = bptree_node_calculate_needed(node, &to_insert);
+		used_left = bptree_node_offset(node, partition_point);
+		used_right = bptree_node_used_bytes(node) - used_left;
+		if (res->key_index > partition_point)
+			used_right += needed;
+		else
+			used_left += needed;
+
+		if (used_right > LEAF_ARRAY_SIZE) {
+			partition_point++;
+		}
+		if (used_left > LEAF_ARRAY_SIZE) {
+			partition_point--;
+		}
+	} while (used_right > LEAF_ARRAY_SIZE || used_left > LEAF_ARRAY_SIZE);
+
+	bptree_node_move_entries(sibling, 0, node, partition_point,
+				 num_entries - partition_point);
+
+	if (res->levels == 0) {
+		item.key_len = bptree_node_key_len(node, 0);
+		item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+		item.key = bptree_node_key(node, 0);
+		item.vardata.internal.node_id = bptree_node_id(txn, node);
+		bptree_node_insert_entry(parent, 0, &item);
+		item.key_len = bptree_node_key_len(sibling, 0);
+		item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+		item.key = bptree_node_key(sibling, 0);
+		item.vardata.internal.node_id = bptree_node_id(txn, sibling);
+		bptree_node_insert_entry(parent, 1, &item);
+	} else {
+		u16 index = res->parent_index[res->levels - 1] + 1;
+		item.key_len = bptree_node_key_len(sibling, 0);
+		item.item_type = BPTREE_ITEM_TYPE_INTERNAL;
+		item.key = bptree_node_key(sibling, 0);
+		item.vardata.internal.node_id = bptree_node_id(txn, sibling);
+		bptree_node_insert_entry(parent, index, &item);
+	}
+
+	if (res->key_index > partition_point) {
+		bptree_node_insert_entry(
+		    sibling, res->key_index - partition_point, &to_insert);
+	} else {
+		bptree_node_insert_entry(node, res->key_index, &to_insert);
+	}
+
+	return 0;
+}
+
 BpTree *bptree_open(Env *env) {
 	u64 eroot, meta, seqno;
 	BpTree *ret = alloc(sizeof(BpTree));
@@ -325,12 +457,9 @@ i32 bptree_put(BpTxn *txn, const void *key, u16 key_len, const void *value,
 	item.key = key;
 	item.vardata.kv.value = value;
 
-	if (bptree_node_insert_entry(node, res.key_index, &item) == 0) return 0;
+	if (!bptree_node_insert_entry(node, res.key_index, &item)) return 0;
 
 	println("split needed!");
 
-	/*
 	return bptree_split(txn, &res, node, key, key_len, value, value_len);
-	*/
-	return -1; /* not yet impl */
 }

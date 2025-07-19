@@ -541,6 +541,19 @@ void *resize_impl(Alloc *a, void *ptr, u64 new_size) {
 	}
 }
 
+void *calloc_impl(Alloc *a, u64 nelem, u64 elsize) {
+	void *ret;
+	if (!nelem || !elsize) return NULL;
+	if (nelem > U64_MAX / elsize) {
+		err = ENOMEM;
+		return NULL;
+	}
+	ret = alloc_impl(a, nelem * elsize);
+	if (!ret) return NULL;
+	memset(ret, 0, nelem * elsize);
+	return ret;
+}
+
 void reset_allocated_bytes(void) { reset_allocated_bytes_impl(_alloc_ptr__); }
 
 u64 get_allocated_bytes(void) { return allocated_bytes_impl(_alloc_ptr__); }
@@ -548,6 +561,10 @@ u64 get_allocated_bytes(void) { return allocated_bytes_impl(_alloc_ptr__); }
 void *alloc(u64 size) { return alloc_impl(_alloc_ptr__, size); }
 
 void release(void *ptr) { release_impl(_alloc_ptr__, ptr); }
+
+void *calloc(u64 nelem, u64 elsize) {
+	return calloc_impl(_alloc_ptr__, nelem, elsize);
+}
 
 void *resize(void *ptr, u64 size) {
 	return resize_impl(_alloc_ptr__, ptr, size);

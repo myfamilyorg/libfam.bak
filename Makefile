@@ -10,7 +10,7 @@ OBJDIR	 = .obj
 TEST_OBJDIR = .testobj
 TOBJDIR	= .tobj
 ASM_DIR	= $(SRCDIR)/asm
-SRC_DIRS   = core store net crypto util
+SRC_DIRS   = core store net crypto util lmdb
 
 PREFIX ?= /usr
 INSTALL_LIBDIR = $(PREFIX)/lib64
