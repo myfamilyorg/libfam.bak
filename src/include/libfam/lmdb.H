@@ -167,8 +167,6 @@
 #ifndef _LMDB_H_
 #define _LMDB_H_
 
-#include <inttypes.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif

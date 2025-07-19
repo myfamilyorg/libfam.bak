@@ -54,7 +54,9 @@ typedef __uint128_t u128;
 #define true (bool)1
 #endif
 
+#ifndef _NSIG
 #define _NSIG 64
+#endif
 
 typedef union epoll_data {
 	void *ptr;
