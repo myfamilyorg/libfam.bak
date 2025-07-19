@@ -63,8 +63,7 @@
 #endif
 
 #ifndef U128_MAX
-#define U128_MAX \
-	(((u128)0xFFFFFFFFFFFFFFFFUL << 64) | 0xFFFFFFFFFFFFFFFFUL)
+#define U128_MAX (((u128)0xFFFFFFFFFFFFFFFFUL << 64) | 0xFFFFFFFFFFFFFFFFUL)
 #endif
 
 #ifndef I8_MIN
@@ -102,9 +101,8 @@
 #endif
 
 #ifndef I128_MAX
-#define I128_MAX                                                         \
-	(((i128)0x7FFFFFFFUL << 96) | ((i128)0xFFFFFFFFUL << 64) | \
-	 0xFFFFFFFFUL)
+#define I128_MAX \
+	(((i128)0x7FFFFFFFUL << 96) | ((i128)0xFFFFFFFFUL << 64) | 0xFFFFFFFFUL)
 #endif
 
 #ifndef I_MAX
@@ -114,6 +112,8 @@
 #ifndef SIZE_MAX
 #define SIZE_MAX U64_MAX
 #endif
+
+#define CHAR_BIT 8
 
 #endif /* _LIMITS_H */
 
