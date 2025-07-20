@@ -48,7 +48,8 @@ COMMON_FLAGS =  -Wall \
 		-DPAGE_SIZE=$(PAGE_SIZE) \
 		-DMEMSAN=$(MEMSAN) \
 		-Wno-pointer-sign \
-		-Wno-builtin-declaration-mismatch
+		-Wno-builtin-declaration-mismatch \
+		-Wno-nonnull-compare
 
 # Arch specific flags
 ARCH_FLAGS_x86_64 = -msse4.2
