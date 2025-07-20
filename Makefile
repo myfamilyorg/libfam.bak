@@ -45,10 +45,6 @@ COMMON_FLAGS =             -Wall \
 			   -std=c89 \
 			   -Werror \
 			   -I$(INCLDIR) \
-			   -fno-builtin \
-			   -fno-stack-protector \
-			   -Wno-attributes \
-			   -Wno-pointer-sign \
 			   -DPAGE_SIZE=$(PAGE_SIZE) \
 			   -DMEMSAN=$(MEMSAN)
 
