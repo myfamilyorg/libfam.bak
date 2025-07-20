@@ -1634,9 +1634,6 @@ int mdb_reader_list(MDB_env *env, MDB_msg_func *func, void *ctx);
 int mdb_reader_check(MDB_env *env, int *dead);
 /**	@} */
 
-#ifdef __cplusplus
-}
-#endif
 /** @page tools LMDB Command Line Tools
 	The following describes the command line tools that are available for
    LMDB.

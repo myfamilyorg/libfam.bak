@@ -29,10 +29,6 @@
 
 #include <libfam/lmdb.H>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /** @defgroup internal	LMDB Internals
  *	@{
  */
@@ -197,7 +193,4 @@ int mdb_mid3l_insert(MDB_ID3L ids, MDB_ID3 *id);
 #endif /* MDB_VL32 */
 /** @} */
 /** @} */
-#ifdef __cplusplus
-}
-#endif
 #endif /* _MDB_MIDL_H_ */

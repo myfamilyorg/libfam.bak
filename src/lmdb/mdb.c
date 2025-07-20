@@ -33,9 +33,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <libfam/alloc.H>
 #include <libfam/lmdb.H>
 #include <libfam/macro_util.H>
 #include <libfam/midl.H>
+#include <libfam/pthread.H>
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE 1
@@ -95,25 +97,8 @@ static NtCloseFunc *NtClose;
 #define MDB_PID_T i32
 #define MDB_THR_T pthread_t
 
-#define PROT_READ 0x01
-#define PROT_WRITE 0x02
-#define MAP_SHARED 0x01
-#define MAP_PRIVATE 0x02
-#define MAP_ANONYMOUS 0x20
-#define MAP_FAILED ((void *)-1)
-void *mmap(void *addr, u64 length, i32 prot, i32 flags, i32 fd, i64 offset);
-i32 msync(void *addr, u64 length, i32 flags);
-i32 munmap(void *addr, u64 len);
-
-i64 writev(i32 fd, const struct iovec *iov, i32 iovcnt);
-i64 pread(i32 fd, void *buf, u64 count, i64 offset);
-i64 pwrite(i32 fd, const void *buf, u64 count, i64 offset);
-void perror(const u8 *);
-
 #ifdef HAVE_SYS_FILE_H
 #endif
-i32 open(const u8 *pathname, i32 flags, u32 mode);
-i32 fcntl(i32 fd, i32 op, ...);
 #define MDB_OFF_T i64
 #endif
 
@@ -135,32 +120,9 @@ i32 fcntl(i32 fd, i32 op, ...);
 #define BROKEN_FDATASYNC
 #endif
 
-void *alloc(u64 size);
-void release(void *ptr);
-void *resize(void *ptr, u64 size);
-void *calloc(u64 nelem, u64 elsize);
-
-void *memset(void *ptr, i32 x, u64 n);
-void *memcpy(void *dst, const void *src, u64 n);
-u64 strlen(const u8 *S);
-u8 *strdup(const char *s);
-void *memorymove(void *dst, const void *src, u64 n);
-u8 *strcpy(u8 *dest, const u8 *src);
-i32 memcmp(const void *s1, const void *s2, u64 n);
-i32 strcmpn(const u8 *s1, const u8 *s2, u64 n);
-const u8 *error_string(i32 err_code);
-
 #ifdef _MSC_VER
 typedef SSIZE_T i64;
 #else
-i32 fdatasync(i32 fd);
-i32 ftruncate(i32 fd, i64 length);
-i64 write(i32 fd, const void *buf, u64 count);
-i32 fdatasync(i32 fd);
-i32 close(i32 fd);
-i32 getpid(void);
-i64 lseek(i32 fd, i64 offset, i32 whence);
-
 #endif
 
 #if defined(__sun) || defined(__ANDROID__)
@@ -193,10 +155,6 @@ i64 lseek(i32 fd, i64 offset, i32 whence);
 #endif
 
 #ifndef _WIN32
-/*
-#include <pthread.h>
-*/
-#include <libfam/pthread.H>
 #ifdef MDB_USE_POSIX_SEM
 #define MDB_USE_HASH 1
 #elif defined(MDB_USE_SYSV_SEM)
