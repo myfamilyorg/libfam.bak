@@ -167,43 +167,10 @@
 #ifndef _LMDB_H_
 #define _LMDB_H_
 
-/* Temp dfns */
-
 #include <libfam/error.H>
+#include <libfam/limits.H>
 #include <libfam/syscall_const.H>
 #include <libfam/types.H>
-
-#define SEEK_SET 0  /* seek relative to beginning of file */
-#define SEEK_CUR 1  /* seek relative to current file position */
-#define SEEK_END 2  /* seek relative to end of file */
-#define SEEK_DATA 3 /* seek to the next data */
-#define SEEK_HOLE 4 /* seek to the next hole */
-#define SEEK_MAX SEEK_HOLE
-
-#define O_CREAT 0100
-#define O_WRONLY 00000001
-#define O_RDWR 02
-#define O_EXCL 00000200
-#define O_SYNC 04000000
-#define O_RDONLY 00000000
-#define O_NONBLOCK 04000
-
-#define FD_CLOEXEC 1
-
-struct flock {
-	short l_type;
-	short l_whence;
-	i64 l_start;
-	i64 l_len;
-	i32 l_pid;
-};
-
-#include <libfam/limits.H>
-/* end temp defns */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 typedef i32 mdb_mode_t;
 

@@ -24,6 +24,7 @@
  *******************************************************************************/
 
 #include <libfam/atomic.H>
+#include <libfam/format.H>
 #include <libfam/limits.H>
 #include <libfam/lock.H>
 #include <libfam/misc.H>
@@ -36,9 +37,15 @@
 
 void lockguard_cleanup(LockGuardImpl *lg) {
 	if (lg->is_write) {
+		Lock cur = ALOAD(lg->lock);
+		if (cur == 0U || cur == WREQUEST)
+			panic("invalid lock state 1: {}", cur);
 		__and32(lg->lock, WREQUEST);
 		futex(lg->lock, FUTEX_WAKE, I32_MAX, NULL, NULL, 0);
 	} else {
+		Lock cur = ALOAD(lg->lock);
+		if (cur == 0U || cur == (u32)WFLAG)
+			panic("invalid lock state 2");
 		u32 v = __sub32(lg->lock, 1);
 		if ((v & ~(WREQUEST | WFLAG)) == 1)
 			futex(lg->lock, FUTEX_WAKE, 1, NULL, NULL, 0);

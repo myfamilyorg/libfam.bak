@@ -63,6 +63,14 @@ struct iovec {
 	u64 iov_len;
 };
 
+struct flock {
+	i16 l_type;
+	i16 l_whence;
+	i64 l_start;
+	i64 l_len;
+	i32 l_pid;
+};
+
 typedef union epoll_data {
 	void *ptr;
 	i32 fd;
