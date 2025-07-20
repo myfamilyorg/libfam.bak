@@ -442,6 +442,12 @@ DEFINE_SYSCALL0(172, i32, getpid)
 DEFINE_SYSCALL2(129, i32, kill, i32, pid, i32, signal)
 DEFINE_SYSCALL3(221, i32, execve, const u8 *, pathname, u8 *const *, argv,
 		u8 *const *, envp)
+DEFINE_SYSCALL3(227, i32, msync, void *, addr, u64, length, i32, flags)
+DEFINE_SYSCALL3(66, i64, writev, i32, fd, const struct iovec *, iov, i32,
+		iovcnt)
+DEFINE_SYSCALL4(67, i64, pread64, i32, fd, void *, buf, u64, count, i64, offset)
+DEFINE_SYSCALL4(68, i64, pwrite64, i32, fd, const void *, buf, u64, count, i64,
+		offset)
 
 #elif defined(__amd64__)
 /* System call definitions */
@@ -497,6 +503,12 @@ DEFINE_SYSCALL0(39, i32, getpid)
 DEFINE_SYSCALL2(62, i32, kill, i32, pid, i32, signal)
 DEFINE_SYSCALL3(59, i32, execve, const u8 *, pathname, u8 *const *, argv,
 		u8 *const *, envp)
+DEFINE_SYSCALL3(26, i32, msync, void *, addr, u64, length, i32, flags)
+DEFINE_SYSCALL3(20, i64, writev, i32, fd, const struct iovec *, iov, i32,
+		iovcnt)
+DEFINE_SYSCALL4(17, i64, pread64, i32, fd, void *, buf, u64, count, i64, offset)
+DEFINE_SYSCALL4(18, i64, pwrite64, i32, fd, const void *, buf, u64, count, i64,
+		offset)
 
 #endif /* Arch */
 
@@ -768,5 +780,22 @@ i32 kill(i32 pid, i32 signal) {
 
 i32 execve(const u8 *pathname, u8 *const argv[], u8 *const envp[]) {
 	i32 ret = syscall_execve(pathname, argv, envp);
+	SET_ERR
+}
+
+i64 writev(i32 fd, const struct iovec *iov, i32 iovcnt) {
+	i64 ret = syscall_writev(fd, iov, iovcnt);
+	SET_ERR
+}
+i64 pread(i32 fd, void *buf, u64 count, i64 offset) {
+	i64 ret = syscall_pread64(fd, buf, count, offset);
+	SET_ERR
+}
+i64 pwrite(i32 fd, const void *buf, u64 count, i64 offset) {
+	i64 ret = syscall_pwrite64(fd, buf, count, offset);
+	SET_ERR
+}
+i32 msync(void *addr, u64 length, i32 flags) {
+	i32 ret = syscall_msync(addr, length, flags);
 	SET_ERR
 }

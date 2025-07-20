@@ -51,9 +51,9 @@ LDFLAGS="--coverage -Wno-builtin-declaration-mismatch -DTEST=1"
 LIBCGCOV=""
 
 # Source files
-TEST_SRC="src/core/test.c src/store/test.c src/net/test.c src/crypto/test.c src/util/test.c"
+TEST_SRC="src/core/test.c src/store/test.c src/net/test.c src/crypto/test.c src/util/test.c src/lmdb/test.c"
 # Include non-test .c files from core, store, and net
-CORE_SRC=$(ls src/core/*.c src/store/*.c src/net/*.c src/crypto/*.c src/util/*.c 2>/dev/null | grep -v test.c)
+CORE_SRC=$(ls src/core/*.c src/store/*.c src/net/*.c src/crypto/*.c src/util/*.c src/lmdb/*.c 2>/dev/null | grep -v test.c)
 
 # Object files
 TEST_OBJS=$(echo ${TEST_SRC} | sed "s|${SRCDIR}/|${TOBJDIR}/|g" | sed "s|\.c|\.cov.o|g")
@@ -66,8 +66,8 @@ COV_BIN="${BINDIR}/runtests_cov"
 rm -rf ${TOBJDIR} ${TEST_OBJDIR} ${BINDIR}/runtests_cov ${COVDIR}/* *.gcov
 
 # Create directories
-mkdir -p ${TOBJDIR}/core ${TOBJDIR}/store ${TOBJDIR}/net ${TOBJDIR}/crypto ${TOBJDIR}/util
-mkdir -p ${TEST_OBJDIR}/core ${TEST_OBJDIR}/store ${TEST_OBJDIR}/net ${TEST_OBJDIR}/crypto ${TEST_OBJDIR}/util
+mkdir -p ${TOBJDIR}/core ${TOBJDIR}/store ${TOBJDIR}/net ${TOBJDIR}/crypto ${TOBJDIR}/util ${TOBJDIR}/lmdb
+mkdir -p ${TEST_OBJDIR}/core ${TEST_OBJDIR}/store ${TEST_OBJDIR}/net ${TEST_OBJDIR}/crypto ${TEST_OBJDIR}/util ${TEST_OBJDIR}/lmdb
 
 mkdir -p ${BINDIR}
 

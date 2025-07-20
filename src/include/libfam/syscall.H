@@ -42,6 +42,7 @@ i64 read(i32 fd, void *buf, u64 count);
 i32 sched_yield(void);
 void exit(i32 status);
 i32 munmap(void *addr, u64 len);
+i32 msync(void *addr, u64 length, i32 flags);
 i32 close(i32 fd);
 i32 fcntl(i32 fd, i32 op, ...);
 i32 clone3(struct clone_args *args, u64 size);
