@@ -49,7 +49,9 @@ COMMON_FLAGS =  -Wall \
 		-DMEMSAN=$(MEMSAN) \
 		-Wno-pointer-sign \
 		-Wno-builtin-declaration-mismatch \
-		-Wno-nonnull-compare
+		-Wno-nonnull-compare \
+		-Wno-unknown-warning-option \
+		-Wno-incompatible-library-redeclaration
 
 # Arch specific flags
 ARCH_FLAGS_x86_64 = -msse4.2
