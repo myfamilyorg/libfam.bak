@@ -108,7 +108,7 @@ i32 munmap(void *addr, u64 len);
 i64 writev(i32 fd, const struct iovec *iov, i32 iovcnt);
 i64 pread(i32 fd, void *buf, u64 count, i64 offset);
 i64 pwrite(i32 fd, const void *buf, u64 count, i64 offset);
-void perror(const char *);
+void perror(const u8 *);
 
 #ifdef HAVE_SYS_FILE_H
 #endif
