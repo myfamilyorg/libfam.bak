@@ -23,84 +23,33 @@
  *
  *******************************************************************************/
 
-#include <libfam/colors.H>
-#include <libfam/env.H>
-#include <libfam/misc.H>
+#ifndef _SYS_H
+#define _SYS_H
+
+#include <libfam/syscall.H>
 #include <libfam/types.H>
 
-i32 no_color(void) {
-	u8 *noc = getenv("NO_COLOR");
-	return noc != NULL;
-}
+/* system calls applied */
+i32 unlink(const u8 *path);
+i32 open(const u8 *pathname, i32 flags, u32 mode);
+i32 getentropy(void *buffer, u64 length);
+i32 yield(void);
+i32 timeout(void (*task)(void), u64 milliseconds);
+void *map(u64 length);
+void *fmap(i32 fd, i64 size, i64 offset);
+void *smap(u64 length);
+i32 exists(const u8 *path);
+i32 file(const u8 *path);
+i64 fsize(i32 fd);
+i32 fresize(i32 fd, i64 length);
+i32 flush(i32 fd);
+i64 micros(void);
+i32 sleep(u64 millis);
+i32 two(void);
+i32 two2(bool share_fds);
 
-const u8 *get_dimmed(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[2m";
-	}
-}
+#if TEST == 1
+extern bool _debug_set_timeout_fail;
+#endif /* TEST */
 
-const u8 *get_red(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[31m";
-	}
-}
-
-const u8 *get_bright_red(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[91m";
-	}
-}
-
-const u8 *get_green(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[32m";
-	}
-}
-
-const u8 *get_yellow(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[33m";
-	}
-}
-
-const u8 *get_cyan(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[36m";
-	}
-}
-
-const u8 *get_magenta(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[35m";
-	}
-}
-
-const u8 *get_blue(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[34m";
-	}
-}
-
-const u8 *get_reset(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[0m";
-	}
-}
+#endif /* _SYS_H */

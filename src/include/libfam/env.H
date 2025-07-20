@@ -23,84 +23,14 @@
  *
  *******************************************************************************/
 
-#include <libfam/colors.H>
-#include <libfam/env.H>
-#include <libfam/misc.H>
+#ifndef _ENV_H
+#define _ENV_H
+
 #include <libfam/types.H>
 
-i32 no_color(void) {
-	u8 *noc = getenv("NO_COLOR");
-	return noc != NULL;
-}
+u8 *getenv(const u8 *name);
+i32 unsetenv(const u8 *name);
+i32 setenv(const u8 *name, const u8 *value, i32 overwrite);
+void init_environ(void);
 
-const u8 *get_dimmed(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[2m";
-	}
-}
-
-const u8 *get_red(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[31m";
-	}
-}
-
-const u8 *get_bright_red(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[91m";
-	}
-}
-
-const u8 *get_green(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[32m";
-	}
-}
-
-const u8 *get_yellow(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[33m";
-	}
-}
-
-const u8 *get_cyan(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[36m";
-	}
-}
-
-const u8 *get_magenta(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[35m";
-	}
-}
-
-const u8 *get_blue(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[34m";
-	}
-}
-
-const u8 *get_reset(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[0m";
-	}
-}
+#endif /* _ENV_H */

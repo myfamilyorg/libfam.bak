@@ -23,84 +23,52 @@
  *
  *******************************************************************************/
 
-#include <libfam/colors.H>
-#include <libfam/env.H>
-#include <libfam/misc.H>
+#ifndef _ALLOC_H
+#define _ALLOC_H
+
+#ifndef MEMSAN
+#define MEMSAN 0 /* Disabled by default */
+#endif
+
+#ifndef PAGE_SIZE
+#define PAGE_SIZE ((u64)(4 * 4096))
+#endif /* PAGE_SIZE */
+
+#ifndef CHUNK_SIZE
+#define CHUNK_SIZE ((u64)(0x1 << 22)) /* 4mb */
+#endif
+
+#ifndef MAX_SLAB_SIZE
+#define MAX_SLAB_SIZE ((u64)(CHUNK_SIZE >> 2)) /* 1mb */
+#endif
+
+#include <libfam/sys.H>
 #include <libfam/types.H>
 
-i32 no_color(void) {
-	u8 *noc = getenv("NO_COLOR");
-	return noc != NULL;
-}
+typedef struct Alloc Alloc;
 
-const u8 *get_dimmed(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[2m";
-	}
-}
+typedef enum { ALLOC_TYPE_MAP, ALLOC_TYPE_SMAP, ALLOC_TYPE_FMAP } AllocType;
 
-const u8 *get_red(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[31m";
-	}
-}
+Alloc *alloc_init(AllocType t, u64 size, ...);
+void alloc_destroy(Alloc *a);
+void *alloc_impl(Alloc *a, u64 size);
+void release_impl(Alloc *a, void *ptr);
+void *resize_impl(Alloc *a, void *ptr, u64 size);
 
-const u8 *get_bright_red(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[91m";
-	}
-}
+void *alloc(u64 size);
+void release(void *ptr);
+void *resize(void *ptr, u64 size);
+void *calloc(u64 nelem, u64 elsize);
 
-const u8 *get_green(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[32m";
-	}
-}
+#if TEST == 1
+u64 allocated_bytes_impl(Alloc *a);
+void reset_allocated_bytes_impl(Alloc *a);
+u64 get_allocated_bytes(void);
+void reset_allocated_bytes(void);
 
-const u8 *get_yellow(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[33m";
-	}
-}
+extern u64 _debug_cas_loop;
+extern u64 _debug_alloc_failure;
+extern u64 _debug_alloc_failure_bypass_count;
+#endif /* TEST */
 
-const u8 *get_cyan(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[36m";
-	}
-}
-
-const u8 *get_magenta(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[35m";
-	}
-}
-
-const u8 *get_blue(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[34m";
-	}
-}
-
-const u8 *get_reset(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[0m";
-	}
-}
+#endif /* _ALLOC_H */

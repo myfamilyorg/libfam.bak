@@ -23,84 +23,36 @@
  *
  *******************************************************************************/
 
-#include <libfam/colors.H>
-#include <libfam/env.H>
-#include <libfam/misc.H>
+#ifndef _COLORS_H
+#define _COLORS_H
+
 #include <libfam/types.H>
 
-i32 no_color(void) {
-	u8 *noc = getenv("NO_COLOR");
-	return noc != NULL;
-}
+const u8 *get_dimmed(void);
+#define DIMMED get_dimmed()
 
-const u8 *get_dimmed(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[2m";
-	}
-}
+const u8 *get_red(void);
+#define RED get_red()
 
-const u8 *get_red(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[31m";
-	}
-}
+const u8 *get_bright_red(void);
+#define BRIGHT_RED get_bright_red()
 
-const u8 *get_bright_red(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[91m";
-	}
-}
+const u8 *get_green(void);
+#define GREEN get_green()
 
-const u8 *get_green(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[32m";
-	}
-}
+const u8 *get_yellow(void);
+#define YELLOW get_yellow()
 
-const u8 *get_yellow(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[33m";
-	}
-}
+const u8 *get_cyan(void);
+#define CYAN get_cyan()
 
-const u8 *get_cyan(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[36m";
-	}
-}
+const u8 *get_magenta(void);
+#define MAGENTA get_magenta()
 
-const u8 *get_magenta(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[35m";
-	}
-}
+const u8 *get_blue(void);
+#define BLUE get_blue()
 
-const u8 *get_blue(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[34m";
-	}
-}
+const u8 *get_reset(void);
+#define RESET get_reset()
 
-const u8 *get_reset(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[0m";
-	}
-}
+#endif /* _COLORS_H */

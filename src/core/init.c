@@ -23,84 +23,40 @@
  *
  *******************************************************************************/
 
-#include <libfam/colors.H>
-#include <libfam/env.H>
-#include <libfam/misc.H>
+#include <libfam/error.H>
+#include <libfam/format.H>
+#include <libfam/init.H>
 #include <libfam/types.H>
 
-i32 no_color(void) {
-	u8 *noc = getenv("NO_COLOR");
-	return noc != NULL;
-}
+#define MAX_EXIT 64
 
-const u8 *get_dimmed(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[2m";
+STATIC i32 has_begun = 0;
+
+void begin(void) {
+	if (!has_begun) {
+		signals_init();
+		has_begun = 1;
 	}
 }
 
-const u8 *get_red(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[31m";
+static void (*exit_fns[MAX_EXIT])(void);
+static u64 exit_count = 0;
+
+i32 register_exit(void (*fn)(void)) {
+	u64 index = exit_count++;
+	if (index >= MAX_EXIT) {
+		exit_count--;
+		err = ENOSPC;
+		return -1;
 	}
+	exit_fns[index] = fn;
+	return 0;
 }
 
-const u8 *get_bright_red(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[91m";
+void __attribute__((destructor)) execute_exits(void) {
+	i32 i;
+	for (i = exit_count - 1; i >= 0; i--) {
+		exit_fns[i]();
 	}
-}
-
-const u8 *get_green(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[32m";
-	}
-}
-
-const u8 *get_yellow(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[33m";
-	}
-}
-
-const u8 *get_cyan(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[36m";
-	}
-}
-
-const u8 *get_magenta(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[35m";
-	}
-}
-
-const u8 *get_blue(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[34m";
-	}
-}
-
-const u8 *get_reset(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[0m";
-	}
+	exit_count = 0;
 }

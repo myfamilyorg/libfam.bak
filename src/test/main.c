@@ -23,7 +23,37 @@
  *
  *******************************************************************************/
 
-#include <libfam/types.H>
+#include <libfam/alloc.H>
+#include <libfam/env.H>
+#include <libfam/format.H>
+#include <libfam/misc.H>
+#include <libfam/sys.H>
+#include <libfam/test.H>
+
+u8 **environ = 0;
+i32 cur_tests = 0;
+i32 exe_test = 0;
+
+TestEntry tests[MAX_TESTS];
+
+void add_test_fn(void (*test_fn)(void), const u8 *name) {
+	if (strlen(name) > MAX_TEST_NAME) panic("test name too long!");
+	if (cur_tests >= MAX_TESTS) panic("too many tests!");
+	tests[cur_tests].test_fn = test_fn;
+	memset(tests[cur_tests].name, 0, MAX_TEST_NAME);
+	strcpy(tests[cur_tests].name, name);
+	cur_tests++;
+}
+
+extern void (*__init_array_start[])(void);
+extern void (*__init_array_end[])(void);
+
+void call_constructors(void) {
+	void (**func)(void);
+	for (func = __init_array_start; func < __init_array_end; func++) {
+		(*func)();
+	}
+}
 
 #ifndef COVERAGE
 i32 main(i32 argc, u8 *argv[], u8 *envp[]);
@@ -66,7 +96,57 @@ __asm__(
 
 i32 main(i32 argc __attribute__((unused)), u8 **argv __attribute__((unused)),
 	 u8 **envp) {
-	if (envp) {
+	i32 test_count = 0, len;
+	u8 *tp;
+	u64 total;
+	u8 buf[128];
+	double ms;
+
+	reset_allocated_bytes();
+#ifndef COVERAGE
+	call_constructors();
+#endif
+
+	environ = envp;
+	init_environ();
+
+	tp = getenv("TEST_PATTERN");
+	if (!tp || !strcmp(tp, "*")) {
+		println("{}Running {} tests{} ...", CYAN, cur_tests, RESET);
+	} else {
+		println("{}Running test{}: '{}' ...", CYAN, RESET, tp);
 	}
+
+	println(
+	    "------------------------------------------------------------------"
+	    "--------------------------");
+
+	total = micros();
+
+	for (exe_test = 0; exe_test < cur_tests; exe_test++) {
+		if (!tp || !strcmp(tp, "*") ||
+		    !strcmp(tests[exe_test].name, tp)) {
+			u64 start;
+			print("{}Running test{} {} [{}{}{}]", YELLOW, RESET,
+			      1 + test_count, DIMMED, tests[exe_test].name,
+			      RESET);
+			start = micros();
+			tests[exe_test].test_fn();
+			println(" {}[{} {}s]{}", GREEN, (i32)(micros() - start),
+				"µ", RESET);
+			test_count++;
+		}
+	}
+
+	ms = (double)(micros() - total) / (double)1000;
+
+	println(
+	    "------------------------------------------------------------------"
+	    "--------------------------");
+	len = double_to_string(buf, ms, 3);
+	buf[len] = 0;
+	println("{}Success{}! {} {}tests passed!{} {}[{} ms]{}", GREEN, RESET,
+		test_count, CYAN, RESET, GREEN, buf, RESET);
+
 	return 0;
 }

@@ -23,84 +23,28 @@
  *
  *******************************************************************************/
 
-#include <libfam/colors.H>
-#include <libfam/env.H>
-#include <libfam/misc.H>
+#include <libfam/format.H>
+#include <libfam/init.H>
+#include <libfam/sys.H>
+#include <libfam/syscall.H>
+#include <libfam/syscall_const.H>
 #include <libfam/types.H>
 
-i32 no_color(void) {
-	u8 *noc = getenv("NO_COLOR");
-	return noc != NULL;
-}
+i32 two(void) { return two2(true); }
 
-const u8 *get_dimmed(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[2m";
-	}
-}
+i32 two2(bool share_fds) {
+	struct clone_args args = {0};
+	i64 ret;
+	args.flags = share_fds ? CLONE_FILES : 0;
+	args.pidfd = 0;
+	args.child_tid = 0;
+	args.parent_tid = 0;
+	args.exit_signal = SIGCHLD;
+	args.stack = 0;
+	args.stack_size = 0;
+	args.tls = 0;
 
-const u8 *get_red(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[31m";
-	}
-}
-
-const u8 *get_bright_red(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[91m";
-	}
-}
-
-const u8 *get_green(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[32m";
-	}
-}
-
-const u8 *get_yellow(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[33m";
-	}
-}
-
-const u8 *get_cyan(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[36m";
-	}
-}
-
-const u8 *get_magenta(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[35m";
-	}
-}
-
-const u8 *get_blue(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[34m";
-	}
-}
-
-const u8 *get_reset(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[0m";
-	}
+	ret = clone3(&args, sizeof(args));
+	if (ret == 0) begin();
+	return (i32)ret;
 }

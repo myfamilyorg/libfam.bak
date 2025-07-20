@@ -40,13 +40,15 @@ MEMSAN	 ?= 0
 FILTER	 ?= "*"
 
 # Common flags
-COMMON_FLAGS =             -Wall \
-			   -Wextra \
-			   -std=c89 \
-			   -Werror \
-			   -I$(INCLDIR) \
-			   -DPAGE_SIZE=$(PAGE_SIZE) \
-			   -DMEMSAN=$(MEMSAN)
+COMMON_FLAGS =  -Wall \
+		-Wextra \
+		-std=c89 \
+		-Werror \
+		-I$(INCLDIR) \
+		-DPAGE_SIZE=$(PAGE_SIZE) \
+		-DMEMSAN=$(MEMSAN) \
+		-Wno-pointer-sign \
+		-Wno-builtin-declaration-mismatch
 
 # Arch specific flags
 ARCH_FLAGS_x86_64 = -msse4.2

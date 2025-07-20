@@ -23,84 +23,97 @@
  *
  *******************************************************************************/
 
-#include <libfam/colors.H>
-#include <libfam/env.H>
-#include <libfam/misc.H>
-#include <libfam/types.H>
+#ifndef _LIMITS_H
+#define _LIMITS_H
 
-i32 no_color(void) {
-	u8 *noc = getenv("NO_COLOR");
-	return noc != NULL;
-}
+#ifndef U8_MIN
+#define U8_MIN 0x0
+#endif
 
-const u8 *get_dimmed(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[2m";
-	}
-}
+#ifndef U16_MIN
+#define U16_MIN 0x0
+#endif
 
-const u8 *get_red(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[31m";
-	}
-}
+#ifndef U32_MIN
+#define U32_MIN 0x0
+#endif
 
-const u8 *get_bright_red(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[91m";
-	}
-}
+#ifndef U64_MIN
+#define U64_MIN 0x0
+#endif
 
-const u8 *get_green(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[32m";
-	}
-}
+#ifndef U128_MIN
+#define U128_MIN 0x0
+#endif
 
-const u8 *get_yellow(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[33m";
-	}
-}
+#ifndef U8_MAX
+#define U8_MAX 0xFF
+#endif
 
-const u8 *get_cyan(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[36m";
-	}
-}
+#ifndef U16_MAX
+#define U16_MAX 0xFFFF
+#endif
 
-const u8 *get_magenta(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[35m";
-	}
-}
+#ifndef U32_MAX
+#define U32_MAX 0xFFFFFFFF
+#endif
 
-const u8 *get_blue(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[34m";
-	}
-}
+#ifndef U64_MAX
+#define U64_MAX 0xFFFFFFFFFFFFFFFF
+#endif
 
-const u8 *get_reset(void) {
-	if (no_color()) {
-		return "";
-	} else {
-		return "\x1b[0m";
-	}
-}
+#ifndef U128_MAX
+#define U128_MAX (((u128)0xFFFFFFFFFFFFFFFFUL << 64) | 0xFFFFFFFFFFFFFFFFUL)
+#endif
+
+#ifndef I8_MIN
+#define I8_MIN (-0x7F - 1)
+#endif
+
+#ifndef I16_MIN
+#define I16_MIN (-0x7FFF - 1)
+#endif
+
+#ifndef I32_MIN
+#define I32_MIN (-0x7FFFFFFF - 1)
+#endif
+
+#ifndef I64_MIN
+#define I64_MIN (-0x7FFFFFFFFFFFFFFF - 1)
+#endif
+
+#define I128_MIN (((i128)0x80000000UL << 96))
+
+#ifndef I8_MAX
+#define I8_MAX 0x7F
+#endif
+
+#ifndef I16_MAX
+#define I16_MAX 0x7FFF
+#endif
+
+#ifndef I32_MAX
+#define I32_MAX 0x7FFFFFFF
+#endif
+
+#ifndef I64_MAX
+#define I64_MAX 0x7FFFFFFFFFFFFFFF
+#endif
+
+#ifndef I128_MAX
+#define I128_MAX \
+	(((i128)0x7FFFFFFFUL << 96) | ((i128)0xFFFFFFFFUL << 64) | 0xFFFFFFFFUL)
+#endif
+
+#ifndef I_MAX
+#define I_MAX __I_MAX__
+#endif
+
+#ifndef SIZE_MAX
+#define SIZE_MAX U64_MAX
+#endif
+
+#define CHAR_BIT 8
+
+#endif /* _LIMITS_H */
+
