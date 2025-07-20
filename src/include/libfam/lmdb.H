@@ -170,6 +170,7 @@
 /* Temp dfns */
 
 #include <libfam/error.H>
+#include <libfam/syscall_const.H>
 #include <libfam/types.H>
 
 #define SEEK_SET 0  /* seek relative to beginning of file */
@@ -178,25 +179,6 @@
 #define SEEK_DATA 3 /* seek to the next data */
 #define SEEK_HOLE 4 /* seek to the next hole */
 #define SEEK_MAX SEEK_HOLE
-
-#define F_DUPFD 0
-#define F_GETFD 1
-#define F_SETFD 2
-#define F_GETFL 3
-#define F_SETFL 4
-#define F_GETLK 5
-#define F_SETLK 6
-#define F_SETLKW 7
-#define F_GETOWN 8
-#define F_SETOWN 9
-#define F_GETLEASE 10
-#define F_SETLEASE 1024
-
-#ifndef F_RDLCK
-#define F_RDLCK 0
-#define F_WRLCK 1
-#define F_UNLCK 2
-#endif
 
 #define O_CREAT 0100
 #define O_WRONLY 00000001

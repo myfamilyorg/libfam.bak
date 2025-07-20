@@ -40,6 +40,13 @@
 #define F_SETOWN 6
 #define F_GETLEASE 10
 #define F_SETLEASE 1024
+#define F_GETLK 5
+#define F_SETLK 6
+#define F_SETLKW 7
+
+#define F_RDLCK 0
+#define F_WRLCK 1
+#define F_UNLCK 2
 
 /* GETRANDOM */
 #define GRND_RANDOM 0x0002
