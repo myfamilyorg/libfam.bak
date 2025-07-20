@@ -29,6 +29,7 @@
 #include <libfam/types.H>
 
 void __stack_chk_fail() { panic("STACKCHECKFAIL!"); }
+void __stack_chk_guard() { panic("STACKCHECKGUARD!"); }
 
 #define CheckEndian()                                                        \
 	u16 test = 0x1234;                                                   \
