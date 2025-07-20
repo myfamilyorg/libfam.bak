@@ -31,7 +31,13 @@ COVDIR=".cov"
 
 # Compiler and flags
 CC="gcc"
-CFLAGS="-DPAGE_SIZE=16384 -I${INCLDIR} -O3 -DMEMSAN=0 -DSTATIC= -g"
+CFLAGS="-DPAGE_SIZE=16384 \
+	-I${INCLDIR} \
+	-O3 \
+	-DMEMSAN=0 \
+	-DSTATIC= \
+	-g \
+	-Wno-builtin-declaration-mismatch"
 
 # Architecture-specific flags
 ARCH_CFLAGS_x86_64="-msse4.2"
@@ -109,7 +115,8 @@ COMMAND="${CC} \
 	-lc \
 	-lgcc \
 	-DCOVERAGE \
-	-o ${COV_BIN}"
+	-o ${COV_BIN} \
+	-Wno-builtin-declaration-mismatch"
 echo ${COMMAND}
 ${COMMAND}
 
