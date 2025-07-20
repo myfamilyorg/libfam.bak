@@ -58,6 +58,13 @@ typedef __uint128_t u128;
 #define _NSIG 64
 #endif
 
+/*
+struct iovec {
+	void *iov_base;
+	u64 iov_len;
+};
+*/
+
 typedef union epoll_data {
 	void *ptr;
 	i32 fd;

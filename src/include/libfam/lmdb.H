@@ -170,6 +170,10 @@
 /* Temp dfns */
 
 /*
+#include <libfam/types.H>
+*/
+
+/*
 typedef int i32;
 typedef unsigned long u64;
 typedef unsigned short int u16;
@@ -177,6 +181,18 @@ typedef unsigned int u32;
 typedef long i64;
 typedef unsigned char u8;
 */
+
+struct iovec {
+	void *iov_base;
+	u64 iov_len;
+};
+
+#define SEEK_SET 0  /* seek relative to beginning of file */
+#define SEEK_CUR 1  /* seek relative to current file position */
+#define SEEK_END 2  /* seek relative to end of file */
+#define SEEK_DATA 3 /* seek to the next data */
+#define SEEK_HOLE 4 /* seek to the next hole */
+#define SEEK_MAX SEEK_HOLE
 
 #define F_DUPFD 0
 #define F_GETFD 1
@@ -583,7 +599,7 @@ char *mdb_version(int *major, int *minor, int *patch);
  * @param[in] err The error code
  * @retval "error message" The description of the error
  */
-char *mdb_strerror(int err);
+const char *mdb_strerror(int err);
 
 /** @brief Create an LMDB environment handle.
  *
@@ -741,7 +757,9 @@ int mdb_env_copy(MDB_env *env, const char *path);
  * have already been opened for Write access.
  * @return A non-zero error value on failure and 0 on success.
  */
+/*
 int mdb_env_copyfd(MDB_env *env, mdb_filehandle_t fd);
+*/
 
 /** @brief Copy an LMDB environment to the specified path, with options.
  *

@@ -33,6 +33,7 @@ u8 *strcpy(u8 *dest, const u8 *src);
 u8 *strcat(u8 *dest, const u8 *src);
 i32 strcmp(const u8 *s1, const u8 *s2);
 i32 strcmpn(const u8 *s1, const u8 *s2, u64 n);
+u8 *strdup(const char *s);
 u8 *substr(const u8 *s, const u8 *sub);
 u8 *substrn(const u8 *s, const u8 *sub, u64 n);
 u8 *strchr(const u8 *s, i32 c);

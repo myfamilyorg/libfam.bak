@@ -27,6 +27,7 @@
 #define _SYSCALL_H
 
 #include <libfam/types.H>
+struct iovec;
 
 i32 pipe(i32 fds[2]);
 i32 pipe2(i32 fds[2], i32 flags);
@@ -34,6 +35,9 @@ i32 getpid(void);
 i32 kill(i32 pid, i32 signal);
 i32 unlinkat(i32 dfd, const u8 *path, i32 flags);
 i64 write(i32 fd, const void *buf, u64 count);
+i64 writev(i32 fd, const struct iovec *iov, i32 iovcnt);
+i64 pread(i32 fd, void *buf, u64 count, i64 offset);
+i64 pwrite(i32 fd, const void *buf, u64 count, i64 offset);
 i64 read(i32 fd, void *buf, u64 count);
 i32 sched_yield(void);
 void exit(i32 status);

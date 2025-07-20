@@ -23,6 +23,7 @@
  *
  *******************************************************************************/
 
+#include <libfam/alloc.H>
 #include <libfam/error.H>
 #include <libfam/format.H>
 #include <libfam/limits.H>
@@ -36,6 +37,14 @@ u64 strlen(const u8 *X) {
 	Y = X;
 	while (*X) X++;
 	return X - Y;
+}
+
+u8 *strdup(const char *s) {
+	u64 len = strlen(s);
+	u8 *ret = alloc(len);
+	if (!ret) return NULL;
+	memcpy(ret, s, len);
+	return ret;
 }
 
 u8 *strcpy(u8 *dest, const u8 *src) {
