@@ -22,10 +22,11 @@ INSTALL_DIR = $(INSTALL) -d
 
 
 # Source and object files
-C_SOURCES   = $(foreach dir,$(SRC_DIRS),$(filter-out $(SRCDIR)/$(dir)/test.c,$(wildcard $(SRCDIR)/$(dir)/*.c)))
-ASM_SOURCES = $(wildcard $(ASM_DIR)/*.S)
-OBJECTS	 = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(C_SOURCES)) $(patsubst $(SRCDIR)/%.S,$(OBJDIR)/%.o,$(ASM_SOURCES))
-TEST_OBJECTS = $(patsubst $(SRCDIR)/%.c,$(TEST_OBJDIR)/%.o,$(C_SOURCES)) $(patsubst $(SRCDIR)/%.S,$(TEST_OBJDIR)/%.o,$(ASM_SOURCES))
+C_SOURCES   = $(foreach dir,$(SRC_DIRS), \
+	      $(filter-out $(SRCDIR)/$(dir)/test.c, \
+	      $(wildcard $(SRCDIR)/$(dir)/*.c)))
+OBJECTS	 = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(C_SOURCES))
+TEST_OBJECTS = $(patsubst $(SRCDIR)/%.c,$(TEST_OBJDIR)/%.o,$(C_SOURCES))
 
 # Test sources and objects
 TEST_SRC	= $(foreach dir,$(SRC_DIRS),$(SRCDIR)/$(dir)/test.c)
@@ -109,7 +110,14 @@ $(TEST_LIB): $(TEST_OBJECTS) | $(LIBDIR)
 
 # Build test binary
 $(TEST_BIN): $(TEST_OBJ) $(TEST_LIB) | $(BINDIR)
-	$(CC) $(TEST_OBJ) -I$(INCLDIR) -L$(LIBDIR) -DTEST=1 $(SRCDIR)/test/main.c $(TEST_BINARY_CFLAGS) -lfam_test -o $@
+	$(CC) \
+		$(TEST_OBJ) \
+		-I$(INCLDIR) \
+		-L$(LIBDIR) \
+		-DTEST=1 \
+		$(SRCDIR)/test/main.c \
+		$(TEST_BINARY_CFLAGS) \
+		-lfam_test -o $@
 
 # Run tests
 test: $(TEST_BIN)
