@@ -23,9 +23,12 @@
  *
  *******************************************************************************/
 
+#include <libfam/format.H>
 #include <libfam/misc.H>
 #include <libfam/syscall.H>
 #include <libfam/types.H>
+
+void __stack_chk_fail() { panic("STACKCHECKFAIL!"); }
 
 #define CheckEndian()                                                        \
 	u16 test = 0x1234;                                                   \
