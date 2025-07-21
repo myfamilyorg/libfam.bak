@@ -170,7 +170,7 @@ u64 __and64(volatile u64 *a, u64 v) {
 #elif defined(__amd64__)
 i32 __cas32(volatile u32 *a, u32 *expected, u32 desired) {
 	u32 result = *expected;
-	asm volatile("lock cmpxchgl %2, %1"
+	__asm__ volatile("lock cmpxchgl %2, %1"
 		     : "+a"(result), "+m"(*a)
 		     : "r"(desired)
 		     : "cc", "memory");
@@ -182,7 +182,7 @@ i32 __cas32(volatile u32 *a, u32 *expected, u32 desired) {
 }
 u32 __add32(volatile u32 *a, u32 v) {
 	u32 old = v;
-	asm volatile("lock xaddl %0, %1"
+	__asm__ volatile("lock xaddl %0, %1"
 		     : "+r"(old), "+m"(*a)
 		     :
 		     : "cc", "memory");
@@ -191,7 +191,7 @@ u32 __add32(volatile u32 *a, u32 v) {
 u32 __sub32(volatile u32 *a, u32 v) { return __add32(a, -v); }
 u32 __or32(volatile u32 *a, u32 v) {
 	u32 old;
-	asm volatile(
+	__asm__ volatile(
 	    "movl %1, %%eax\n"
 	    "1:\n"
 	    "movl %%eax, %%edx\n"
@@ -205,7 +205,7 @@ u32 __or32(volatile u32 *a, u32 v) {
 }
 u32 __and32(volatile u32 *a, u32 v) {
 	u32 old;
-	asm volatile(
+	__asm__ volatile(
 	    "movl %1, %%eax\n"
 	    "1:\n"
 	    "movl %%eax, %%edx\n"
@@ -219,7 +219,7 @@ u32 __and32(volatile u32 *a, u32 v) {
 }
 i32 __cas64(volatile u64 *a, u64 *expected, u64 desired) {
 	u64 result = *expected;
-	asm volatile("lock cmpxchgq %2, %1"
+	__asm__ volatile("lock cmpxchgq %2, %1"
 		     : "+a"(result), "+m"(*a)
 		     : "r"(desired)
 		     : "cc", "memory");
@@ -231,7 +231,7 @@ i32 __cas64(volatile u64 *a, u64 *expected, u64 desired) {
 }
 u64 __add64(volatile u64 *a, u64 v) {
 	u64 old = v;
-	asm volatile("lock xaddq %0, %1"
+	__asm__ volatile("lock xaddq %0, %1"
 		     : "+r"(old), "+m"(*a)
 		     :
 		     : "cc", "memory");
@@ -240,7 +240,7 @@ u64 __add64(volatile u64 *a, u64 v) {
 u64 __sub64(volatile u64 *a, u64 v) { return __add64(a, -v); }
 u64 __or64(volatile u64 *a, u64 v) {
 	u64 old;
-	asm volatile(
+	__asm__ volatile(
 	    "movq %1, %%rax\n"
 	    "1:\n"
 	    "movq %%rax, %%rdx\n"
@@ -254,7 +254,7 @@ u64 __or64(volatile u64 *a, u64 v) {
 }
 u64 __and64(volatile u64 *a, u64 v) {
 	u64 old;
-	asm volatile(
+	__asm__ volatile(
 	    "movq %1, %%rax\n"
 	    "1:\n"
 	    "movq %%rax, %%rdx\n"
