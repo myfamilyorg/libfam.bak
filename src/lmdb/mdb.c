@@ -1,37 +1,27 @@
-/** @file mdb.c
- *	@brief Lightning memory-mapped database library
+/********************************************************************************
+ * MIT License
  *
- *	A Btree-based database management library modeled loosely on the
- *	BerkeleyDB API, but much simplified.
- */
-/*
- * Copyright 2011-2021 Howard Chu, Symas Corp.
- * All rights reserved.
+ * Copyright (c) 2025 Christopher Gilliard
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted only as authorized by the OpenLDAP
- * Public License.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * A copy of this license is available in the file LICENSE in the
- * top-level directory of the distribution or, alternatively, at
- * <http://www.OpenLDAP.org/license.html>.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * This code is derived from btree.c written by Martin Hedenfalk.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  *
- * Copyright (c) 2009, 2010 Martin Hedenfalk <martin@bzero.se>
- *
- * Permission to use, copy, modify, and distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *******************************************************************************/
 
 #include <libfam/alloc.H>
 #include <libfam/lmdb.H>
@@ -39,91 +29,12 @@
 #include <libfam/midl.H>
 #include <libfam/pthread.H>
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE 1
-#endif
-#if defined(MDB_VL32) || defined(__WIN64__)
-#define _FILE_OFFSET_BITS 64
-#endif
-#ifdef _WIN32
-
-/* We use native NT APIs to setup the memory map, so that we can
- * let the DB file grow incrementally instead of always preallocating
- * the full size. These APIs are defined in <wdm.h> and <ntifs.h>
- * but those headers are meant for driver-level development and
- * conflict with the regular user-level headers, so we explicitly
- * declare them here. We get pointers to these functions from
- * NTDLL.DLL at runtime, to avoid buildtime dependencies on any
- * NTDLL import libraries.
- */
-typedef NTSTATUS(WINAPI NtCreateSectionFunc)(OUT PHANDLE sh, IN ACCESS_MASK acc,
-					     IN void *oa OPTIONAL,
-					     IN PLARGE_INTEGER ms OPTIONAL,
-					     IN ULONG pp, IN ULONG aa,
-					     IN HANDLE fh OPTIONAL);
-
-static NtCreateSectionFunc *NtCreateSection;
-
-typedef enum _SECTION_INHERIT { ViewShare = 1, ViewUnmap = 2 } SECTION_INHERIT;
-
-typedef NTSTATUS(WINAPI NtMapViewOfSectionFunc)(
-    IN PHANDLE sh, IN HANDLE ph, IN OUT PVOID *addr, IN ULONG_PTR zbits,
-    IN SIZE_T cs, IN OUT PLARGE_INTEGER off OPTIONAL, IN OUT PSIZE_T vs,
-    IN SECTION_INHERIT ih, IN ULONG at, IN ULONG pp);
-
-static NtMapViewOfSectionFunc *NtMapViewOfSection;
-
-typedef NTSTATUS(WINAPI NtCloseFunc)(HANDLE h);
-
-static NtCloseFunc *NtClose;
-
-/** getpid() returns int; MinGW defines pid_t but MinGW64 typedefs it
- *  as int64 which is wrong. MSVC doesn't define it at all, so just
- *  don't use it.
- */
-#define MDB_PID_T int
-#define MDB_THR_T DWORD
-#ifdef __GNUC__
-#else
-#define LITTLE_ENDIAN 1234
-#define BIG_ENDIAN 4321
-#define BYTE_ORDER LITTLE_ENDIAN
-#ifndef SSIZE_MAX
-#define SSIZE_MAX INT_MAX
-#endif
-#endif
-#define MDB_OFF_T int64_t
-#else
 #define MDB_PID_T i32
 #define MDB_THR_T pthread_t
-
-#ifdef HAVE_SYS_FILE_H
-#endif
 #define MDB_OFF_T i64
-#endif
 
-#if defined(__mips) && defined(__linux)
-/* MIPS has cache coherency issues, requires explicit cache control */
-#define CACHEFLUSH(addr, bytes, cache) cacheflush(addr, bytes, cache)
-#else
 #define CACHEFLUSH(addr, bytes, cache)
-#endif
-
 #define MDB_FDATASYNC_WORKS
-
-#if defined(__linux) && !defined(MDB_FDATASYNC_WORKS)
-/** fdatasync is broken on ext3/ext4fs on older kernels, see
- *	description in #mdb_env_open2 comments. You can safely
- *	define MDB_FDATASYNC_WORKS if this code will only be run
- *	on kernels 3.6 and newer.
- */
-#define BROKEN_FDATASYNC
-#endif
-
-#ifdef _MSC_VER
-typedef SSIZE_T i64;
-#else
-#endif
 
 #if defined(__sun) || defined(__ANDROID__)
 /* Most platforms have posix_memalign, older may only have memalign */
