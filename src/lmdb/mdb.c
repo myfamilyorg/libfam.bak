@@ -111,52 +111,18 @@ typedef pthread_mutex_t *mdb_mutexref_t;
  *	they're opaque pointers.
  */
 #define HANDLE int
-
-/**	A value for an invalid file handle.
- *	Mainly used to initialize file variables and signify that they are
- *	unused.
- */
 #define INVALID_HANDLE_VALUE (-1)
 
-/** Get the size of a memory page for the system.
- *	This is the basic size that the platform's memory manager uses, and is
- *	fundamental to the use of memory-mapped files.
- */
 #define GET_PAGESIZE(x) ((x) = PAGE_SIZE)
 
 #define Z MDB_FMT_Z    /**< printf/scanf format modifier for u64 */
 #define Yu MDB_PRIy(u) /**< printf format for #mdb_size_t */
 #define Yd MDB_PRIy(d) /**< printf format for 'signed #mdb_size_t' */
 
-#ifdef MDB_USE_SYSV_SEM
-#define MNAME_LEN (sizeof(int))
-#else
 #define MNAME_LEN (sizeof(pthread_mutex_t))
-#endif
 
-/** Initial part of #MDB_env.me_mutexname[].
- *	Changes to this code must be reflected in #MDB_LOCK_FORMAT.
- */
-#ifdef _WIN32
-#define MUTEXNAME_PREFIX "Global\\MDB"
-#elif defined MDB_USE_POSIX_SEM
-#define MUTEXNAME_PREFIX "/MDB"
-#endif
-
-/** @} */
-
-#ifdef MDB_ROBUST_SUPPORTED
-/** Lock mutex, handle any error, set rc = result.
- *	Return 0 on success, nonzero (not rc) on error.
- */
-#define LOCK_MUTEX(rc, env, mutex)      \
-	(((rc) = LOCK_MUTEX0(mutex)) && \
-	 ((rc) = mdb_mutex_failed(env, mutex, rc)))
-static int mdb_mutex_failed(MDB_env *env, mdb_mutexref_t mutex, int rc);
-#else
 #define LOCK_MUTEX(rc, env, mutex) ((rc) = LOCK_MUTEX0(mutex))
 #define mdb_mutex_failed(env, mutex, rc) (rc)
-#endif
 
 #ifndef _WIN32
 /**	A flag for opening a file and requesting synchronous data writes.
@@ -209,6 +175,9 @@ typedef MDB_ID pgno_t;
  *	See struct MDB_txn.mt_txnid for details.
  */
 typedef MDB_ID txnid_t;
+
+typedef u16 indx_t;
+typedef unsigned long long mdb_hash_t;
 
 /** @defgroup debug	Debug Macros
  *	@{
@@ -325,59 +294,17 @@ static txnid_t mdb_debug_start;
 #define ENV_MAXKEY(env) ((env)->me_maxkey)
 #endif
 
-/**	@brief The maximum size of a data item.
- *
- *	We only store a 32 bit value for node sizes.
- */
 #define MAXDATASIZE 0xffffffffUL
 
-#if MDB_DEBUG
-/**	Key size which fits in a #DKBUF.
- *	@ingroup debug
- */
-#define DKBUF_MAXKEYSIZE ((MDB_MAXKEYSIZE) > 0 ? (MDB_MAXKEYSIZE) : 511)
-/**	A key buffer.
- *	@ingroup debug
- *	This is used for printing a hex dump of a key's contents.
- */
-#define DKBUF char kbuf[DKBUF_MAXKEYSIZE * 2 + 1]
-/**	A data value buffer.
- *	@ingroup debug
- *	This is used for printing a hex dump of a #MDB_DUPSORT value's contents.
- */
-#define DDBUF char dbuf[DKBUF_MAXKEYSIZE * 2 + 1 + 2]
-/**	Display a key in hex.
- *	@ingroup debug
- *	Invoke a function to display a key in hex.
- */
-#define DKEY(x) mdb_dkey(x, kbuf)
-#else
 #define DKBUF
 #define DDBUF
 #define DKEY(x) 0
-#endif
 
-/** An invalid page number.
- *	Mainly used to denote an empty tree.
- */
 #define P_INVALID (~(pgno_t)0)
-
-/** Test if the flags \b f are set in a flag word \b w. */
 #define F_ISSET(w, f) (((w) & (f)) == (f))
-
-/** Round \b n up to an even number. */
 #define EVEN(n) (((n) + 1U) & -2) /* sign-extending -2 to match n+1U */
-
-/** Least significant 1-bit of \b n.  n must be of an unsigned type. */
 #define LOW_BIT(n) ((n) & (-(n)))
-
-/** (log2(\b p2) % \b n), for p2 = power of 2 and 0 < n < 8. */
 #define LOG2_MOD(p2, n) (7 - 86 / ((p2) % ((1U << (n)) - 1) + 11))
-/* Explanation: Let p2 = 2**(n*y + x), x<n and M = (1U<<n)-1. Now p2 =
- * (M+1)**y * 2**x = 2**x (mod M). Finally "/" "happens" to return 7-x.
- */
-
-/** Should be alignment of \b type. Ensure it is a power of 2. */
 #define ALIGNOF2(type)           \
 	LOW_BIT(offsetof(        \
 	    struct {             \
@@ -385,14 +312,6 @@ static txnid_t mdb_debug_start;
 		    type align_; \
 	    },                   \
 	    align_))
-
-/**	Used for offsets within a single page.
- *	Since memory pages are typically 4 or 8KB in size, 12-13 bits,
- *	this is plenty.
- */
-typedef u16 indx_t;
-
-typedef unsigned long long mdb_hash_t;
 
 /**	Default size of memory map.
  *	This is certainly too small for any actual applications. Apps should
