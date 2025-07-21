@@ -2774,29 +2774,15 @@ static int mdb_page_flush(MDB_txn *txn, int keep) {
 	MDB_OFF_T pos = 0;
 	pgno_t pgno = 0;
 	MDB_page *dp = NULL;
-#ifdef _WIN32
-	OVERLAPPED *ov = env->ov;
-	MDB_page *wdp;
-	int async_i = 0;
-	HANDLE fd = (env->me_flags & MDB_NOSYNC) ? env->me_fd : env->me_ovfd;
-#else
 	struct iovec iov[MDB_COMMIT_PAGES];
 	HANDLE fd = env->me_fd;
-#endif
 	i64 wsize = 0, wres;
 	MDB_OFF_T wpos = 0,
 		  next_pos = 1; /* impossible pos, so pos != next_pos */
 	int n = 0;
 
 	j = i = keep;
-	if (env->me_flags & MDB_WRITEMAP
-#ifdef _WIN32
-	    /* In windows, we still do writes to the file (with write-through
-	     * enabled in sync mode), as this is faster than
-	     * FlushViewOfFile/FlushFileBuffers */
-	    && (env->me_flags & MDB_NOSYNC)
-#endif
-	) {
+	if (env->me_flags & MDB_WRITEMAP) {
 		/* Clear dirty flags */
 		while (++i <= pagecount) {
 			dp = dl[i].mptr;
@@ -2810,31 +2796,6 @@ static int mdb_page_flush(MDB_txn *txn, int keep) {
 		}
 		goto done;
 	}
-
-#ifdef _WIN32
-	if (pagecount - keep >= env->ovs) {
-		/* ran out of room in ov array, and re-malloc, copy handles and
-		 * free previous */
-		int ovs =
-		    (pagecount - keep) * 1.5; /* provide extra padding to reduce
-						 number of re-allocations */
-		int new_size = ovs * sizeof(OVERLAPPED);
-		ov = alloc(new_size);
-		if (ov == NULL) return ENOMEM;
-		int previous_size = env->ovs * sizeof(OVERLAPPED);
-		memcpy(ov, env->ov,
-		       previous_size); /* Copy previous OVERLAPPED data to
-					  retain event handles */
-		/* And clear rest of memory */
-		memset(&ov[env->ovs], 0, new_size - previous_size);
-		if (env->ovs > 0) {
-			release(env->ov); /* release previous allocation */
-		}
-
-		env->ov = ov;
-		env->ovs = ovs;
-	}
-#endif
 
 	/* Write the pages */
 	for (;;) {
@@ -2855,56 +2816,11 @@ static int mdb_page_flush(MDB_txn *txn, int keep) {
 		}
 		/* Write up to MDB_COMMIT_PAGES dirty pages at a time. */
 		if (pos != next_pos || n == MDB_COMMIT_PAGES ||
-		    wsize + size > MAX_WRITE
-#ifdef _WIN32
-		    /* If writemap is enabled, consecutive page positions infer
-		     * contiguous (mapped) memory.
-		     * Otherwise force write pages one at a time.
-		     * Windows actually supports scatter/gather I/O, but only on
-		     * unbuffered file handles. Since we're relying on the OS
-		     * page cache for all our data, that's self-defeating. So we
-		     * just write pages one at a time. We use the ov structure
-		     * to set the write offset, to at least save the overhead of
-		     * a Seek system call.
-		     */
-		    || !(env->me_flags & MDB_WRITEMAP)
-#endif
-		) {
+		    wsize + size > MAX_WRITE) {
 			if (n) {
 			retry_write:
 				/* Write previous page(s) */
 				DPRINTF(("committing page %" Z "u", pgno));
-#ifdef _WIN32
-				OVERLAPPED *this_ov = &ov[async_i];
-				/* Clear status, and keep hEvent, we reuse that
-				 */
-				this_ov->Internal = 0;
-				this_ov->Offset = wpos & 0xffffffff;
-				this_ov->OffsetHigh = wpos >> 16 >> 16;
-				if (!F_ISSET(env->me_flags, MDB_NOSYNC) &&
-				    !this_ov->hEvent) {
-					HANDLE event = CreateEvent(NULL, FALSE,
-								   FALSE, NULL);
-					if (!event) {
-						rc = ErrCode();
-						DPRINTF(("CreateEvent: %s",
-							 strerror(rc)));
-						return rc;
-					}
-					this_ov->hEvent = event;
-				}
-				if (!WriteFile(fd, wdp, wsize, NULL, this_ov)) {
-					rc = ErrCode();
-					if (rc != ERROR_IO_PENDING) {
-						DPRINTF(("WriteFile: %d", rc));
-						return rc;
-					}
-				}
-				async_i++;
-#else
-#ifdef MDB_USE_PWRITEV
-				wres = pwritev(fd, iov, n, wpos);
-#else
 				if (n == 1) {
 					wres = pwrite(fd, iov[0].iov_base,
 						      wsize, wpos);
@@ -2920,7 +2836,6 @@ static int mdb_page_flush(MDB_txn *txn, int keep) {
 					}
 					wres = writev(fd, iov, n);
 				}
-#endif
 				if (wres != wsize) {
 					if (wres < 0) {
 						rc = ErrCode();
@@ -2937,7 +2852,6 @@ static int mdb_page_flush(MDB_txn *txn, int keep) {
 					}
 					return rc;
 				}
-#endif /* _WIN32 */
 				n = 0;
 			}
 			if (i > pagecount) break;
