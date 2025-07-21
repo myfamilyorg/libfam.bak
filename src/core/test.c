@@ -217,8 +217,10 @@ Test(resize1) {
 }
 
 Test(calloc1) {
+	i32 i;
 	void *ptr1 = calloc(100, 10);
 	ASSERT(ptr1, "ptr1!=NULL");
+	for (i = 0; i < 1000; i++) ASSERT(!((u8 *)ptr1)[i], "byte 0");
 	release(ptr1);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
@@ -279,6 +281,7 @@ Test(fmap) {
 	fresize(fd, CHUNK_SIZE * 17);
 	a = alloc_init(ALLOC_TYPE_FMAP, CHUNK_SIZE * 16, fd);
 	ASSERT(a, "a!=NULL");
+	msync(a, CHUNK_SIZE * 17, 0);
 
 	alloc_destroy(a);
 	close(fd);
@@ -394,7 +397,10 @@ Test(pipe) {
 		ASSERT_EQ(buf[3], 't', "t");
 
 	} else {
-		write(fds[1], "test", 4);
+		struct iovec iov[1];
+		iov[0].iov_base = "test";
+		iov[0].iov_len = 4;
+		writev(fds[1], iov, 1);
 		exit(0);
 	}
 	fv = waitid(P_PID, fv, NULL, WEXITED);
@@ -1660,4 +1666,20 @@ Test(execve) {
 	}
 	v = waitid(P_PID, pid, NULL, WEXITED);
 	ASSERT_EQ(v, 0, "v");
+}
+
+Test(pread_pwrite) {
+	const u8 *path = "/tmp/pread_pwrite";
+	char buf[10] = {0};
+	unlink(path);
+	i32 fd = file(path);
+	const u8 *write_data = "hello";
+	i64 written = pwrite(fd, write_data, strlen(write_data), 10);
+	i64 bytes_read = pread(fd, buf, strlen(write_data), 10);
+	ASSERT_EQ(written, 5, "written=5");
+	ASSERT_EQ(bytes_read, 5, "bytes_read=5");
+	buf[5] = 0;
+	ASSERT(!strcmp(buf, write_data), "buf=write_data");
+
+	unlink(path);
 }

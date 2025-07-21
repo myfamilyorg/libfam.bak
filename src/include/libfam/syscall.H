@@ -27,7 +27,6 @@
 #define _SYSCALL_H
 
 #include <libfam/types.H>
-struct iovec;
 
 i32 pipe(i32 fds[2]);
 i32 pipe2(i32 fds[2], i32 flags);
