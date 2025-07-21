@@ -742,6 +742,10 @@ Test(vec1) {
 #define LZX_HASH_ENTRIES 4096
 #define HASH_CONSTANT 2654435761U
 #define MIN_MATCH 6
+#define MATCH_SENTINEL 0x80
+
+u8 lzx_match_len(const u8 *input, u32 in_len, u16 in_pos, u8 *out,
+		 u32 output_len, u16 out_pos);
 
 typedef struct {
 	u8 table[LZX_HASH_ENTRIES * 2] __attribute__((aligned(16)));
@@ -916,4 +920,107 @@ Test(compress_input_validation) {
 	ASSERT_EQ(decompress("0123456789", 1, buf, sizeof(buf)), -1, "len low");
 	res = compress("\0xFFabc", 4, buf, sizeof(buf));
 	ASSERT_EQ(decompress(buf, res, verify, 1), -1, "not enough capacity");
+}
+
+Test(lzx_match_esc) {
+	u8 input[] = {0x80, 0x81, 0xFF, 'a', 'b', 'c', 0x80, 0x81, 0xFF};
+	u32 in_len;
+	u8 out[] = {0x80, 0xFF, 0x81, 0xFF, 0xFF, 0xFF, 'a', 'b', 'c'};
+	u32 out_len;
+	u8 match;
+
+	in_len = sizeof(input);
+	out_len = sizeof(out);
+	match = lzx_match_len(input, in_len, 6, out, out_len,
+			      0); /* Match ESC sequence */
+	ASSERT_EQ(match, 3, "ESC handling in match");
+}
+
+/* Test for long ESC match to hit MIN_MATCH */
+Test(lzx_long_esc) {
+	u8 input[] = {0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87};
+	u32 in_len;
+	u8 out[] = {0x80, 0xFF, 0x81, 0xFF, 0x82, 0xFF, 0x83, 0xFF,
+		    0x84, 0xFF, 0x85, 0xFF, 0x86, 0xFF, 0x87, 0xFF};
+	u32 out_len;
+	u8 match;
+
+	in_len = sizeof(input);
+	out_len = sizeof(out);
+	match = lzx_match_len(input, in_len, 0, out, out_len, 0);
+	ASSERT_EQ(match, 8, "Long ESC match");
+}
+
+/* Test for ESC mismatch to highlight potential bug */
+Test(lzx_esc_mismatch) {
+	u8 input[] = {0x90, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87};
+	u32 in_len;
+	u8 out[] = {0x80, 0xFF, 0x81, 0xFF, 0x82, 0xFF, 0x83, 0xFF,
+		    0x84, 0xFF, 0x85, 0xFF, 0x86, 0xFF, 0x87, 0xFF};
+	u32 out_len;
+	u8 match;
+
+	in_len = sizeof(input);
+	out_len = sizeof(out);
+	match = lzx_match_len(input, in_len, 0, out, out_len, 0);
+	ASSERT_EQ(
+	    match, 8,
+	    "ESC mismatch - currently passes due to missing check"); /* This
+									will
+									fail if
+									fixed */
+	/* Note: To fix, add if (input[iidx] != out[oidx]) break; before ret++
+	 * in ESC branch */
+}
+
+/* Test for lzx_match_len with sub-match exact */
+Test(lzx_submatch_exact) {
+	u8 input[] = {'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'};
+	u32 in_len;
+	u8 out[] = {'a', 'a', 'a',	'a',  'a', 'a',
+		    'a', 'a', 0x80 | 8, 0x00, 0x00};
+	u32 out_len;
+	u8 match;
+
+	in_len = sizeof(input);
+	out_len = sizeof(out);
+	match = lzx_match_len(input, in_len, 0, out, out_len,
+			      8); /* Start at match symbol */
+	ASSERT_EQ(match, 8, "Sub-match exact");
+}
+
+/* Test for lzx_match_len with sub-match not exact */
+Test(lzx_submatch_not_exact) {
+	u8 input[] = {'a', 'a', 'a', 'a', 'a', 'a', 'a', 'b'};
+	u32 in_len;
+	u8 out[] = {'a', 'a', 'a',	'a',  'a', 'a',
+		    'a', 'a', 0x80 | 8, 0x00, 0x00};
+	u32 out_len;
+	u8 match;
+
+	in_len = sizeof(input);
+	out_len = sizeof(out);
+	match = lzx_match_len(input, in_len, 0, out, out_len, 8);
+	ASSERT_EQ(match, 0, "Sub-match not exact");
+}
+
+/* Test for exceeding MAX_MATCH in sub-match */
+Test(lzx_submatch_exceed_max) {
+	u8 input[254];
+	u32 in_len;
+	u8 out[130];
+	u32 out_len;
+	u8 match;
+	int i;
+
+	in_len = 254;
+	out_len = 130;
+	for (i = 0; i < 254; i++) input[i] = 'a';
+	for (i = 0; i < 127; i++) out[i] = 'a';
+	out[127] = MATCH_SENTINEL | 127;
+	out[128] = 0;
+	out[129] = 0;
+
+	match = lzx_match_len(input, in_len, 0, out, out_len, 0);
+	ASSERT_EQ(match, 127, "Exceed MAX_MATCH");
 }
