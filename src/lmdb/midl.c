@@ -150,7 +150,7 @@ void mdb_midl_xmerge(MDB_IDL idl, MDB_IDL merge) {
 /* Quicksort + Insertion sort for small arrays */
 
 #define SMALL 8
-#define MIDL_SWAP(a, b)     \
+#define MSWAP(a, b)         \
 	{                   \
 		itmp = (a); \
 		(a) = (b);  \
@@ -182,16 +182,11 @@ void mdb_midl_sort(MDB_IDL ids) {
 		} else {
 			k = (l + ir) >>
 			    1; /* Choose median of left, center, right */
-			MIDL_SWAP(ids[k], ids[l + 1]);
-			if (ids[l] < ids[ir]) {
-				MIDL_SWAP(ids[l], ids[ir]);
-			}
-			if (ids[l + 1] < ids[ir]) {
-				MIDL_SWAP(ids[l + 1], ids[ir]);
-			}
-			if (ids[l] < ids[l + 1]) {
-				MIDL_SWAP(ids[l], ids[l + 1]);
-			}
+			MSWAP(ids[k], ids[l + 1]);
+			if (ids[l] < ids[ir]) MSWAP(ids[l], ids[ir]);
+			if (ids[l + 1] < ids[ir]) MSWAP(ids[l + 1], ids[ir]);
+			if (ids[l] < ids[l + 1]) MSWAP(ids[l], ids[l + 1]);
+
 			i = l + 1;
 			j = ir;
 			a = ids[l + 1];
@@ -201,7 +196,7 @@ void mdb_midl_sort(MDB_IDL ids) {
 				do j--;
 				while (ids[j] < a);
 				if (j < i) break;
-				MIDL_SWAP(ids[i], ids[j]);
+				MSWAP(ids[i], ids[j]);
 			}
 			ids[l + 1] = ids[j];
 			ids[j] = a;

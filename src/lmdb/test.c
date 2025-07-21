@@ -83,6 +83,19 @@ Test(lmdb1) {
 	ASSERT_BYTES(0);
 }
 
+/* Basic allocation and free test */
+Test(midl_basic) {
+	MDB_IDL ids;
+
+	ids = mdb_midl_alloc(2);
+	ASSERT(ids != NULL, "mdb_midl_alloc success");
+	ASSERT(ids[-1] == 2, "initial capacity");
+	ASSERT(ids[0] == 0, "initial count 0");
+
+	mdb_midl_free(ids);
+	ASSERT_BYTES(0);
+}
+
 /* Append and grow test */
 Test(midl_append_and_grow) {
 	MDB_IDL ids;
@@ -206,6 +219,38 @@ Test(midl_sort_and_search) {
 	ASSERT_BYTES(0);
 }
 
+/* Append range and need test */
+Test(midl_append_range_and_need) {
+	MDB_IDL ids;
+	i32 rc;
+
+	ids = mdb_midl_alloc(3);
+	ASSERT(ids != NULL, "alloc success");
+
+	rc = mdb_midl_append_range(&ids, 100, 2);
+	ASSERT(rc == 0, "append range 2");
+	ASSERT(ids[0] == 2, "count after range");
+	ASSERT(ids[1] == 101, "range value 1");
+	ASSERT(ids[2] == 100, "range value 2");
+
+	/* Need more capacity */
+	rc = mdb_midl_need(&ids, 5);
+	ASSERT(rc == 0, "mdb_midl_need success");
+	ASSERT(ids[0] == 2, "count unchanged after need");
+	ASSERT(ids[-1] >= 2 + 5, "capacity increased");
+
+	rc = mdb_midl_append_range(&ids, 200, 4);
+	ASSERT(rc == 0, "append range 4 after need");
+	ASSERT(ids[0] == 6, "count after second range");
+	ASSERT(ids[3] == 203, "range value 3");
+	ASSERT(ids[4] == 202, "range value 4");
+	ASSERT(ids[5] == 201, "range value 5");
+	ASSERT(ids[6] == 200, "range value 6");
+
+	mdb_midl_free(ids);
+	ASSERT_BYTES(0);
+}
+
 /* Additional test: shrink */
 Test(midl_shrink) {
 	MDB_IDL ids;
@@ -292,7 +337,7 @@ Test(mid2l_insert_append_search) {
 
 	ids = (MDB_ID2L)alloc((MDB_IDL_UM_MAX + 1) *
 			      sizeof(MDB_ID2)); /* Simulate alloc, since no
-						   specific alloc for ID2L */
+				       specific alloc for ID2L */
 	ids[0].mid = 0;
 	ids[0].mptr = NULL; /* unused */
 
@@ -378,3 +423,109 @@ Test(mid2l_insert_append_search) {
 	ASSERT_BYTES(0);
 }
 
+Test(midl_append_range_grow) {
+	MDB_IDL ids;
+	i32 rc;
+	ids = mdb_midl_alloc(5);
+	ASSERT(ids != NULL, "alloc success");
+	ASSERT(ids[-1] == 5, "initial capacity");
+
+	rc = mdb_midl_append_range(&ids, 100, 6); /* 0 + 6 > 5, trigger grow */
+	ASSERT(rc == 0, "append range grow");
+	ASSERT(ids[0] == 6, "count after range");
+	ASSERT(ids[1] == 105, "range value 1");
+	ASSERT(ids[2] == 104, "range value 2");
+	ASSERT(ids[3] == 103, "range value 3");
+	ASSERT(ids[4] == 102, "range value 4");
+	ASSERT(ids[5] == 101, "range value 5");
+	ASSERT(ids[6] == 100, "range value 6");
+	ASSERT(ids[-1] >= 5 + MDB_IDL_UM_MAX, "capacity grown");
+
+	mdb_midl_free(ids);
+	ASSERT_BYTES(0);
+}
+Test(midl_sort_large) {
+	MDB_IDL ids;
+	i32 idx;
+	ids = mdb_midl_alloc(20);
+	ASSERT(ids != NULL, "alloc success");
+
+	/* Append 12 unsorted values to hit quicksort (SMALL=8) */
+	for (idx = 0; idx < 12; idx++) {
+		mdb_midl_append(
+		    &ids, (MDB_ID)(12 - idx)); /* descending but shuffled */
+	}
+
+	ASSERT(ids[0] == 12, "count before sort");
+
+	mdb_midl_sort(ids);
+	/* Check sorted descending */
+	ASSERT(ids[1] == 12, "sorted desc [1]");
+	ASSERT(ids[2] == 11, "sorted desc [2]");
+	ASSERT(ids[3] == 10, "sorted desc [3]");
+	ASSERT(ids[4] == 9, "sorted desc [4]");
+	ASSERT(ids[5] == 8, "sorted desc [5]");
+	ASSERT(ids[6] == 7, "sorted desc [6]");
+	ASSERT(ids[7] == 6, "sorted desc [7]");
+	ASSERT(ids[8] == 5, "sorted desc [8]");
+	ASSERT(ids[9] == 4, "sorted desc [9]");
+	ASSERT(ids[10] == 3, "sorted desc [10]");
+	ASSERT(ids[11] == 2, "sorted desc [11]");
+	ASSERT(ids[12] == 1, "sorted desc [12]");
+
+	mdb_midl_free(ids);
+	ASSERT_BYTES(0);
+}
+
+Test(mid2l_insert_max) {
+	MDB_ID2L ids;
+	MDB_ID2 id1, id2;
+	i32 rc;
+
+	ids = (MDB_ID2L)alloc((MDB_IDL_UM_MAX + 1) * sizeof(MDB_ID2));
+	ids[0].mid = MDB_IDL_UM_MAX - 1;
+	ids[0].mptr = NULL;
+
+	id1.mid = 100;
+	id1.mptr = (void *)0x100;
+
+	rc = mdb_mid2l_insert(ids, &id1);
+	ASSERT(rc == 0, "insert when below max");
+
+	id2.mid = 200; /* different mid */
+	id2.mptr = (void *)0x200;
+
+	rc = mdb_mid2l_insert(ids, &id2);
+	ASSERT(rc == -2, "insert fail when at max");
+
+	release(ids);
+	ASSERT_BYTES(0);
+}
+
+/* Test for sort with large array to hit quicksort and swaps */
+Test(midl_sort_quicksort) {
+	MDB_IDL ids;
+	i32 idx;
+	MDB_ID values[20] = {
+	    19, 1, 18, 2, 17, 3, 16, 4, 15, 5,
+	    14, 6, 13, 7, 12, 8, 11, 9, 10, 0}; /* alternated to force swaps */
+
+	ids = mdb_midl_alloc(20);
+	ASSERT(ids != NULL, "alloc success");
+
+	for (idx = 0; idx < 20; idx++) {
+		mdb_midl_append(&ids, values[idx]);
+	}
+
+	ASSERT(ids[0] == 20, "count before sort");
+
+	mdb_midl_sort(ids);
+
+	/* Check sorted descending */
+	for (idx = 1; idx <= 20; idx++) {
+		ASSERT(ids[idx] == (u64)(20 - idx), "sorted desc check");
+	}
+
+	mdb_midl_free(ids);
+	ASSERT_BYTES(0);
+}
