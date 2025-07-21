@@ -54,7 +54,7 @@ typedef struct {
 	} data;
 } Printable;
 
-i32 format_append(Formatter *f, const char *fmt, ...);
+i32 format_append(Formatter *f, const u8 *fmt, ...);
 void format_clear(Formatter *f);
 const u8 *format_to_string(Formatter *f);
 

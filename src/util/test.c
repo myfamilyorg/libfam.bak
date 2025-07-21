@@ -1095,7 +1095,7 @@ Test(lzx_submatch_exceed_max) {
 	u8 out[132];
 	u32 out_len;
 	u8 match;
-	int i;
+	i32 i;
 
 	in_len = 129;
 	out_len = 132;

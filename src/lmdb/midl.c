@@ -1,20 +1,27 @@
-/**	@file midl.c
- *	@brief ldap bdb back-end ID List functions */
-/* $OpenLDAP$ */
-/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+/********************************************************************************
+ * MIT License
  *
- * Copyright 2000-2021 The OpenLDAP Foundation.
- * Portions Copyright 2001-2021 Howard Chu, Symas Corp.
- * All rights reserved.
+ * Copyright (c) 2025 Christopher Gilliard
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted only as authorized by the OpenLDAP
- * Public License.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * A copy of this license is available in the file LICENSE in the
- * top-level directory of the distribution or, alternatively, at
- * <http://www.OpenLDAP.org/license.html>.
- */
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #include <libfam/alloc.H>
 #include <libfam/error.H>
@@ -22,84 +29,41 @@
 #include <libfam/midl.H>
 #include <libfam/misc.H>
 
-/** @defgroup internal	LMDB Internals
- *	@{
- */
-/** @defgroup idls	ID List Management
- *	@{
- */
 #define CMP(x, y) ((x) < (y) ? -1 : (x) > (y))
 
-unsigned mdb_midl_search(MDB_IDL ids, MDB_ID id) {
-	/*
-	 * binary search of id in ids
-	 * if found, returns position of id
-	 * if not found, returns first position greater than id
-	 */
-	unsigned base = 0;
-	unsigned cursor = 1;
-	int val = 0;
-	unsigned n = ids[0];
+STATIC i32 mdb_midl_grow(MDB_IDL *idp, i32 num) {
+	MDB_IDL idn = *idp - 1;
+	/* grow it */
+	idn = resize(idn, (*idn + num + 2) * sizeof(MDB_ID));
+	if (!idn) return ENOMEM;
+	*idn++ += num;
+	*idp = idn;
+	return 0;
+}
+
+u32 mdb_midl_search(MDB_IDL ids, MDB_ID id) {
+	u32 base = 0, cursor = 1, n = ids[0];
+	i32 val = 0;
 
 	while (0 < n) {
-		unsigned pivot = n >> 1;
+		u32 pivot = n >> 1;
 		cursor = base + pivot + 1;
 		val = CMP(ids[cursor], id);
 
-		if (val < 0) {
+		if (val < 0)
 			n = pivot;
-
-		} else if (val > 0) {
+		else if (val > 0) {
 			base = cursor;
 			n -= pivot + 1;
-
-		} else {
+		} else
 			return cursor;
-		}
 	}
 
-	if (val > 0) {
-		++cursor;
-	}
+	if (val > 0) ++cursor;
 	return cursor;
 }
 
-#if 0 /* superseded by append/sort */
-int mdb_midl_insert( MDB_IDL ids, MDB_ID id )
-{
-	unsigned x, i;
-
-	x = mdb_midl_search( ids, id );
-	assert( x > 0 );
-
-	if( x < 1 ) {
-		/* internal error */
-		return -2;
-	}
-
-	if ( x <= ids[0] && ids[x] == id ) {
-		/* duplicate */
-		assert(0);
-		return -1;
-	}
-
-	if ( ++ids[0] >= MDB_IDL_DB_MAX ) {
-		/* no room */
-		--ids[0];
-		return -2;
-
-	} else {
-		/* insert id */
-		for (i=ids[0]; i>x; i--)
-			ids[i] = ids[i-1];
-		ids[x] = id;
-	}
-
-	return 0;
-}
-#endif
-
-MDB_IDL mdb_midl_alloc(int num) {
+MDB_IDL mdb_midl_alloc(i32 num) {
 	MDB_IDL ids = alloc((num + 2) * sizeof(MDB_ID));
 	if (ids) {
 		*ids++ = num;
@@ -121,17 +85,7 @@ void mdb_midl_shrink(MDB_IDL *idp) {
 	}
 }
 
-static int mdb_midl_grow(MDB_IDL *idp, int num) {
-	MDB_IDL idn = *idp - 1;
-	/* grow it */
-	idn = resize(idn, (*idn + num + 2) * sizeof(MDB_ID));
-	if (!idn) return ENOMEM;
-	*idn++ += num;
-	*idp = idn;
-	return 0;
-}
-
-int mdb_midl_need(MDB_IDL *idp, unsigned num) {
+i32 mdb_midl_need(MDB_IDL *idp, u32 num) {
 	MDB_IDL ids = *idp;
 	num += ids[0];
 	if (num > ids[-1]) {
@@ -144,7 +98,7 @@ int mdb_midl_need(MDB_IDL *idp, unsigned num) {
 	return 0;
 }
 
-int mdb_midl_append(MDB_IDL *idp, MDB_ID id) {
+i32 mdb_midl_append(MDB_IDL *idp, MDB_ID id) {
 	MDB_IDL ids = *idp;
 	/* Too big? */
 	if (ids[0] >= ids[-1]) {
@@ -156,7 +110,7 @@ int mdb_midl_append(MDB_IDL *idp, MDB_ID id) {
 	return 0;
 }
 
-int mdb_midl_append_list(MDB_IDL *idp, MDB_IDL app) {
+i32 mdb_midl_append_list(MDB_IDL *idp, MDB_IDL app) {
 	MDB_IDL ids = *idp;
 	/* Too big? */
 	if (ids[0] + app[0] >= ids[-1]) {
@@ -168,7 +122,7 @@ int mdb_midl_append_list(MDB_IDL *idp, MDB_IDL app) {
 	return 0;
 }
 
-int mdb_midl_append_range(MDB_IDL *idp, MDB_ID id, unsigned n) {
+i32 mdb_midl_append_range(MDB_IDL *idp, MDB_ID id, u32 n) {
 	MDB_ID *ids = *idp, len = ids[0];
 	/* Too big? */
 	if (len + n > ids[-1]) {
@@ -205,11 +159,11 @@ void mdb_midl_xmerge(MDB_IDL idl, MDB_IDL merge) {
 
 void mdb_midl_sort(MDB_IDL ids) {
 	/* Max possible depth of int-indexed tree * 2 items/level */
-	int istack[sizeof(int) * CHAR_BIT * 2];
-	int i, j, k, l, ir, jstack;
+	i32 istack[sizeof(i32) * CHAR_BIT * 2];
+	i32 i, j, k, l, ir, jstack;
 	MDB_ID a, itmp;
 
-	ir = (int)ids[0];
+	ir = (i32)ids[0];
 	l = 1;
 	jstack = 0;
 	for (;;) {
@@ -265,137 +219,54 @@ void mdb_midl_sort(MDB_IDL ids) {
 	}
 }
 
-unsigned mdb_mid2l_search(MDB_ID2L ids, MDB_ID id) {
+u32 mdb_mid2l_search(MDB_ID2L ids, MDB_ID id) {
 	/*
 	 * binary search of id in ids
 	 * if found, returns position of id
 	 * if not found, returns first position greater than id
 	 */
-	unsigned base = 0;
-	unsigned cursor = 1;
-	int val = 0;
-	unsigned n = (unsigned)ids[0].mid;
+	u32 base = 0, cursor = 1, n = (u32)ids[0].mid;
+	i32 val = 0;
 
 	while (0 < n) {
-		unsigned pivot = n >> 1;
+		u32 pivot = n >> 1;
 		cursor = base + pivot + 1;
 		val = CMP(id, ids[cursor].mid);
 
-		if (val < 0) {
+		if (val < 0)
 			n = pivot;
-
-		} else if (val > 0) {
+		else if (val > 0) {
 			base = cursor;
 			n -= pivot + 1;
-
-		} else {
+		} else
 			return cursor;
-		}
 	}
 
-	if (val > 0) {
-		++cursor;
-	}
+	if (val > 0) ++cursor;
 	return cursor;
 }
 
-int mdb_mid2l_insert(MDB_ID2L ids, MDB_ID2 *id) {
-	unsigned x, i;
-
+i32 mdb_mid2l_insert(MDB_ID2L ids, MDB_ID2 *id) {
+	u32 x, i;
 	x = mdb_mid2l_search(ids, id->mid);
-
-	if (x < 1) {
-		/* internal error */
+	if (x < 1) return -2;
+	if (x <= ids[0].mid && ids[x].mid == id->mid) return -1;
+	if (ids[0].mid >= MDB_IDL_UM_MAX)
 		return -2;
-	}
-
-	if (x <= ids[0].mid && ids[x].mid == id->mid) {
-		/* duplicate */
-		return -1;
-	}
-
-	if (ids[0].mid >= MDB_IDL_UM_MAX) {
-		/* too big */
-		return -2;
-
-	} else {
+	else {
 		/* insert id */
 		ids[0].mid++;
-		for (i = (unsigned)ids[0].mid; i > x; i--) ids[i] = ids[i - 1];
+		for (i = (u32)ids[0].mid; i > x; i--) ids[i] = ids[i - 1];
 		ids[x] = *id;
 	}
-
 	return 0;
 }
 
-int mdb_mid2l_append(MDB_ID2L ids, MDB_ID2 *id) {
+i32 mdb_mid2l_append(MDB_ID2L ids, MDB_ID2 *id) {
 	/* Too big? */
-	if (ids[0].mid >= MDB_IDL_UM_MAX) {
-		return -2;
-	}
+	if (ids[0].mid >= MDB_IDL_UM_MAX) return -2;
 	ids[0].mid++;
 	ids[ids[0].mid] = *id;
 	return 0;
 }
 
-#ifdef MDB_VL32
-unsigned mdb_mid3l_search(MDB_ID3L ids, MDB_ID id) {
-	/*
-	 * binary search of id in ids
-	 * if found, returns position of id
-	 * if not found, returns first position greater than id
-	 */
-	unsigned base = 0;
-	unsigned cursor = 1;
-	int val = 0;
-	unsigned n = (unsigned)ids[0].mid;
-
-	while (0 < n) {
-		unsigned pivot = n >> 1;
-		cursor = base + pivot + 1;
-		val = CMP(id, ids[cursor].mid);
-
-		if (val < 0) {
-			n = pivot;
-
-		} else if (val > 0) {
-			base = cursor;
-			n -= pivot + 1;
-
-		} else {
-			return cursor;
-		}
-	}
-
-	if (val > 0) {
-		++cursor;
-	}
-	return cursor;
-}
-
-int mdb_mid3l_insert(MDB_ID3L ids, MDB_ID3 *id) {
-	unsigned x, i;
-
-	x = mdb_mid3l_search(ids, id->mid);
-
-	if (x < 1) {
-		/* internal error */
-		return -2;
-	}
-
-	if (x <= ids[0].mid && ids[x].mid == id->mid) {
-		/* duplicate */
-		return -1;
-	}
-
-	/* insert id */
-	ids[0].mid++;
-	for (i = (unsigned)ids[0].mid; i > x; i--) ids[i] = ids[i - 1];
-	ids[x] = *id;
-
-	return 0;
-}
-#endif /* MDB_VL32 */
-
-/** @} */
-/** @} */

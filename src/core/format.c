@@ -38,17 +38,17 @@ STATIC i32 format_check_resize(Formatter *f, u64 size) {
 	return 0;
 }
 
-STATIC const char *find_next_placeholder(const char *p) {
-	const char *v1 = substr(p, "{x}");
-	const char *v2 = substr(p, "{X}");
-	const char *v3 = substr(p, "{c}");
-	const char *v4 = substr(p, "{}");
+STATIC const u8 *find_next_placeholder(const u8 *p) {
+	const u8 *v1 = substr(p, "{x}");
+	const u8 *v2 = substr(p, "{X}");
+	const u8 *v3 = substr(p, "{c}");
+	const u8 *v4 = substr(p, "{}");
 
 	/* If no placeholders found, return NULL */
 	if (!v1 && !v2 && !v3 && !v4) return NULL;
 
 	/* Initialize result to NULL; update with earliest non-NULL pointer */
-	const char *result = NULL;
+	const u8 *result = NULL;
 	if (v1 && (!result || v1 < result)) result = v1;
 	if (v2 && (!result || v2 < result)) result = v2;
 	if (v3 && (!result || v3 < result)) result = v3;
@@ -58,12 +58,12 @@ STATIC const char *find_next_placeholder(const char *p) {
 }
 
 /* Main format_append implementation */
-GLOBAL i32 format_append(Formatter *f, const char *fmt, ...) {
+PUBLIC i32 format_append(Formatter *f, const u8 *fmt, ...) {
 	u8 buf[64] = {0};
 	bool hex = false, upper = false, is_char = false;
 	u64 len;
 	__builtin_va_list args;
-	const char *p, *next_placeholder;
+	const u8 *p, *next_placeholder;
 	Printable next;
 
 	/* Check for invalid input */
@@ -146,7 +146,7 @@ GLOBAL i32 format_append(Formatter *f, const char *fmt, ...) {
 }
 
 /* Return the formatted string */
-GLOBAL const u8 *format_to_string(Formatter *f) {
+PUBLIC const u8 *format_to_string(Formatter *f) {
 	u8 *result;
 
 	/* Check for invalid input */
@@ -168,7 +168,7 @@ GLOBAL const u8 *format_to_string(Formatter *f) {
 	return f->buf;
 }
 
-GLOBAL void format_clear(Formatter *f) {
+PUBLIC void format_clear(Formatter *f) {
 	if (f->capacity) release(f->buf);
 	f->capacity = f->pos = 0;
 	f->buf = NULL;

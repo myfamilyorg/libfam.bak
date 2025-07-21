@@ -28,7 +28,7 @@
 #include <libfam/sys.H>
 #include <libfam/syscall_const.H>
 
-GLOBAL i32 file(const u8 *path) {
+PUBLIC i32 file(const u8 *path) {
 	i32 ret = open(path, O_CREAT | O_RDWR, 0600);
 	return ret;
 }
