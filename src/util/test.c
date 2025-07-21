@@ -193,6 +193,36 @@ Test(lock) {
 	release(state);
 }
 
+Test(lock2) {
+	Lock l1 = LOCK_INIT;
+	Lock l2 = LOCK_INIT;
+	ASSERT_EQ(l1, 0, "l1=0");
+	ASSERT_EQ(l2, 0, "l2=0");
+
+	LockGuardImpl lg1 = wlock(&l1);
+	LockGuardImpl lg2 = rlock(&l2);
+
+	ASSERT_EQ(l1, 0x1 << 31, "l1=2^31");
+	ASSERT_EQ(l2, 1, "l2=1");
+
+	_debug_no_exit = true;
+	_debug_no_write = true;
+
+	lockguard_cleanup(&lg1);
+	ASSERT_EQ(l1, 0, "l1=0");
+	lockguard_cleanup(&lg1);
+	lockguard_cleanup(&lg2);
+	ASSERT_EQ(l2, 0, "l2=0");
+	lockguard_cleanup(&lg2);
+
+	_debug_no_write = false;
+	_debug_no_exit = false;
+
+	/* Final error conditions */
+	ASSERT_EQ(l1, 0, "l1=0");
+	ASSERT_EQ(l2, U32_MAX, "l2=U32_MAX");
+}
+
 typedef struct {
 	RobustLock lock1;
 	RobustLock lock2;
