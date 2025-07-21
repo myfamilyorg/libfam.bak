@@ -30,7 +30,7 @@
 #include <libfam/limits.H>
 
 #define LZX_HASH_ENTRIES 4096
-#define HASH_CONSTANT 2654435761U
+#define HASH_CONSTANT 0x9e3779b97f4a7c15ULL
 #define MIN_MATCH 6
 #define MAX_MATCH 127
 #define MATCH_SENTINEL 0x80
@@ -46,25 +46,32 @@
 	output[itt++] = input[i];                                \
 	if (is_sentinel) output[itt++] = ESC;
 
-#define SET_HASH                                               \
-	if (itt >= 4) {                                        \
-		bool can_set = true;                           \
-		if ((output[itt - 4] & MATCH_SENTINEL) != 0 && \
-		    output[itt - 3] != 0xFF)                   \
-			can_set = false;                       \
-		if ((output[itt - 3] & MATCH_SENTINEL) != 0 && \
-		    output[itt - 2] != 0xFF)                   \
-			can_set = false;                       \
-		if ((output[itt - 2] & MATCH_SENTINEL) != 0 && \
-		    output[itt - 1] != 0xFF)                   \
-			can_set = false;                       \
-		if ((output[itt - 1] & MATCH_SENTINEL) != 0 && \
-		    output[itt] != 0xFF)                       \
-			can_set = false;                       \
-		if (can_set) {                                 \
-			key = *(u32 *)(output + (itt - 4));    \
-			lzx_hash_set(&hash, key, itt - 4);     \
-		}                                              \
+#define SET_HASH                                                               \
+	if (itt >= 6) {                                                        \
+		bool can_set = true;                                           \
+		if ((output[itt - 6] & MATCH_SENTINEL) != 0 &&                 \
+		    output[itt - 5] != 0xFF)                                   \
+			can_set = false;                                       \
+		if ((output[itt - 5] & MATCH_SENTINEL) != 0 &&                 \
+		    output[itt - 4] != 0xFF)                                   \
+			can_set = false;                                       \
+		if ((output[itt - 4] & MATCH_SENTINEL) != 0 &&                 \
+		    output[itt - 3] != 0xFF)                                   \
+			can_set = false;                                       \
+		if ((output[itt - 3] & MATCH_SENTINEL) != 0 &&                 \
+		    output[itt - 2] != 0xFF)                                   \
+			can_set = false;                                       \
+		if ((output[itt - 2] & MATCH_SENTINEL) != 0 &&                 \
+		    output[itt - 1] != 0xFF)                                   \
+			can_set = false;                                       \
+		if ((output[itt - 1] & MATCH_SENTINEL) != 0 &&                 \
+		    output[itt] != 0xFF)                                       \
+			can_set = false;                                       \
+		if (can_set) {                                                 \
+			key = *(u32 *)(output + (itt - 6)) |                   \
+			      ((u64)(*(u16 *)(output + (itt - 6 + 4))) << 32); \
+			lzx_hash_set(&hash, key, itt - 6);                     \
+		}                                                              \
 	}
 
 typedef struct HuffmanNode {
@@ -414,14 +421,14 @@ STATIC void lzx_hash_init(LzxHash *hash) {
 	}
 }
 
-STATIC u16 lzx_hash_get(LzxHash *hash, u32 key) {
-	u32 h = (key * HASH_CONSTANT) >> 20;
+STATIC u16 lzx_hash_get(LzxHash *hash, u64 key) {
+	u64 h = (key * HASH_CONSTANT) >> (64 - 12);
 	h &= (LZX_HASH_ENTRIES - 1);
 	return *(u16 *)(hash->table + h * 2);
 }
 
-STATIC void lzx_hash_set(LzxHash *hash, u32 key, u16 value) {
-	u32 h = (key * HASH_CONSTANT) >> 20;
+STATIC void lzx_hash_set(LzxHash *hash, u64 key, u16 value) {
+	u64 h = (key * HASH_CONSTANT) >> (64 - 12);
 	h &= (LZX_HASH_ENTRIES - 1);
 	*(u16 *)(hash->table + h * 2) = value;
 }
@@ -548,7 +555,7 @@ STATIC i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 			      u64 out_capacity) {
 	LzxHash hash;
 	i32 itt = 0, i;
-	u32 key;
+	u64 key;
 
 	if (!input || !output || !in_len || !out_capacity) {
 		err = EINVAL;
@@ -558,8 +565,9 @@ STATIC i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 	lzx_hash_init(&hash);
 
 	for (i = 0; i < in_len; i++) {
-		if (i + sizeof(u32) <= in_len) {
-			key = *(u32 *)(input + i);
+		if (i + 6 <= in_len) {
+			key = *(u32 *)(input + i) |
+			      ((u64)(*(u16 *)(input + i + 4)) << 32);
 			u16 value = lzx_hash_get(&hash, key);
 			if (value >= itt) {
 				APPEND_SYMBOL
@@ -690,4 +698,3 @@ i64 decompress(u8 *in, u64 len, u8 *out, u64 capacity) {
 
 	return (i64)out_pos;
 }
-
