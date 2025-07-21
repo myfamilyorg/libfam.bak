@@ -202,7 +202,7 @@ Test(lock2) {
 	LockGuardImpl lg1 = wlock(&l1);
 	LockGuardImpl lg2 = rlock(&l2);
 
-	ASSERT_EQ(l1, 0x1 << 31, "l1=2^31");
+	ASSERT_EQ(l1, (u32)(0x1 << 31), "l1=2^31");
 	ASSERT_EQ(l2, 1, "l2=1");
 
 	_debug_no_exit = true;
