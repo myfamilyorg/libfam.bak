@@ -31,7 +31,7 @@
 
 #define LZX_HASH_ENTRIES 4096
 #define HASH_CONSTANT 0x9e3779b97f4a7c15ULL
-#define MIN_MATCH 6
+#define MIN_MATCH 8
 #define MAX_MATCH 127
 #define MATCH_SENTINEL 0x80
 #define ESC 0xFF
@@ -63,9 +63,6 @@
 			can_set = false;                                       \
 		if ((output[itt - 2] & MATCH_SENTINEL) != 0 &&                 \
 		    output[itt - 1] != 0xFF)                                   \
-			can_set = false;                                       \
-		if ((output[itt - 1] & MATCH_SENTINEL) != 0 &&                 \
-		    output[itt] != 0xFF)                                       \
 			can_set = false;                                       \
 		if (can_set) {                                                 \
 			key = *(u32 *)(output + (itt - 6)) |                   \
@@ -565,32 +562,56 @@ STATIC i32 lzx_compress_block(const u8 *input, u16 in_len, u8 *output,
 	lzx_hash_init(&hash);
 
 	for (i = 0; i < in_len; i++) {
+		bool handled = false;
 		if (i + 6 <= in_len) {
 			key = *(u32 *)(input + i) |
 			      ((u64)(*(u16 *)(input + i + 4)) << 32);
 			u16 value = lzx_hash_get(&hash, key);
-			if (value >= itt) {
-				APPEND_SYMBOL
-				SET_HASH
-			} else {
-				u32 mlen = lzx_match_len(input, in_len, i,
-							 output, itt, value);
-				if (mlen < MIN_MATCH || (value & 0xFF) == ESC) {
-					APPEND_SYMBOL
-					SET_HASH
-				} else {
-					if ((u64)(itt + 3) >= out_capacity) {
-						err = ENOBUFS;
-						return -1;
+			if (value != U16_MAX && value < itt) {
+				u8 mlen = lzx_match_len(input, in_len, i,
+							output, itt, value);
+				if (mlen >= MIN_MATCH &&
+				    (value & 0xFF) != ESC) {
+					u8 mlen2 = 0;
+					if (i + 7 <= in_len) {
+						u64 key2 =
+						    *(u32 *)(input + i + 1) |
+						    ((u64)(*(u16 *)(input + i +
+								    5))
+						     << 32);
+						u16 value2 =
+						    lzx_hash_get(&hash, key2);
+						if (value2 != U16_MAX &&
+						    value2 < itt) {
+							mlen2 = lzx_match_len(
+							    input, in_len,
+							    i + 1, output, itt,
+							    value2);
+						}
 					}
-					output[itt++] = MATCH_SENTINEL | mlen;
-					output[itt++] = value >> 8;
-					output[itt++] = value & 0xFF;
-					i += mlen - 1;
+					if (mlen2 > mlen + 1) {
+						APPEND_SYMBOL
+						SET_HASH
+						handled = true;
+					} else {
+						if ((u64)(itt + 3) >=
+						    out_capacity) {
+							err = ENOBUFS;
+							return -1;
+						}
+						output[itt++] =
+						    MATCH_SENTINEL | mlen;
+						output[itt++] = value >> 8;
+						output[itt++] = value & 0xFF;
+						i += mlen - 1;
+						handled = true;
+					}
 				}
 			}
-		} else {
+		}
+		if (!handled) {
 			APPEND_SYMBOL
+			SET_HASH
 		}
 	}
 
