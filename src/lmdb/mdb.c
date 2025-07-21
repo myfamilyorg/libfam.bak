@@ -3583,11 +3583,7 @@ static int ESECT mdb_env_map(MDB_env *env, void *addr) {
 				   HANDLE *res) {
 		int rc = MDB_SUCCESS;
 		HANDLE fd;
-#ifdef _WIN32
-		DWORD acc, share, disp, attrs;
-#else
-	int flags;
-#endif
+		int flags;
 
 		if (fname->mn_alloced) /* modifiable copy */
 			mdb_name_cpy(fname->mn_val + fname->mn_len,
@@ -3610,48 +3606,10 @@ static int ESECT mdb_env_map(MDB_env *env, void *addr) {
 		 * mdb_env_get_fd().
 		 */
 
-#ifdef _WIN32
-		acc = GENERIC_READ | GENERIC_WRITE;
-		share = FILE_SHARE_READ | FILE_SHARE_WRITE;
-		disp = OPEN_ALWAYS;
-		attrs = FILE_ATTRIBUTE_NORMAL;
-		switch (which) {
-			case MDB_O_OVERLAPPED: /* for unbuffered asynchronous
-						  writes (write-through mode)*/
-				acc = GENERIC_WRITE;
-				disp = OPEN_EXISTING;
-				attrs = FILE_FLAG_OVERLAPPED |
-					FILE_FLAG_WRITE_THROUGH;
-				break;
-			case MDB_O_RDONLY: /* read-only datafile */
-				acc = GENERIC_READ;
-				disp = OPEN_EXISTING;
-				break;
-			case MDB_O_META: /* for writing metapages */
-				acc = GENERIC_WRITE;
-				disp = OPEN_EXISTING;
-				attrs = FILE_ATTRIBUTE_NORMAL |
-					FILE_FLAG_WRITE_THROUGH;
-				break;
-			case MDB_O_COPY: /* mdb_env_copy() & co */
-				acc = GENERIC_WRITE;
-				share = 0;
-				disp = CREATE_NEW;
-				attrs = FILE_FLAG_NO_BUFFERING |
-					FILE_FLAG_WRITE_THROUGH;
-				break;
-			default:
-				break; /* silence gcc -Wswitch (not all enum
-					  values handled) */
-		}
-		fd = CreateFileW(fname->mn_val, acc, share, NULL, disp, attrs,
-				 NULL);
-#else
-	fd = open(fname->mn_val, which & MDB_O_MASK, mode);
-#endif
+		fd = open(fname->mn_val, which & MDB_O_MASK, mode);
 
-		if (fd == INVALID_HANDLE_VALUE) rc = ErrCode();
-#ifndef _WIN32
+		if (fd == INVALID_HANDLE_VALUE)
+			rc = ErrCode();
 		else {
 			if (which != MDB_O_RDONLY && which != MDB_O_RDWR) {
 				/* Set CLOEXEC if we could not pass it to open()
@@ -3670,17 +3628,15 @@ static int ESECT mdb_env_map(MDB_env *env, void *addr) {
 #ifdef F_NOCACHE /* __APPLE__ */
 				(void)fcntl(fd, F_NOCACHE, 1);
 #elif defined O_DIRECT
-				/* open(...O_DIRECT...) would break on
-				 * filesystems without O_DIRECT support
-				 * (ITS#7682). Try to set it here instead.
-				 */
-				if ((flags = fcntl(fd, F_GETFL)) != -1)
-					(void)fcntl(fd, F_SETFL,
-						    flags | O_DIRECT);
+			/* open(...O_DIRECT...) would break on
+			 * filesystems without O_DIRECT support
+			 * (ITS#7682). Try to set it here instead.
+			 */
+			if ((flags = fcntl(fd, F_GETFL)) != -1)
+				(void)fcntl(fd, F_SETFL, flags | O_DIRECT);
 #endif
 			}
 		}
-#endif /* !_WIN32 */
 
 		*res = fd;
 		return rc;
