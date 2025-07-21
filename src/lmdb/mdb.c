@@ -29,6 +29,10 @@
 #include <libfam/midl.H>
 #include <libfam/pthread.H>
 
+#ifndef CACHELINE
+#define CACHELINE 64
+#endif
+
 #define MDB_PID_T i32
 #define MDB_THR_T pthread_t
 #define MDB_OFF_T i64
@@ -179,6 +183,35 @@ typedef MDB_ID txnid_t;
 typedef u16 indx_t;
 typedef unsigned long long mdb_hash_t;
 
+typedef struct MDB_rxbody {
+	/**     Current Transaction ID when this transaction began, or
+	 *(txnid_t)-1. Multiple readers that start at the same time will
+	 *probably have the same ID here. Again, it's not important to exclude
+	 *them from anything; all we need to know is which version of the DB
+	 *they started from so we can avoid overwriting any data used in that
+	 *      particular version.
+	 */
+	volatile txnid_t mrb_txnid;
+	/** The process ID of the process owning this reader txn. */
+	volatile MDB_PID_T mrb_pid;
+	/** The thread ID of the thread owning this txn. */
+	volatile MDB_THR_T mrb_tid;
+} MDB_rxbody;
+
+/** The actual reader record, with cacheline padding. */
+typedef struct MDB_reader {
+	union {
+		MDB_rxbody mrx;
+		/** shorthand for mrb_txnid */
+#define mr_txnid mru.mrx.mrb_txnid
+#define mr_pid mru.mrx.mrb_pid
+#define mr_tid mru.mrx.mrb_tid
+		/** cache line alignment */
+		char pad[(sizeof(MDB_rxbody) + CACHELINE - 1) &
+			 ~(CACHELINE - 1)];
+	} mru;
+} MDB_reader;
+
 /** @defgroup debug	Debug Macros
  *	@{
  */
@@ -193,24 +226,8 @@ typedef unsigned long long mdb_hash_t;
 #define MDB_DBG_INFO 1
 #define MDB_DBG_TRACE 2
 
-#if MDB_DEBUG
-static int mdb_debug = MDB_DBG_TRACE;
-static txnid_t mdb_debug_start;
-
-/**	Print a debug message with printf formatting.
- *	Requires double parenthesis around 2 or more args.
- */
-#define DPRINTF(args) ((void)((mdb_debug & MDB_DBG_INFO) && DPRINTF0 args))
-#define DPRINTF0(fmt, ...) \
-	fprintf(stderr, "%s:%d " fmt "\n", mdb_func_, __LINE__, __VA_ARGS__)
-/** Trace info for replaying */
-#define MDB_TRACE(args) ((void)((mdb_debug & MDB_DBG_TRACE) && DPRINTF1 args))
-#define DPRINTF1(fmt, ...) \
-	fprintf(stderr, ">%d:%s: " fmt "\n", getpid(), mdb_func_, __VA_ARGS__)
-#else
 #define DPRINTF(args) ((void)0)
 #define MDB_TRACE(args) ((void)0)
-#endif
 /**	Print a debug string.
  *	The string is printed literally, with no format processing.
  */
@@ -372,9 +389,6 @@ static txnid_t mdb_debug_start;
  *	lock table.
  *	This value works for most CPUs. For Itanium this should be 128.
  */
-#ifndef CACHELINE
-#define CACHELINE 64
-#endif
 
 /**	The information we store in a single slot of the reader table.
  *	In addition to a transaction ID, we also record the process and
@@ -384,34 +398,6 @@ static txnid_t mdb_debug_start;
  *	the table when we know that we're the only process opening the
  *	lock file.
  */
-typedef struct MDB_rxbody {
-	/**	Current Transaction ID when this transaction began, or
-	 *(txnid_t)-1. Multiple readers that start at the same time will
-	 *probably have the same ID here. Again, it's not important to exclude
-	 *them from anything; all we need to know is which version of the DB
-	 *they started from so we can avoid overwriting any data used in that
-	 *	particular version.
-	 */
-	volatile txnid_t mrb_txnid;
-	/** The process ID of the process owning this reader txn. */
-	volatile MDB_PID_T mrb_pid;
-	/** The thread ID of the thread owning this txn. */
-	volatile MDB_THR_T mrb_tid;
-} MDB_rxbody;
-
-/** The actual reader record, with cacheline padding. */
-typedef struct MDB_reader {
-	union {
-		MDB_rxbody mrx;
-		/** shorthand for mrb_txnid */
-#define mr_txnid mru.mrx.mrb_txnid
-#define mr_pid mru.mrx.mrb_pid
-#define mr_tid mru.mrx.mrb_tid
-		/** cache line alignment */
-		char pad[(sizeof(MDB_rxbody) + CACHELINE - 1) &
-			 ~(CACHELINE - 1)];
-	} mru;
-} MDB_reader;
 
 /** The header for the reader table.
  *	The table resides in a memory-mapped file. (This is a different file
@@ -443,21 +429,12 @@ typedef struct MDB_txbody {
 	 *	when readers release their slots.
 	 */
 	volatile unsigned mtb_numreaders;
-#if defined(_WIN32) || defined(MDB_USE_POSIX_SEM)
-	/** Binary form of names of the reader/writer locks */
-	mdb_hash_t mtb_mutexid;
-#elif defined(MDB_USE_SYSV_SEM)
-	int mtb_semid;
-	int mtb_rlocked;
-#else
 	/** Mutex protecting access to this table.
 	 *	This is the reader table lock used with LOCK_MUTEX().
 	 */
 	mdb_mutex_t mtb_rmutex;
-#endif
 } MDB_txbody;
 
-/** The actual reader table definition. */
 typedef struct MDB_txninfo {
 	union {
 		MDB_txbody mtb;
@@ -467,25 +444,14 @@ typedef struct MDB_txninfo {
 #define mti_txnid mt1.mtb.mtb_txnid
 #define mti_numreaders mt1.mtb.mtb_numreaders
 #define mti_mutexid mt1.mtb.mtb_mutexid
-#ifdef MDB_USE_SYSV_SEM
-#define mti_semid mt1.mtb.mtb_semid
-#define mti_rlocked mt1.mtb.mtb_rlocked
-#endif
 		char pad[(sizeof(MDB_txbody) + CACHELINE - 1) &
 			 ~(CACHELINE - 1)];
 	} mt1;
-#if !(defined(_WIN32) || defined(MDB_USE_POSIX_SEM))
 	union {
-#ifdef MDB_USE_SYSV_SEM
-		int mt2_wlocked;
-#define mti_wlocked mt2.mt2_wlocked
-#else
 		mdb_mutex_t mt2_wmutex;
 #define mti_wmutex mt2.mt2_wmutex
-#endif
 		char pad[(MNAME_LEN + CACHELINE - 1) & ~(CACHELINE - 1)];
 	} mt2;
-#endif
 	MDB_reader mti_readers[1];
 } MDB_txninfo;
 
@@ -497,20 +463,12 @@ typedef struct MDB_txninfo {
 /** Lock type and layout. Values 0-119. _WIN32 implies #MDB_PIDLOCK.
  *	Some low values are reserved for future tweaks.
  */
-#ifdef _WIN32
-#define MDB_LOCK_TYPE (0 + ALIGNOF2(mdb_hash_t) / 8 % 2)
-#elif defined MDB_USE_POSIX_SEM
-#define MDB_LOCK_TYPE (4 + ALIGNOF2(mdb_hash_t) / 8 % 2)
-#elif defined MDB_USE_SYSV_SEM
-#define MDB_LOCK_TYPE (8)
-#elif defined MDB_USE_POSIX_MUTEX
 /* We do not know the inside of a POSIX mutex and how to check if mutexes
  * used by two executables are compatible. Just check alignment and size.
  */
 #define MDB_LOCK_TYPE                                  \
 	(10 + LOG2_MOD(ALIGNOF2(pthread_mutex_t), 5) + \
 	 sizeof(pthread_mutex_t) / 4U % 22 * 5)
-#endif
 
 enum {
 	/** Magic number for lockfile layout and features.
@@ -567,12 +525,7 @@ typedef struct MDB_page {
 		struct MDB_page
 		    *p_next; /**< for in-memory list of freed pages */
 	} mp_p;
-	u16 mp_pad; /**< key size if this is a LEAF2 page */
-/**	@defgroup mdb_page	Page Flags
- *	@ingroup internal
- *	Flags for the page headers.
- *	@{
- */
+	u16 mp_pad;	/**< key size if this is a LEAF2 page */
 #define P_BRANCH 0x01	/**< branch page */
 #define P_LEAF 0x02	/**< leaf page */
 #define P_OVERFLOW 0x04 /**< overflow page */
@@ -672,30 +625,14 @@ typedef struct MDB_page2 {
  * a sub-page/sub-database, and named databases (just #F_SUBDATA).
  */
 typedef struct MDB_node {
-	/** part of data size or pgno
-	 *	@{ */
-#if BYTE_ORDER == LITTLE_ENDIAN
-	unsigned short mn_lo, mn_hi;
-#else
-	unsigned short mn_hi, mn_lo;
-#endif
-	/** @} */
-/** @defgroup mdb_node Node Flags
- *	@ingroup internal
- *	Flags for node headers.
- *	@{
- */
+	u16 mn_lo, mn_hi;
 #define F_BIGDATA 0x01 /**< data put on overflow page */
 #define F_SUBDATA 0x02 /**< data is a sub-database */
 #define F_DUPDATA 0x04 /**< data has duplicates */
-
-/** valid flags for #mdb_node_add() */
 #define NODE_ADD_FLAGS (F_DUPDATA | F_SUBDATA | MDB_RESERVE | MDB_APPEND)
-
-	/** @} */
-	unsigned short mn_flags; /**< @ref mdb_node */
-	unsigned short mn_ksize; /**< key size */
-	char mn_data[1];	 /**< key and data are appended here */
+	u16 mn_flags;  /**< @ref mdb_node */
+	u16 mn_ksize;  /**< key size */
+	u8 mn_data[1]; /**< key and data are appended here */
 } MDB_node;
 
 /** Size of the node header, excluding dynamic data at the end */
@@ -753,24 +690,24 @@ typedef struct MDB_node {
 #define MP_PGNO(p) ((p)->mp_pgno)
 #else
 #if MDB_SIZE_MAX > 0xffffffffU
-#define COPY_PGNO(dst, src)                   \
-	do {                                  \
-		unsigned short *s, *d;        \
-		s = (unsigned short *)&(src); \
-		d = (unsigned short *)&(dst); \
-		*d++ = *s++;                  \
-		*d++ = *s++;                  \
-		*d++ = *s++;                  \
-		*d = *s;                      \
+#define COPY_PGNO(dst, src)        \
+	do {                       \
+		u16 *s, *d;        \
+		s = (u16 *)&(src); \
+		d = (u16 *)&(dst); \
+		*d++ = *s++;       \
+		*d++ = *s++;       \
+		*d++ = *s++;       \
+		*d = *s;           \
 	} while (0)
 #else
-#define COPY_PGNO(dst, src)                   \
-	do {                                  \
-		unsigned short *s, *d;        \
-		s = (unsigned short *)&(src); \
-		d = (unsigned short *)&(dst); \
-		*d++ = *s++;                  \
-		*d = *s;                      \
+#define COPY_PGNO(dst, src)        \
+	do {                       \
+		u16 *s, *d;        \
+		s = (u16 *)&(src); \
+		d = (u16 *)&(dst); \
+		*d++ = *s++;       \
+		*d = *s;           \
 	} while (0)
 #endif
 #endif
@@ -778,7 +715,7 @@ typedef struct MDB_node {
  *	LEAF2 pages are used for #MDB_DUPFIXED sorted-duplicate sub-DBs.
  *	There are no node headers, keys are stored contiguously.
  */
-#define LEAF2KEY(p, i, ks) ((char *)(p) + PAGEHDRSZ + ((i) * (ks)))
+#define LEAF2KEY(p, i, ks) ((u8 *)(p) + PAGEHDRSZ + ((i) * (ks)))
 
 /** Set the \b node's key into \b keyptr, if requested. */
 #define MDB_GET_KEY(node, keyptr)                          \
@@ -835,16 +772,7 @@ typedef struct MDB_meta {
 	u32 mm_magic;
 	/** Version number of this file. Must be set to #MDB_DATA_VERSION. */
 	u32 mm_version;
-#ifdef MDB_VL32
-	union { /* always zero since we don't support fixed mapping in MDB_VL32
-		 */
-		MDB_ID mmun_ull;
-		void *mmun_address;
-	} mm_un;
-#define mm_address mm_un.mmun_address
-#else
-	void *mm_address; /**< address for fixed mapping */
-#endif
+	void *mm_address;	 /**< address for fixed mapping */
 	mdb_size_t mm_mapsize;	 /**< size of mmap region */
 	MDB_db mm_dbs[CORE_DBS]; /**< first is free space, 2nd is main db */
 				 /** The size of pages used in this DB */
@@ -893,9 +821,6 @@ struct MDB_txn {
 	 */
 	MDB_txn *mt_child;
 	pgno_t mt_next_pgno; /**< next unallocated page */
-#ifdef MDB_VL32
-	pgno_t mt_last_pgno; /**< last written page */
-#endif
 	/** The ID of this transaction. IDs are integers incrementing from 1.
 	 *	Only committed write transactions increment the ID. If a
 	 *transaction aborts, the ID may be re-used by the next writer.
@@ -945,19 +870,6 @@ struct MDB_txn {
 	MDB_cursor **mt_cursors;
 	/** Array of flags for each DB */
 	unsigned char *mt_dbflags;
-#ifdef MDB_VL32
-	/** List of read-only pages (actually chunks) */
-	MDB_ID3L mt_rpages;
-	/** We map chunks of 16 pages. Even though Windows uses 4KB pages, all
-	 * mappings must begin on 64KB boundaries. So we round off all pgnos to
-	 * a chunk boundary. We do the same on Linux for symmetry, and also to
-	 * reduce the frequency of mmap/munmap calls.
-	 */
-#define MDB_RPAGE_CHUNK 16
-#define MDB_TRPAGE_SIZE 4096 /**< size of #mt_rpages array of chunks */
-#define MDB_TRPAGE_MAX (MDB_TRPAGE_SIZE - 1) /**< maximum chunk index */
-	unsigned int mt_rpcheck; /**< threshold for reclaiming unref'd chunks */
-#endif
 	/**	Number of DB records in use, or 0 when the txn is finished.
 	 *	This number only ever increments until the txn finishes; we
 	 *	don't decrement it when individual DB handles are closed.
@@ -1048,14 +960,8 @@ struct MDB_cursor {
 	unsigned int mc_flags;	       /**< @ref mdb_cursor */
 	MDB_page *mc_pg[CURSOR_STACK]; /**< stack of pushed pages */
 	indx_t mc_ki[CURSOR_STACK];    /**< stack of page indices */
-#ifdef MDB_VL32
-	MDB_page *mc_ovpg; /**< a referenced overflow page */
-#define MC_OVPG(mc) ((mc)->mc_ovpg)
-#define MC_SET_OVPG(mc, pg) ((mc)->mc_ovpg = (pg))
-#else
 #define MC_OVPG(mc) ((MDB_page *)0)
 #define MC_SET_OVPG(mc, pg) ((void)0)
-#endif
 };
 
 /** Context for sorted-dup records.
@@ -1107,12 +1013,6 @@ struct MDB_env {
 	HANDLE me_fd;  /**< The main data file */
 	HANDLE me_lfd; /**< The lock file */
 	HANDLE me_mfd; /**< For writing and syncing the meta pages */
-#ifdef _WIN32
-#ifdef MDB_VL32
-	HANDLE me_fmh;	/**< File Mapping handle */
-#endif			/* MDB_VL32 */
-	HANDLE me_ovfd; /**< Overlapped/async with write-through file handle */
-#endif			/* _WIN32 */
 	/** Failed to update the meta page. Probably an I/O error. */
 #define MDB_FATAL_ERROR 0x80000000U
 	/** Some fields are initialized. */
@@ -1161,31 +1061,10 @@ struct MDB_env {
 #if !(MDB_MAXKEYSIZE)
 	unsigned int me_maxkey; /**< max size of a key */
 #endif
-	int me_live_reader; /**< have liveness lock in reader table */
-#ifdef _WIN32
-	int me_pidquery; /**< Used in OpenProcess */
-	OVERLAPPED *ov;	 /**< Used for for overlapping I/O requests */
-	int ovs;	 /**< Count of OVERLAPPEDs */
-#endif
-#ifdef MDB_USE_POSIX_MUTEX	      /* Posix mutexes reside in shared mem */
+	int me_live_reader;	      /**< have liveness lock in reader table */
 #define me_rmutex me_txns->mti_rmutex /**< Shared reader lock */
 #define me_wmutex me_txns->mti_wmutex /**< Shared writer lock */
-#else
-	mdb_mutex_t me_rmutex;
-	mdb_mutex_t me_wmutex;
-#if defined(_WIN32) || defined(MDB_USE_POSIX_SEM)
-	/** Half-initialized name of mutexes, to be completed by #MUTEXNAME() */
-	char me_mutexname[sizeof(MUTEXNAME_PREFIX) + 11];
-#endif
-#endif
-#ifdef MDB_VL32
-	MDB_ID3L me_rpages;	    /**< like #mt_rpages, but global to env */
-	pthread_mutex_t me_rpmutex; /**< control access to #me_rpages */
-#define MDB_ERPAGE_SIZE 16384
-#define MDB_ERPAGE_MAX (MDB_ERPAGE_SIZE - 1)
-	unsigned int me_rpcheck;
-#endif
-	void *me_userctx;		 /**< User-settable context */
+	void *me_userctx;	      /**< User-settable context */
 	MDB_assert_func *me_assert_func; /**< Callback for assertion failures */
 };
 
@@ -1253,10 +1132,7 @@ static int mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata,
 static int mdb_env_read_header(MDB_env *env, int prev, MDB_meta *meta);
 static MDB_meta *mdb_env_pick_meta(const MDB_env *env);
 static int mdb_env_write_meta(MDB_txn *txn);
-#if defined(MDB_USE_POSIX_MUTEX) && \
-    !defined(MDB_ROBUST_SUPPORTED) /* Drop unused excl arg */
 #define mdb_env_close0(env, excl) mdb_env_close1(env)
-#endif
 static void mdb_env_close0(MDB_env *env, int excl);
 
 static MDB_node *mdb_node_search(MDB_cursor *mc, MDB_val *key, int *exactp);
@@ -1318,15 +1194,6 @@ static MDB_cmp_func mdb_cmp_memn, mdb_cmp_memnr, mdb_cmp_int, mdb_cmp_cint,
 #define NEED_CMP_CLONG(cmp, ksize)                         \
 	(U32_MAX < MDB_SIZE_MAX && (cmp) == mdb_cmp_int && \
 	 (ksize) == sizeof(mdb_size_t))
-
-#ifdef _WIN32
-static SECURITY_DESCRIPTOR mdb_null_sd;
-static SECURITY_ATTRIBUTES mdb_all_sa;
-static int mdb_sec_inited;
-
-struct MDB_name;
-static int utf8_to_utf16(const char *src, struct MDB_name *dst, int xtra);
-#endif
 
 /** Return the library version info. */
 u8 *ESECT mdb_version(int *major, int *minor, int *patch) {
