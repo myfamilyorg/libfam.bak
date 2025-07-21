@@ -1229,16 +1229,6 @@ static char *const mdb_errstr[] = {
 };
 
 const u8 *mdb_strerror(int err) {
-#ifdef _WIN32
-	/** HACK: pad 4KB on stack over the buf. Return system msgs in buf.
-	 *	This works as long as no function between the call to
-	 *mdb_strerror and the actual use of the message uses more than 4K of
-	 *stack.
-	 */
-#define MSGSIZE 1024
-#define PADSIZE 4096
-	char buf[MSGSIZE + PADSIZE], *ptr = buf;
-#endif
 	int i;
 	if (!err) return ("Successful return: 0");
 
@@ -1247,32 +1237,8 @@ const u8 *mdb_strerror(int err) {
 		return mdb_errstr[i];
 	}
 
-#ifdef _WIN32
-	/* These are the C-runtime error codes we use. The comment indicates
-	 * their numeric value, and the Win32 error they would correspond to
-	 * if the error actually came from a Win32 API. A major mess, we should
-	 * have used LMDB-specific error codes for everything.
-	 */
-	switch (err) {
-		case ENOENT: /* 2, FILE_NOT_FOUND */
-		case EIO:    /* 5, ACCESS_DENIED */
-		case ENOMEM: /* 12, INVALID_ACCESS */
-		case EACCES: /* 13, INVALID_DATA */
-		case EBUSY:  /* 16, CURRENT_DIRECTORY */
-		case EINVAL: /* 22, BAD_COMMAND */
-		case ENOSPC: /* 28, OUT_OF_PAPER */
-			return strerror(err);
-		default:;
-	}
-	buf[0] = 0;
-	FormatMessageA(
-	    FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
-	    err, 0, ptr, MSGSIZE, NULL);
-	return ptr;
-#else
 	if (err < 0) return "Invalid error code";
 	return strerror(err);
-#endif
 }
 
 /** assert(3) variant in cursor context */
@@ -1282,239 +1248,7 @@ const u8 *mdb_strerror(int err) {
 /** assert(3) variant in environment context */
 #define mdb_eassert(env, expr) mdb_assert0(env, expr, #expr)
 
-#define NDEBUG
-#ifndef NDEBUG
-#define mdb_assert0(env, expr, expr_txt) \
-	((expr)                          \
-	     ? (void)0                   \
-	     : mdb_assert_fail(env, expr_txt, mdb_func_, __FILE__, __LINE__))
-
-static void ESECT mdb_assert_fail(MDB_env *env, const char *expr_txt,
-				  const char *func, const char *file,
-				  int line) {
-	char buf[400];
-	sprintf(buf, "%.100s:%d: Assertion '%.200s' failed in %.40s()", file,
-		line, expr_txt, func);
-	if (env->me_assert_func) env->me_assert_func(env, buf);
-	fprintf(stderr, "%s\n", buf);
-	abort();
-}
-#else
 #define mdb_assert0(env, expr, expr_txt) ((void)0)
-#endif /* NDEBUG */
-
-#if MDB_DEBUG
-/** Return the page number of \b mp which may be sub-page, for debug output */
-static pgno_t mdb_dbg_pgno(MDB_page *mp) {
-	pgno_t ret;
-	COPY_PGNO(ret, MP_PGNO(mp));
-	return ret;
-}
-
-/** Display a key in hexadecimal and return the address of the result.
- * @param[in] key the key to display
- * @param[in] buf the buffer to write into. Should always be #DKBUF.
- * @return The key in hexadecimal form.
- */
-char *mdb_dkey(MDB_val *key, char *buf) {
-	char *ptr = buf;
-	unsigned char *c = key->mv_data;
-	unsigned int i;
-
-	if (!key) return "";
-
-	if (key->mv_size > DKBUF_MAXKEYSIZE) return "MDB_MAXKEYSIZE";
-	/* may want to make this a dynamic check: if the key is mostly
-	 * printable characters, print it as-is instead of converting to hex.
-	 */
-#if 1
-	buf[0] = '\0';
-	for (i = 0; i < key->mv_size; i++) ptr += sprintf(ptr, "%02x", *c++);
-#else
-	sprintf(buf, "%.*s", key->mv_size, key->mv_data);
-#endif
-	return buf;
-}
-
-static char *mdb_dval(MDB_txn *txn, MDB_dbi dbi, MDB_val *data, char *buf) {
-	if (txn->mt_dbs[dbi].md_flags & MDB_DUPSORT) {
-		mdb_dkey(data, buf + 1);
-		*buf = '[';
-		strcpy(buf + data->mv_size * 2 + 1, "]");
-	} else
-		*buf = '\0';
-	return buf;
-}
-
-static const char *mdb_leafnode_type(MDB_node *n) {
-	static char *const tp[2][2] = {{"", ": DB"},
-				       {": sub-page", ": sub-DB"}};
-	return F_ISSET(n->mn_flags, F_BIGDATA)
-		   ? ": overflow page"
-		   : tp[F_ISSET(n->mn_flags, F_DUPDATA)]
-		       [F_ISSET(n->mn_flags, F_SUBDATA)];
-}
-
-/** Display all the keys in the page. */
-void mdb_page_list(MDB_page *mp) {
-	pgno_t pgno = mdb_dbg_pgno(mp);
-	const char *type, *state = (MP_FLAGS(mp) & P_DIRTY) ? ", dirty" : "";
-	MDB_node *node;
-	unsigned int i, nkeys, nsize, total = 0;
-	MDB_val key;
-	DKBUF;
-
-	switch (MP_FLAGS(mp) &
-		(P_BRANCH | P_LEAF | P_LEAF2 | P_META | P_OVERFLOW | P_SUBP)) {
-		case P_BRANCH:
-			type = "Branch page";
-			break;
-		case P_LEAF:
-			type = "Leaf page";
-			break;
-		case P_LEAF | P_SUBP:
-			type = "Sub-page";
-			break;
-		case P_LEAF | P_LEAF2:
-			type = "LEAF2 page";
-			break;
-		case P_LEAF | P_LEAF2 | P_SUBP:
-			type = "LEAF2 sub-page";
-			break;
-		case P_OVERFLOW:
-			fprintf(stderr, "Overflow page %" Yu " pages %u%s\n",
-				pgno, mp->mp_pages, state);
-			return;
-		case P_META:
-			fprintf(stderr, "Meta-page %" Yu " txnid %" Yu "\n",
-				pgno, ((MDB_meta *)METADATA(mp))->mm_txnid);
-			return;
-		default:
-			fprintf(stderr, "Bad page %" Yu " flags 0x%X\n", pgno,
-				MP_FLAGS(mp));
-			return;
-	}
-
-	nkeys = NUMKEYS(mp);
-	fprintf(stderr, "%s %" Yu " numkeys %d%s\n", type, pgno, nkeys, state);
-
-	for (i = 0; i < nkeys; i++) {
-		if (IS_LEAF2(mp)) { /* LEAF2 pages have no mp_ptrs[] or node
-				       headers */
-			key.mv_size = nsize = mp->mp_pad;
-			key.mv_data = LEAF2KEY(mp, i, nsize);
-			total += nsize;
-			fprintf(stderr, "key %d: nsize %d, %s\n", i, nsize,
-				DKEY(&key));
-			continue;
-		}
-		node = NODEPTR(mp, i);
-		key.mv_size = node->mn_ksize;
-		key.mv_data = node->mn_data;
-		nsize = NODESIZE + key.mv_size;
-		if (IS_BRANCH(mp)) {
-			fprintf(stderr, "key %d: page %" Yu ", %s\n", i,
-				NODEPGNO(node), DKEY(&key));
-			total += nsize;
-		} else {
-			if (F_ISSET(node->mn_flags, F_BIGDATA))
-				nsize += sizeof(pgno_t);
-			else
-				nsize += NODEDSZ(node);
-			total += nsize;
-			nsize += sizeof(indx_t);
-			fprintf(stderr, "key %d: nsize %d, %s%s\n", i, nsize,
-				DKEY(&key), mdb_leafnode_type(node));
-		}
-		total = EVEN(total);
-	}
-	fprintf(stderr, "Total: header %d + contents %d + unused %d\n",
-		IS_LEAF2(mp) ? PAGEHDRSZ : PAGEBASE + MP_LOWER(mp), total,
-		SIZELEFT(mp));
-}
-
-void mdb_cursor_chk(MDB_cursor *mc) {
-	unsigned int i;
-	MDB_node *node;
-	MDB_page *mp;
-
-	if (!mc->mc_snum || !(mc->mc_flags & C_INITIALIZED)) return;
-	for (i = 0; i < mc->mc_top; i++) {
-		mp = mc->mc_pg[i];
-		node = NODEPTR(mp, mc->mc_ki[i]);
-		if (NODEPGNO(node) != mc->mc_pg[i + 1]->mp_pgno)
-			printf("oops!\n");
-	}
-	if (mc->mc_ki[i] >= NUMKEYS(mc->mc_pg[i])) printf("ack!\n");
-	if (XCURSOR_INITED(mc)) {
-		node = NODEPTR(mc->mc_pg[mc->mc_top], mc->mc_ki[mc->mc_top]);
-		if (((node->mn_flags & (F_DUPDATA | F_SUBDATA)) == F_DUPDATA) &&
-		    mc->mc_xcursor->mx_cursor.mc_pg[0] != NODEDATA(node)) {
-			printf("blah!\n");
-		}
-	}
-}
-#endif
-
-#if (MDB_DEBUG) > 2
-/** Count all the pages in each DB and in the freelist
- *  and make sure it matches the actual number of pages
- *  being used.
- *  All named DBs must be open for a correct count.
- */
-static void mdb_audit(MDB_txn *txn) {
-	MDB_cursor mc;
-	MDB_val key, data;
-	MDB_ID freecount, count;
-	MDB_dbi i;
-	int rc;
-
-	freecount = 0;
-	mdb_cursor_init(&mc, txn, FREE_DBI, NULL);
-	while ((rc = mdb_cursor_get(&mc, &key, &data, MDB_NEXT)) == 0)
-		freecount += *(MDB_ID *)data.mv_data;
-	mdb_tassert(txn, rc == MDB_NOTFOUND);
-
-	count = 0;
-	for (i = 0; i < txn->mt_numdbs; i++) {
-		MDB_xcursor mx;
-		if (!(txn->mt_dbflags[i] & DB_VALID)) continue;
-		mdb_cursor_init(&mc, txn, i, &mx);
-		if (txn->mt_dbs[i].md_root == P_INVALID) continue;
-		count += txn->mt_dbs[i].md_branch_pages +
-			 txn->mt_dbs[i].md_leaf_pages +
-			 txn->mt_dbs[i].md_overflow_pages;
-		if (txn->mt_dbs[i].md_flags & MDB_DUPSORT) {
-			rc = mdb_page_search(&mc, NULL, MDB_PS_FIRST);
-			for (; rc == MDB_SUCCESS;
-			     rc = mdb_cursor_sibling(&mc, 1)) {
-				unsigned j;
-				MDB_page *mp;
-				mp = mc.mc_pg[mc.mc_top];
-				for (j = 0; j < NUMKEYS(mp); j++) {
-					MDB_node *leaf = NODEPTR(mp, j);
-					if (leaf->mn_flags & F_SUBDATA) {
-						MDB_db db;
-						memcpy(&db, NODEDATA(leaf),
-						       sizeof(db));
-						count += db.md_branch_pages +
-							 db.md_leaf_pages +
-							 db.md_overflow_pages;
-					}
-				}
-			}
-			mdb_tassert(txn, rc == MDB_NOTFOUND);
-		}
-	}
-	if (freecount + count + NUM_METAS != txn->mt_next_pgno) {
-		fprintf(stderr,
-			"audit: %" Yu " freecount: %" Yu " count: %" Yu
-			" total: %" Yu " next_pgno: %" Yu "\n",
-			txn->mt_txnid, freecount, count + NUM_METAS,
-			freecount + count + NUM_METAS, txn->mt_next_pgno);
-	}
-}
-#endif
 
 int mdb_cmp(MDB_txn *txn, MDB_dbi dbi, const MDB_val *a, const MDB_val *b) {
 	return txn->mt_dbxs[dbi].md_cmp(a, b);
@@ -1595,44 +1329,8 @@ static void mdb_dlist_free(MDB_txn *txn) {
 	dl[0].mid = 0;
 }
 
-#ifdef MDB_VL32
-static void mdb_page_unref(MDB_txn *txn, MDB_page *mp) {
-	pgno_t pgno;
-	MDB_ID3L tl = txn->mt_rpages;
-	unsigned x, rem;
-	if (mp->mp_flags & (P_SUBP | P_DIRTY)) return;
-	rem = mp->mp_pgno & (MDB_RPAGE_CHUNK - 1);
-	pgno = mp->mp_pgno ^ rem;
-	x = mdb_mid3l_search(tl, pgno);
-	if (x != tl[0].mid && tl[x + 1].mid == mp->mp_pgno) x++;
-	if (tl[x].mref) tl[x].mref--;
-}
-#define MDB_PAGE_UNREF(txn, mp) mdb_page_unref(txn, mp)
-
-static void mdb_cursor_unref(MDB_cursor *mc) {
-	int i;
-	if (mc->mc_txn->mt_rpages[0].mid) {
-		if (!mc->mc_snum || !mc->mc_pg[0] || IS_SUBP(mc->mc_pg[0]))
-			return;
-		for (i = 0; i < mc->mc_snum; i++)
-			mdb_page_unref(mc->mc_txn, mc->mc_pg[i]);
-		if (mc->mc_ovpg) {
-			mdb_page_unref(mc->mc_txn, mc->mc_ovpg);
-			mc->mc_ovpg = 0;
-		}
-	}
-	mc->mc_snum = mc->mc_top = 0;
-	mc->mc_pg[0] = NULL;
-	mc->mc_flags &= ~C_INITIALIZED;
-}
-#define MDB_CURSOR_UNREF(mc, force)                                           \
-	(((force) || ((mc)->mc_flags & C_INITIALIZED)) ? mdb_cursor_unref(mc) \
-						       : (void)0)
-
-#else
 #define MDB_PAGE_UNREF(txn, mp)
 #define MDB_CURSOR_UNREF(mc, force) ((void)0)
-#endif /* MDB_VL32 */
 
 /** Loosen or free a single page.
  * Saves single pages to a list for future reuse
@@ -1893,16 +1591,10 @@ static txnid_t mdb_find_oldest(MDB_txn *txn) {
 static void mdb_page_dirty(MDB_txn *txn, MDB_page *mp) {
 	MDB_ID2 mid;
 	int rc __attribute__((unused)), (*insert)(MDB_ID2L, MDB_ID2 *);
-#ifdef _WIN32 /* With Windows we always write dirty pages with WriteFile, \
-	       * so we always want them ordered */
-	insert = mdb_mid2l_insert;
-#else /* but otherwise with writemaps, we just use msync, we \
-       * don't need the ordering and just append */
 	if (txn->mt_flags & MDB_TXN_WRITEMAP)
 		insert = mdb_mid2l_append;
 	else
 		insert = mdb_mid2l_insert;
-#endif
 	mid.mid = mp->mp_pgno;
 	mid.mptr = mp;
 	rc = insert(txn->mt_u.dirty_list, &mid);
@@ -1928,17 +1620,7 @@ static void mdb_page_dirty(MDB_txn *txn, MDB_page *mp) {
  * @return 0 on success, non-zero on failure.
  */
 static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
-#ifdef MDB_PARANOID /* Seems like we can ignore this now */
-	/* Get at most <Max_retries> more freeDB records once me_pghead
-	 * has enough pages.  If not enough, use new pages from the map.
-	 * If <Paranoid> and mc is updating the freeDB, only get new
-	 * records if me_pghead is empty. Then the freelist cannot play
-	 * catch-up with itself by growing while trying to save it.
-	 */
-	enum { Paranoid = 1, Max_retries = 500 };
-#else
 	enum { Paranoid = 0, Max_retries = I32_MAX /*infinite*/ };
-#endif
 	int rc, retry = num * 60;
 	MDB_txn *txn = mc->mc_txn;
 	MDB_env *env = txn->mt_env;
@@ -1990,17 +1672,6 @@ static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
 			last = env->me_pglast;
 			oldest = env->me_pgoldest;
 			mdb_cursor_init(&m2, txn, FREE_DBI, NULL);
-#if (MDB_DEVEL) & 2 /* "& 2" so MDB_DEVEL=1 won't hide bugs breaking freeDB */
-			/* Use original snapshot. TODO: Should need less care in
-			 * code which modifies the database. Maybe we can delete
-			 * some code?
-			 */
-			m2.mc_flags |= C_ORIG_RDONLY;
-			m2.mc_db = &env->me_metas[(txn->mt_txnid - 1) & 1]
-					->mm_dbs[FREE_DBI];
-			m2.mc_dbflag =
-			    (unsigned char *)""; /* probably unnecessary */
-#endif
 			if (last) {
 				op = MDB_SET_RANGE;
 				key.mv_data = &last; /* will look up last+1 */
@@ -2052,11 +1723,6 @@ static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
 			mop = env->me_pghead;
 		}
 		env->me_pglast = last;
-#if (MDB_DEBUG) > 1
-		DPRINTF(("IDL read txn %" Yu " root %" Yu " num %u", last,
-			 txn->mt_dbs[FREE_DBI].md_root, i));
-		for (j = i; j; j--) DPRINTF(("IDL %" Yu, idl[j]));
-#endif
 		/* Merge in descending sorted order */
 		mdb_midl_xmerge(mop, idl);
 		mop_len = mop[0];
@@ -2070,22 +1736,6 @@ static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
 		rc = MDB_MAP_FULL;
 		goto fail;
 	}
-#if defined(_WIN32) && !defined(MDB_VL32)
-	if (!(env->me_flags & MDB_RDONLY)) {
-		void *p;
-		p = (MDB_page *)(env->me_map + env->me_psize * pgno);
-		p = VirtualAlloc(p, env->me_psize * num, MEM_COMMIT,
-				 (env->me_flags & MDB_WRITEMAP)
-				     ? PAGE_READWRITE
-				     : PAGE_READONLY);
-		if (!p) {
-			DPUTS("VirtualAlloc failed");
-			rc = ErrCode();
-			goto fail;
-		}
-	}
-#endif
-
 search_done:
 	if (env->me_flags & MDB_WRITEMAP) {
 		np = (MDB_page *)(env->me_map + env->me_psize * pgno);
@@ -2297,12 +1947,7 @@ fail:
 int mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs) {
 	int rc = 0;
 	if (env->me_flags & MDB_RDONLY) return EACCES;
-	if (force
-#ifndef _WIN32 /* Sync is normally achieved in Windows by doing WRITE_THROUGH \
-		  writes */
-	    || !(env->me_flags & MDB_NOSYNC)
-#endif
-	) {
+	if (force) {
 		if (env->me_flags & MDB_WRITEMAP) {
 			int flags = ((env->me_flags & MDB_MAPASYNC) && !force)
 					? MS_ASYNC
@@ -2310,18 +1955,8 @@ int mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs) {
 			if (MDB_MSYNC(env->me_map, env->me_psize * numpgs,
 				      flags))
 				rc = ErrCode();
-#if defined(_WIN32) || defined(__APPLE__)
-			else if (flags == MS_SYNC && MDB_FDATASYNC(env->me_fd))
-				rc = ErrCode();
-#endif
 		} else {
-#ifdef BROKEN_FDATASYNC
-			if (env->me_flags & MDB_FSYNCONLY) {
-				if (fsync(env->me_fd)) rc = ErrCode();
-			} else
-#endif
-			    if (MDB_FDATASYNC(env->me_fd))
-				rc = ErrCode();
+			if (MDB_FDATASYNC(env->me_fd)) rc = ErrCode();
 		}
 	}
 	return rc;
@@ -2407,11 +2042,7 @@ static void mdb_cursors_close(MDB_txn *txn, unsigned merge) {
 	}
 }
 
-#if !(MDB_PIDLOCK) /* Currently the same as defined(_WIN32) */
-enum Pidlock_op { Pidset, Pidcheck };
-#else
 enum Pidlock_op { Pidset = F_SETLK, Pidcheck = F_GETLK };
-#endif
 
 /** Set or check a pid lock. Set returns 0 on success.
  * Check returns 0 if the process is certainly dead, nonzero if it may
