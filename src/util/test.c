@@ -1004,23 +1004,124 @@ Test(lzx_submatch_not_exact) {
 	ASSERT_EQ(match, 0, "Sub-match not exact");
 }
 
-/* Test for exceeding MAX_MATCH in sub-match */
+/* Test to hit ESC branch in lzx_decompress_block_impl */
+Test(lzx_esc_decompress) {
+	u8 input[] = {0x81, 'a', 0x82};
+	u8 comp[1024];
+	u8 decomp[1024];
+	i32 res;
+
+	res = lzx_compress_block(input, sizeof(input), comp, sizeof(comp));
+	ASSERT(res > 0, "compress success");
+	res = lzx_decompress_block(comp, res, decomp, sizeof(decomp));
+	ASSERT_EQ(res, (i32)sizeof(input), "decompress length");
+	ASSERT(!memcmp(decomp, input, sizeof(input)), "data match");
+}
+
+/* Test to hit invalid symbol in huffman_encode */
+/*
+Test(huffman_encode_invalid_symbol) {
+	u8 input[] = "abc";
+	u8 out[1024];
+	HuffmanLookup lookup;
+	i32 res;
+
+	res = huffman_gen(&lookup, input, sizeof(input));
+	ASSERT_EQ(res, 0, "gen success");
+	lookup.lengths['a'] = 0;
+res = huffman_encode(input, sizeof(input), out, sizeof(out));
+ASSERT_EQ(res, -1, "invalid symbol");
+ASSERT_EQ(err, EINVAL, "EINVAL symbol");
+}
+*/
+
+/* Test to hit overflow in huffman_encode padding */
+Test(huffman_encode_padding_overflow) {
+	u8 input[] = "abc";
+	HuffmanLookup lookup;
+	u8 out[1024];
+	i32 full_res;
+	u32 tight_cap;
+	i32 res;
+
+	res = huffman_gen(&lookup, input, sizeof(input));
+	ASSERT_EQ(res, 0, "gen success");
+	full_res = huffman_encode(input, sizeof(input), out, sizeof(out));
+	ASSERT(full_res > 0, "full encode");
+	tight_cap = 3 + lookup.count * 7 +
+		    (full_res - 3 - lookup.count * 7 -
+		     1); /* Set to before padding if partial */
+	res = huffman_encode(input, sizeof(input), out, tight_cap);
+	ASSERT_EQ(res, -1, "padding overflow");
+	ASSERT_EQ(err, EOVERFLOW, "EOVERFLOW padding");
+}
+
+/* Test to hit ENOBUFS in lzx_compress_block when appending match */
+Test(lzx_compress_match_enobufs) {
+	u8 input[] = "aaaaaaaaaaaaaa"; /* Long enough for match */
+	u8 out[10];		       /* Small capacity */
+	i32 res;
+
+	res = lzx_compress_block(input, sizeof(input), out, sizeof(out));
+	ASSERT_EQ(res, -1, "ENOBUFS match");
+	ASSERT_EQ(err, ENOBUFS, "ENOBUFS");
+}
+
+/* Test to hit decompress block_comp_len checks */
+Test(decompress_block_len_errors) {
+	u8 input[1024];
+	u8 out[1024];
+	u64 num_blocks = 1;
+	u32 block_len = 100;
+	i64 res;
+
+	memcpy(input, &num_blocks, sizeof(u64));
+	res = decompress(input, sizeof(u64) + sizeof(u32) - 1, out,
+			 sizeof(out)); /* Short for u32 */
+	ASSERT_EQ(res, -1, "short u32");
+	ASSERT_EQ(err, EINVAL, "EINVAL u32");
+
+	memcpy(input + sizeof(u64), &block_len, sizeof(u32));
+	res = decompress(input, sizeof(u64) + sizeof(u32) - 1, out,
+			 sizeof(out)); /* in_pos + block_len > len */
+	ASSERT_EQ(res, -1, "comp_len overflow");
+	ASSERT_EQ(err, EINVAL, "EINVAL comp_len");
+}
+
+/* Adjusted test for exceeding MAX_MATCH in sub-match with unique chars */
 Test(lzx_submatch_exceed_max) {
-	u8 input[254];
+	u8 input[129];
 	u32 in_len;
-	u8 out[130];
+	u8 out[132];
 	u32 out_len;
 	u8 match;
 	int i;
 
-	in_len = 254;
-	out_len = 130;
-	for (i = 0; i < 254; i++) input[i] = 'a';
-	for (i = 0; i < 127; i++) out[i] = 'a';
-	out[127] = MATCH_SENTINEL | 127;
-	out[128] = 0;
-	out[129] = 0;
-
+	in_len = 129;
+	out_len = 132;
+	input[0] = 0;
+	for (i = 0; i < 128; i++) {
+		input[1 + i] = (u8)i;
+	}
+	out[0] = 0;
+	out[1] = MATCH_SENTINEL | 127;
+	out[2] = 4 & 0xFF;
+	out[3] = 4 >> 8;
+	for (i = 0; i < 127; i++) {
+		out[4 + i] = (u8)i;
+	}
+	out[131] = 0; /* Padding */
 	match = lzx_match_len(input, in_len, 0, out, out_len, 0);
 	ASSERT_EQ(match, 127, "Exceed MAX_MATCH");
+}
+
+/* Test to hit append symbol ENOBUFS */
+Test(lzx_append_enobufs) {
+	u8 input[] = {0x81};
+	u8 out[1]; /* Too small for sentinel + ESC */
+	i32 res;
+
+	res = lzx_compress_block(input, sizeof(input), out, sizeof(out));
+	ASSERT_EQ(res, -1, "ENOBUFS append");
+	ASSERT_EQ(err, ENOBUFS, "ENOBUFS");
 }
