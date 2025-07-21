@@ -875,3 +875,45 @@ Test(compress_file_full1) {
 	munmap(ptr, len);
 	close(fd);
 }
+
+i32 huffman_pc(u32 code, u8 code_len, u32 *bit_pos, u32 *byte_pos,
+	       u8 *current_byte, u8 *output, u64 output_capacity);
+i32 lzx_decompress_block_impl(const u8 *in, u16 in_len, u16 in_start,
+			      u8 *output, u64 out_start, u64 out_capacity,
+			      u64 limit);
+
+Test(compress_input_validation) {
+	u8 buf[128], verify[128];
+	i64 res;
+	u32 byte_pos = 100, bit_pos = 100;
+	u8 current_byte = 0;
+
+	ASSERT_EQ(huffman_gen(NULL, NULL, 0), -1, "NULL gen");
+	ASSERT_EQ(huffman_decode(NULL, 0, NULL, 0), -1, "NULL decode");
+	ASSERT_EQ(huffman_decode("0123456789", 10, buf, 1), -1,
+		  "not enough space");
+
+	ASSERT_EQ(huffman_pc(1, 2, &bit_pos, &byte_pos, &current_byte, buf, 0),
+		  -1, "*byte_pos >= output_capacity");
+	ASSERT_EQ(huffman_encode(NULL, 0, NULL, 0), -1, "NULL encode");
+	ASSERT_EQ(huffman_encode("0123456789", 10, buf, 3), -1,
+		  "low cap encode");
+	ASSERT_EQ(lzx_decompress_block_impl(NULL, 0, 0, NULL, 0, 0, 0), -1,
+		  "NULL block_impl");
+	res = compress("\0xFFabc", 4, buf, sizeof(buf));
+	res = decompress(buf, res, verify, sizeof(verify));
+	ASSERT_EQ(res, 4, "res=4");
+	verify[4] = 0;
+	ASSERT(!strcmp(verify, "\0xFFabc"), "verify");
+	ASSERT_EQ(lzx_compress_block(NULL, 0, NULL, 0), -1,
+		  "lzx_compress_block NULL");
+	ASSERT_EQ(compress(NULL, 0, NULL, 0), -1, "compress NULL");
+	ASSERT_EQ(compress("0123456789", 10, buf, 1), -1,
+		  "compress no capacity");
+	ASSERT_EQ(compress("0123456789", 10, buf, sizeof(u64)), -1,
+		  "little capacity");
+	ASSERT_EQ(decompress(NULL, 0, NULL, 0), -1, "decompress NULL");
+	ASSERT_EQ(decompress("0123456789", 1, buf, sizeof(buf)), -1, "len low");
+	res = compress("\0xFFabc", 4, buf, sizeof(buf));
+	ASSERT_EQ(decompress(buf, res, verify, 1), -1, "not enough capacity");
+}
