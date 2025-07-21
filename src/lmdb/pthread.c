@@ -84,14 +84,11 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex __attribute__((unused))) {
 
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr
 		       __attribute__((unused))) {
-	if (mutex) *mutex = LOCK_INIT; /* Your init value (0) */
-	return 0;		       /* Success */
+	if (mutex) *mutex = LOCK_INIT;
+	return 0;
 }
 
-/* Misc stub */
-pthread_t pthread_self(void) {
-	return 0; /* Fixed stub; or implement via syscall if desired */
-}
+pthread_t pthread_self(void) { return 0; }
 
 LockGuardImpl pthread_mutex_lock_guard(pthread_mutex_t *mutex) {
 	LockGuardImpl ret = wlock(mutex);
