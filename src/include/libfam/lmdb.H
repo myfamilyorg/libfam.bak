@@ -33,16 +33,16 @@
 
 typedef i32 mdb_mode_t;
 typedef u64 mdb_size_t;
-typedef int(MDB_msg_func)(const char *msg, void *ctx);
+typedef i32(MDB_msg_func)(const u8 *msg, void *ctx);
 typedef struct MDB_env MDB_env;
 typedef struct MDB_txn MDB_txn;
-typedef unsigned int MDB_dbi;
+typedef u32 MDB_dbi;
 typedef struct MDB_cursor MDB_cursor;
-typedef void MDB_assert_func(MDB_env *env, const char *msg);
+typedef void MDB_assert_func(MDB_env *env, const u8 *msg);
 
 typedef struct MDB_stat {
-	unsigned int ms_psize;
-	unsigned int ms_depth;
+	u32 ms_psize;
+	u32 ms_depth;
 	mdb_size_t ms_branch_pages;
 	mdb_size_t ms_leaf_pages;
 	mdb_size_t ms_overflow_pages;
@@ -54,10 +54,10 @@ typedef struct MDB_envinfo {
 	mdb_size_t me_mapsize;
 	mdb_size_t me_last_pgno;
 	mdb_size_t me_last_txnid;
-	unsigned int me_maxreaders;
-	unsigned int me_numreaders;
+	u32 me_maxreaders;
+	u32 me_numreaders;
 } MDB_envinfo;
-typedef int mdb_filehandle_t;
+typedef i32 mdb_filehandle_t;
 typedef u64 mdb_size_t;
 
 typedef struct MDB_val {
@@ -65,7 +65,7 @@ typedef struct MDB_val {
 	void *mv_data; /**< address of the data item */
 } MDB_val;
 
-typedef int(MDB_cmp_func)(const MDB_val *a, const MDB_val *b);
+typedef i32(MDB_cmp_func)(const MDB_val *a, const MDB_val *b);
 
 typedef void(MDB_rel_func)(MDB_val *item, void *oldptr, void *newptr,
 			   void *relctx);
@@ -109,7 +109,7 @@ typedef enum MDB_cursor_op {
 #define mdb_open(txn, name, flags, dbi) mdb_dbi_open(txn, name, flags, dbi)
 #define mdb_close(env, dbi) mdb_dbi_close(env, dbi)
 
-#define MDB_FMT_Z "z" /**< printf/scanf format modifier for size_t */
+#define MDB_FMT_Z "z" /**< pri32f/scanf format modifier for size_t */
 
 #define MDB_SIZE_MAX U64_MAX
 #define MDB_PRIy(t) PRI##t##64
@@ -186,73 +186,73 @@ typedef enum MDB_cursor_op {
 #define MDB_PROBLEM (-30779)
 #define MDB_LAST_ERRCODE MDB_PROBLEM
 
-char *mdb_version(int *major, int *minor, int *patch);
-const char *mdb_strerror(int err);
-int mdb_env_create(MDB_env **env);
-int mdb_env_open(MDB_env *env, const char *path, unsigned int flags,
+u8 *mdb_version(i32 *major, i32 *minor, i32 *patch);
+const u8 *mdb_strerror(i32 err);
+i32 mdb_env_create(MDB_env **env);
+i32 mdb_env_open(MDB_env *env, const u8 *path, u32 flags,
 		 mdb_mode_t mode);
-int mdb_env_copy(MDB_env *env, const char *path);
-int mdb_env_copy2(MDB_env *env, const char *path, unsigned int flags);
-int mdb_env_copyfd2(MDB_env *env, mdb_filehandle_t fd, unsigned int flags);
-int mdb_env_stat(MDB_env *env, MDB_stat *stat);
-int mdb_env_info(MDB_env *env, MDB_envinfo *stat);
-int mdb_env_sync(MDB_env *env, int force);
+i32 mdb_env_copy(MDB_env *env, const u8 *path);
+i32 mdb_env_copy2(MDB_env *env, const u8 *path, u32 flags);
+i32 mdb_env_copyfd2(MDB_env *env, mdb_filehandle_t fd, u32 flags);
+i32 mdb_env_stat(MDB_env *env, MDB_stat *stat);
+i32 mdb_env_info(MDB_env *env, MDB_envinfo *stat);
+i32 mdb_env_sync(MDB_env *env, i32 force);
 void mdb_env_close(MDB_env *env);
-int mdb_env_set_flags(MDB_env *env, unsigned int flags, int onoff);
-int mdb_env_get_flags(MDB_env *env, unsigned int *flags);
-int mdb_env_get_path(MDB_env *env, const char **path);
-int mdb_env_get_fd(MDB_env *env, mdb_filehandle_t *fd);
-int mdb_env_set_mapsize(MDB_env *env, mdb_size_t size);
-int mdb_env_set_maxreaders(MDB_env *env, unsigned int readers);
-int mdb_env_get_maxreaders(MDB_env *env, unsigned int *readers);
-int mdb_env_set_maxdbs(MDB_env *env, MDB_dbi dbs);
-int mdb_env_get_maxkeysize(MDB_env *env);
-int mdb_env_set_userctx(MDB_env *env, void *ctx);
+i32 mdb_env_set_flags(MDB_env *env, u32 flags, i32 onoff);
+i32 mdb_env_get_flags(MDB_env *env, u32 *flags);
+i32 mdb_env_get_path(MDB_env *env, const u8 **path);
+i32 mdb_env_get_fd(MDB_env *env, mdb_filehandle_t *fd);
+i32 mdb_env_set_mapsize(MDB_env *env, mdb_size_t size);
+i32 mdb_env_set_maxreaders(MDB_env *env, u32 readers);
+i32 mdb_env_get_maxreaders(MDB_env *env, u32 *readers);
+i32 mdb_env_set_maxdbs(MDB_env *env, MDB_dbi dbs);
+i32 mdb_env_get_maxkeysize(MDB_env *env);
+i32 mdb_env_set_userctx(MDB_env *env, void *ctx);
 void *mdb_env_get_userctx(MDB_env *env);
-int mdb_env_set_assert(MDB_env *env, MDB_assert_func *func);
-int mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags,
+i32 mdb_env_set_assert(MDB_env *env, MDB_assert_func *func);
+i32 mdb_txn_begin(MDB_env *env, MDB_txn *parent, u32 flags,
 		  MDB_txn **txn);
 MDB_env *mdb_txn_env(MDB_txn *txn);
 mdb_size_t mdb_txn_id(MDB_txn *txn);
-int mdb_txn_commit(MDB_txn *txn);
+i32 mdb_txn_commit(MDB_txn *txn);
 void mdb_txn_abort(MDB_txn *txn);
 void mdb_txn_reset(MDB_txn *txn);
-int mdb_txn_renew(MDB_txn *txn);
+i32 mdb_txn_renew(MDB_txn *txn);
 
-int mdb_dbi_open(MDB_txn *txn, const char *name, unsigned int flags,
+i32 mdb_dbi_open(MDB_txn *txn, const u8 *name, u32 flags,
 		 MDB_dbi *dbi);
-int mdb_stat(MDB_txn *txn, MDB_dbi dbi, MDB_stat *stat);
-int mdb_dbi_flags(MDB_txn *txn, MDB_dbi dbi, unsigned int *flags);
+i32 mdb_stat(MDB_txn *txn, MDB_dbi dbi, MDB_stat *stat);
+i32 mdb_dbi_flags(MDB_txn *txn, MDB_dbi dbi, u32 *flags);
 void mdb_dbi_close(MDB_env *env, MDB_dbi dbi);
-int mdb_drop(MDB_txn *txn, MDB_dbi dbi, int del);
-int mdb_set_compare(MDB_txn *txn, MDB_dbi dbi, MDB_cmp_func *cmp);
-int mdb_set_dupsort(MDB_txn *txn, MDB_dbi dbi, MDB_cmp_func *cmp);
-int mdb_set_relfunc(MDB_txn *txn, MDB_dbi dbi, MDB_rel_func *rel);
-int mdb_set_relctx(MDB_txn *txn, MDB_dbi dbi, void *ctx);
-int mdb_get(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data);
-int mdb_put(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data,
-	    unsigned int flags);
+i32 mdb_drop(MDB_txn *txn, MDB_dbi dbi, i32 del);
+i32 mdb_set_compare(MDB_txn *txn, MDB_dbi dbi, MDB_cmp_func *cmp);
+i32 mdb_set_dupsort(MDB_txn *txn, MDB_dbi dbi, MDB_cmp_func *cmp);
+i32 mdb_set_relfunc(MDB_txn *txn, MDB_dbi dbi, MDB_rel_func *rel);
+i32 mdb_set_relctx(MDB_txn *txn, MDB_dbi dbi, void *ctx);
+i32 mdb_get(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data);
+i32 mdb_put(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data,
+	    u32 flags);
 
-int mdb_del(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data);
-int mdb_cursor_open(MDB_txn *txn, MDB_dbi dbi, MDB_cursor **cursor);
+i32 mdb_del(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data);
+i32 mdb_cursor_open(MDB_txn *txn, MDB_dbi dbi, MDB_cursor **cursor);
 void mdb_cursor_close(MDB_cursor *cursor);
-int mdb_cursor_renew(MDB_txn *txn, MDB_cursor *cursor);
+i32 mdb_cursor_renew(MDB_txn *txn, MDB_cursor *cursor);
 MDB_txn *mdb_cursor_txn(MDB_cursor *cursor);
 
 MDB_dbi mdb_cursor_dbi(MDB_cursor *cursor);
 
-int mdb_cursor_get(MDB_cursor *cursor, MDB_val *key, MDB_val *data,
+i32 mdb_cursor_get(MDB_cursor *cursor, MDB_val *key, MDB_val *data,
 		   MDB_cursor_op op);
 
-int mdb_cursor_put(MDB_cursor *cursor, MDB_val *key, MDB_val *data,
-		   unsigned int flags);
+i32 mdb_cursor_put(MDB_cursor *cursor, MDB_val *key, MDB_val *data,
+		   u32 flags);
 
-int mdb_cursor_del(MDB_cursor *cursor, unsigned int flags);
-int mdb_cursor_count(MDB_cursor *cursor, mdb_size_t *countp);
-int mdb_cmp(MDB_txn *txn, MDB_dbi dbi, const MDB_val *a, const MDB_val *b);
-int mdb_dcmp(MDB_txn *txn, MDB_dbi dbi, const MDB_val *a, const MDB_val *b);
+i32 mdb_cursor_del(MDB_cursor *cursor, u32 flags);
+i32 mdb_cursor_count(MDB_cursor *cursor, mdb_size_t *countp);
+i32 mdb_cmp(MDB_txn *txn, MDB_dbi dbi, const MDB_val *a, const MDB_val *b);
+i32 mdb_dcmp(MDB_txn *txn, MDB_dbi dbi, const MDB_val *a, const MDB_val *b);
 
-int mdb_reader_list(MDB_env *env, MDB_msg_func *func, void *ctx);
-int mdb_reader_check(MDB_env *env, int *dead);
+i32 mdb_reader_list(MDB_env *env, MDB_msg_func *func, void *ctx);
+i32 mdb_reader_check(MDB_env *env, i32 *dead);
 
 #endif /* _LMDB_H */

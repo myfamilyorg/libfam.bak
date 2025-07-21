@@ -1749,7 +1749,7 @@ static int utf8_to_utf16(const char *src, struct MDB_name *dst, int xtra);
 #endif
 
 /** Return the library version info. */
-char *ESECT mdb_version(int *major, int *minor, int *patch) {
+u8 *ESECT mdb_version(int *major, int *minor, int *patch) {
 	if (major) *major = MDB_VERSION_MAJOR;
 	if (minor) *minor = MDB_VERSION_MINOR;
 	if (patch) *patch = MDB_VERSION_PATCH;
@@ -1781,7 +1781,7 @@ static char *const mdb_errstr[] = {
     "MDB_PROBLEM: Unexpected problem - txn should abort",
 };
 
-const char *mdb_strerror(int err) {
+const u8 *mdb_strerror(int err) {
 #ifdef _WIN32
 	/** HACK: pad 4KB on stack over the buf. Return system msgs in buf.
 	 *	This works as long as no function between the call to
@@ -5549,7 +5549,7 @@ fail:
 #error "Persistent DB flags & env flags overlap, but both go in mm_flags"
 #endif
 
-int ESECT mdb_env_open(MDB_env *env, const char *path, unsigned int flags,
+int ESECT mdb_env_open(MDB_env *env, const u8 *path, unsigned int flags,
 		       mdb_mode_t mode) {
 	int rc, excl = -1;
 	MDB_name fname;
@@ -10267,7 +10267,7 @@ int ESECT mdb_env_set_assert(MDB_env *env,
 	return MDB_SUCCESS;
 }
 
-int ESECT mdb_env_get_path(MDB_env *env, const char **arg) {
+int ESECT mdb_env_get_path(MDB_env *env, const u8 **arg) {
 	if (!env || !arg) return EINVAL;
 
 	*arg = env->me_path;
@@ -10346,7 +10346,7 @@ static void mdb_default_cmp(MDB_txn *txn, MDB_dbi dbi) {
 		       : ((f & MDB_REVERSEDUP) ? mdb_cmp_memnr : mdb_cmp_memn));
 }
 
-int mdb_dbi_open(MDB_txn *txn, const char *name, unsigned int flags,
+int mdb_dbi_open(MDB_txn *txn, const u8 *name, unsigned int flags,
 		 MDB_dbi *dbi) {
 	MDB_val key, data;
 	MDB_dbi i;
