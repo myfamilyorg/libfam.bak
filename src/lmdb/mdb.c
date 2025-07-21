@@ -35,98 +35,17 @@
 
 #define CACHEFLUSH(addr, bytes, cache)
 #define MDB_FDATASYNC_WORKS
-
-#if defined(__sun) || defined(__ANDROID__)
-/* Most platforms have posix_memalign, older may only have memalign */
-#define HAVE_MEMALIGN 1
-/* On Solaris, we need the POSIX sigwait function */
-#if defined(__sun)
-#define _POSIX_PTHREAD_SEMANTICS 1
-#endif
-#endif
-
-#if !(defined(BYTE_ORDER) || defined(__BYTE_ORDER))
-#endif
-
-#if defined(__FreeBSD__) && defined(__FreeBSD_version) && \
-    __FreeBSD_version >= 1100110
 #define MDB_USE_POSIX_MUTEX 1
-#define MDB_USE_ROBUST 1
-#elif defined(__APPLE__) || defined(BSD) || defined(__FreeBSD_kernel__)
-#if !(defined(MDB_USE_POSIX_MUTEX) || defined(MDB_USE_POSIX_SEM))
-#define MDB_USE_SYSV_SEM 1
-#endif
-#if defined(__APPLE__)
-#define MDB_FDATASYNC(fd) fcntl(fd, F_FULLFSYNC)
-#else
-#define MDB_FDATASYNC fsync
-#endif
-#elif defined(__ANDROID__)
-#define MDB_FDATASYNC fsync
-#endif
 
-#ifndef _WIN32
-#ifdef MDB_USE_POSIX_SEM
-#define MDB_USE_HASH 1
-#elif defined(MDB_USE_SYSV_SEM)
-#ifdef _SEM_SEMUN_UNDEFINED
-union semun {
-	int val;
-	struct semid_ds *buf;
-	unsigned short *array;
-};
-#endif /* _SEM_SEMUN_UNDEFINED */
-#else
-#define MDB_USE_POSIX_MUTEX 1
-#endif /* MDB_USE_POSIX_SEM */
-#endif /* !_WIN32 */
-
-#if defined(_WIN32) + defined(MDB_USE_POSIX_SEM) + defined(MDB_USE_SYSV_SEM) + \
-	defined(MDB_USE_POSIX_MUTEX) !=                                        \
-    1
-#error "Ambiguous shared-lock implementation"
-#endif
-
-#ifdef USE_VALGRIND
-#define VGMEMP_CREATE(h, r, z) VALGRIND_CREATE_MEMPOOL(h, r, z)
-#define VGMEMP_ALLOC(h, a, s) VALGRIND_MEMPOOL_ALLOC(h, a, s)
-#define VGMEMP_FREE(h, a) VALGRIND_MEMPOOL_FREE(h, a)
-#define VGMEMP_DESTROY(h) VALGRIND_DESTROY_MEMPOOL(h)
-#define VGMEMP_DEFINED(a, s) VALGRIND_MAKE_MEM_DEFINED(a, s)
-#else
 #define VGMEMP_CREATE(h, r, z)
 #define VGMEMP_ALLOC(h, a, s)
 #define VGMEMP_FREE(h, a)
 #define VGMEMP_DESTROY(h)
 #define VGMEMP_DEFINED(a, s)
-#endif
 
 #define BYTE_ORDER 1234
 #define LITTLE_ENDIAN 1234
 #define BIG_ENDIAN 4321
-
-#ifndef BYTE_ORDER
-#if (defined(_LITTLE_ENDIAN) || defined(_BIG_ENDIAN)) && \
-    !(defined(_LITTLE_ENDIAN) && defined(_BIG_ENDIAN))
-/* Solaris just defines one or the other */
-#define LITTLE_ENDIAN 1234
-#define BIG_ENDIAN 4321
-#ifdef _LITTLE_ENDIAN
-#define BYTE_ORDER LITTLE_ENDIAN
-#else
-#define BYTE_ORDER BIG_ENDIAN
-#endif
-#else
-#define BYTE_ORDER __BYTE_ORDER
-#endif
-#endif
-
-#ifndef LITTLE_ENDIAN
-#define LITTLE_ENDIAN __LITTLE_ENDIAN
-#endif
-#ifndef BIG_ENDIAN
-#define BIG_ENDIAN __BIG_ENDIAN
-#endif
 
 #if defined(__i386) || defined(__x86_64) || defined(_M_IX86)
 #define MISALIGNED_OK 1
