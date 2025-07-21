@@ -58,7 +58,7 @@ STATIC const char *find_next_placeholder(const char *p) {
 }
 
 /* Main format_append implementation */
-i32 format_append(Formatter *f, const char *fmt, ...) {
+GLOBAL i32 format_append(Formatter *f, const char *fmt, ...) {
 	u8 buf[64] = {0};
 	bool hex = false, upper = false, is_char = false;
 	u64 len;
@@ -146,7 +146,7 @@ i32 format_append(Formatter *f, const char *fmt, ...) {
 }
 
 /* Return the formatted string */
-const u8 *format_to_string(Formatter *f) {
+GLOBAL const u8 *format_to_string(Formatter *f) {
 	u8 *result;
 
 	/* Check for invalid input */
@@ -168,7 +168,7 @@ const u8 *format_to_string(Formatter *f) {
 	return f->buf;
 }
 
-void format_clear(Formatter *f) {
+GLOBAL void format_clear(Formatter *f) {
 	if (f->capacity) release(f->buf);
 	f->capacity = f->pos = 0;
 	f->buf = NULL;

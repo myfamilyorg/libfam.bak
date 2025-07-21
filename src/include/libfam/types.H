@@ -26,6 +26,8 @@
 #ifndef _TYPES_H
 #define _TYPES_H
 
+#define GLOBAL __attribute__((visibility("default")))
+
 #ifndef NULL
 #define NULL ((void *)0)
 #endif /* NULL */

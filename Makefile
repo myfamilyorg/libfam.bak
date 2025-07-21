@@ -51,6 +51,7 @@ COMMON_FLAGS =  -Wall \
 		-Wno-builtin-declaration-mismatch \
 		-Wno-nonnull-compare \
 		-Wno-unknown-warning-option \
+		-fno-builtin \
 		-Wno-incompatible-library-redeclaration
 
 # Arch specific flags
@@ -66,7 +67,7 @@ else
 endif
 
 # Specific flags
-LIB_CFLAGS		= $(COMMON_FLAGS) $(ARCH_FLAGS) -fPIC -O3 -DSTATIC=static
+LIB_CFLAGS	   = $(COMMON_FLAGS) $(ARCH_FLAGS) -fPIC -O3 -DSTATIC=static -fvisibility=hidden
 TEST_CFLAGS	   = $(COMMON_FLAGS) $(ARCH_FLAGS) -fPIC -O1 -DSTATIC= -DTEST=1
 TEST_BINARY_CFLAGS = $(COMMON_FLAGS) $(ARCH_FLAGS) -ffreestanding -nostdlib -O1 -DSTATIC= -DTEST=1
 LDFLAGS		   = -shared -nostdlib -ffreestanding
