@@ -865,7 +865,6 @@ Test(compress_file_full1) {
 	ASSERT(ptr, "ptr");
 
 	res = compress(ptr, len, buf, len);
-	println("{}/{}", res, len);
 	ASSERT(res > 0, "res>0");
 	res = decompress(buf, res, verify, len);
 	ASSERT_EQ(res, (i32)len, "res=len");
