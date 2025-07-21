@@ -201,23 +201,17 @@ static __inline__ i64 raw_syscall(i64 sysno, i64 a0, i64 a1, i64 a2, i64 a3,
 	    :                   \
 	    : "%rax", "%rcx", "%r11", "memory");
 
-static __inline__ i64 raw_syscall(i64 sysno, i64 a0, i64 a1, i64 a2, i64 a3,
-				  i64 a4, i64 a5) {
+static __inline__ i64 raw_syscall(i64 sysno, i64 a1, i64 a2, i64 a3, i64 a4,
+				  i64 a5, i64 a6) {
+	register i64 _a4 __asm__("r10") = a4;
+	register i64 _a5 __asm__("r8") = a5;
+	register i64 _a6 __asm__("r9") = a6;
 	i64 result;
-	__asm__ volatile(
-	    "movq %1, %%rax\n"
-	    "movq %2, %%rdi\n"
-	    "movq %3, %%rsi\n"
-	    "movq %4, %%rdx\n"
-	    "movq %5, %%r10\n"
-	    "movq %6, %%r8\n"
-	    "movq %7, %%r9\n"
-	    "syscall\n"
-	    "movq %%rax, %0\n"
-	    : "=r"(result)
-	    : "r"(sysno), "r"(a0), "r"(a1), "r"(a2), "r"(a3), "r"(a4), "r"(a5)
-	    : "%rax", "%rdi", "%rsi", "%rdx", "%r10", "%r8", "%r9", "%rcx",
-	      "%r11", "memory");
+	__asm__ volatile("syscall"
+			 : "=a"(result)
+			 : "a"(sysno), "D"(a1), "S"(a2), "d"(a3), "r"(_a4),
+			   "r"(_a5), "r"(_a6)
+			 : "rcx", "r11", "memory");
 	return result;
 }
 
