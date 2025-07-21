@@ -60,8 +60,8 @@ typedef struct MDB_envinfo {
 typedef i32 mdb_filehandle_t;
 
 typedef struct MDB_val {
-	u64 mv_size;   /**< size of the data item */
-	void *mv_data; /**< address of the data item */
+	u64 mv_size;
+	void *mv_data;
 } MDB_val;
 
 typedef i32(MDB_cmp_func)(const MDB_val *a, const MDB_val *b);
@@ -70,39 +70,25 @@ typedef void(MDB_rel_func)(MDB_val *item, void *oldptr, void *newptr,
 			   void *relctx);
 
 typedef enum MDB_cursor_op {
-	MDB_FIRST,     /**< Position at first key/data item */
-	MDB_FIRST_DUP, /**< Position at first data item of current key.
-					       Only for #MDB_DUPSORT */
-	MDB_GET_BOTH,  /**< Position at key/data pair. Only for #MDB_DUPSORT */
-	MDB_GET_BOTH_RANGE, /**< position at key, nearest data. Only for
-			       #MDB_DUPSORT */
-	MDB_GET_CURRENT,    /**< Return key/data at current cursor position */
-	MDB_GET_MULTIPLE,   /**< Return up to a page of duplicate data items
-						    from current cursor position.
-			       Move cursor to prepare   for #MDB_NEXT_MULTIPLE.
-			       Only   for #MDB_DUPFIXED */
-	MDB_LAST,	    /**< Position at last key/data item */
-	MDB_LAST_DUP,	    /**< Position at last data item of current key.
-						    Only for #MDB_DUPSORT */
-	MDB_NEXT,	    /**< Position at next data item */
-	MDB_NEXT_DUP,	    /**< Position at next data item of current key.
-						    Only for #MDB_DUPSORT */
-	MDB_NEXT_MULTIPLE,  /**< Return up to a page of duplicate data items
-						    from next cursor position.
-			       Move cursor to prepare  for #MDB_NEXT_MULTIPLE.
-			       Only for #MDB_DUPFIXED */
-	MDB_NEXT_NODUP,	    /**< Position at first data item of next key */
-	MDB_PREV,	    /**< Position at previous data item */
-	MDB_PREV_DUP,	    /**< Position at previous data item of current key.
-						    Only for #MDB_DUPSORT */
-	MDB_PREV_NODUP,	    /**< Position at last data item of previous key */
-	MDB_SET,	    /**< Position at specified key */
-	MDB_SET_KEY,	    /**< Position at specified key, return key + data */
-	MDB_SET_RANGE,	    /**< Position at first key greater than or equal to
-			       specified key. */
-	MDB_PREV_MULTIPLE   /**< Position at previous page and return up to
-						    a page of duplicate data
-			       items. Only for #MDB_DUPFIXED */
+	MDB_FIRST,
+	MDB_FIRST_DUP,
+	MDB_GET_BOTH,
+	MDB_GET_BOTH_RANGE,
+	MDB_GET_CURRENT,
+	MDB_GET_MULTIPLE,
+	MDB_LAST,
+	MDB_LAST_DUP,
+	MDB_NEXT,
+	MDB_NEXT_DUP,
+	MDB_NEXT_MULTIPLE,
+	MDB_NEXT_NODUP,
+	MDB_PREV,
+	MDB_PREV_DUP,
+	MDB_PREV_NODUP,
+	MDB_SET,
+	MDB_SET_KEY,
+	MDB_SET_RANGE,
+	MDB_PREV_MULTIPLE
 } MDB_cursor_op;
 
 #define mdb_open(txn, name, flags, dbi) mdb_dbi_open(txn, name, flags, dbi)

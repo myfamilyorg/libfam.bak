@@ -30,6 +30,7 @@
 #include <libfam/lock.H>
 
 #define PTHREAD_PROCESS_SHARED 0 /* Not used */
+#define PTHREAD_MUTEX_ROBUST 0	 /* Not used */
 
 typedef u32 pthread_key_t;
 typedef i32 pthread_mutexattr_t;
@@ -47,6 +48,10 @@ int pthread_mutexattr_init(pthread_mutexattr_t *attr);
 int pthread_mutex_unlock(pthread_mutex_t *mutex);
 int pthread_mutex_lock(pthread_mutex_t *mutex);
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr);
+int pthread_setspecific(pthread_key_t key __attribute__((unused)),
+			const void *value __attribute__((unused)));
+int pthread_mutexattr_setrobust(pthread_mutexattr_t *attr, i32 value);
+int pthread_mutex_consistent(pthread_mutexattr_t *attr __attribute__((unused)));
 LockGuardImpl pthread_mutex_lock_guard(pthread_mutex_t *mutex);
 pthread_t pthread_self(void);
 

@@ -53,6 +53,16 @@ int pthread_setspecific(pthread_key_t key __attribute__((unused)),
 	return -1;
 }
 
+int pthread_mutexattr_setrobust(pthread_mutexattr_t *attr
+				__attribute__((unused))) {
+	return 0;
+}
+
+int pthread_mutex_consistent(pthread_mutexattr_t *attr
+			     __attribute__((unused))) {
+	return 0;
+}
+
 int pthread_mutexattr_destroy(pthread_mutexattr_t *attr
 			      __attribute__((unused))) {
 	return 0;
