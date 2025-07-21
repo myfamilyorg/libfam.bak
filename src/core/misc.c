@@ -39,11 +39,12 @@ u64 strlen(const u8 *X) {
 	return X - Y;
 }
 
-u8 *strdup(const char *s) {
+u8 *strdup(const u8 *s) {
 	u64 len = strlen(s);
-	u8 *ret = alloc(len);
+	u8 *ret = alloc(len + 1);
 	if (!ret) return NULL;
 	memcpy(ret, s, len);
+	ret[len] = 0;
 	return ret;
 }
 
@@ -195,7 +196,7 @@ u64 u128_to_string_impl(u8 *buf, u128 v, bool hex, bool upper) {
 	u8 temp[64] = {0};
 	i32 i = 0, j = 0;
 	u16 hex_mod = hex ? 16 : 10;
-	const char *hex_code = upper ? "0123456789ABCDEF" : "0123456789abcdef";
+	const u8 *hex_code = upper ? "0123456789ABCDEF" : "0123456789abcdef";
 
 	if (hex) {
 		j = 2;

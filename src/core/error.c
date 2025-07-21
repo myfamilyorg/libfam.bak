@@ -37,13 +37,13 @@ void perror(const u8 *s) {
 	len = strlen(s);
 	v = write(2, s, len);
 	if (len && v == len) v = write(2, ": ", 2);
-	if (v == 2) err_msg = error_string(err);
+	if (v == 2) err_msg = strerror(err);
 	if (v == 2) len = strlen(err_msg);
 	if (v == 2) v = write(2, err_msg, len);
 	if (v == len) v = write(2, "\n", 1);
 }
 
-const u8 *error_string(i32 err_code) {
+const u8 *strerror(i32 err_code) {
 	switch (err_code) {
 		case SUCCESS:
 			return "Success";

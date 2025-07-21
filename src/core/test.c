@@ -216,6 +216,20 @@ Test(resize1) {
 	alloc_destroy(a);
 }
 
+Test(calloc1) {
+	void *ptr1 = calloc(100, 10);
+	ASSERT(ptr1, "ptr1!=NULL");
+	release(ptr1);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#pragma GCC diagnostic ignored "-Walloc-size-larger-than="
+	ptr1 = calloc(I64_MAX - 1, I64_MAX - 1);
+#pragma GCC pop
+	ASSERT(!ptr1, "ptr1==NULL");
+
+	ASSERT_BYTES(0);
+}
+
 Test(enomem) {
 	Alloc *a;
 	u8 *t1 = NULL;
@@ -498,6 +512,16 @@ Test(colors) {
 	ASSERT_BYTES(0);
 }
 
+Test(strdup) {
+	const u8 *t1 = "test1";
+	u8 *res = strdup(t1);
+	ASSERT(res, "res!=MULL");
+	ASSERT(res != t1, "res != t1");
+	ASSERT(!strcmp(t1, res), "strcmp t1 == res");
+	release(res);
+	ASSERT_BYTES(0);
+}
+
 Test(env) {
 	ASSERT(getenv("TEST_PATTERN"), "getenv1");
 	ASSERT(!getenv("__TEST_PATTERNS__"), "getenv2");
@@ -525,242 +549,213 @@ Test(env) {
 i32 *__error(void);
 
 Test(errors) {
-	ASSERT(!strcmp("Success", error_string(0)), "success");
-	ASSERT(!strcmp("Operation not permitted", error_string(EPERM)),
-	       "eperm");
-	ASSERT(!strcmp("No such file or directory", error_string(ENOENT)),
+	ASSERT(!strcmp("Success", strerror(0)), "success");
+	ASSERT(!strcmp("Operation not permitted", strerror(EPERM)), "eperm");
+	ASSERT(!strcmp("No such file or directory", strerror(ENOENT)),
 	       "enoent");
-	ASSERT(!strcmp("No such process", error_string(ESRCH)), "esrch");
-	ASSERT(!strcmp("Interrupted system call", error_string(EINTR)),
-	       "eintr");
-	ASSERT(!strcmp("Input/output error", error_string(EIO)), "eio");
-	ASSERT(!strcmp("No such device or address", error_string(ENXIO)),
-	       "enxio");
-	ASSERT(!strcmp("Argument list too long", error_string(E2BIG)), "e2big");
-	ASSERT(!strcmp("Exec format error", error_string(ENOEXEC)), "enoexec");
-	ASSERT(!strcmp("Bad file descriptor", error_string(EBADF)), "ebadf");
-	ASSERT(!strcmp("No child processes", error_string(ECHILD)), "echild");
-	ASSERT(
-	    !strcmp("Resource temporarily unavailable", error_string(EAGAIN)),
-	    "eagain");
-	ASSERT(!strcmp("Out of memory", error_string(ENOMEM)), "enomem");
-	ASSERT(!strcmp("Permission denied", error_string(EACCES)), "eacces");
-	ASSERT(!strcmp("Bad address", error_string(EFAULT)), "efault");
-	ASSERT(!strcmp("Block device required", error_string(ENOTBLK)),
-	       "enotblk");
-	ASSERT(!strcmp("Device or resource busy", error_string(EBUSY)),
-	       "ebusy");
-	ASSERT(!strcmp("File exists", error_string(EEXIST)), "eexist");
-	ASSERT(!strcmp("Invalid cross-device link", error_string(EXDEV)),
-	       "exdev");
-	ASSERT(!strcmp("No such device", error_string(ENODEV)), "enodev");
-	ASSERT(!strcmp("Not a directory", error_string(ENOTDIR)), "enotdir");
-	ASSERT(!strcmp("Is a directory", error_string(EISDIR)), "eisdir");
-	ASSERT(!strcmp("Invalid argument", error_string(EINVAL)), "einval");
-	ASSERT(!strcmp("File table overflow", error_string(ENFILE)), "enfile");
-	ASSERT(!strcmp("Too many open files", error_string(EMFILE)), "emfile");
-	ASSERT(!strcmp("Not a typewriter", error_string(ENOTTY)), "enotty");
-	ASSERT(!strcmp("Text file busy", error_string(ETXTBSY)), "etxtbsy");
-	ASSERT(!strcmp("File too large", error_string(EFBIG)), "efbig");
-	ASSERT(!strcmp("No space left on device", error_string(ENOSPC)),
-	       "enospc");
-	ASSERT(!strcmp("Illegal seek", error_string(ESPIPE)), "espipe");
-	ASSERT(!strcmp("Read-only file system", error_string(EROFS)), "erofs");
-	ASSERT(!strcmp("Too many links", error_string(EMLINK)), "emlink");
-	ASSERT(!strcmp("Broken pipe", error_string(EPIPE)), "epipe");
-	ASSERT(
-	    !strcmp("Math argument out of domain of func", error_string(EDOM)),
-	    "edom");
-	ASSERT(!strcmp("Math result not representable", error_string(ERANGE)),
+	ASSERT(!strcmp("No such process", strerror(ESRCH)), "esrch");
+	ASSERT(!strcmp("Interrupted system call", strerror(EINTR)), "eintr");
+	ASSERT(!strcmp("Input/output error", strerror(EIO)), "eio");
+	ASSERT(!strcmp("No such device or address", strerror(ENXIO)), "enxio");
+	ASSERT(!strcmp("Argument list too long", strerror(E2BIG)), "e2big");
+	ASSERT(!strcmp("Exec format error", strerror(ENOEXEC)), "enoexec");
+	ASSERT(!strcmp("Bad file descriptor", strerror(EBADF)), "ebadf");
+	ASSERT(!strcmp("No child processes", strerror(ECHILD)), "echild");
+	ASSERT(!strcmp("Resource temporarily unavailable", strerror(EAGAIN)),
+	       "eagain");
+	ASSERT(!strcmp("Out of memory", strerror(ENOMEM)), "enomem");
+	ASSERT(!strcmp("Permission denied", strerror(EACCES)), "eacces");
+	ASSERT(!strcmp("Bad address", strerror(EFAULT)), "efault");
+	ASSERT(!strcmp("Block device required", strerror(ENOTBLK)), "enotblk");
+	ASSERT(!strcmp("Device or resource busy", strerror(EBUSY)), "ebusy");
+	ASSERT(!strcmp("File exists", strerror(EEXIST)), "eexist");
+	ASSERT(!strcmp("Invalid cross-device link", strerror(EXDEV)), "exdev");
+	ASSERT(!strcmp("No such device", strerror(ENODEV)), "enodev");
+	ASSERT(!strcmp("Not a directory", strerror(ENOTDIR)), "enotdir");
+	ASSERT(!strcmp("Is a directory", strerror(EISDIR)), "eisdir");
+	ASSERT(!strcmp("Invalid argument", strerror(EINVAL)), "einval");
+	ASSERT(!strcmp("File table overflow", strerror(ENFILE)), "enfile");
+	ASSERT(!strcmp("Too many open files", strerror(EMFILE)), "emfile");
+	ASSERT(!strcmp("Not a typewriter", strerror(ENOTTY)), "enotty");
+	ASSERT(!strcmp("Text file busy", strerror(ETXTBSY)), "etxtbsy");
+	ASSERT(!strcmp("File too large", strerror(EFBIG)), "efbig");
+	ASSERT(!strcmp("No space left on device", strerror(ENOSPC)), "enospc");
+	ASSERT(!strcmp("Illegal seek", strerror(ESPIPE)), "espipe");
+	ASSERT(!strcmp("Read-only file system", strerror(EROFS)), "erofs");
+	ASSERT(!strcmp("Too many links", strerror(EMLINK)), "emlink");
+	ASSERT(!strcmp("Broken pipe", strerror(EPIPE)), "epipe");
+	ASSERT(!strcmp("Math argument out of domain of func", strerror(EDOM)),
+	       "edom");
+	ASSERT(!strcmp("Math result not representable", strerror(ERANGE)),
 	       "erange");
-	ASSERT(!strcmp("Resource deadlock would occur", error_string(EDEADLK)),
+	ASSERT(!strcmp("Resource deadlock would occur", strerror(EDEADLK)),
 	       "edeadlk");
-	ASSERT(!strcmp("File name too long", error_string(ENAMETOOLONG)),
+	ASSERT(!strcmp("File name too long", strerror(ENAMETOOLONG)),
 	       "enametoolong");
-	ASSERT(!strcmp("No record locks available", error_string(ENOLCK)),
+	ASSERT(!strcmp("No record locks available", strerror(ENOLCK)),
 	       "enolck");
-	ASSERT(!strcmp("Invalid system call number", error_string(ENOSYS)),
+	ASSERT(!strcmp("Invalid system call number", strerror(ENOSYS)),
 	       "enosys");
-	ASSERT(!strcmp("Directory not empty", error_string(ENOTEMPTY)),
+	ASSERT(!strcmp("Directory not empty", strerror(ENOTEMPTY)),
 	       "enotempty");
-	ASSERT(
-	    !strcmp("Too many symbolic links encountered", error_string(ELOOP)),
-	    "eloop");
-	ASSERT(!strcmp("No message of desired type", error_string(ENOMSG)),
+	ASSERT(!strcmp("Too many symbolic links encountered", strerror(ELOOP)),
+	       "eloop");
+	ASSERT(!strcmp("No message of desired type", strerror(ENOMSG)),
 	       "enomsg");
-	ASSERT(!strcmp("Identifier removed", error_string(EIDRM)), "eidrm");
-	ASSERT(!strcmp("Channel number out of range", error_string(ECHRNG)),
+	ASSERT(!strcmp("Identifier removed", strerror(EIDRM)), "eidrm");
+	ASSERT(!strcmp("Channel number out of range", strerror(ECHRNG)),
 	       "echrng");
-	ASSERT(!strcmp("Level 2 not synchronized", error_string(EL2NSYNC)),
+	ASSERT(!strcmp("Level 2 not synchronized", strerror(EL2NSYNC)),
 	       "el2nsync");
-	ASSERT(!strcmp("Level 3 halted", error_string(EL3HLT)), "el3hlt");
-	ASSERT(!strcmp("Level 3 reset", error_string(EL3RST)), "el3rst");
-	ASSERT(!strcmp("Link number out of range", error_string(ELNRNG)),
-	       "elnrng");
-	ASSERT(!strcmp("Protocol driver not attached", error_string(EUNATCH)),
+	ASSERT(!strcmp("Level 3 halted", strerror(EL3HLT)), "el3hlt");
+	ASSERT(!strcmp("Level 3 reset", strerror(EL3RST)), "el3rst");
+	ASSERT(!strcmp("Link number out of range", strerror(ELNRNG)), "elnrng");
+	ASSERT(!strcmp("Protocol driver not attached", strerror(EUNATCH)),
 	       "eunatch");
-	ASSERT(!strcmp("No CSI structure available", error_string(ENOCSI)),
+	ASSERT(!strcmp("No CSI structure available", strerror(ENOCSI)),
 	       "enocsi");
-	ASSERT(!strcmp("Level 2 halted", error_string(EL2HLT)), "el2hlt");
-	ASSERT(!strcmp("Invalid exchange", error_string(EBADE)), "ebade");
-	ASSERT(!strcmp("Invalid request descriptor", error_string(EBADR)),
-	       "ebadr");
-	ASSERT(!strcmp("Exchange full", error_string(EXFULL)), "exfull");
-	ASSERT(!strcmp("No anode", error_string(ENOANO)), "enoano");
-	ASSERT(!strcmp("Invalid request code", error_string(EBADRQC)),
-	       "ebadrqc");
-	ASSERT(!strcmp("Invalid slot", error_string(EBADSLT)), "ebadslt");
-	ASSERT(!strcmp("Bad font file format", error_string(EBFONT)), "ebfont");
-	ASSERT(!strcmp("Device not a stream", error_string(ENOSTR)), "enostr");
-	ASSERT(!strcmp("No data available", error_string(ENODATA)), "enodata");
-	ASSERT(!strcmp("Timer expired", error_string(ETIME)), "etime");
-	ASSERT(!strcmp("Out of streams resources", error_string(ENOSR)),
-	       "enosr");
-	ASSERT(!strcmp("Machine is not on the network", error_string(ENONET)),
+	ASSERT(!strcmp("Level 2 halted", strerror(EL2HLT)), "el2hlt");
+	ASSERT(!strcmp("Invalid exchange", strerror(EBADE)), "ebade");
+	ASSERT(!strcmp("Invalid request descriptor", strerror(EBADR)), "ebadr");
+	ASSERT(!strcmp("Exchange full", strerror(EXFULL)), "exfull");
+	ASSERT(!strcmp("No anode", strerror(ENOANO)), "enoano");
+	ASSERT(!strcmp("Invalid request code", strerror(EBADRQC)), "ebadrqc");
+	ASSERT(!strcmp("Invalid slot", strerror(EBADSLT)), "ebadslt");
+	ASSERT(!strcmp("Bad font file format", strerror(EBFONT)), "ebfont");
+	ASSERT(!strcmp("Device not a stream", strerror(ENOSTR)), "enostr");
+	ASSERT(!strcmp("No data available", strerror(ENODATA)), "enodata");
+	ASSERT(!strcmp("Timer expired", strerror(ETIME)), "etime");
+	ASSERT(!strcmp("Out of streams resources", strerror(ENOSR)), "enosr");
+	ASSERT(!strcmp("Machine is not on the network", strerror(ENONET)),
 	       "enonet");
-	ASSERT(!strcmp("Package not installed", error_string(ENOPKG)),
-	       "enopkg");
-	ASSERT(!strcmp("Object is remote", error_string(EREMOTE)), "eremote");
-	ASSERT(!strcmp("Link has been severed", error_string(ENOLINK)),
-	       "enolink");
-	ASSERT(!strcmp("Advertise error", error_string(EADV)), "eadv");
-	ASSERT(!strcmp("Srmount error", error_string(ESRMNT)), "esrmnt");
-	ASSERT(!strcmp("Communication error on send", error_string(ECOMM)),
+	ASSERT(!strcmp("Package not installed", strerror(ENOPKG)), "enopkg");
+	ASSERT(!strcmp("Object is remote", strerror(EREMOTE)), "eremote");
+	ASSERT(!strcmp("Link has been severed", strerror(ENOLINK)), "enolink");
+	ASSERT(!strcmp("Advertise error", strerror(EADV)), "eadv");
+	ASSERT(!strcmp("Srmount error", strerror(ESRMNT)), "esrmnt");
+	ASSERT(!strcmp("Communication error on send", strerror(ECOMM)),
 	       "ecomm");
-	ASSERT(!strcmp("Protocol error", error_string(EPROTO)), "eproto");
-	ASSERT(!strcmp("Multihop attempted", error_string(EMULTIHOP)),
-	       "emultihop");
+	ASSERT(!strcmp("Protocol error", strerror(EPROTO)), "eproto");
+	ASSERT(!strcmp("Multihop attempted", strerror(EMULTIHOP)), "emultihop");
 
-	ASSERT(!strcmp("RFS specific error", error_string(EDOTDOT)), "edotdot");
-	ASSERT(!strcmp("Not a data message", error_string(EBADMSG)), "ebadmsg");
+	ASSERT(!strcmp("RFS specific error", strerror(EDOTDOT)), "edotdot");
+	ASSERT(!strcmp("Not a data message", strerror(EBADMSG)), "ebadmsg");
 	ASSERT(!strcmp("Value too large for defined data type",
-		       error_string(EOVERFLOW)),
+		       strerror(EOVERFLOW)),
 	       "eoverflow");
-	ASSERT(!strcmp("Name not unique on network", error_string(ENOTUNIQ)),
+	ASSERT(!strcmp("Name not unique on network", strerror(ENOTUNIQ)),
 	       "enotuniq");
-	ASSERT(!strcmp("File descriptor in bad state", error_string(EBADFD)),
+	ASSERT(!strcmp("File descriptor in bad state", strerror(EBADFD)),
 	       "ebadfd");
-	ASSERT(!strcmp("Remote address changed", error_string(EREMCHG)),
-	       "eremchg");
+	ASSERT(!strcmp("Remote address changed", strerror(EREMCHG)), "eremchg");
 	ASSERT(!strcmp("Can not access a needed shared library",
-		       error_string(ELIBACC)),
+		       strerror(ELIBACC)),
 	       "elibacc");
-	ASSERT(!strcmp("Accessing a corrupted shared library",
-		       error_string(ELIBBAD)),
-	       "elibbad");
-	ASSERT(!strcmp("lib section in a.out corrupted", error_string(ELIBSCN)),
+	ASSERT(
+	    !strcmp("Accessing a corrupted shared library", strerror(ELIBBAD)),
+	    "elibbad");
+	ASSERT(!strcmp("lib section in a.out corrupted", strerror(ELIBSCN)),
 	       "elibscn");
 	ASSERT(!strcmp("Attempting to link in too many shared libraries",
-		       error_string(ELIBMAX)),
+		       strerror(ELIBMAX)),
 	       "elibmax");
 	ASSERT(!strcmp("Cannot exec a shared library directly",
-		       error_string(ELIBEXEC)),
+		       strerror(ELIBEXEC)),
 	       "elibexec");
-	ASSERT(!strcmp("Illegal byte sequence", error_string(EILSEQ)),
-	       "eilseq");
+	ASSERT(!strcmp("Illegal byte sequence", strerror(EILSEQ)), "eilseq");
 	ASSERT(!strcmp("Interrupted system call should be restarted",
-		       error_string(ERESTART)),
+		       strerror(ERESTART)),
 	       "erestart");
-	ASSERT(!strcmp("Streams pipe error", error_string(ESTRPIPE)),
-	       "estrpipe");
-	ASSERT(!strcmp("Too many users", error_string(EUSERS)), "eusers");
-	ASSERT(
-	    !strcmp("Socket operation on non-socket", error_string(ENOTSOCK)),
-	    "enotsock");
-	ASSERT(
-	    !strcmp("Destination address required", error_string(EDESTADDRREQ)),
-	    "edestaddrreq");
-	ASSERT(!strcmp("Message too long", error_string(EMSGSIZE)), "emsgsize");
-	ASSERT(
-	    !strcmp("Protocol wrong type for socket", error_string(EPROTOTYPE)),
-	    "eprototype");
+	ASSERT(!strcmp("Streams pipe error", strerror(ESTRPIPE)), "estrpipe");
+	ASSERT(!strcmp("Too many users", strerror(EUSERS)), "eusers");
+	ASSERT(!strcmp("Socket operation on non-socket", strerror(ENOTSOCK)),
+	       "enotsock");
+	ASSERT(!strcmp("Destination address required", strerror(EDESTADDRREQ)),
+	       "edestaddrreq");
+	ASSERT(!strcmp("Message too long", strerror(EMSGSIZE)), "emsgsize");
+	ASSERT(!strcmp("Protocol wrong type for socket", strerror(EPROTOTYPE)),
+	       "eprototype");
 
-	ASSERT(!strcmp("Protocol not available", error_string(ENOPROTOOPT)),
+	ASSERT(!strcmp("Protocol not available", strerror(ENOPROTOOPT)),
 	       "enoprotoopt");
-	ASSERT(!strcmp("Protocol not supported", error_string(EPROTONOSUPPORT)),
+	ASSERT(!strcmp("Protocol not supported", strerror(EPROTONOSUPPORT)),
 	       "eprotonosupport");
-	ASSERT(
-	    !strcmp("Socket type not supported", error_string(ESOCKTNOSUPPORT)),
-	    "esocktnosupport");
+	ASSERT(!strcmp("Socket type not supported", strerror(ESOCKTNOSUPPORT)),
+	       "esocktnosupport");
 	ASSERT(!strcmp("Operation not supported on transport endpoint",
-		       error_string(EOPNOTSUPP)),
+		       strerror(EOPNOTSUPP)),
 	       "eopnotsupp");
-	ASSERT(!strcmp("Protocol family not supported",
-		       error_string(EPFNOSUPPORT)),
+	ASSERT(!strcmp("Protocol family not supported", strerror(EPFNOSUPPORT)),
 	       "epfnosupport");
 	ASSERT(!strcmp("Address family not supported by protocol",
-		       error_string(EAFNOSUPPORT)),
+		       strerror(EAFNOSUPPORT)),
 	       "eafnosupport");
-	ASSERT(!strcmp("Address already in use", error_string(EADDRINUSE)),
+	ASSERT(!strcmp("Address already in use", strerror(EADDRINUSE)),
 	       "eaddrinuse");
-	ASSERT(!strcmp("Cannot assign requested address",
-		       error_string(EADDRNOTAVAIL)),
-	       "eaddrnotavail");
-	ASSERT(!strcmp("Network is down", error_string(ENETDOWN)), "enetdown");
-	ASSERT(!strcmp("Network is unreachable", error_string(ENETUNREACH)),
+	ASSERT(
+	    !strcmp("Cannot assign requested address", strerror(EADDRNOTAVAIL)),
+	    "eaddrnotavail");
+	ASSERT(!strcmp("Network is down", strerror(ENETDOWN)), "enetdown");
+	ASSERT(!strcmp("Network is unreachable", strerror(ENETUNREACH)),
 	       "enetunreach");
 	ASSERT(!strcmp("Network dropped connection because of reset",
-		       error_string(ENETRESET)),
+		       strerror(ENETRESET)),
 	       "enetreset");
-	ASSERT(!strcmp("Software caused connection abort",
-		       error_string(ECONNABORTED)),
-	       "econnaborted");
-	ASSERT(!strcmp("Connection reset by peer", error_string(ECONNRESET)),
+	ASSERT(
+	    !strcmp("Software caused connection abort", strerror(ECONNABORTED)),
+	    "econnaborted");
+	ASSERT(!strcmp("Connection reset by peer", strerror(ECONNRESET)),
 	       "econnreset");
-	ASSERT(!strcmp("No buffer space available", error_string(ENOBUFS)),
+	ASSERT(!strcmp("No buffer space available", strerror(ENOBUFS)),
 	       "enobufs");
 	ASSERT(!strcmp("Transport endpoint is already connected",
-		       error_string(EISCONN)),
+		       strerror(EISCONN)),
 	       "eisconn");
-	ASSERT(!strcmp("Transport endpoint is not connected",
-		       error_string(ENOTCONN)),
-	       "enotconn");
+	ASSERT(
+	    !strcmp("Transport endpoint is not connected", strerror(ENOTCONN)),
+	    "enotconn");
 	ASSERT(!strcmp("Cannot send after transport endpoint shutdown",
-		       error_string(ESHUTDOWN)),
+		       strerror(ESHUTDOWN)),
 	       "eshutdown");
 
 	ASSERT(!strcmp("Too many references: cannot splice",
-		       error_string(ETOOMANYREFS)),
+		       strerror(ETOOMANYREFS)),
 	       "etoomanyrefs");
-	ASSERT(!strcmp("Connection timed out", error_string(ETIMEDOUT)),
+	ASSERT(!strcmp("Connection timed out", strerror(ETIMEDOUT)),
 	       "etimedout");
-	ASSERT(!strcmp("Connection refused", error_string(ECONNREFUSED)),
+	ASSERT(!strcmp("Connection refused", strerror(ECONNREFUSED)),
 	       "econnrefused");
-	ASSERT(!strcmp("Host is down", error_string(EHOSTDOWN)), "ehostdown");
-	ASSERT(!strcmp("No route to host", error_string(EHOSTUNREACH)),
+	ASSERT(!strcmp("Host is down", strerror(EHOSTDOWN)), "ehostdown");
+	ASSERT(!strcmp("No route to host", strerror(EHOSTUNREACH)),
 	       "ehostunreach");
-	ASSERT(!strcmp("Operation already in progress", error_string(EALREADY)),
+	ASSERT(!strcmp("Operation already in progress", strerror(EALREADY)),
 	       "ealready");
-	ASSERT(!strcmp("Operation now in progress", error_string(EINPROGRESS)),
+	ASSERT(!strcmp("Operation now in progress", strerror(EINPROGRESS)),
 	       "einprogress");
-	ASSERT(!strcmp("Stale file handle", error_string(ESTALE)), "estale");
-	ASSERT(!strcmp("Structure needs cleaning", error_string(EUCLEAN)),
+	ASSERT(!strcmp("Stale file handle", strerror(ESTALE)), "estale");
+	ASSERT(!strcmp("Structure needs cleaning", strerror(EUCLEAN)),
 	       "euclean");
-	ASSERT(!strcmp("Not a XENIX named type file", error_string(ENOTNAM)),
+	ASSERT(!strcmp("Not a XENIX named type file", strerror(ENOTNAM)),
 	       "enotnam");
-	ASSERT(!strcmp("No XENIX semaphores available", error_string(ENAVAIL)),
+	ASSERT(!strcmp("No XENIX semaphores available", strerror(ENAVAIL)),
 	       "enavail");
-	ASSERT(!strcmp("Is a named type file", error_string(EISNAM)), "eisnam");
-	ASSERT(!strcmp("Remote I/O error", error_string(EREMOTEIO)),
-	       "eremoteio");
-	ASSERT(!strcmp("Quota exceeded", error_string(EDQUOT)), "edquot");
-	ASSERT(!strcmp("No medium found", error_string(ENOMEDIUM)),
-	       "enomedium");
-	ASSERT(!strcmp("Wrong medium type", error_string(EMEDIUMTYPE)),
+	ASSERT(!strcmp("Is a named type file", strerror(EISNAM)), "eisnam");
+	ASSERT(!strcmp("Remote I/O error", strerror(EREMOTEIO)), "eremoteio");
+	ASSERT(!strcmp("Quota exceeded", strerror(EDQUOT)), "edquot");
+	ASSERT(!strcmp("No medium found", strerror(ENOMEDIUM)), "enomedium");
+	ASSERT(!strcmp("Wrong medium type", strerror(EMEDIUMTYPE)),
 	       "emediumtype");
-	ASSERT(!strcmp("Operation canceled", error_string(ECANCELED)),
-	       "ecanceled");
-	ASSERT(!strcmp("Required key not available", error_string(ENOKEY)),
+	ASSERT(!strcmp("Operation canceled", strerror(ECANCELED)), "ecanceled");
+	ASSERT(!strcmp("Required key not available", strerror(ENOKEY)),
 	       "enokey");
-	ASSERT(!strcmp("Key has expired", error_string(EKEYEXPIRED)),
+	ASSERT(!strcmp("Key has expired", strerror(EKEYEXPIRED)),
 	       "ekeyexpired");
-	ASSERT(!strcmp("Key has been revoked", error_string(EKEYREVOKED)),
+	ASSERT(!strcmp("Key has been revoked", strerror(EKEYREVOKED)),
 	       "ekeyrevoked");
-	ASSERT(
-	    !strcmp("Key was rejected by service", error_string(EKEYREJECTED)),
-	    "ekeyrejected");
+	ASSERT(!strcmp("Key was rejected by service", strerror(EKEYREJECTED)),
+	       "ekeyrejected");
 
-	ASSERT(!strcmp("Unknown error", error_string(1000)), "unknown");
+	ASSERT(!strcmp("Unknown error", strerror(1000)), "unknown");
 
 	err = 0;
 
@@ -1624,6 +1619,9 @@ Test(test_hex) {
 	ASSERT_BYTES(0);
 }
 
+void __stack_chk_fail(void);
+void __stack_chk_guard(void);
+
 Test(test_perror_close) {
 	const char *path = "/tmp/perror_test";
 	i32 fd;
@@ -1633,6 +1631,13 @@ Test(test_perror_close) {
 	ASSERT(!close(fd), "close");
 	_debug_no_write = true;
 	ASSERT(close(fd), "close fail");
+	_debug_no_write = false;
+
+	_debug_no_exit = true;
+	_debug_no_write = true;
+	__stack_chk_fail();
+	__stack_chk_guard();
+	_debug_no_exit = false;
 	_debug_no_write = false;
 	unlink(path);
 }

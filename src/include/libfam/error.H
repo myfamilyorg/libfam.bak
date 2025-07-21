@@ -166,7 +166,7 @@
 
 extern i32 err;
 
-const u8 *error_string(i32 err_code);
+const u8 *strerror(i32 err_code);
 void perror(const u8 *);
 
 #endif /* _ERROR_H */
