@@ -271,7 +271,7 @@
 #define MDB_EOF 0x10
 
 #define STATIC_ASSERT(condition, message) \
-	typedef u8 static_assert_##message[(condition) ? 1 : -1]
+	typedef u8 STATIC_assert_##message[(condition) ? 1 : -1]
 
 typedef pthread_mutex_t mdb_mutex_t[1];
 typedef pthread_mutex_t *mdb_mutexref_t;
@@ -582,11 +582,11 @@ typedef struct MDB_name {
 	mdb_nchar_t *mn_val;
 } MDB_name;
 
-static const mdb_nchar_t *const mdb_suffixes[2][2] = {
+STATIC const mdb_nchar_t *const mdb_suffixes[2][2] = {
     {MDB_NAME("/data.mdb"), MDB_NAME("")},
     {MDB_NAME("/lock.mdb"), MDB_NAME("-lock")}};
 
-static u8 *const mdb_errstr[] = {
+STATIC u8 *const mdb_errstr[] = {
     "MDB_KEYEXIST: Key/data pair already exists",
     "MDB_NOTFOUND: No matching key/data pair found",
     "MDB_PAGE_NOTFOUND: Requested page not found",
@@ -612,68 +612,68 @@ static u8 *const mdb_errstr[] = {
 
 STATIC_ASSERT(sizeof(MDB_page) == 16, MDB_page_size_16);
 
-static i32 mdb_page_alloc(MDB_cursor *mc, i32 num, MDB_page **mp);
-static i32 mdb_page_new(MDB_cursor *mc, u32 flags, i32 num, MDB_page **mp);
-static i32 mdb_page_touch(MDB_cursor *mc);
-static void mdb_txn_end(MDB_txn *txn, u32 mode);
+STATIC i32 mdb_page_alloc(MDB_cursor *mc, i32 num, MDB_page **mp);
+STATIC i32 mdb_page_new(MDB_cursor *mc, u32 flags, i32 num, MDB_page **mp);
+STATIC i32 mdb_page_touch(MDB_cursor *mc);
+STATIC void mdb_txn_end(MDB_txn *txn, u32 mode);
 
-static i32 mdb_page_get(MDB_cursor *mc, u64 pgno, MDB_page **mp, i32 *lvl);
-static i32 mdb_page_search_root(MDB_cursor *mc, MDB_val *key, i32 modify);
-static i32 mdb_page_search(MDB_cursor *mc, MDB_val *key, i32 flags);
-static i32 mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst);
-static i32 mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata,
+STATIC i32 mdb_page_get(MDB_cursor *mc, u64 pgno, MDB_page **mp, i32 *lvl);
+STATIC i32 mdb_page_search_root(MDB_cursor *mc, MDB_val *key, i32 modify);
+STATIC i32 mdb_page_search(MDB_cursor *mc, MDB_val *key, i32 flags);
+STATIC i32 mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst);
+STATIC i32 mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata,
 			  u64 newpgno, u32 nflags);
 
-static i32 mdb_env_read_header(MDB_env *env, i32 prev, MDB_meta *meta);
-static MDB_meta *mdb_env_pick_meta(const MDB_env *env);
-static i32 mdb_env_write_meta(MDB_txn *txn);
-static void mdb_env_close0(MDB_env *env, i32 excl);
+STATIC i32 mdb_env_read_header(MDB_env *env, i32 prev, MDB_meta *meta);
+STATIC MDB_meta *mdb_env_pick_meta(const MDB_env *env);
+STATIC i32 mdb_env_write_meta(MDB_txn *txn);
+STATIC void mdb_env_close0(MDB_env *env, i32 excl);
 
-static MDB_node *mdb_node_search(MDB_cursor *mc, MDB_val *key, i32 *exactp);
-static i32 mdb_node_add(MDB_cursor *mc, u16 indx, MDB_val *key, MDB_val *data,
+STATIC MDB_node *mdb_node_search(MDB_cursor *mc, MDB_val *key, i32 *exactp);
+STATIC i32 mdb_node_add(MDB_cursor *mc, u16 indx, MDB_val *key, MDB_val *data,
 			u64 pgno, u32 flags);
-static void mdb_node_del(MDB_cursor *mc, i32 ksize);
-static void mdb_node_shrink(MDB_page *mp, u16 indx);
-static i32 mdb_node_move(MDB_cursor *csrc, MDB_cursor *cdst, i32 fromleft);
-static i32 mdb_node_read(MDB_cursor *mc, MDB_node *leaf, MDB_val *data);
-static u64 mdb_leaf_size(MDB_env *env, MDB_val *key, MDB_val *data);
-static u64 mdb_branch_size(MDB_env *env, MDB_val *key);
+STATIC void mdb_node_del(MDB_cursor *mc, i32 ksize);
+STATIC void mdb_node_shrink(MDB_page *mp, u16 indx);
+STATIC i32 mdb_node_move(MDB_cursor *csrc, MDB_cursor *cdst, i32 fromleft);
+STATIC i32 mdb_node_read(MDB_cursor *mc, MDB_node *leaf, MDB_val *data);
+STATIC u64 mdb_leaf_size(MDB_env *env, MDB_val *key, MDB_val *data);
+STATIC u64 mdb_branch_size(MDB_env *env, MDB_val *key);
 
-static i32 mdb_rebalance(MDB_cursor *mc);
-static i32 mdb_update_key(MDB_cursor *mc, MDB_val *key);
+STATIC i32 mdb_rebalance(MDB_cursor *mc);
+STATIC i32 mdb_update_key(MDB_cursor *mc, MDB_val *key);
 
-static void mdb_cursor_copy(const MDB_cursor *csrc, MDB_cursor *cdst);
-static void mdb_cursor_pop(MDB_cursor *mc);
-static i32 mdb_cursor_push(MDB_cursor *mc, MDB_page *mp);
-static i32 _mdb_cursor_del(MDB_cursor *mc, u32 flags);
-static i32 _mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+STATIC void mdb_cursor_copy(const MDB_cursor *csrc, MDB_cursor *cdst);
+STATIC void mdb_cursor_pop(MDB_cursor *mc);
+STATIC i32 mdb_cursor_push(MDB_cursor *mc, MDB_page *mp);
+STATIC i32 _mdb_cursor_del(MDB_cursor *mc, u32 flags);
+STATIC i32 _mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 			   u32 flags);
 
-static i32 mdb_cursor_del0(MDB_cursor *mc);
-static i32 mdb_del0(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data,
+STATIC i32 mdb_cursor_del0(MDB_cursor *mc);
+STATIC i32 mdb_del0(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data,
 		    u32 flags);
-static i32 mdb_cursor_sibling(MDB_cursor *mc, i32 move_right);
-static i32 mdb_cursor_next(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+STATIC i32 mdb_cursor_sibling(MDB_cursor *mc, i32 move_right);
+STATIC i32 mdb_cursor_next(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 			   MDB_cursor_op op);
-static i32 mdb_cursor_prev(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+STATIC i32 mdb_cursor_prev(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 			   MDB_cursor_op op);
-static i32 mdb_cursor_set(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+STATIC i32 mdb_cursor_set(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 			  MDB_cursor_op op, i32 *exactp);
-static i32 mdb_cursor_first(MDB_cursor *mc, MDB_val *key, MDB_val *data);
-static i32 mdb_cursor_last(MDB_cursor *mc, MDB_val *key, MDB_val *data);
+STATIC i32 mdb_cursor_first(MDB_cursor *mc, MDB_val *key, MDB_val *data);
+STATIC i32 mdb_cursor_last(MDB_cursor *mc, MDB_val *key, MDB_val *data);
 
-static void mdb_cursor_init(MDB_cursor *mc, MDB_txn *txn, MDB_dbi dbi,
+STATIC void mdb_cursor_init(MDB_cursor *mc, MDB_txn *txn, MDB_dbi dbi,
 			    MDB_xcursor *mx);
-static void mdb_xcursor_init0(MDB_cursor *mc);
-static void mdb_xcursor_init1(MDB_cursor *mc, MDB_node *node);
-static void mdb_xcursor_init2(MDB_cursor *mc, MDB_xcursor *src_mx, i32 force);
+STATIC void mdb_xcursor_init0(MDB_cursor *mc);
+STATIC void mdb_xcursor_init1(MDB_cursor *mc, MDB_node *node);
+STATIC void mdb_xcursor_init2(MDB_cursor *mc, MDB_xcursor *src_mx, i32 force);
 
-static i32 mdb_drop0(MDB_cursor *mc, i32 subs);
-static void mdb_default_cmp(MDB_txn *txn, MDB_dbi dbi);
-static i32 mdb_reader_check0(MDB_env *env, i32 rlocked, i32 *dead);
-static i32 mdb_page_flush(MDB_txn *txn, i32 keep);
+STATIC i32 mdb_drop0(MDB_cursor *mc, i32 subs);
+STATIC void mdb_default_cmp(MDB_txn *txn, MDB_dbi dbi);
+STATIC i32 mdb_reader_check0(MDB_env *env, i32 rlocked, i32 *dead);
+STATIC i32 mdb_page_flush(MDB_txn *txn, i32 keep);
 
-static MDB_cmp_func mdb_cmp_memn, mdb_cmp_memnr, mdb_cmp_i32, mdb_cmp_ci32,
+STATIC MDB_cmp_func mdb_cmp_memn, mdb_cmp_memnr, mdb_cmp_i32, mdb_cmp_ci32,
     mdb_cmp_long;
 
 u8 *mdb_version(i32 *major, i32 *minor, i32 *patch) {
@@ -706,7 +706,7 @@ i32 mdb_dcmp(MDB_txn *txn, MDB_dbi dbi, const MDB_val *a, const MDB_val *b) {
 	return dcmp(a, b);
 }
 
-static MDB_page *mdb_page_malloc(MDB_txn *txn, u32 num) {
+STATIC MDB_page *mdb_page_malloc(MDB_txn *txn, u32 num) {
 	MDB_env *env = txn->mt_env;
 	MDB_page *ret = env->me_dpages;
 	u64 psize = env->me_psize, sz = psize, off;
@@ -731,19 +731,19 @@ static MDB_page *mdb_page_malloc(MDB_txn *txn, u32 num) {
 	return ret;
 }
 
-static void mdb_page_free(MDB_env *env, MDB_page *mp) {
+STATIC void mdb_page_free(MDB_env *env, MDB_page *mp) {
 	mp->mp_next = env->me_dpages;
 	env->me_dpages = mp;
 }
 
-static void mdb_dpage_free(MDB_env *env, MDB_page *dp) {
+STATIC void mdb_dpage_free(MDB_env *env, MDB_page *dp) {
 	if (!IS_OVERFLOW(dp) || dp->mp_pages == 1) {
 		mdb_page_free(env, dp);
 	} else
 		release(dp);
 }
 
-static void mdb_dlist_free(MDB_txn *txn) {
+STATIC void mdb_dlist_free(MDB_txn *txn) {
 	MDB_env *env = txn->mt_env;
 	MDB_ID2L dl = txn->mt_u.dirty_list;
 	u32 i, n = dl[0].mid;
@@ -754,7 +754,7 @@ static void mdb_dlist_free(MDB_txn *txn) {
 	dl[0].mid = 0;
 }
 
-static i32 mdb_page_loose(MDB_cursor *mc, MDB_page *mp) {
+STATIC i32 mdb_page_loose(MDB_cursor *mc, MDB_page *mp) {
 	i32 loose = 0;
 	u64 pgno = mp->mp_pgno;
 	MDB_txn *txn = mc->mc_txn;
@@ -790,7 +790,7 @@ static i32 mdb_page_loose(MDB_cursor *mc, MDB_page *mp) {
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_pages_xkeep(MDB_cursor *mc, u32 pflags, i32 all) {
+STATIC i32 mdb_pages_xkeep(MDB_cursor *mc, u32 pflags, i32 all) {
 	enum { Mask = P_SUBP | P_DIRTY | P_LOOSE | P_KEEP };
 	MDB_txn *txn = mc->mc_txn;
 	MDB_cursor *m3, *m0 = mc;
@@ -842,7 +842,7 @@ mark_done:
 	return rc;
 }
 
-static i32 mdb_page_spill(MDB_cursor *m0, MDB_val *key, MDB_val *data) {
+STATIC i32 mdb_page_spill(MDB_cursor *m0, MDB_val *key, MDB_val *data) {
 	MDB_txn *txn = m0->mc_txn;
 	MDB_page *dp;
 	MDB_ID2L dl = txn->mt_u.dirty_list;
@@ -910,7 +910,7 @@ done:
 	return rc;
 }
 
-static u64 mdb_find_oldest(MDB_txn *txn) {
+STATIC u64 mdb_find_oldest(MDB_txn *txn) {
 	i32 i;
 	u64 mr, oldest = txn->mt_txnid - 1;
 	if (txn->mt_env->me_txns) {
@@ -925,7 +925,7 @@ static u64 mdb_find_oldest(MDB_txn *txn) {
 	return oldest;
 }
 
-static void mdb_page_dirty(MDB_txn *txn, MDB_page *mp) {
+STATIC void mdb_page_dirty(MDB_txn *txn, MDB_page *mp) {
 	MDB_ID2 mid;
 	i32 __attribute__((unused)) rc, (*insert)(MDB_ID2L, MDB_ID2 *);
 	if (txn->mt_flags & MDB_TXN_WRITEMAP)
@@ -939,7 +939,7 @@ static void mdb_page_dirty(MDB_txn *txn, MDB_page *mp) {
 	txn->mt_dirty_room--;
 }
 
-static i32 mdb_page_alloc(MDB_cursor *mc, i32 num, MDB_page **mp) {
+STATIC i32 mdb_page_alloc(MDB_cursor *mc, i32 num, MDB_page **mp) {
 	enum { Paranoid = 0, Max_retries = I32_MAX };
 	i32 rc, retry = num * 60;
 	MDB_txn *txn = mc->mc_txn;
@@ -1072,7 +1072,7 @@ fail:
 	return rc;
 }
 
-static void mdb_page_copy(MDB_page *dst, MDB_page *src, u32 psize) {
+STATIC void mdb_page_copy(MDB_page *dst, MDB_page *src, u32 psize) {
 	enum { Align = sizeof(u64) };
 	u16 upper = src->mp_upper, lower = src->mp_lower,
 	    unused = upper - lower;
@@ -1087,7 +1087,7 @@ static void mdb_page_copy(MDB_page *dst, MDB_page *src, u32 psize) {
 	}
 }
 
-static i32 mdb_page_unspill(MDB_txn *txn, MDB_page *mp, MDB_page **ret) {
+STATIC i32 mdb_page_unspill(MDB_txn *txn, MDB_page *mp, MDB_page **ret) {
 	MDB_env *env = txn->mt_env;
 	const MDB_txn *tx2;
 	u32 x;
@@ -1129,7 +1129,7 @@ static i32 mdb_page_unspill(MDB_txn *txn, MDB_page *mp, MDB_page **ret) {
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_page_touch(MDB_cursor *mc) {
+STATIC i32 mdb_page_touch(MDB_cursor *mc) {
 	MDB_page *mp = mc->mc_pg[mc->mc_top], *np;
 	MDB_txn *txn = mc->mc_txn;
 	MDB_cursor *m2, *m3;
@@ -1238,7 +1238,7 @@ i32 mdb_env_sync(MDB_env *env, i32 force) {
 	return mdb_env_sync0(env, force, m->mm_last_pg + 1);
 }
 
-static i32 mdb_cursor_shadow(MDB_txn *src, MDB_txn *dst) {
+STATIC i32 mdb_cursor_shadow(MDB_txn *src, MDB_txn *dst) {
 	MDB_cursor *mc, *bk;
 	MDB_xcursor *mx;
 	u64 size;
@@ -1268,7 +1268,7 @@ static i32 mdb_cursor_shadow(MDB_txn *src, MDB_txn *dst) {
 	return MDB_SUCCESS;
 }
 
-static void mdb_cursors_close(MDB_txn *txn, u32 merge) {
+STATIC void mdb_cursors_close(MDB_txn *txn, u32 merge) {
 	MDB_cursor **cursors = txn->mt_cursors, *mc, *next, *bk;
 	MDB_xcursor *mx;
 	i32 i;
@@ -1299,7 +1299,7 @@ static void mdb_cursors_close(MDB_txn *txn, u32 merge) {
 	}
 }
 
-static i32 mdb_reader_pid(MDB_env *env, enum Pidlock_op op, i32 pid) {
+STATIC i32 mdb_reader_pid(MDB_env *env, enum Pidlock_op op, i32 pid) {
 	for (;;) {
 		i32 rc;
 		struct flock lock_info;
@@ -1318,7 +1318,7 @@ static i32 mdb_reader_pid(MDB_env *env, enum Pidlock_op op, i32 pid) {
 	}
 }
 
-static i32 mdb_txn_renew0(MDB_txn *txn) {
+STATIC i32 mdb_txn_renew0(MDB_txn *txn) {
 	MDB_env *env = txn->mt_env;
 	MDB_txninfo *ti = env->me_txns;
 	MDB_meta *meta;
@@ -1546,7 +1546,7 @@ u64 mdb_txn_id(MDB_txn *txn) {
 	return txn->mt_txnid;
 }
 
-static void mdb_dbis_update(MDB_txn *txn, i32 keep) {
+STATIC void mdb_dbis_update(MDB_txn *txn, i32 keep) {
 	i32 i;
 	MDB_dbi n = txn->mt_numdbs;
 	MDB_env *env = txn->mt_env;
@@ -1572,7 +1572,7 @@ static void mdb_dbis_update(MDB_txn *txn, i32 keep) {
 	if (keep && env->me_numdbs < n) env->me_numdbs = n;
 }
 
-static void mdb_txn_end(MDB_txn *txn, u32 mode) {
+STATIC void mdb_txn_end(MDB_txn *txn, u32 mode) {
 	MDB_env *env = txn->mt_env;
 
 	mdb_dbis_update(txn, mode & MDB_END_UPDATE);
@@ -1630,7 +1630,7 @@ void mdb_txn_reset(MDB_txn *txn) {
 	mdb_txn_end(txn, MDB_END_RESET);
 }
 
-static void _mdb_txn_abort(MDB_txn *txn) {
+STATIC void _mdb_txn_abort(MDB_txn *txn) {
 	if (txn == NULL) return;
 
 	if (txn->mt_child) _mdb_txn_abort(txn->mt_child);
@@ -1640,7 +1640,7 @@ static void _mdb_txn_abort(MDB_txn *txn) {
 
 void mdb_txn_abort(MDB_txn *txn) { _mdb_txn_abort(txn); }
 
-static i32 mdb_freelist_save(MDB_txn *txn) {
+STATIC i32 mdb_freelist_save(MDB_txn *txn) {
 	MDB_cursor mc;
 	MDB_env *env = txn->mt_env;
 	i32 rc, maxfree_1pg = env->me_maxfree_1pg, more = 1;
@@ -1806,7 +1806,7 @@ static i32 mdb_freelist_save(MDB_txn *txn) {
 	return rc;
 }
 
-static i32 mdb_page_flush(MDB_txn *txn, i32 keep) {
+STATIC i32 mdb_page_flush(MDB_txn *txn, i32 keep) {
 	MDB_env *env = txn->mt_env;
 	MDB_ID2L dl = txn->mt_u.dirty_list;
 	u32 psize = env->me_psize, j;
@@ -1908,9 +1908,9 @@ done:
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_env_share_locks(MDB_env *env, i32 *excl);
+STATIC i32 mdb_env_share_locks(MDB_env *env, i32 *excl);
 
-static i32 _mdb_txn_commit(MDB_txn *txn) {
+STATIC i32 _mdb_txn_commit(MDB_txn *txn) {
 	i32 rc;
 	u32 i, end_mode;
 	MDB_env *env;
@@ -2110,7 +2110,7 @@ fail:
 
 i32 mdb_txn_commit(MDB_txn *txn) { return _mdb_txn_commit(txn); }
 
-static i32 mdb_env_read_header(MDB_env *env, i32 prev, MDB_meta *meta) {
+STATIC i32 mdb_env_read_header(MDB_env *env, i32 prev, MDB_meta *meta) {
 	MDB_metabuf pbuf;
 	MDB_page *p;
 	MDB_meta *m;
@@ -2147,7 +2147,7 @@ static i32 mdb_env_read_header(MDB_env *env, i32 prev, MDB_meta *meta) {
 	return 0;
 }
 
-static void mdb_env_init_meta0(MDB_env *env, MDB_meta *meta) {
+STATIC void mdb_env_init_meta0(MDB_env *env, MDB_meta *meta) {
 	meta->mm_magic = MDB_MAGIC;
 	meta->mm_version = MDB_DATA_VERSION;
 	meta->mm_mapsize = env->me_mapsize;
@@ -2159,7 +2159,7 @@ static void mdb_env_init_meta0(MDB_env *env, MDB_meta *meta) {
 	meta->mm_dbs[MAIN_DBI].md_root = P_INVALID;
 }
 
-static i32 mdb_env_init_meta(MDB_env *env, MDB_meta *meta) {
+STATIC i32 mdb_env_init_meta(MDB_env *env, MDB_meta *meta) {
 	MDB_page *p, *q;
 	i32 rc;
 	u32 psize;
@@ -2196,7 +2196,7 @@ static i32 mdb_env_init_meta(MDB_env *env, MDB_meta *meta) {
 	return rc;
 }
 
-static i32 mdb_env_write_meta(MDB_txn *txn) {
+STATIC i32 mdb_env_write_meta(MDB_txn *txn) {
 	MDB_env *env;
 	MDB_meta meta, metab, *mp;
 	u32 flags;
@@ -2272,7 +2272,7 @@ done:
 	return MDB_SUCCESS;
 }
 
-static MDB_meta *mdb_env_pick_meta(const MDB_env *env) {
+STATIC MDB_meta *mdb_env_pick_meta(const MDB_env *env) {
 	MDB_meta *const *metas = env->me_metas;
 	return metas[(metas[0]->mm_txnid < metas[1]->mm_txnid) ^
 		     ((env->me_flags & MDB_PREVSNAPSHOT) != 0)];
@@ -2295,7 +2295,7 @@ i32 mdb_env_create(MDB_env **env) {
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_env_map(MDB_env *env, void *addr) {
+STATIC i32 mdb_env_map(MDB_env *env, void *addr) {
 	MDB_page *p;
 	u32 flags = env->me_flags;
 	i32 mmap_flags = MAP_SHARED;
@@ -2362,7 +2362,7 @@ i32 mdb_env_get_maxreaders(MDB_env *env, u32 *readers) {
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_fname_init(const u8 *path, u32 envflags, MDB_name *fname) {
+STATIC i32 mdb_fname_init(const u8 *path, u32 envflags, MDB_name *fname) {
 	i32 no_suffix = F_ISSET(envflags, MDB_NOSUBDIR | MDB_NOLOCK);
 	fname->mn_alloced = 0;
 	fname->mn_len = strlen(path);
@@ -2377,7 +2377,7 @@ static i32 mdb_fname_init(const u8 *path, u32 envflags, MDB_name *fname) {
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_fopen(const MDB_env *env, MDB_name *fname,
+STATIC i32 mdb_fopen(const MDB_env *env, MDB_name *fname,
 		     enum mdb_fopen_type which, mdb_mode_t mode, HANDLE *res) {
 	i32 rc = MDB_SUCCESS;
 	HANDLE fd;
@@ -2403,7 +2403,7 @@ static i32 mdb_fopen(const MDB_env *env, MDB_name *fname,
 	return rc;
 }
 
-static i32 mdb_env_open2(MDB_env *env, i32 prev) {
+STATIC i32 mdb_env_open2(MDB_env *env, i32 prev) {
 	u32 flags = env->me_flags;
 	i32 i, newenv = 0, rc;
 	MDB_meta meta;
@@ -2453,12 +2453,12 @@ static i32 mdb_env_open2(MDB_env *env, i32 prev) {
 	return MDB_SUCCESS;
 }
 
-static void mdb_env_reader_dest(void *ptr) {
+STATIC void mdb_env_reader_dest(void *ptr) {
 	MDB_reader *reader = ptr;
 	if (reader->mr_pid == getpid()) reader->mr_pid = 0;
 }
 
-static i32 mdb_env_share_locks(MDB_env *env, i32 *excl) {
+STATIC i32 mdb_env_share_locks(MDB_env *env, i32 *excl) {
 	i32 rc = 0;
 	struct flock lock_info;
 	MDB_meta *meta = mdb_env_pick_meta(env);
@@ -2477,7 +2477,7 @@ static i32 mdb_env_share_locks(MDB_env *env, i32 *excl) {
 	return rc;
 }
 
-static i32 mdb_env_excl_lock(MDB_env *env, i32 *excl) {
+STATIC i32 mdb_env_excl_lock(MDB_env *env, i32 *excl) {
 	i32 rc = 0;
 	struct flock lock_info;
 	memset((void *)&lock_info, 0, sizeof(lock_info));
@@ -2498,7 +2498,7 @@ static i32 mdb_env_excl_lock(MDB_env *env, i32 *excl) {
 	return rc;
 }
 
-static i32 mdb_env_setup_locks(MDB_env *env, MDB_name *fname, i32 mode,
+STATIC i32 mdb_env_setup_locks(MDB_env *env, MDB_name *fname, i32 mode,
 			       i32 *excl) {
 #define MDB_ERRCODE_ROFS EROFS
 	i32 rc;
@@ -2688,7 +2688,7 @@ leave:
 	return rc;
 }
 
-static void mdb_env_close0(MDB_env *env, i32 excl __attribute__((unused))) {
+STATIC void mdb_env_close0(MDB_env *env, i32 excl __attribute__((unused))) {
 	i32 i;
 
 	if (!(env->me_flags & MDB_ENV_ACTIVE)) return;
@@ -2746,19 +2746,19 @@ void mdb_env_close(MDB_env *env) {
 	release(env);
 }
 
-static i32 mdb_cmp_long(const MDB_val *a, const MDB_val *b) {
+STATIC i32 mdb_cmp_long(const MDB_val *a, const MDB_val *b) {
 	return (*(u64 *)a->mv_data < *(u64 *)b->mv_data)
 		   ? -1
 		   : *(u64 *)a->mv_data > *(u64 *)b->mv_data;
 }
 
-static i32 mdb_cmp_i32(const MDB_val *a, const MDB_val *b) {
+STATIC i32 mdb_cmp_i32(const MDB_val *a, const MDB_val *b) {
 	return (*(u32 *)a->mv_data < *(u32 *)b->mv_data)
 		   ? -1
 		   : *(u32 *)a->mv_data > *(u32 *)b->mv_data;
 }
 
-static i32 mdb_cmp_ci32(const MDB_val *a, const MDB_val *b) {
+STATIC i32 mdb_cmp_ci32(const MDB_val *a, const MDB_val *b) {
 	u16 *u, *c;
 	i32 x;
 
@@ -2770,7 +2770,7 @@ static i32 mdb_cmp_ci32(const MDB_val *a, const MDB_val *b) {
 	return x;
 }
 
-static i32 mdb_cmp_memn(const MDB_val *a, const MDB_val *b) {
+STATIC i32 mdb_cmp_memn(const MDB_val *a, const MDB_val *b) {
 	i32 diff;
 	i64 len_diff;
 	u32 len;
@@ -2786,7 +2786,7 @@ static i32 mdb_cmp_memn(const MDB_val *a, const MDB_val *b) {
 	return diff ? diff : len_diff < 0 ? -1 : len_diff;
 }
 
-static i32 mdb_cmp_memnr(const MDB_val *a, const MDB_val *b) {
+STATIC i32 mdb_cmp_memnr(const MDB_val *a, const MDB_val *b) {
 	const u8 *p1, *p2, *p1_lim;
 	i64 len_diff;
 	i32 diff;
@@ -2808,7 +2808,7 @@ static i32 mdb_cmp_memnr(const MDB_val *a, const MDB_val *b) {
 	return len_diff < 0 ? -1 : len_diff;
 }
 
-static MDB_node *mdb_node_search(MDB_cursor *mc, MDB_val *key, i32 *exactp) {
+STATIC MDB_node *mdb_node_search(MDB_cursor *mc, MDB_val *key, i32 *exactp) {
 	u32 i = 0, nkeys;
 	i32 low, high;
 	i32 rc = 0;
@@ -2870,7 +2870,7 @@ static MDB_node *mdb_node_search(MDB_cursor *mc, MDB_val *key, i32 *exactp) {
 	return node;
 }
 
-static void mdb_cursor_pop(MDB_cursor *mc) {
+STATIC void mdb_cursor_pop(MDB_cursor *mc) {
 	if (mc->mc_snum) {
 		mc->mc_snum--;
 		if (mc->mc_snum) {
@@ -2881,7 +2881,7 @@ static void mdb_cursor_pop(MDB_cursor *mc) {
 	}
 }
 
-static i32 mdb_cursor_push(MDB_cursor *mc, MDB_page *mp) {
+STATIC i32 mdb_cursor_push(MDB_cursor *mc, MDB_page *mp) {
 	if (mc->mc_snum >= CURSOR_STACK) {
 		mc->mc_txn->mt_flags |= MDB_TXN_ERROR;
 		return MDB_CURSOR_FULL;
@@ -2894,7 +2894,7 @@ static i32 mdb_cursor_push(MDB_cursor *mc, MDB_page *mp) {
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_page_get(MDB_cursor *mc, u64 pgno, MDB_page **ret, i32 *lvl) {
+STATIC i32 mdb_page_get(MDB_cursor *mc, u64 pgno, MDB_page **ret, i32 *lvl) {
 	MDB_txn *txn = mc->mc_txn;
 	MDB_page *p = NULL;
 	i32 level;
@@ -2942,7 +2942,7 @@ done:
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_page_search_root(MDB_cursor *mc, MDB_val *key, i32 flags) {
+STATIC i32 mdb_page_search_root(MDB_cursor *mc, MDB_val *key, i32 flags) {
 	MDB_page *mp = mc->mc_pg[mc->mc_top];
 	i32 rc;
 
@@ -3005,7 +3005,7 @@ static i32 mdb_page_search_root(MDB_cursor *mc, MDB_val *key, i32 flags) {
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_page_search_lowest(MDB_cursor *mc) {
+STATIC i32 mdb_page_search_lowest(MDB_cursor *mc) {
 	MDB_page *mp = mc->mc_pg[mc->mc_top];
 	MDB_node *node = NODEPTR(mp, 0);
 	i32 rc;
@@ -3017,7 +3017,7 @@ static i32 mdb_page_search_lowest(MDB_cursor *mc) {
 	return mdb_page_search_root(mc, NULL, MDB_PS_FIRST);
 }
 
-static i32 mdb_page_search(MDB_cursor *mc, MDB_val *key, i32 flags) {
+STATIC i32 mdb_page_search(MDB_cursor *mc, MDB_val *key, i32 flags) {
 	i32 rc;
 	u64 root;
 
@@ -3079,7 +3079,7 @@ static i32 mdb_page_search(MDB_cursor *mc, MDB_val *key, i32 flags) {
 	return mdb_page_search_root(mc, key, flags);
 }
 
-static i32 mdb_ovpage_free(MDB_cursor *mc, MDB_page *mp) {
+STATIC i32 mdb_ovpage_free(MDB_cursor *mc, MDB_page *mp) {
 	MDB_txn *txn = mc->mc_txn;
 	u64 pg = mp->mp_pgno;
 	u32 x = 0, ovpages = mp->mp_pages;
@@ -3134,7 +3134,7 @@ static i32 mdb_ovpage_free(MDB_cursor *mc, MDB_page *mp) {
 	return 0;
 }
 
-static i32 mdb_node_read(MDB_cursor *mc, MDB_node *leaf, MDB_val *data) {
+STATIC i32 mdb_node_read(MDB_cursor *mc, MDB_node *leaf, MDB_val *data) {
 	MDB_page *omp;
 	u64 pgno;
 	i32 rc;
@@ -3176,7 +3176,7 @@ i32 mdb_get(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data) {
 	return rc;
 }
 
-static i32 mdb_cursor_sibling(MDB_cursor *mc, i32 move_right) {
+STATIC i32 mdb_cursor_sibling(MDB_cursor *mc, i32 move_right) {
 	i32 rc;
 	MDB_node *indx;
 	MDB_page *mp;
@@ -3217,7 +3217,7 @@ static i32 mdb_cursor_sibling(MDB_cursor *mc, i32 move_right) {
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_cursor_next(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+STATIC i32 mdb_cursor_next(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 			   MDB_cursor_op op) {
 	MDB_page *mp;
 	MDB_node *leaf;
@@ -3295,7 +3295,7 @@ skip:
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_cursor_prev(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+STATIC i32 mdb_cursor_prev(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 			   MDB_cursor_op op) {
 	MDB_page *mp;
 	MDB_node *leaf;
@@ -3368,7 +3368,7 @@ static i32 mdb_cursor_prev(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_cursor_set(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+STATIC i32 mdb_cursor_set(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 			  MDB_cursor_op op, i32 *exactp) {
 	i32 rc;
 	MDB_page *mp;
@@ -3553,7 +3553,7 @@ set1:
 	return rc;
 }
 
-static i32 mdb_cursor_first(MDB_cursor *mc, MDB_val *key, MDB_val *data) {
+STATIC i32 mdb_cursor_first(MDB_cursor *mc, MDB_val *key, MDB_val *data) {
 	i32 rc;
 	MDB_node *leaf;
 
@@ -3596,7 +3596,7 @@ static i32 mdb_cursor_first(MDB_cursor *mc, MDB_val *key, MDB_val *data) {
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_cursor_last(MDB_cursor *mc, MDB_val *key, MDB_val *data) {
+STATIC i32 mdb_cursor_last(MDB_cursor *mc, MDB_val *key, MDB_val *data) {
 	i32 rc;
 	MDB_node *leaf;
 
@@ -3838,7 +3838,7 @@ i32 mdb_cursor_get(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 	return rc;
 }
 
-static i32 mdb_cursor_touch(MDB_cursor *mc) {
+STATIC i32 mdb_cursor_touch(MDB_cursor *mc) {
 	i32 rc = MDB_SUCCESS;
 
 	if (mc->mc_dbi >= CORE_DBS &&
@@ -3861,7 +3861,7 @@ static i32 mdb_cursor_touch(MDB_cursor *mc) {
 	return rc;
 }
 
-static i32 _mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
+STATIC i32 _mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 			   u32 flags) {
 	MDB_env *env;
 	MDB_node *leaf = NULL;
@@ -4361,7 +4361,7 @@ i32 mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data, u32 flags) {
 	return rc;
 }
 
-static i32 _mdb_cursor_del(MDB_cursor *mc, u32 flags) {
+STATIC i32 _mdb_cursor_del(MDB_cursor *mc, u32 flags) {
 	MDB_node *leaf;
 	MDB_page *mp;
 	i32 rc;
@@ -4467,7 +4467,7 @@ i32 mdb_cursor_del(MDB_cursor *mc, u32 flags) {
 	return _mdb_cursor_del(mc, flags);
 }
 
-static i32 mdb_page_new(MDB_cursor *mc, u32 flags, i32 num, MDB_page **mp) {
+STATIC i32 mdb_page_new(MDB_cursor *mc, u32 flags, i32 num, MDB_page **mp) {
 	MDB_page *np;
 	i32 rc;
 
@@ -4489,7 +4489,7 @@ static i32 mdb_page_new(MDB_cursor *mc, u32 flags, i32 num, MDB_page **mp) {
 	return 0;
 }
 
-static u64 mdb_leaf_size(MDB_env *env, MDB_val *key, MDB_val *data) {
+STATIC u64 mdb_leaf_size(MDB_env *env, MDB_val *key, MDB_val *data) {
 	u64 sz;
 
 	sz = LEAFSIZE(key, data);
@@ -4500,11 +4500,11 @@ static u64 mdb_leaf_size(MDB_env *env, MDB_val *key, MDB_val *data) {
 	return EVEN(sz + sizeof(u16));
 }
 
-static u64 mdb_branch_size(MDB_env *env __attribute__((unused)), MDB_val *key) {
+STATIC u64 mdb_branch_size(MDB_env *env __attribute__((unused)), MDB_val *key) {
 	return INDXSIZE(key) + sizeof(u16);
 }
 
-static i32 mdb_node_add(MDB_cursor *mc, u16 indx, MDB_val *key, MDB_val *data,
+STATIC i32 mdb_node_add(MDB_cursor *mc, u16 indx, MDB_val *key, MDB_val *data,
 			u64 pgno, u32 flags) {
 	u32 i;
 	u64 node_size = NODESIZE;
@@ -4599,7 +4599,7 @@ full:
 	return MDB_PAGE_FULL;
 }
 
-static void mdb_node_del(MDB_cursor *mc, i32 ksize) {
+STATIC void mdb_node_del(MDB_cursor *mc, i32 ksize) {
 	MDB_page *mp = mc->mc_pg[mc->mc_top];
 	u16 indx = mc->mc_ki[mc->mc_top];
 	u32 sz;
@@ -4645,7 +4645,7 @@ static void mdb_node_del(MDB_cursor *mc, i32 ksize) {
 	MP_UPPER(mp) += sz;
 }
 
-static void mdb_node_shrink(MDB_page *mp, u16 indx) {
+STATIC void mdb_node_shrink(MDB_page *mp, u16 indx) {
 	MDB_node *node;
 	MDB_page *sp, *xp;
 	u8 *base;
@@ -4680,7 +4680,7 @@ static void mdb_node_shrink(MDB_page *mp, u16 indx) {
 	mp->mp_upper += delta;
 }
 
-static void mdb_xcursor_init0(MDB_cursor *mc) {
+STATIC void mdb_xcursor_init0(MDB_cursor *mc) {
 	MDB_xcursor *mx = mc->mc_xcursor;
 
 	mx->mx_cursor.mc_xcursor = NULL;
@@ -4701,7 +4701,7 @@ static void mdb_xcursor_init0(MDB_cursor *mc) {
 	mx->mx_dbx.md_rel = mc->mc_dbx->md_rel;
 }
 
-static void mdb_xcursor_init1(MDB_cursor *mc, MDB_node *node) {
+STATIC void mdb_xcursor_init1(MDB_cursor *mc, MDB_node *node) {
 	MDB_xcursor *mx = mc->mc_xcursor;
 
 	mx->mx_cursor.mc_flags &= C_SUB | C_ORIG_RDONLY | C_WRITEMAP;
@@ -4737,7 +4737,7 @@ static void mdb_xcursor_init1(MDB_cursor *mc, MDB_node *node) {
 		mx->mx_dbx.md_cmp = mdb_cmp_clong;
 }
 
-static void mdb_xcursor_init2(MDB_cursor *mc, MDB_xcursor *src_mx,
+STATIC void mdb_xcursor_init2(MDB_cursor *mc, MDB_xcursor *src_mx,
 			      i32 new_dupdata) {
 	MDB_xcursor *mx = mc->mc_xcursor;
 
@@ -4757,7 +4757,7 @@ static void mdb_xcursor_init2(MDB_cursor *mc, MDB_xcursor *src_mx,
 	mx->mx_cursor.mc_pg[0] = src_mx->mx_cursor.mc_pg[0];
 }
 
-static void mdb_cursor_init(MDB_cursor *mc, MDB_txn *txn, MDB_dbi dbi,
+STATIC void mdb_cursor_init(MDB_cursor *mc, MDB_txn *txn, MDB_dbi dbi,
 			    MDB_xcursor *mx) {
 	mc->mc_next = NULL;
 	mc->mc_backup = NULL;
@@ -4877,7 +4877,7 @@ MDB_txn *mdb_cursor_txn(MDB_cursor *mc) {
 
 MDB_dbi mdb_cursor_dbi(MDB_cursor *mc) { return mc->mc_dbi; }
 
-static i32 mdb_update_key(MDB_cursor *mc, MDB_val *key) {
+STATIC i32 mdb_update_key(MDB_cursor *mc, MDB_val *key) {
 	MDB_page *mp;
 	MDB_node *node;
 	u8 *base;
@@ -4923,7 +4923,7 @@ static i32 mdb_update_key(MDB_cursor *mc, MDB_val *key) {
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_node_move(MDB_cursor *csrc, MDB_cursor *cdst, i32 fromleft) {
+STATIC i32 mdb_node_move(MDB_cursor *csrc, MDB_cursor *cdst, i32 fromleft) {
 	MDB_node *srcnode;
 	MDB_val key, data;
 	u64 srcpg;
@@ -5130,7 +5130,7 @@ static i32 mdb_node_move(MDB_cursor *csrc, MDB_cursor *cdst, i32 fromleft) {
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst) {
+STATIC i32 mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst) {
 	MDB_page *psrc, *pdst;
 	MDB_node *srcnode;
 	MDB_val key, data;
@@ -5244,7 +5244,7 @@ static i32 mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst) {
 	return rc;
 }
 
-static void mdb_cursor_copy(const MDB_cursor *csrc, MDB_cursor *cdst) {
+STATIC void mdb_cursor_copy(const MDB_cursor *csrc, MDB_cursor *cdst) {
 	u32 i;
 
 	cdst->mc_txn = csrc->mc_txn;
@@ -5262,7 +5262,7 @@ static void mdb_cursor_copy(const MDB_cursor *csrc, MDB_cursor *cdst) {
 	}
 }
 
-static i32 mdb_rebalance(MDB_cursor *mc) {
+STATIC i32 mdb_rebalance(MDB_cursor *mc) {
 	MDB_node *node;
 	i32 rc, fromleft;
 	u32 ptop, minkeys, thresh;
@@ -5411,7 +5411,7 @@ static i32 mdb_rebalance(MDB_cursor *mc) {
 	return rc;
 }
 
-static i32 mdb_cursor_del0(MDB_cursor *mc) {
+STATIC i32 mdb_cursor_del0(MDB_cursor *mc) {
 	i32 rc;
 	MDB_page *mp;
 	u16 ki;
@@ -5523,7 +5523,7 @@ i32 mdb_del(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data) {
 	return mdb_del0(txn, dbi, key, data, 0);
 }
 
-static i32 mdb_del0(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data,
+STATIC i32 mdb_del0(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data,
 		    u32 flags) {
 	MDB_cursor mc;
 	MDB_xcursor mx;
@@ -5551,7 +5551,7 @@ static i32 mdb_del0(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data,
 	return rc;
 }
 
-static i32 mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata,
+STATIC i32 mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata,
 			  u64 newpgno, u32 nflags) {
 	u32 flags;
 	i32 rc = MDB_SUCCESS, new_root = 0, did_split = 0;
@@ -6004,7 +6004,7 @@ i32 mdb_env_get_fd(MDB_env *env, mdb_filehandle_t *arg) {
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_stat0(MDB_env *env, MDB_db *db, MDB_stat *arg) {
+STATIC i32 mdb_stat0(MDB_env *env, MDB_db *db, MDB_stat *arg) {
 	arg->ms_psize = env->me_psize;
 	arg->ms_depth = db->md_depth;
 	arg->ms_branch_pages = db->md_branch_pages;
@@ -6041,7 +6041,7 @@ i32 mdb_env_info(MDB_env *env, MDB_envinfo *arg) {
 	return MDB_SUCCESS;
 }
 
-static void mdb_default_cmp(MDB_txn *txn, MDB_dbi dbi) {
+STATIC void mdb_default_cmp(MDB_txn *txn, MDB_dbi dbi) {
 	u16 f = txn->mt_dbs[dbi].md_flags;
 
 	txn->mt_dbxs[dbi].md_cmp = (f & MDB_REVERSEKEY)	  ? mdb_cmp_memnr
@@ -6189,7 +6189,7 @@ i32 mdb_dbi_flags(MDB_txn *txn, MDB_dbi dbi, u32 *flags) {
 	return MDB_SUCCESS;
 }
 
-static i32 mdb_drop0(MDB_cursor *mc, i32 subs) {
+STATIC i32 mdb_drop0(MDB_cursor *mc, i32 subs) {
 	i32 rc;
 
 	rc = mdb_page_search(mc, NULL, MDB_PS_FIRST);
@@ -6353,7 +6353,7 @@ i32 mdb_env_get_maxkeysize(MDB_env *env __attribute__((unused))) {
 	return ENV_MAXKEY(env);
 }
 
-static i32 mdb_pid_insert(i32 *ids, i32 pid) {
+STATIC i32 mdb_pid_insert(i32 *ids, i32 pid) {
 	u32 base = 0;
 	u32 cursor = 1;
 	i32 val = 0;
@@ -6391,7 +6391,7 @@ i32 mdb_reader_check(MDB_env *env, i32 *dead) {
 	return env->me_txns ? mdb_reader_check0(env, 0, dead) : MDB_SUCCESS;
 }
 
-static i32 mdb_reader_check0(MDB_env *env, i32 rlocked, i32 *dead) {
+STATIC i32 mdb_reader_check0(MDB_env *env, i32 rlocked, i32 *dead) {
 	mdb_mutexref_t rmutex = rlocked ? NULL : env->me_rmutex;
 	u32 i, j, rdrs;
 	MDB_reader *mr;
