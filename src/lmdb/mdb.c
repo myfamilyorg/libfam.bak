@@ -38,63 +38,11 @@
 #if defined(MDB_VL32) || defined(__WIN64__)
 #define _FILE_OFFSET_BITS 64
 #endif
-#ifdef _WIN32
-
-/* We use native NT APIs to setup the memory map, so that we can
- * let the DB file grow incrementally instead of always preallocating
- * the full size. These APIs are defined in <wdm.h> and <ntifs.h>
- * but those headers are meant for driver-level development and
- * conflict with the regular user-level headers, so we explicitly
- * declare them here. We get pointers to these functions from
- * NTDLL.DLL at runtime, to avoid buildtime dependencies on any
- * NTDLL import libraries.
- */
-typedef NTSTATUS(WINAPI NtCreateSectionFunc)(OUT PHANDLE sh, IN ACCESS_MASK acc,
-					     IN void *oa OPTIONAL,
-					     IN PLARGE_INTEGER ms OPTIONAL,
-					     IN ULONG pp, IN ULONG aa,
-					     IN HANDLE fh OPTIONAL);
-
-static NtCreateSectionFunc *NtCreateSection;
-
-typedef enum _SECTION_INHERIT { ViewShare = 1, ViewUnmap = 2 } SECTION_INHERIT;
-
-typedef NTSTATUS(WINAPI NtMapViewOfSectionFunc)(
-    IN PHANDLE sh, IN HANDLE ph, IN OUT PVOID *addr, IN ULONG_PTR zbits,
-    IN SIZE_T cs, IN OUT PLARGE_INTEGER off OPTIONAL, IN OUT PSIZE_T vs,
-    IN SECTION_INHERIT ih, IN ULONG at, IN ULONG pp);
-
-static NtMapViewOfSectionFunc *NtMapViewOfSection;
-
-typedef NTSTATUS(WINAPI NtCloseFunc)(HANDLE h);
-
-static NtCloseFunc *NtClose;
-
-/** getpid() returns int; MinGW defines pid_t but MinGW64 typedefs it
- *  as int64 which is wrong. MSVC doesn't define it at all, so just
- *  don't use it.
- */
-#define MDB_PID_T int
-#define MDB_THR_T DWORD
-#ifdef __GNUC__
-#else
-/*
-#define LITTLE_ENDIAN 1234
-#define BIG_ENDIAN 4321
-#define BYTE_ORDER LITTLE_ENDIAN
-*/
-#ifndef I64_MAX
-#define I64_MAX I32_MAX
-#endif
-#endif
-#define MDB_OFF_T i64
-#else
 #define MDB_PID_T i32
 #define MDB_THR_T pthread_t
 #ifdef HAVE_SYS_FILE_H
 #endif
 #define MDB_OFF_T i64
-#endif
 
 #if defined(__mips) && defined(__linux)
 #define CACHEFLUSH(addr, bytes, cache) cacheflush(addr, bytes, cache)
@@ -102,115 +50,16 @@ static NtCloseFunc *NtClose;
 #define CACHEFLUSH(addr, bytes, cache)
 #endif
 
-#if defined(__linux) && !defined(MDB_FDATASYNC_WORKS)
-/** fdatasync is broken on ext3/ext4fs on older kernels, see
- *	description in #mdb_env_open2 comments. You can safely
- *	define MDB_FDATASYNC_WORKS if this code will only be run
- *	on kernels 3.6 and newer.
- */
-/*#define BROKEN_FDATASYNC*/
-#endif
-
-#ifdef _MSC_VER
-typedef SSIZE_T i64;
-#else
-#endif
-
-#if defined(__sun) || defined(__ANDROID__)
-/* Most platforms have posix_memalign, older may only have memalign */
-#define HAVE_MEMALIGN 1
-/* On Solaris, we need the POSIX sigwait function */
-#if defined(__sun)
-#define _POSIX_PTHREAD_SEMANTICS 1
-#endif
-#endif
-
 #if !(defined(BYTE_ORDER) || defined(__BYTE_ORDER))
 #endif
 
-#if defined(__FreeBSD__) && defined(__FreeBSD_version) && \
-    __FreeBSD_version >= 1100110
 #define MDB_USE_POSIX_MUTEX 1
-#define MDB_USE_ROBUST 1
-#elif defined(__APPLE__) || defined(BSD) || defined(__FreeBSD_kernel__)
-#if !(defined(MDB_USE_POSIX_MUTEX) || defined(MDB_USE_POSIX_SEM))
-#define MDB_USE_SYSV_SEM 1
-#endif
-#if defined(__APPLE__)
-#define MDB_FDATASYNC(fd) fcntl(fd, F_FULLFSYNC)
-#else
-#define MDB_FDATASYNC fsync
-#endif
-#elif defined(__ANDROID__)
-#define MDB_FDATASYNC fsync
-#endif
 
-#ifndef _WIN32
-#ifdef MDB_USE_POSIX_SEM
-#define MDB_USE_HASH 1
-#elif defined(MDB_USE_SYSV_SEM)
-#ifdef _SEM_SEMUN_UNDEFINED
-union semun {
-	int val;
-	struct semid_ds *buf;
-	unsigned short *array;
-};
-#endif /* _SEM_SEMUN_UNDEFINED */
-#else
-#define MDB_USE_POSIX_MUTEX 1
-#endif /* MDB_USE_POSIX_SEM */
-#endif /* !_WIN32 */
-
-#if defined(_WIN32) + defined(MDB_USE_POSIX_SEM) + defined(MDB_USE_SYSV_SEM) + \
-	defined(MDB_USE_POSIX_MUTEX) !=                                        \
-    1
-#error "Ambiguous shared-lock implementation"
-#endif
-
-#ifdef USE_VALGRIND
-#define VGMEMP_CREATE(h, r, z) VALGRIND_CREATE_MEMPOOL(h, r, z)
-#define VGMEMP_ALLOC(h, a, s) VALGRIND_MEMPOOL_ALLOC(h, a, s)
-#define VGMEMP_FREE(h, a) VALGRIND_MEMPOOL_FREE(h, a)
-#define VGMEMP_DESTROY(h) VALGRIND_DESTROY_MEMPOOL(h)
-#define VGMEMP_DEFINED(a, s) VALGRIND_MAKE_MEM_DEFINED(a, s)
-#else
 #define VGMEMP_CREATE(h, r, z)
 #define VGMEMP_ALLOC(h, a, s)
 #define VGMEMP_FREE(h, a)
 #define VGMEMP_DESTROY(h)
 #define VGMEMP_DEFINED(a, s)
-#endif
-
-#ifndef BYTE_ORDER
-#if (defined(_LITTLE_ENDIAN) || defined(_BIG_ENDIAN)) && \
-    !(defined(_LITTLE_ENDIAN) && defined(_BIG_ENDIAN))
-/* Solaris just defines one or the other */
-#define LITTLE_ENDIAN 1234
-#define BIG_ENDIAN 4321
-#ifdef _LITTLE_ENDIAN
-/*
-#define BYTE_ORDER LITTLE_ENDIAN
-*/
-#else
-/*
-#define BYTE_ORDER BIG_ENDIAN
-*/
-#endif
-#else
-/*
-#define BYTE_ORDER __BYTE_ORDER
-*/
-#endif
-#endif
-
-/*
-#ifndef LITTLE_ENDIAN
-#define LITTLE_ENDIAN __LITTLE_ENDIAN
-#endif
-#ifndef BIG_ENDIAN
-#define BIG_ENDIAN __BIG_ENDIAN
-#endif
-*/
 
 #if defined(__i386) || defined(__x86_64) || defined(_M_IX86)
 #define MISALIGNED_OK 1
