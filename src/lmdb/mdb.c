@@ -445,10 +445,10 @@ struct MDB_txn {
 	u8 *mt_dbflags;
 	MDB_dbi mt_numdbs;
 #define MDB_TXN_BEGIN_FLAGS (MDB_NOMETASYNC | MDB_NOSYNC | MDB_RDONLY)
-#define MDB_TXN_NOMETASYNC MDB_NOMETASYNC
-#define MDB_TXN_NOSYNC MDB_NOSYNC
-#define MDB_TXN_RDONLY MDB_RDONLY
-#define MDB_TXN_WRITEMAP MDB_WRITEMAP
+#define MDB_TXN_NOMETASYNC MDB_NOMETASYNC /* 0x40000 */
+#define MDB_TXN_NOSYNC MDB_NOSYNC	  /* 0x10000 */
+#define MDB_TXN_RDONLY MDB_RDONLY	  /* 0x20000 */
+#define MDB_TXN_WRITEMAP MDB_WRITEMAP	  /* 0x80000 */
 #define MDB_TXN_FINISHED 0x01
 #define MDB_TXN_ERROR 0x02
 #define MDB_TXN_DIRTY 0x04
@@ -506,6 +506,7 @@ struct MDB_env {
 #define MDB_ENV_ACTIVE 0x20000000U
 #define MDB_ENV_TXKEY 0x10000000U
 #define MDB_FSYNCONLY 0x08000000U
+#define MDB_NEED_CHECK 0x40000000U
 	u32 me_flags;
 	u32 me_psize;
 	u32 me_os_psize;
@@ -1220,6 +1221,7 @@ fail:
 i32 mdb_env_sync0(MDB_env *env, i32 force, u64 numpgs) {
 	i32 rc = 0;
 	if (env->me_flags & MDB_RDONLY) return EACCES;
+	if (env->me_flags & MDB_NEED_CHECK) return EINVAL;
 	if (force) {
 		if (env->me_flags & MDB_WRITEMAP) {
 			i32 flags = ((env->me_flags & MDB_MAPASYNC) && !force)
@@ -1235,7 +1237,9 @@ i32 mdb_env_sync0(MDB_env *env, i32 force, u64 numpgs) {
 }
 
 i32 mdb_env_sync(MDB_env *env, i32 force) {
-	MDB_meta *m = mdb_env_pick_meta(env);
+	MDB_meta *m;
+	if (env->me_flags & MDB_NEED_CHECK) return EINVAL;
+	m = mdb_env_pick_meta(env);
 	return mdb_env_sync0(env, force, m->mm_last_pg + 1);
 }
 
@@ -1352,6 +1356,11 @@ STATIC i32 mdb_txn_renew0(MDB_txn *txn) {
 				}
 
 				if (LOCK_MUTEX(rc, env, rmutex)) return rc;
+				if (err == EOWNERDEAD) {
+					env->me_flags |= MDB_NEED_CHECK;
+					UNLOCK_MUTEX(rmutex);
+					return EOWNERDEAD;
+				}
 				nr = ti->mti_numreaders;
 				for (i = 0; i < nr; i++)
 					if (ti->mti_readers[i].mr_pid == 0)
@@ -1390,6 +1399,12 @@ STATIC i32 mdb_txn_renew0(MDB_txn *txn) {
 	} else {
 		if (ti) {
 			if (LOCK_MUTEX(rc, env, env->me_wmutex)) return rc;
+			if (err == EOWNERDEAD) {
+				env->me_flags |= MDB_NEED_CHECK;
+				UNLOCK_MUTEX(env->me_wmutex);
+				return EOWNERDEAD;
+			}
+
 			txn->mt_txnid = ti->mti_txnid;
 			meta = env->me_metas[txn->mt_txnid & 1];
 		} else {
@@ -1441,6 +1456,8 @@ i32 mdb_txn_renew(MDB_txn *txn) {
 	if (!txn || !F_ISSET(txn->mt_flags, MDB_TXN_RDONLY | MDB_TXN_FINISHED))
 		return EINVAL;
 
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
+
 	rc = mdb_txn_renew0(txn);
 	return rc;
 }
@@ -1449,6 +1466,8 @@ i32 mdb_txn_begin(MDB_env *env, MDB_txn *parent, u32 flags, MDB_txn **ret) {
 	MDB_txn *txn;
 	MDB_ntxn *ntxn;
 	i32 rc, size, tsize;
+
+	if (env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	flags &= MDB_TXN_BEGIN_FLAGS;
 	flags |= env->me_flags & MDB_WRITEMAP;
@@ -1627,6 +1646,7 @@ STATIC void mdb_txn_end(MDB_txn *txn, u32 mode) {
 
 void mdb_txn_reset(MDB_txn *txn) {
 	if (txn == NULL) return;
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return;
 	if (!(txn->mt_flags & MDB_TXN_RDONLY)) return;
 	mdb_txn_end(txn, MDB_END_RESET);
 }
@@ -1639,7 +1659,10 @@ STATIC void _mdb_txn_abort(MDB_txn *txn) {
 	mdb_txn_end(txn, MDB_END_ABORT | MDB_END_SLOT | MDB_END_FREE);
 }
 
-void mdb_txn_abort(MDB_txn *txn) { _mdb_txn_abort(txn); }
+void mdb_txn_abort(MDB_txn *txn) {
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return;
+	_mdb_txn_abort(txn);
+}
 
 STATIC i32 mdb_freelist_save(MDB_txn *txn) {
 	MDB_cursor mc;
@@ -2109,7 +2132,10 @@ fail:
 	return rc;
 }
 
-i32 mdb_txn_commit(MDB_txn *txn) { return _mdb_txn_commit(txn); }
+i32 mdb_txn_commit(MDB_txn *txn) {
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
+	return _mdb_txn_commit(txn);
+}
 
 STATIC i32 mdb_env_read_header(MDB_env *env, i32 prev, MDB_meta *meta) {
 	MDB_metabuf pbuf;
@@ -2595,6 +2621,7 @@ i32 mdb_env_open(MDB_env *env, const u8 *path, u32 flags, mdb_mode_t mode) {
 	if (env->me_fd != INVALID_HANDLE_VALUE ||
 	    (flags & ~(CHANGEABLE | CHANGELESS)))
 		return EINVAL;
+	if (env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	flags |= env->me_flags;
 
@@ -3173,6 +3200,7 @@ i32 mdb_get(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data) {
 		return EINVAL;
 
 	if (txn->mt_flags & MDB_TXN_BLOCKED) return MDB_BAD_TXN;
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	mdb_cursor_init(&mc, txn, dbi, &mx);
 	rc = mdb_cursor_set(&mc, key, data, MDB_SET, &exact);
@@ -3651,6 +3679,7 @@ i32 mdb_cursor_get(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 	if (mc == NULL) return EINVAL;
 
 	if (mc->mc_txn->mt_flags & MDB_TXN_BLOCKED) return MDB_BAD_TXN;
+	if (mc->mc_txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	switch (op) {
 		case MDB_GET_CURRENT:
@@ -4361,6 +4390,7 @@ new_sub:
 }
 
 i32 mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data, u32 flags) {
+	if (mc->mc_txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 	i32 rc = _mdb_cursor_put(mc, key, data, flags);
 	return rc;
 }
@@ -4468,6 +4498,7 @@ fail:
 }
 
 i32 mdb_cursor_del(MDB_cursor *mc, u32 flags) {
+	if (mc->mc_txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 	return _mdb_cursor_del(mc, flags);
 }
 
@@ -4795,6 +4826,7 @@ i32 mdb_cursor_open(MDB_txn *txn, MDB_dbi dbi, MDB_cursor **ret) {
 	if (!ret || !TXN_DBI_EXIST(txn, dbi, DB_VALID)) return EINVAL;
 
 	if (txn->mt_flags & MDB_TXN_BLOCKED) return MDB_BAD_TXN;
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	if (dbi == FREE_DBI && !F_ISSET(txn->mt_flags, MDB_TXN_RDONLY))
 		return EINVAL;
@@ -4822,6 +4854,7 @@ i32 mdb_cursor_renew(MDB_txn *txn, MDB_cursor *mc) {
 	if (!mc || !TXN_DBI_EXIST(txn, mc->mc_dbi, DB_VALID)) return EINVAL;
 
 	if ((mc->mc_flags & C_UNTRACK) || txn->mt_cursors) return EINVAL;
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	if (txn->mt_flags & MDB_TXN_BLOCKED) return MDB_BAD_TXN;
 
@@ -4837,6 +4870,7 @@ i32 mdb_cursor_count(MDB_cursor *mc, u64 *countp) {
 	if (mc->mc_xcursor == NULL) return MDB_INCOMPATIBLE;
 
 	if (mc->mc_txn->mt_flags & MDB_TXN_BLOCKED) return MDB_BAD_TXN;
+	if (mc->mc_txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	if (!(mc->mc_flags & C_INITIALIZED)) return EINVAL;
 
@@ -4865,6 +4899,7 @@ void mdb_cursor_close(MDB_cursor *mc) {
 		MDB_CURSOR_UNREF(mc, 0);
 	}
 	if (mc && !mc->mc_backup) {
+		if (mc->mc_txn->mt_env->me_flags & MDB_NEED_CHECK) return;
 		if ((mc->mc_flags & C_UNTRACK) && mc->mc_txn->mt_cursors) {
 			MDB_cursor **prev = &mc->mc_txn->mt_cursors[mc->mc_dbi];
 			while (*prev && *prev != mc) prev = &(*prev)->mc_next;
@@ -5516,6 +5551,7 @@ fail:
 
 i32 mdb_del(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data) {
 	if (!key || !TXN_DBI_EXIST(txn, dbi, DB_USRVALID)) return EINVAL;
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	if (txn->mt_flags & (MDB_TXN_RDONLY | MDB_TXN_BLOCKED))
 		return (txn->mt_flags & MDB_TXN_RDONLY) ? EACCES : MDB_BAD_TXN;
@@ -5939,6 +5975,7 @@ i32 mdb_put(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data, u32 flags) {
 
 	if (txn->mt_flags & (MDB_TXN_RDONLY | MDB_TXN_BLOCKED))
 		return (txn->mt_flags & MDB_TXN_RDONLY) ? EACCES : MDB_BAD_TXN;
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	mdb_cursor_init(&mc, txn, dbi, &mx);
 	mc.mc_next = txn->mt_cursors[dbi];
@@ -6023,6 +6060,7 @@ i32 mdb_env_stat(MDB_env *env, MDB_stat *arg) {
 	MDB_meta *meta;
 
 	if (env == NULL || arg == NULL) return EINVAL;
+	if (env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	meta = mdb_env_pick_meta(env);
 
@@ -6033,6 +6071,7 @@ i32 mdb_env_info(MDB_env *env, MDB_envinfo *arg) {
 	MDB_meta *meta;
 
 	if (env == NULL || arg == NULL) return EINVAL;
+	if (env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	meta = mdb_env_pick_meta(env);
 	arg->me_mapaddr = meta->mm_address;
@@ -6072,6 +6111,7 @@ i32 mdb_dbi_open(MDB_txn *txn, const u8 *name, u32 flags, MDB_dbi *dbi) {
 
 	if (flags & ~VALID_FLAGS) return EINVAL;
 	if (txn->mt_flags & MDB_TXN_BLOCKED) return MDB_BAD_TXN;
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	if (!name) {
 		*dbi = MAIN_DBI;
@@ -6163,6 +6203,7 @@ i32 mdb_dbi_open(MDB_txn *txn, const u8 *name, u32 flags, MDB_dbi *dbi) {
 
 i32 mdb_stat(MDB_txn *txn, MDB_dbi dbi, MDB_stat *arg) {
 	if (!arg || !TXN_DBI_EXIST(txn, dbi, DB_VALID)) return EINVAL;
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	if (txn->mt_flags & MDB_TXN_BLOCKED) return MDB_BAD_TXN;
 
@@ -6177,6 +6218,7 @@ i32 mdb_stat(MDB_txn *txn, MDB_dbi dbi, MDB_stat *arg) {
 void mdb_dbi_close(MDB_env *env, MDB_dbi dbi) {
 	u8 *ptr;
 	if (dbi < CORE_DBS || dbi >= env->me_maxdbs) return;
+
 	ptr = env->me_dbxs[dbi].md_name.mv_data;
 	if (ptr) {
 		env->me_dbxs[dbi].md_name.mv_data = NULL;
@@ -6285,6 +6327,8 @@ i32 mdb_drop(MDB_txn *txn, MDB_dbi dbi, i32 del) {
 	MDB_cursor *mc, *m2;
 	i32 rc;
 
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
+
 	if ((u32)del > 1 || !TXN_DBI_EXIST(txn, dbi, DB_USRVALID))
 		return EINVAL;
 
@@ -6327,6 +6371,7 @@ leave:
 
 i32 mdb_set_compare(MDB_txn *txn, MDB_dbi dbi, MDB_cmp_func *cmp) {
 	if (!TXN_DBI_EXIST(txn, dbi, DB_USRVALID)) return EINVAL;
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	txn->mt_dbxs[dbi].md_cmp = cmp;
 	return MDB_SUCCESS;
@@ -6334,6 +6379,7 @@ i32 mdb_set_compare(MDB_txn *txn, MDB_dbi dbi, MDB_cmp_func *cmp) {
 
 i32 mdb_set_dupsort(MDB_txn *txn, MDB_dbi dbi, MDB_cmp_func *cmp) {
 	if (!TXN_DBI_EXIST(txn, dbi, DB_USRVALID)) return EINVAL;
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	txn->mt_dbxs[dbi].md_dcmp = cmp;
 	return MDB_SUCCESS;
@@ -6341,6 +6387,7 @@ i32 mdb_set_dupsort(MDB_txn *txn, MDB_dbi dbi, MDB_cmp_func *cmp) {
 
 i32 mdb_set_relfunc(MDB_txn *txn, MDB_dbi dbi, MDB_rel_func *rel) {
 	if (!TXN_DBI_EXIST(txn, dbi, DB_USRVALID)) return EINVAL;
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	txn->mt_dbxs[dbi].md_rel = rel;
 	return MDB_SUCCESS;
@@ -6348,12 +6395,14 @@ i32 mdb_set_relfunc(MDB_txn *txn, MDB_dbi dbi, MDB_rel_func *rel) {
 
 i32 mdb_set_relctx(MDB_txn *txn, MDB_dbi dbi, void *ctx) {
 	if (!TXN_DBI_EXIST(txn, dbi, DB_USRVALID)) return EINVAL;
+	if (txn->mt_env->me_flags & MDB_NEED_CHECK) return EINVAL;
 
 	txn->mt_dbxs[dbi].md_relctx = ctx;
 	return MDB_SUCCESS;
 }
 
 i32 mdb_env_get_maxkeysize(MDB_env *env __attribute__((unused))) {
+	if (env->me_flags & MDB_NEED_CHECK) return EINVAL;
 	return ENV_MAXKEY(env);
 }
 
@@ -6435,13 +6484,16 @@ STATIC i32 mdb_reader_check0(MDB_env *env, i32 rlocked, i32 *dead) {
 							mr[j].mr_pid = 0;
 							count++;
 						}
-					if (rmutex) UNLOCK_MUTEX(rmutex);
+					if (rmutex) {
+						UNLOCK_MUTEX(rmutex);
+					}
 				}
 			}
 		}
 	}
 	release(pids);
 	if (dead) *dead = count;
+	env->me_flags &= ~MDB_NEED_CHECK;
 	return rc;
 }
 

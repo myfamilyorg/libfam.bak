@@ -23,8 +23,10 @@
  *
  *******************************************************************************/
 
+#include <libfam/error.H>
 #include <libfam/format.H>
 #include <libfam/lock.H>
+#include <libfam/robust.H>
 
 typedef unsigned int pthread_key_t;
 typedef int pthread_mutexattr_t;
@@ -80,15 +82,15 @@ int pthread_mutexattr_init(pthread_mutexattr_t *attr) {
 }
 
 int pthread_mutex_lock(pthread_mutex_t *mutex __attribute__((unused))) {
-	LockGuardImpl lg __attribute__((unused)) = wlock(mutex);
+	err = SUCCESS;
+	RobustGuardImpl lg __attribute__((unused)) = robust_lock(mutex);
 	return 0;
 }
 
 int pthread_mutex_unlock(pthread_mutex_t *mutex __attribute__((unused))) {
-	LockGuardImpl lg;
+	RobustGuardImpl lg;
 	lg.lock = mutex;
-	lg.is_write = true;
-	lockguard_cleanup(&lg);
+	robustguard_cleanup(&lg);
 	return 0;
 }
 
