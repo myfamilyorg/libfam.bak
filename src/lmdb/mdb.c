@@ -179,6 +179,20 @@
 			(mc)->mc_xcursor->mx_cursor.mc_pg[0] =                 \
 			    NODEDATA(xr_node);                                 \
 	} while (0)
+#define MDB_COMMIT_PAGES 64
+#if defined(IOV_MAX) && IOV_MAX < MDB_COMMIT_PAGES
+#undef MDB_COMMIT_PAGES
+#define MDB_COMMIT_PAGES IOV_MAX
+#endif
+#define MAX_WRITE (0x40000000U >> (sizeof(i64) == 4))
+#define TXN_DBI_EXIST(txn, dbi, validity)     \
+	((txn) && (dbi) < (txn)->mt_numdbs && \
+	 ((txn)->mt_dbflags[dbi] & (validity)))
+#define TXN_DBI_CHANGED(txn, dbi) \
+	((txn)->mt_dbiseqs[dbi] != (txn)->mt_env->me_dbiseqs[dbi])
+
+#define STATIC_ASSERT(condition, message) \
+	typedef u8 static_assert_##message[(condition) ? 1 : -1]
 
 typedef pthread_mutex_t mdb_mutex_t[1];
 typedef pthread_mutex_t *mdb_mutexref_t;
@@ -455,33 +469,10 @@ struct MDB_env {
 	MDB_assert_func *me_assert_func;
 };
 
-/** Nested transaction */
 typedef struct MDB_ntxn {
-	MDB_txn mnt_txn;	 /**< the transaction */
-	MDB_pgstate mnt_pgstate; /**< parent transaction's saved freestate */
+	MDB_txn mnt_txn;
+	MDB_pgstate mnt_pgstate;
 } MDB_ntxn;
-
-/** max number of pages to commit in one writev() call */
-#define MDB_COMMIT_PAGES 64
-#if defined(IOV_MAX) && IOV_MAX < MDB_COMMIT_PAGES
-#undef MDB_COMMIT_PAGES
-#define MDB_COMMIT_PAGES IOV_MAX
-#endif
-
-/** max bytes to write in one call */
-#define MAX_WRITE (0x40000000U >> (sizeof(i64) == 4))
-
-/** Check \b txn and \b dbi arguments to a function */
-#define TXN_DBI_EXIST(txn, dbi, validity)     \
-	((txn) && (dbi) < (txn)->mt_numdbs && \
-	 ((txn)->mt_dbflags[dbi] & (validity)))
-
-/** Check for misused \b dbi handles */
-#define TXN_DBI_CHANGED(txn, dbi) \
-	((txn)->mt_dbiseqs[dbi] != (txn)->mt_env->me_dbiseqs[dbi])
-
-#define STATIC_ASSERT(condition, message) \
-	typedef u8 static_assert_##message[(condition) ? 1 : -1]
 
 STATIC_ASSERT(sizeof(MDB_page) == 16, MDB_page_size_16);
 
@@ -493,7 +484,6 @@ static int mdb_page_touch(MDB_cursor *mc);
 	{"committed", "empty-commit", "abort",		"reset", \
 	 "reset-tmp", "fail-begin",   "fail-beginchild"}
 enum {
-	/* mdb_txn_end operation number, for logging */
 	MDB_END_COMMITTED,
 	MDB_END_EMPTY_COMMIT,
 	MDB_END_ABORT,
