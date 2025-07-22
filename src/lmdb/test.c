@@ -83,6 +83,101 @@ Test(lmdb1) {
 	ASSERT_BYTES(0);
 }
 
+Test(lmdb2) {
+	const u8 *path;
+	const u8 *path_lock;
+	MDB_env *env;
+	MDB_txn *txn;
+	MDB_dbi dbi;
+	MDB_cursor *cursor;
+	MDB_val key;
+	MDB_val val_put;
+	MDB_val val_get;
+	/*
+	char key_str[16];
+	char val_str[16];
+	*/
+	u32 readers;
+	i32 v;
+
+	path = "/tmp/lmdb2";
+	path_lock = "/tmp/lmdb2-lock";
+
+	unlink(path);
+	unlink(path_lock);
+
+	ASSERT_BYTES(0);
+
+	/* Test env creation with maxreaders set */
+	ASSERT(!mdb_env_create(&env), "mdb_env_create success");
+	ASSERT(!mdb_env_set_maxreaders(env, 10),
+	       "mdb_env_set_maxreaders success");
+	ASSERT(!mdb_env_get_maxreaders(env, &readers),
+	       "mdb_env_get_maxreaders success");
+	ASSERT(readers == 10, "maxreaders match");
+
+	/* Open with flags */
+	ASSERT(mdb_env_open(
+		   env, path,
+		   MDB_NOSUBDIR | MDB_WRITEMAP | MDB_NOTLS | MDB_RDONLY, 0664),
+	       "mdb_env_open with RDBONLY fails");
+
+	mdb_env_close(env);
+
+	ASSERT(!mdb_env_create(&env), "mdb_env_create success");
+	mdb_env_set_maxdbs(env, 3);
+	mdb_env_set_mapsize(env, 1024 * 1024 * 100);
+
+	ASSERT(!mdb_env_open(env, path, MDB_NOSUBDIR | MDB_WRITEMAP | MDB_NOTLS,
+			     0664),
+	       "mdb_env_open success");
+
+	/* Txn begin and abort */
+	ASSERT(!mdb_txn_begin(env, NULL, 0, &txn), "mdb_txn_begin success");
+	mdb_txn_abort(txn);
+
+	/* DBI open with flags */
+	ASSERT(!mdb_txn_begin(env, NULL, 0, &txn), "mdb_txn_begin success");
+	v = mdb_dbi_open(txn, "testdb", MDB_CREATE | MDB_INTEGERKEY, &dbi);
+	ASSERT(!v, "mdb_dbi_open with flags success");
+
+	/* Put with append */
+	key.mv_size = sizeof("append_key");
+	key.mv_data = "append_key";
+	val_put.mv_size = sizeof("append_val");
+	val_put.mv_data = "append_val";
+	ASSERT(!mdb_put(txn, dbi, &key, &val_put, MDB_APPEND),
+	       "mdb_put with APPEND success");
+
+	/* Cursor operations */
+	ASSERT(!mdb_cursor_open(txn, dbi, &cursor), "mdb_cursor_open success");
+	ASSERT(!mdb_cursor_get(cursor, &key, &val_get, MDB_FIRST),
+	       "mdb_cursor_get FIRST success");
+	ASSERT(
+	    val_get.mv_size == val_put.mv_size &&
+		memcmp(val_get.mv_data, val_put.mv_data, val_put.mv_size) == 0,
+	    "value match via cursor");
+
+	/* Del */
+	ASSERT(!mdb_del(txn, dbi, &key, NULL), "mdb_del success");
+
+	/* Stat */
+	MDB_stat stat;
+	ASSERT(!mdb_stat(txn, dbi, &stat), "mdb_stat success");
+
+	/* Drop */
+	ASSERT(!mdb_drop(txn, dbi, 1), "mdb_drop success");
+
+	ASSERT(!mdb_txn_commit(txn), "mdb_txn_commit success");
+
+	mdb_env_close(env);
+
+	unlink(path);
+	unlink(path_lock);
+
+	ASSERT_BYTES(0);
+}
+
 /* Basic allocation and free test */
 Test(midl_basic) {
 	MDB_IDL ids;

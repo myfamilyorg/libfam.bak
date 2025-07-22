@@ -25,6 +25,7 @@
 
 #include <libfam/alloc.H>
 #include <libfam/error.H>
+#include <libfam/format.H>
 #include <libfam/lmdb.H>
 #include <libfam/midl.H>
 #include <libfam/misc.H>
@@ -2120,7 +2121,9 @@ STATIC i32 mdb_env_read_header(MDB_env *env, i32 prev, MDB_meta *meta) {
 	for (i = off = 0; i < NUM_METAS; i++, off += meta->mm_psize) {
 		rc = pread(env->me_fd, &pbuf, Size, off);
 		if (rc != Size) {
-			if (rc == 0 && off == 0) return ENOENT;
+			if (rc == 0 && off == 0) {
+				return ENOENT;
+			}
 			rc = rc < 0 ? (i32)ErrCode() : MDB_INVALID;
 			return rc;
 		}

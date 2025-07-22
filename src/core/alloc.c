@@ -436,7 +436,8 @@ void release_impl(Alloc *a, void *ptr) {
 	u64 base_offset, offset, chunk_index, chunk_offset;
 	void *chunk_base;
 
-	if (!a || !ptr) {
+	if (!ptr) return;
+	if (!a) {
 		panic("Invalid memory release!");
 		return;
 	}
