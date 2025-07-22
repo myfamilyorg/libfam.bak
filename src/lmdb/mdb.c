@@ -40,8 +40,6 @@
 #endif
 #define MDB_PID_T i32
 #define MDB_THR_T pthread_t
-#ifdef HAVE_SYS_FILE_H
-#endif
 #define MDB_OFF_T i64
 
 #if defined(__mips) && defined(__linux)
@@ -531,10 +529,6 @@ typedef struct MDB_txninfo {
 #define mti_txnid mt1.mtb.mtb_txnid
 #define mti_numreaders mt1.mtb.mtb_numreaders
 #define mti_mutexid mt1.mtb.mtb_mutexid
-#ifdef MDB_USE_SYSV_SEM
-#define mti_semid mt1.mtb.mtb_semid
-#define mti_rlocked mt1.mtb.mtb_rlocked
-#endif
 		char pad[(sizeof(MDB_txbody) + CACHELINE - 1) &
 			 ~(CACHELINE - 1)];
 	} mt1;
@@ -1651,44 +1645,8 @@ static void mdb_dlist_free(MDB_txn *txn) {
 	dl[0].mid = 0;
 }
 
-#ifdef MDB_VL32
-static void mdb_page_unref(MDB_txn *txn, MDB_page *mp) {
-	pgno_t pgno;
-	MDB_ID3L tl = txn->mt_rpages;
-	unsigned x, rem;
-	if (mp->mp_flags & (P_SUBP | P_DIRTY)) return;
-	rem = mp->mp_pgno & (MDB_RPAGE_CHUNK - 1);
-	pgno = mp->mp_pgno ^ rem;
-	x = mdb_mid3l_search(tl, pgno);
-	if (x != tl[0].mid && tl[x + 1].mid == mp->mp_pgno) x++;
-	if (tl[x].mref) tl[x].mref--;
-}
-#define MDB_PAGE_UNREF(txn, mp) mdb_page_unref(txn, mp)
-
-static void mdb_cursor_unref(MDB_cursor *mc) {
-	int i;
-	if (mc->mc_txn->mt_rpages[0].mid) {
-		if (!mc->mc_snum || !mc->mc_pg[0] || IS_SUBP(mc->mc_pg[0]))
-			return;
-		for (i = 0; i < mc->mc_snum; i++)
-			mdb_page_unref(mc->mc_txn, mc->mc_pg[i]);
-		if (mc->mc_ovpg) {
-			mdb_page_unref(mc->mc_txn, mc->mc_ovpg);
-			mc->mc_ovpg = 0;
-		}
-	}
-	mc->mc_snum = mc->mc_top = 0;
-	mc->mc_pg[0] = NULL;
-	mc->mc_flags &= ~C_INITIALIZED;
-}
-#define MDB_CURSOR_UNREF(mc, force)                                           \
-	(((force) || ((mc)->mc_flags & C_INITIALIZED)) ? mdb_cursor_unref(mc) \
-						       : (void)0)
-
-#else
 #define MDB_PAGE_UNREF(txn, mp)
 #define MDB_CURSOR_UNREF(mc, force) ((void)0)
-#endif /* MDB_VL32 */
 
 /** Loosen or free a single page.
  * Saves single pages to a list for future reuse
@@ -2624,17 +2582,6 @@ int mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags,
 		DPRINTF(("calloc: %s", strerror(err)));
 		return ENOMEM;
 	}
-#ifdef MDB_VL32
-	if (!parent) {
-		txn->mt_rpages = alloc(MDB_TRPAGE_SIZE * sizeof(MDB_ID3));
-		if (!txn->mt_rpages) {
-			release(txn);
-			return ENOMEM;
-		}
-		txn->mt_rpages[0].mid = 0;
-		txn->mt_rpcheck = MDB_TRPAGE_SIZE / 2;
-	}
-#endif
 	txn->mt_dbxs = env->me_dbxs; /* static */
 	txn->mt_dbs = (MDB_db *)((char *)txn + tsize);
 	txn->mt_dbflags = (unsigned char *)txn + size - env->me_maxdbs;
@@ -2661,9 +2608,6 @@ int mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags,
 		parent->mt_child = txn;
 		txn->mt_parent = parent;
 		txn->mt_numdbs = parent->mt_numdbs;
-#ifdef MDB_VL32
-		txn->mt_rpages = parent->mt_rpages;
-#endif
 		memcpy(txn->mt_dbs, parent->mt_dbs,
 		       txn->mt_numdbs * sizeof(MDB_db));
 		/* Copy parent's mt_dbflags, but clear DB_NEW */
@@ -2815,32 +2759,6 @@ static void mdb_txn_end(MDB_txn *txn, unsigned mode) {
 
 		mdb_midl_free(pghead);
 	}
-#ifdef MDB_VL32
-	if (!txn->mt_parent) {
-		MDB_ID3L el = env->me_rpages, tl = txn->mt_rpages;
-		unsigned i, x, n = tl[0].mid;
-		pthread_mutex_lock(&env->me_rpmutex);
-		for (i = 1; i <= n; i++) {
-			if (tl[i].mid & (MDB_RPAGE_CHUNK - 1)) {
-				/* tmp overflow pages that we didn't share in
-				 * env */
-				munmap(tl[i].mptr, tl[i].mcnt * env->me_psize);
-			} else {
-				x = mdb_mid3l_search(el, tl[i].mid);
-				if (tl[i].mptr == el[x].mptr) {
-					el[x].mref--;
-				} else {
-					/* another tmp overflow page */
-					munmap(tl[i].mptr,
-					       tl[i].mcnt * env->me_psize);
-				}
-			}
-		}
-		pthread_mutex_unlock(&env->me_rpmutex);
-		tl[0].mid = 0;
-		if (mode & MDB_END_FREE) release(tl);
-	}
-#endif
 	if (mode & MDB_END_FREE) release(txn);
 }
 
