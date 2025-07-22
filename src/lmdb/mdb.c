@@ -517,6 +517,8 @@ enum {
 	MDB_END_FAIL_BEGINCHILD
 };
 
+enum Pidlock_op { Pidset = F_SETLK, Pidcheck = F_GETLK };
+
 static char *const mdb_errstr[] = {
     "MDB_KEYEXIST: Key/data pair already exists",
     "MDB_NOTFOUND: No matching key/data pair found",
@@ -871,25 +873,8 @@ static void mdb_page_dirty(MDB_txn *txn, MDB_page *mp) {
 	txn->mt_dirty_room--;
 }
 
-/** Allocate page numbers and memory for writing.  Maintain me_pglast,
- * me_pghead and mt_next_pgno.  Set #MDB_TXN_ERROR on failure.
- *
- * If there are free pages available from older transactions, they
- * are re-used first. Otherwise allocate a new page at mt_next_pgno.
- * Do not modify the freedB, just merge freeDB records into me_pghead[]
- * and move me_pglast to say which records were consumed.  Only this
- * function can create me_pghead and move me_pglast/mt_next_pgno.
- * When #MDB_DEVEL & 2, it is not affected by #mdb_freelist_save(): it
- * then uses the transaction's original snapshot of the freeDB.
- * @param[in] mc cursor A cursor handle identifying the transaction and
- *	database for which we are allocating.
- * @param[in] num the number of pages to allocate.
- * @param[out] mp Address of the allocated page(s). Requests for multiple pages
- *  will always be satisfied by a single contiguous chunk of memory.
- * @return 0 on success, non-zero on failure.
- */
 static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
-	enum { Paranoid = 0, Max_retries = I32_MAX /*infinite*/ };
+	enum { Paranoid = 0, Max_retries = I32_MAX };
 	int rc, retry = num * 60;
 	MDB_txn *txn = mc->mc_txn;
 	MDB_env *env = txn->mt_env;
@@ -901,7 +886,6 @@ static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
 	MDB_cursor m2;
 	int found_old = 0;
 
-	/* If there are any loose pages, just use them */
 	if (num == 1 && txn->mt_loose_pgs) {
 		np = txn->mt_loose_pgs;
 		txn->mt_loose_pgs = NEXT_LOOSE_PAGE(np);
@@ -912,7 +896,6 @@ static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
 
 	*mp = NULL;
 
-	/* If our dirty list is already full, we can't do anything */
 	if (txn->mt_dirty_room == 0) {
 		rc = MDB_TXN_FULL;
 		goto fail;
@@ -923,9 +906,6 @@ static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
 		MDB_node *leaf;
 		u64 *idl;
 
-		/* Seek a big enough contiguous page range. Prefer
-		 * pages at the tail, just truncating the list.
-		 */
 		if (mop_len > n2) {
 			i = mop_len;
 			do {
@@ -935,14 +915,13 @@ static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
 			if (--retry < 0) break;
 		}
 
-		if (op == MDB_FIRST) { /* 1st iteration */
-			/* Prepare to fetch more and coalesce */
+		if (op == MDB_FIRST) {
 			last = env->me_pglast;
 			oldest = env->me_pgoldest;
 			mdb_cursor_init(&m2, txn, FREE_DBI, NULL);
 			if (last) {
 				op = MDB_SET_RANGE;
-				key.mv_data = &last; /* will look up last+1 */
+				key.mv_data = &last;
 				key.mv_size = sizeof(last);
 			}
 			if (Paranoid && mc->mc_dbi == FREE_DBI) retry = -1;
@@ -950,7 +929,6 @@ static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
 		if (Paranoid && retry < 0 && mop_len) break;
 
 		last++;
-		/* Do not fetch more if the record will be too recent */
 		if (oldest <= last) {
 			if (!found_old) {
 				oldest = mdb_find_oldest(txn);
@@ -991,12 +969,10 @@ static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
 			mop = env->me_pghead;
 		}
 		env->me_pglast = last;
-		/* Merge in descending sorted order */
 		mdb_midl_xmerge(mop, idl);
 		mop_len = mop[0];
 	}
 
-	/* Use new pages from the map when nothing suitable in the freeDB */
 	i = 0;
 	pgno = txn->mt_next_pgno;
 	if (pgno + num >= env->me_maxpg) {
@@ -1015,7 +991,6 @@ search_done:
 	}
 	if (i) {
 		mop[0] = mop_len -= num;
-		/* Move any stragglers down */
 		for (j = i - num; j < mop_len;) mop[++j] = mop[++i];
 	} else {
 		txn->mt_next_pgno = pgno + num;
@@ -1031,19 +1006,11 @@ fail:
 	return rc;
 }
 
-/** Copy the used portions of a non-overflow page.
- * @param[in] dst page to copy into
- * @param[in] src page to copy from
- * @param[in] psize size of a page
- */
 static void mdb_page_copy(MDB_page *dst, MDB_page *src, unsigned int psize) {
 	enum { Align = sizeof(u64) };
 	u16 upper = src->mp_upper, lower = src->mp_lower,
 	    unused = upper - lower;
 
-	/* If page isn't full, just copy the used portion. Adjust
-	 * alignment so memcpy may copy words instead of bytes.
-	 */
 	if ((unused &= -Align) && !IS_LEAF2(src)) {
 		upper = (upper + PAGEBASE) & -Align;
 		memcpy(dst, src, (lower + PAGEBASE + (Align - 1)) & -Align);
@@ -1054,14 +1021,6 @@ static void mdb_page_copy(MDB_page *dst, MDB_page *src, unsigned int psize) {
 	}
 }
 
-/** Pull a page off the txn's spill list, if present.
- * If a page being referenced was spilled to disk in this txn, bring
- * it back and make it dirty/writable again.
- * @param[in] txn the transaction handle.
- * @param[in] mp the page being referenced. It must not be dirty.
- * @param[out] ret the writable page, if any. ret is unchanged if
- * mp wasn't spilled.
- */
 static int mdb_page_unspill(MDB_txn *txn, MDB_page *mp, MDB_page **ret) {
 	MDB_env *env = txn->mt_env;
 	const MDB_txn *tx2;
@@ -1090,19 +1049,11 @@ static int mdb_page_unspill(MDB_txn *txn, MDB_page *mp, MDB_page **ret) {
 					mdb_page_copy(np, mp, env->me_psize);
 			}
 			if (tx2 == txn) {
-				/* If in current txn, this page is no longer
-				 * spilled. If it happens to be the last page,
-				 * truncate the spill list. Otherwise mark it as
-				 * deleted by setting the LSB.
-				 */
 				if (x == txn->mt_spill_pgs[0])
 					txn->mt_spill_pgs[0]--;
 				else
 					txn->mt_spill_pgs[x] |= 1;
-			} /* otherwise, if belonging to a parent txn, the
-			   * page remains spilled until child commits
-			   */
-
+			}
 			mdb_page_dirty(txn, np);
 			np->mp_flags |= P_DIRTY;
 			*ret = np;
@@ -1112,11 +1063,6 @@ static int mdb_page_unspill(MDB_txn *txn, MDB_page *mp, MDB_page **ret) {
 	return MDB_SUCCESS;
 }
 
-/** Touch a page: make it dirty and re-insert into tree with updated pgno.
- * Set #MDB_TXN_ERROR on failure.
- * @param[in] mc cursor pointing to the page to be touched
- * @return 0 on success, non-zero on failure.
- */
 static int mdb_page_touch(MDB_cursor *mc) {
 	MDB_page *mp = mc->mc_pg[mc->mc_top], *np;
 	MDB_txn *txn = mc->mc_txn;
@@ -1137,7 +1083,6 @@ static int mdb_page_touch(MDB_cursor *mc) {
 		pgno = np->mp_pgno;
 		mdb_cassert(mc, mp->mp_pgno != pgno);
 		mdb_midl_xappend(txn->mt_free_pgs, mp->mp_pgno);
-		/* Update the parent page, if any, to point to the new page */
 		if (mc->mc_top) {
 			MDB_page *parent = mc->mc_pg[mc->mc_top - 1];
 			MDB_node *node =
@@ -1149,13 +1094,10 @@ static int mdb_page_touch(MDB_cursor *mc) {
 	} else if (txn->mt_parent && !IS_SUBP(mp)) {
 		MDB_ID2 mid, *dl = txn->mt_u.dirty_list;
 		pgno = mp->mp_pgno;
-		/* If txn has a parent, make sure the page is in our
-		 * dirty list.
-		 */
 		if (dl[0].mid) {
 			unsigned x = mdb_mid2l_search(dl, pgno);
 			if (x <= dl[0].mid && dl[x].mid == pgno) {
-				if (mp != dl[x].mptr) { /* bad cursor? */
+				if (mp != dl[x].mptr) {
 					mc->mc_flags &=
 					    ~(C_INITIALIZED | C_EOF);
 					txn->mt_flags |= MDB_TXN_ERROR;
@@ -1165,7 +1107,6 @@ static int mdb_page_touch(MDB_cursor *mc) {
 			}
 		}
 		mdb_cassert(mc, dl[0].mid < MDB_IDL_UM_MAX);
-		/* No - copy it */
 		np = mdb_page_malloc(txn, 1);
 		if (!np) return ENOMEM;
 		mid.mid = pgno;
@@ -1181,7 +1122,6 @@ static int mdb_page_touch(MDB_cursor *mc) {
 	np->mp_flags |= P_DIRTY;
 
 done:
-	/* Adjust cursors pointing to mp */
 	mc->mc_pg[mc->mc_top] = np;
 	m2 = txn->mt_cursors[mc->mc_dbi];
 	if (mc->mc_flags & C_SUB) {
@@ -1232,7 +1172,6 @@ int mdb_env_sync(MDB_env *env, int force) {
 	return mdb_env_sync0(env, force, m->mm_last_pg + 1);
 }
 
-/** Back up parent txn's cursors, then grab the originals for tracking */
 static int mdb_cursor_shadow(MDB_txn *src, MDB_txn *dst) {
 	MDB_cursor *mc, *bk;
 	MDB_xcursor *mx;
@@ -1249,11 +1188,6 @@ static int mdb_cursor_shadow(MDB_txn *src, MDB_txn *dst) {
 				*bk = *mc;
 				mc->mc_backup = bk;
 				mc->mc_db = &dst->mt_dbs[i];
-				/* Kill pointers into src to reduce abuse: The
-				 * user may not use mc until dst ends. But we
-				 * need a valid txn pointer here for cursor
-				 * fixups to keep working.
-				 */
 				mc->mc_txn = dst;
 				mc->mc_dbflag = &dst->mt_dbflags[i];
 				if ((mx = mc->mc_xcursor) != NULL) {
@@ -1268,11 +1202,6 @@ static int mdb_cursor_shadow(MDB_txn *src, MDB_txn *dst) {
 	return MDB_SUCCESS;
 }
 
-/** Close this write txn's cursors, give parent txn's cursors back to parent.
- * @param[in] txn the transaction handle.
- * @param[in] merge true to keep changes to parent cursors, false to revert.
- * @return 0 on success, non-zero on failure.
- */
 static void mdb_cursors_close(MDB_txn *txn, unsigned merge) {
 	MDB_cursor **cursors = txn->mt_cursors, *mc, *next, *bk;
 	MDB_xcursor *mx;
@@ -1283,7 +1212,6 @@ static void mdb_cursors_close(MDB_txn *txn, unsigned merge) {
 			next = mc->mc_next;
 			if ((bk = mc->mc_backup) != NULL) {
 				if (merge) {
-					/* Commit changes to parent txn */
 					mc->mc_next = bk->mc_next;
 					mc->mc_backup = bk->mc_backup;
 					mc->mc_txn = bk->mc_txn;
@@ -1293,30 +1221,18 @@ static void mdb_cursors_close(MDB_txn *txn, unsigned merge) {
 						mx->mx_cursor.mc_txn =
 						    bk->mc_txn;
 				} else {
-					/* Abort nested txn */
 					*mc = *bk;
 					if ((mx = mc->mc_xcursor) != NULL)
 						*mx = *(MDB_xcursor *)(bk + 1);
 				}
 				mc = bk;
 			}
-			/* Only malloced cursors are permanently tracked. */
 			release(mc);
 		}
 		cursors[i] = NULL;
 	}
 }
 
-enum Pidlock_op { Pidset = F_SETLK, Pidcheck = F_GETLK };
-
-/** Set or check a pid lock. Set returns 0 on success.
- * Check returns 0 if the process is certainly dead, nonzero if it may
- * be alive (the lock exists or an error happened so we do not know).
- *
- * On Windows Pidset is a no-op, we merely check for the existence
- * of the process with the given pid. On POSIX we use a single byte
- * lock on the lockfile, set at an offset equal to the pid.
- */
 static int mdb_reader_pid(MDB_env *env, enum Pidlock_op op, i32 pid) {
 	for (;;) {
 		int rc;
@@ -1336,10 +1252,6 @@ static int mdb_reader_pid(MDB_env *env, enum Pidlock_op op, i32 pid) {
 	}
 }
 
-/** Common code for #mdb_txn_begin() and #mdb_txn_renew().
- * @param[in] txn the transaction handle to initialize
- * @return 0 on success, non-zero on failure.
- */
 static int mdb_txn_renew0(MDB_txn *txn) {
 	MDB_env *env = txn->mt_env;
 	MDB_txninfo *ti = env->me_txns;
@@ -1629,9 +1541,6 @@ static void mdb_dbis_update(MDB_txn *txn, int keep) {
  */
 static void mdb_txn_end(MDB_txn *txn, unsigned mode) {
 	MDB_env *env = txn->mt_env;
-#if MDB_DEBUG
-	static const char *const names[] = MDB_END_NAMES;
-#endif
 
 	/* Export or close DBI handles opened in this txn */
 	mdb_dbis_update(txn, mode & MDB_END_UPDATE);
@@ -5614,12 +5523,6 @@ MDB_txn *mdb_cursor_txn(MDB_cursor *mc) {
 
 MDB_dbi mdb_cursor_dbi(MDB_cursor *mc) { return mc->mc_dbi; }
 
-/** Replace the key for a branch node with a new key.
- * Set #MDB_TXN_ERROR on failure.
- * @param[in] mc Cursor pointing to the node to operate on.
- * @param[in] key The new key to use.
- * @return 0 on success, non-zero on failure.
- */
 static int mdb_update_key(MDB_cursor *mc, MDB_val *key) {
 	MDB_page *mp;
 	MDB_node *node;
@@ -5632,25 +5535,14 @@ static int mdb_update_key(MDB_cursor *mc, MDB_val *key) {
 	mp = mc->mc_pg[mc->mc_top];
 	node = NODEPTR(mp, indx);
 	ptr = mp->mp_ptrs[indx];
-#if MDB_DEBUG
-	{
-		MDB_val k2;
-		char kbuf2[DKBUF_MAXKEYSIZE * 2 + 1];
-		k2.mv_data = NODEKEY(node);
-		k2.mv_size = node->mn_ksize;
-	}
-#endif
 
-	/* Sizes must be 2-byte aligned. */
 	ksize = EVEN(key->mv_size);
 	oksize = EVEN(node->mn_ksize);
 	delta = ksize - oksize;
 
-	/* Shift node contents if EVEN(key length) changed. */
 	if (delta) {
 		if (delta > 0 && SIZELEFT(mp) < delta) {
 			u64 pgno;
-			/* not enough space left, do a delete and split */
 			pgno = NODEPGNO(node);
 			mdb_node_del(mc, 0);
 			return mdb_page_split(mc, key, NULL, pgno,
