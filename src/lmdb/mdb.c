@@ -1791,8 +1791,7 @@ static char *const mdb_errstr[] = {
     "MDB_INCOMPATIBLE: Operation and DB incompatible, or DB flags changed",
     "MDB_BAD_RSLOT: Invalid reuse of reader locktable slot",
     "MDB_BAD_TXN: Transaction must abort, has a child, or is invalid",
-    "MDB_BAD_VALSIZE: Unsupported size of key/DB name/data, or wrong DUPFIXED "
-    "size",
+    "MDB_BAD_VALSIZE: Unsupported size of key/DB name/data, or wrong DUPFIXED",
     "MDB_BAD_DBI: The specified DBI handle was closed/changed unexpectedly",
     "MDB_PROBLEM: Unexpected problem - txn should abort",
 };
