@@ -3708,16 +3708,10 @@ int ESECT mdb_env_get_maxreaders(MDB_env *env, unsigned int *readers) {
 	return MDB_SUCCESS;
 }
 
-#ifdef _WIN32
-typedef wchar_t mdb_nchar_t;
-#define MDB_NAME(str) L##str
-#define mdb_name_cpy wcscpy
-#else
 /** Character type for file names: char on Unix, wchar_t on Windows */
 typedef char mdb_nchar_t;
 #define MDB_NAME(str) str   /**< #mdb_nchar_t[] string literal */
 #define mdb_name_cpy strcpy /**< Copy name (#mdb_nchar_t string) */
-#endif
 
 /** Filename - string of #mdb_nchar_t[] */
 typedef struct MDB_name {
@@ -3745,9 +3739,6 @@ static int ESECT mdb_fname_init(const char *path, unsigned envflags,
 				MDB_name *fname) {
 	int no_suffix = F_ISSET(envflags, MDB_NOSUBDIR | MDB_NOLOCK);
 	fname->mn_alloced = 0;
-#ifdef _WIN32
-	return utf8_to_utf16(path, fname, no_suffix ? 0 : MDB_SUFFLEN);
-#else
 	fname->mn_len = strlen(path);
 	if (no_suffix)
 		fname->mn_val = (char *)path;
@@ -3758,7 +3749,6 @@ static int ESECT mdb_fname_init(const char *path, unsigned envflags,
 	} else
 		return ENOMEM;
 	return MDB_SUCCESS;
-#endif
 }
 
 /** Destroy \b fname from #mdb_fname_init() */
@@ -3775,14 +3765,6 @@ static int ESECT mdb_fname_init(const char *path, unsigned envflags,
 
 /** File type, access mode etc. for #mdb_fopen() */
 enum mdb_fopen_type {
-#ifdef _WIN32
-	MDB_O_RDONLY,
-	MDB_O_RDWR,
-	MDB_O_OVERLAPPED,
-	MDB_O_META,
-	MDB_O_COPY,
-	MDB_O_LOCKS
-#else
 	/* A comment in mdb_fopen() explains some O_* flag choices. */
 	MDB_O_RDONLY = O_RDONLY,       /**< for RDONLY me_fd */
 	MDB_O_RDWR = O_RDWR | O_CREAT, /**< for me_fd */
@@ -3797,7 +3779,6 @@ enum mdb_fopen_type {
 	    MDB_O_RDWR | MDB_CLOEXEC | MDB_O_RDONLY | MDB_O_META | MDB_O_COPY,
 	MDB_O_LOCKS = MDB_O_RDWR | MDB_CLOEXEC |
 		      ((MDB_O_MASK + 1) & ~MDB_O_MASK) /**< for me_lfd */
-#endif
 };
 
 /** Open an LMDB file.
@@ -3814,11 +3795,7 @@ static int ESECT mdb_fopen(const MDB_env *env, MDB_name *fname,
 			   HANDLE *res) {
 	int rc = MDB_SUCCESS;
 	HANDLE fd;
-#ifdef _WIN32
-	DWORD acc, share, disp, attrs;
-#else
 	int flags;
-#endif
 
 	if (fname->mn_alloced) /* modifiable copy */
 		mdb_name_cpy(fname->mn_val + fname->mn_len,
@@ -3839,45 +3816,10 @@ static int ESECT mdb_fopen(const MDB_env *env, MDB_name *fname,
 	 * me_fd, which programs do use via mdb_env_get_fd().
 	 */
 
-#ifdef _WIN32
-	acc = GENERIC_READ | GENERIC_WRITE;
-	share = FILE_SHARE_READ | FILE_SHARE_WRITE;
-	disp = OPEN_ALWAYS;
-	attrs = FILE_ATTRIBUTE_NORMAL;
-	switch (which) {
-		case MDB_O_OVERLAPPED: /* for unbuffered asynchronous writes
-					  (write-through mode)*/
-			acc = GENERIC_WRITE;
-			disp = OPEN_EXISTING;
-			attrs = FILE_FLAG_OVERLAPPED | FILE_FLAG_WRITE_THROUGH;
-			break;
-		case MDB_O_RDONLY: /* read-only datafile */
-			acc = GENERIC_READ;
-			disp = OPEN_EXISTING;
-			break;
-		case MDB_O_META: /* for writing metapages */
-			acc = GENERIC_WRITE;
-			disp = OPEN_EXISTING;
-			attrs = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH;
-			break;
-		case MDB_O_COPY: /* mdb_env_copy() & co */
-			acc = GENERIC_WRITE;
-			share = 0;
-			disp = CREATE_NEW;
-			attrs =
-			    FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH;
-			break;
-		default:
-			break; /* silence gcc -Wswitch (not all enum values
-				  handled) */
-	}
-	fd = CreateFileW(fname->mn_val, acc, share, NULL, disp, attrs, NULL);
-#else
 	fd = open(fname->mn_val, which & MDB_O_MASK, mode);
-#endif
 
-	if (fd == INVALID_HANDLE_VALUE) rc = ErrCode();
-#ifndef _WIN32
+	if (fd == INVALID_HANDLE_VALUE)
+		rc = ErrCode();
 	else {
 		if (which != MDB_O_RDONLY && which != MDB_O_RDWR) {
 			/* Set CLOEXEC if we could not pass it to open() */
@@ -3889,9 +3831,7 @@ static int ESECT mdb_fopen(const MDB_env *env, MDB_name *fname,
 			 * portable way to ask how much, so we require OS
 			 * pagesize alignment.
 			 */
-#ifdef F_NOCACHE /* __APPLE__ */
-			(void)fcntl(fd, F_NOCACHE, 1);
-#elif defined O_DIRECT
+#ifdef O_DIRECT
 			/* open(...O_DIRECT...) would break on filesystems
 			 * without O_DIRECT support (ITS#7682). Try to set it
 			 * here instead.
@@ -3901,7 +3841,6 @@ static int ESECT mdb_fopen(const MDB_env *env, MDB_name *fname,
 #endif
 		}
 	}
-#endif /* !_WIN32 */
 
 	*res = fd;
 	return rc;
@@ -3913,81 +3852,6 @@ static int ESECT mdb_env_open2(MDB_env *env, int prev) {
 	unsigned int flags = env->me_flags;
 	int i, newenv = 0, rc;
 	MDB_meta meta;
-
-#ifdef _WIN32
-	/* See if we should use QueryLimited */
-	rc = GetVersion();
-	if ((rc & 0xff) > 5)
-		env->me_pidquery = MDB_PROCESS_QUERY_LIMITED_INFORMATION;
-	else
-		env->me_pidquery = PROCESS_QUERY_INFORMATION;
-	/* Grab functions we need from NTDLL */
-	if (!NtCreateSection) {
-		HMODULE h = GetModuleHandleW(L"NTDLL.DLL");
-		if (!h) return MDB_PROBLEM;
-		NtClose = (NtCloseFunc *)GetProcAddress(h, "NtClose");
-		if (!NtClose) return MDB_PROBLEM;
-		NtMapViewOfSection = (NtMapViewOfSectionFunc *)GetProcAddress(
-		    h, "NtMapViewOfSection");
-		if (!NtMapViewOfSection) return MDB_PROBLEM;
-		NtCreateSection =
-		    (NtCreateSectionFunc *)GetProcAddress(h, "NtCreateSection");
-		if (!NtCreateSection) return MDB_PROBLEM;
-	}
-	env->ovs = 0;
-#endif /* _WIN32 */
-
-#ifdef BROKEN_FDATASYNC
-	/* ext3/ext4 fdatasync is broken on some older Linux kernels.
-	 * https://lkml.org/lkml/2012/9/3/83
-	 * Kernels after 3.6-rc6 are known good.
-	 * https://lkml.org/lkml/2012/9/10/556
-	 * See if the DB is on ext3/ext4, then check for new enough kernel
-	 * Kernels 2.6.32.60, 2.6.34.15, 3.2.30, and 3.5.4 are also known
-	 * to be patched.
-	 */
-	{
-		struct statfs st;
-		fstatfs(env->me_fd, &st);
-		while (st.f_type == 0xEF53) {
-			struct utsname uts;
-			int i;
-			uname(&uts);
-			if (uts.release[0] < '3') {
-				if (!strcmpn(uts.release, "2.6.32.", 7)) {
-					i = atoi(uts.release + 7);
-					if (i >= 60)
-						break; /* 2.6.32.60 and newer is
-							  OK */
-				} else if (!strcmpn(uts.release, "2.6.34.",
-						    7)) {
-					i = atoi(uts.release + 7);
-					if (i >= 15)
-						break; /* 2.6.34.15 and newer is
-							  OK */
-				}
-			} else if (uts.release[0] == '3') {
-				i = atoi(uts.release + 2);
-				if (i > 5) break; /* 3.6 and newer is OK */
-				if (i == 5) {
-					i = atoi(uts.release + 4);
-					if (i >= 4)
-						break; /* 3.5.4 and newer is OK
-							*/
-				} else if (i == 2) {
-					i = atoi(uts.release + 4);
-					if (i >= 30)
-						break; /* 3.2.30 and newer is OK
-							*/
-				}
-			} else { /* 4.x and newer is OK */
-				break;
-			}
-			env->me_flags |= MDB_FSYNCONLY;
-			break;
-		}
-	}
-#endif
 
 	if ((i = mdb_env_read_header(env, prev, &meta)) != 0) {
 		if (i != ENOENT) return i;
@@ -4027,19 +3891,6 @@ static int ESECT mdb_env_open2(MDB_env *env, int prev) {
 		if (rc) return rc;
 		newenv = 0;
 	}
-#ifdef _WIN32
-	/* For FIXEDMAP, make sure the file is non-empty before we attempt to
-	 * map it */
-	if (newenv) {
-		char dummy = 0;
-		DWORD len;
-		rc = WriteFile(env->me_fd, &dummy, 1, &len, NULL);
-		if (!rc) {
-			rc = ErrCode();
-			return rc;
-		}
-	}
-#endif
 
 	rc = mdb_env_map(env, (flags & MDB_FIXEDMAP) ? meta.mm_address : NULL);
 	if (rc) return rc;
@@ -4062,23 +3913,6 @@ static int ESECT mdb_env_open2(MDB_env *env, int prev) {
 
 	if (prev && env->me_txns) env->me_txns->mti_txnid = meta.mm_txnid;
 
-#if MDB_DEBUG
-	{
-		MDB_meta *meta = mdb_env_pick_meta(env);
-		MDB_db *db = &meta->mm_dbs[MAIN_DBI];
-
-		DPRINTF(("opened database version %u, pagesize %u",
-			 meta->mm_version, env->me_psize));
-		DPRINTF(("using meta page %d", (int)(meta->mm_txnid & 1)));
-		DPRINTF(("depth: %u", db->md_depth));
-		DPRINTF(("entries: %" Yu, db->md_entries));
-		DPRINTF(("branch pages: %" Yu, db->md_branch_pages));
-		DPRINTF(("leaf pages: %" Yu, db->md_leaf_pages));
-		DPRINTF(("overflow pages: %" Yu, db->md_overflow_pages));
-		DPRINTF(("root: %" Yu, db->md_root));
-	}
-#endif
-
 	return MDB_SUCCESS;
 }
 
@@ -4089,112 +3923,30 @@ static int ESECT mdb_env_open2(MDB_env *env, int prev) {
 static void mdb_env_reader_dest(void *ptr) {
 	MDB_reader *reader = ptr;
 
-#ifndef _WIN32
 	if (reader->mr_pid ==
 	    getpid()) /* catch pthread_exit() in child process */
-#endif
 		/* We omit the mutex, so do this atomically (i.e. skip mr_txnid)
 		 */
 		reader->mr_pid = 0;
 }
 
-#ifdef _WIN32
-/** Junk for arranging thread-specific callbacks on Windows. This is
- *	necessarily platform and compiler-specific. Windows supports up
- *	to 1088 keys. Let's assume nobody opens more than 64 environments
- *	in a single process, for now. They can override this if needed.
- */
-#ifndef MAX_TLS_KEYS
-#define MAX_TLS_KEYS 64
-#endif
-static pthread_key_t mdb_tls_keys[MAX_TLS_KEYS];
-static int mdb_tls_nkeys;
-
-static void NTAPI mdb_tls_callback(PVOID module, DWORD reason, PVOID ptr) {
-	int i;
-	switch (reason) {
-		case DLL_PROCESS_ATTACH:
-			break;
-		case DLL_THREAD_ATTACH:
-			break;
-		case DLL_THREAD_DETACH:
-			for (i = 0; i < mdb_tls_nkeys; i++) {
-				MDB_reader *r =
-				    pthread_getspecific(mdb_tls_keys[i]);
-				if (r) {
-					mdb_env_reader_dest(r);
-				}
-			}
-			break;
-		case DLL_PROCESS_DETACH:
-			break;
-	}
-}
-#ifdef __GNUC__
-#ifdef _WIN64
-const PIMAGE_TLS_CALLBACK mdb_tls_cbp __attribute__((section(".CRT$XLB"))) =
-    mdb_tls_callback;
-#else
-PIMAGE_TLS_CALLBACK mdb_tls_cbp __attribute__((section(".CRT$XLB"))) =
-    mdb_tls_callback;
-#endif
-#else
-#ifdef _WIN64
-/* Force some symbol references.
- *	_tls_used forces the linker to create the TLS directory if not already
- *done mdb_tls_cbp prevents whole-program-optimizer from dropping the symbol.
- */
-#pragma comment(linker, "/INCLUDE:_tls_used")
-#pragma comment(linker, "/INCLUDE:mdb_tls_cbp")
-#pragma const_seg(".CRT$XLB")
-extern const PIMAGE_TLS_CALLBACK mdb_tls_cbp;
-const PIMAGE_TLS_CALLBACK mdb_tls_cbp = mdb_tls_callback;
-#pragma const_seg()
-#else /* _WIN32 */
-#pragma comment(linker, "/INCLUDE:__tls_used")
-#pragma comment(linker, "/INCLUDE:_mdb_tls_cbp")
-#pragma data_seg(".CRT$XLB")
-PIMAGE_TLS_CALLBACK mdb_tls_cbp = mdb_tls_callback;
-#pragma data_seg()
-#endif /* WIN 32/64 */
-#endif /* !__GNUC__ */
-#endif
-
 /** Downgrade the exclusive lock on the region back to shared */
 static int ESECT mdb_env_share_locks(MDB_env *env, int *excl) {
 	int rc = 0;
+	struct flock lock_info;
 	MDB_meta *meta = mdb_env_pick_meta(env);
 
 	env->me_txns->mti_txnid = meta->mm_txnid;
 
-#ifdef _WIN32
-	{
-		OVERLAPPED ov;
-		/* First acquire a shared lock. The Unlock will
-		 * then release the existing exclusive lock.
-		 */
-		memset(&ov, 0, sizeof(ov));
-		if (!LockFileEx(env->me_lfd, 0, 0, 1, 0, &ov)) {
-			rc = ErrCode();
-		} else {
-			UnlockFile(env->me_lfd, 0, 0, 1, 0);
-			*excl = 0;
-		}
-	}
-#else
-	{
-		struct flock lock_info;
-		/* The shared lock replaces the existing lock */
-		memset((void *)&lock_info, 0, sizeof(lock_info));
-		lock_info.l_type = F_RDLCK;
-		lock_info.l_whence = SEEK_SET;
-		lock_info.l_start = 0;
-		lock_info.l_len = 1;
-		while ((rc = fcntl(env->me_lfd, F_SETLK, &lock_info)) &&
-		       (rc = ErrCode()) == EINTR);
-		*excl = rc ? -1 : 0; /* error may mean we lost the lock */
-	}
-#endif
+	/* The shared lock replaces the existing lock */
+	memset((void *)&lock_info, 0, sizeof(lock_info));
+	lock_info.l_type = F_RDLCK;
+	lock_info.l_whence = SEEK_SET;
+	lock_info.l_start = 0;
+	lock_info.l_len = 1;
+	while ((rc = fcntl(env->me_lfd, F_SETLK, &lock_info)) &&
+	       (rc = ErrCode()) == EINTR);
+	*excl = rc ? -1 : 0; /* error may mean we lost the lock */
 
 	return rc;
 }
@@ -4204,19 +3956,6 @@ static int ESECT mdb_env_share_locks(MDB_env *env, int *excl) {
  */
 static int ESECT mdb_env_excl_lock(MDB_env *env, int *excl) {
 	int rc = 0;
-#ifdef _WIN32
-	if (LockFile(env->me_lfd, 0, 0, 1, 0)) {
-		*excl = 1;
-	} else {
-		OVERLAPPED ov;
-		memset(&ov, 0, sizeof(ov));
-		if (LockFileEx(env->me_lfd, 0, 0, 1, 0, &ov)) {
-			*excl = 0;
-		} else {
-			rc = ErrCode();
-		}
-	}
-#else
 	struct flock lock_info;
 	memset((void *)&lock_info, 0, sizeof(lock_info));
 	lock_info.l_type = F_WRLCK;
@@ -4227,104 +3966,15 @@ static int ESECT mdb_env_excl_lock(MDB_env *env, int *excl) {
 	       (rc = ErrCode()) == EINTR);
 	if (!rc) {
 		*excl = 1;
-	} else
-#ifndef MDB_USE_POSIX_MUTEX
-	    if (*excl < 0) /* always true when MDB_USE_POSIX_MUTEX */
-#endif
+	} else if (*excl < 0) /* always true when MDB_USE_POSIX_MUTEX */
 	{
 		lock_info.l_type = F_RDLCK;
 		while ((rc = fcntl(env->me_lfd, F_SETLKW, &lock_info)) &&
 		       (rc = ErrCode()) == EINTR);
 		if (rc == 0) *excl = 0;
 	}
-#endif
 	return rc;
 }
-
-#ifdef MDB_USE_HASH
-/*
- * hash_64 - 64 bit Fowler/Noll/Vo-0 FNV-1a hash code
- *
- * @(#) $Revision: 5.1 $
- * @(#) $Id: hash_64a.c,v 5.1 2009/06/30 09:01:38 chongo Exp $
- * @(#) $Source: /usr/local/src/cmd/fnv/RCS/hash_64a.c,v $
- *
- *	  http://www.isthe.com/chongo/tech/comp/fnv/index.html
- *
- ***
- *
- * Please do not copyright this code.  This code is in the public domain.
- *
- * LANDON CURT NOLL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
- * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO
- * EVENT SHALL LANDON CURT NOLL BE LIABLE FOR ANY SPECIAL, INDIRECT OR
- * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF
- * USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
- * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- *
- * By:
- *	chongo <Landon Curt Noll> /\oo/\
- *	  http://www.isthe.com/chongo/
- *
- * Share and Enjoy!	:-)
- */
-
-/** perform a 64 bit Fowler/Noll/Vo FNV-1a hash on a buffer
- * @param[in] val	value to hash
- * @param[in] len	length of value
- * @return 64 bit hash
- */
-static mdb_hash_t mdb_hash(const void *val, u64 len) {
-	const unsigned char *s = (const unsigned char *)val, *end = s + len;
-	mdb_hash_t hval = 0xcbf29ce484222325ULL;
-	/*
-	 * FNV-1a hash each octet of the buffer
-	 */
-	while (s < end) {
-		hval = (hval ^ *s++) * 0x100000001b3ULL;
-	}
-	/* return our new hash value */
-	return hval;
-}
-
-/** Hash the string and output the encoded hash.
- * This uses modified RFC1924 Ascii85 encoding to accommodate systems with
- * very short name limits. We don't care about the encoding being reversible,
- * we just want to preserve as many bits of the input as possible in a
- * small printable string.
- * @param[in] str string to hash
- * @param[out] encbuf an array of 11 chars to hold the hash
- */
-static const char mdb_a85[] =
-    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<"
-    "=>?@^_`{|}~";
-
-static void ESECT mdb_pack85(unsigned long long l, char *out) {
-	int i;
-
-	for (i = 0; i < 10 && l; i++) {
-		*out++ = mdb_a85[l % 85];
-		l /= 85;
-	}
-	*out = '\0';
-}
-
-/** Init #MDB_env.me_mutexname[] except the char which #MUTEXNAME() will set.
- *	Changes to this code must be reflected in #MDB_LOCK_FORMAT.
- */
-static void ESECT mdb_env_mname_init(MDB_env *env) {
-	char *nm = env->me_mutexname;
-	strcpy(nm, MUTEXNAME_PREFIX);
-	mdb_pack85(env->me_txns->mti_mutexid, nm + sizeof(MUTEXNAME_PREFIX));
-}
-
-/** Return env->me_mutexname after filling in ch ('r'/'w') for convenience */
-#define MUTEXNAME(env, ch)                                                 \
-	((void)((env)->me_mutexname[sizeof(MUTEXNAME_PREFIX) - 1] = (ch)), \
-	 (env)->me_mutexname)
-
-#endif
 
 /** Open and/or initialize the lock region for the environment.
  * @param[in] env The LMDB environment.
