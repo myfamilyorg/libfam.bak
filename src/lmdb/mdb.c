@@ -551,23 +551,9 @@ typedef struct MDB_txninfo {
 	((u32)(((MDB_LOCK_VERSION) % (1U << MDB_LOCK_VERSION_BITS)) + \
 	       MDB_lock_desc * (1U << MDB_LOCK_VERSION_BITS)))
 
-/** Lock type and layout. Values 0-119. _WIN32 implies #MDB_PIDLOCK.
- *	Some low values are reserved for future tweaks.
- */
-#ifdef _WIN32
-#define MDB_LOCK_TYPE (0 + ALIGNOF2(mdb_hash_t) / 8 % 2)
-#elif defined MDB_USE_POSIX_SEM
-#define MDB_LOCK_TYPE (4 + ALIGNOF2(mdb_hash_t) / 8 % 2)
-#elif defined MDB_USE_SYSV_SEM
-#define MDB_LOCK_TYPE (8)
-#elif defined MDB_USE_POSIX_MUTEX
-/* We do not know the inside of a POSIX mutex and how to check if mutexes
- * used by two executables are compatible. Just check alignment and size.
- */
 #define MDB_LOCK_TYPE                                  \
 	(10 + LOG2_MOD(ALIGNOF2(pthread_mutex_t), 5) + \
 	 sizeof(pthread_mutex_t) / 4U % 22 * 5)
-#endif
 
 enum {
 	/** Magic number for lockfile layout and features.
@@ -738,11 +724,7 @@ STATIC_ASSERT(sizeof(MDB_page) == 16, MDB_page_size_16);
 typedef struct MDB_node {
 	/** part of data size or pgno
 	 *	@{ */
-#if BYTE_ORDER == LITTLE_ENDIAN
-	unsigned short mn_lo, mn_hi;
-#else
-	unsigned short mn_hi, mn_lo;
-#endif
+	u16 mn_lo, mn_hi;
 	/** @} */
 /** @defgroup mdb_node Node Flags
  *	@ingroup internal
@@ -899,16 +881,7 @@ typedef struct MDB_meta {
 	u32 mm_magic;
 	/** Version number of this file. Must be set to #MDB_DATA_VERSION. */
 	u32 mm_version;
-#ifdef MDB_VL32
-	union { /* always zero since we don't support fixed mapping in MDB_VL32
-		 */
-		MDB_ID mmun_ull;
-		void *mmun_address;
-	} mm_un;
-#define mm_address mm_un.mmun_address
-#else
-	void *mm_address; /**< address for fixed mapping */
-#endif
+	void *mm_address;	 /**< address for fixed mapping */
 	u64 mm_mapsize;		 /**< size of mmap region */
 	MDB_db mm_dbs[CORE_DBS]; /**< first is free space, 2nd is main db */
 				 /** The size of pages used in this DB */
@@ -957,9 +930,6 @@ struct MDB_txn {
 	 */
 	MDB_txn *mt_child;
 	pgno_t mt_next_pgno; /**< next unallocated page */
-#ifdef MDB_VL32
-	pgno_t mt_last_pgno; /**< last written page */
-#endif
 	/** The ID of this transaction. IDs are integers incrementing from 1.
 	 *	Only committed write transactions increment the ID. If a
 	 *transaction aborts, the ID may be re-used by the next writer.
@@ -1009,19 +979,6 @@ struct MDB_txn {
 	MDB_cursor **mt_cursors;
 	/** Array of flags for each DB */
 	unsigned char *mt_dbflags;
-#ifdef MDB_VL32
-	/** List of read-only pages (actually chunks) */
-	MDB_ID3L mt_rpages;
-	/** We map chunks of 16 pages. Even though Windows uses 4KB pages, all
-	 * mappings must begin on 64KB boundaries. So we round off all pgnos to
-	 * a chunk boundary. We do the same on Linux for symmetry, and also to
-	 * reduce the frequency of mmap/munmap calls.
-	 */
-#define MDB_RPAGE_CHUNK 16
-#define MDB_TRPAGE_SIZE 4096 /**< size of #mt_rpages array of chunks */
-#define MDB_TRPAGE_MAX (MDB_TRPAGE_SIZE - 1) /**< maximum chunk index */
-	unsigned int mt_rpcheck; /**< threshold for reclaiming unref'd chunks */
-#endif
 	/**	Number of DB records in use, or 0 when the txn is finished.
 	 *	This number only ever increments until the txn finishes; we
 	 *	don't decrement it when individual DB handles are closed.
@@ -1112,14 +1069,8 @@ struct MDB_cursor {
 	unsigned int mc_flags;	       /**< @ref mdb_cursor */
 	MDB_page *mc_pg[CURSOR_STACK]; /**< stack of pushed pages */
 	indx_t mc_ki[CURSOR_STACK];    /**< stack of page indices */
-#ifdef MDB_VL32
-	MDB_page *mc_ovpg; /**< a referenced overflow page */
-#define MC_OVPG(mc) ((mc)->mc_ovpg)
-#define MC_SET_OVPG(mc, pg) ((mc)->mc_ovpg = (pg))
-#else
 #define MC_OVPG(mc) ((MDB_page *)0)
 #define MC_SET_OVPG(mc, pg) ((void)0)
-#endif
 };
 
 /** Context for sorted-dup records.
@@ -1171,12 +1122,6 @@ struct MDB_env {
 	HANDLE me_fd;  /**< The main data file */
 	HANDLE me_lfd; /**< The lock file */
 	HANDLE me_mfd; /**< For writing and syncing the meta pages */
-#ifdef _WIN32
-#ifdef MDB_VL32
-	HANDLE me_fmh;	/**< File Mapping handle */
-#endif			/* MDB_VL32 */
-	HANDLE me_ovfd; /**< Overlapped/async with write-through file handle */
-#endif			/* _WIN32 */
 	/** Failed to update the meta page. Probably an I/O error. */
 #define MDB_FATAL_ERROR 0x80000000U
 	/** Some fields are initialized. */
@@ -1225,31 +1170,10 @@ struct MDB_env {
 #if !(MDB_MAXKEYSIZE)
 	unsigned int me_maxkey; /**< max size of a key */
 #endif
-	int me_live_reader; /**< have liveness lock in reader table */
-#ifdef _WIN32
-	int me_pidquery; /**< Used in OpenProcess */
-	OVERLAPPED *ov;	 /**< Used for for overlapping I/O requests */
-	int ovs;	 /**< Count of OVERLAPPEDs */
-#endif
-#ifdef MDB_USE_POSIX_MUTEX	      /* Posix mutexes reside in shared mem */
+	int me_live_reader;	      /**< have liveness lock in reader table */
 #define me_rmutex me_txns->mti_rmutex /**< Shared reader lock */
 #define me_wmutex me_txns->mti_wmutex /**< Shared writer lock */
-#else
-	mdb_mutex_t me_rmutex;
-	mdb_mutex_t me_wmutex;
-#if defined(_WIN32) || defined(MDB_USE_POSIX_SEM)
-	/** Half-initialized name of mutexes, to be completed by #MUTEXNAME() */
-	char me_mutexname[sizeof(MUTEXNAME_PREFIX) + 11];
-#endif
-#endif
-#ifdef MDB_VL32
-	MDB_ID3L me_rpages;	    /**< like #mt_rpages, but global to env */
-	pthread_mutex_t me_rpmutex; /**< control access to #me_rpages */
-#define MDB_ERPAGE_SIZE 16384
-#define MDB_ERPAGE_MAX (MDB_ERPAGE_SIZE - 1)
-	unsigned int me_rpcheck;
-#endif
-	void *me_userctx;		 /**< User-settable context */
+	void *me_userctx;	      /**< User-settable context */
 	MDB_assert_func *me_assert_func; /**< Callback for assertion failures */
 };
 
@@ -1317,10 +1241,7 @@ static int mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata,
 static int mdb_env_read_header(MDB_env *env, int prev, MDB_meta *meta);
 static MDB_meta *mdb_env_pick_meta(const MDB_env *env);
 static int mdb_env_write_meta(MDB_txn *txn);
-#if defined(MDB_USE_POSIX_MUTEX) && \
-    !defined(MDB_ROBUST_SUPPORTED) /* Drop unused excl arg */
 #define mdb_env_close0(env, excl) mdb_env_close1(env)
-#endif
 static void mdb_env_close0(MDB_env *env, int excl);
 
 static MDB_node *mdb_node_search(MDB_cursor *mc, MDB_val *key, int *exactp);
@@ -1383,15 +1304,6 @@ static MDB_cmp_func mdb_cmp_memn, mdb_cmp_memnr, mdb_cmp_int, mdb_cmp_cint,
 	(U32_MAX < MDB_SIZE_MAX && (cmp) == mdb_cmp_int && \
 	 (ksize) == sizeof(u64))
 
-#ifdef _WIN32
-static SECURITY_DESCRIPTOR mdb_null_sd;
-static SECURITY_ATTRIBUTES mdb_all_sa;
-static int mdb_sec_inited;
-
-struct MDB_name;
-static int utf8_to_utf16(const char *src, struct MDB_name *dst, int xtra);
-#endif
-
 /** Return the library version info. */
 u8 *ESECT mdb_version(int *major, int *minor, int *patch) {
 	if (major) *major = MDB_VERSION_MAJOR;
@@ -1426,16 +1338,6 @@ static char *const mdb_errstr[] = {
 };
 
 const u8 *mdb_strerror(int err) {
-#ifdef _WIN32
-	/** HACK: pad 4KB on stack over the buf. Return system msgs in buf.
-	 *	This works as long as no function between the call to
-	 *mdb_strerror and the actual use of the message uses more than 4K of
-	 *stack.
-	 */
-#define MSGSIZE 1024
-#define PADSIZE 4096
-	char buf[MSGSIZE + PADSIZE], *ptr = buf;
-#endif
 	int i;
 	if (!err) return ("Successful return: 0");
 
@@ -1444,32 +1346,8 @@ const u8 *mdb_strerror(int err) {
 		return mdb_errstr[i];
 	}
 
-#ifdef _WIN32
-	/* These are the C-runtime error codes we use. The comment indicates
-	 * their numeric value, and the Win32 error they would correspond to
-	 * if the error actually came from a Win32 API. A major mess, we should
-	 * have used LMDB-specific error codes for everything.
-	 */
-	switch (err) {
-		case ENOENT: /* 2, FILE_NOT_FOUND */
-		case EIO:    /* 5, ACCESS_DENIED */
-		case ENOMEM: /* 12, INVALID_ACCESS */
-		case EACCES: /* 13, INVALID_DATA */
-		case EBUSY:  /* 16, CURRENT_DIRECTORY */
-		case EINVAL: /* 22, BAD_COMMAND */
-		case ENOSPC: /* 28, OUT_OF_PAPER */
-			return strerror(err);
-		default:;
-	}
-	buf[0] = 0;
-	FormatMessageA(
-	    FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
-	    err, 0, ptr, MSGSIZE, NULL);
-	return ptr;
-#else
 	if (err < 0) return "Invalid error code";
 	return strerror(err);
-#endif
 }
 
 /** assert(3) variant in cursor context */
@@ -1479,29 +1357,7 @@ const u8 *mdb_strerror(int err) {
 /** assert(3) variant in environment context */
 #define mdb_eassert(env, expr) mdb_assert0(env, expr, #expr)
 
-#ifndef NDEBUG
-#define mdb_assert0(env, expr, expr_txt) \
-	((expr)                          \
-	     ? (void)0                   \
-	     : mdb_assert_fail(env, expr_txt, mdb_func_, __FILE__, __LINE__))
-
-static void ESECT mdb_assert_fail(MDB_env *env, const char *expr_txt,
-				  const char *func, const char *file,
-				  int line) {
-	if (env || expr_txt || func || file || !line) {
-	}
-	/*
-	char buf[400];
-	sprintf(buf, "%.100s:%d: Assertion '%.200s' failed in %.40s()", file,
-		line, expr_txt, func);
-	if (env->me_assert_func) env->me_assert_func(env, buf);
-	fprintf(stderr, "%s\n", buf);
-	abort();
-	*/
-}
-#else
 #define mdb_assert0(env, expr, expr_txt) ((void)0)
-#endif /* NDEBUG */
 
 #if MDB_DEBUG
 /** Return the page number of \b mp which may be sub-page, for debug output */
@@ -2092,17 +1948,11 @@ static txnid_t mdb_find_oldest(MDB_txn *txn) {
 /** Add a page to the txn's dirty list */
 static void mdb_page_dirty(MDB_txn *txn, MDB_page *mp) {
 	MDB_ID2 mid;
-	int rc, (*insert)(MDB_ID2L, MDB_ID2 *);
-#ifdef _WIN32 /* With Windows we always write dirty pages with WriteFile, \
-	       * so we always want them ordered */
-	insert = mdb_mid2l_insert;
-#else /* but otherwise with writemaps, we just use msync, we \
-       * don't need the ordering and just append */
+	int __attribute__((unused)) rc, (*insert)(MDB_ID2L, MDB_ID2 *);
 	if (txn->mt_flags & MDB_TXN_WRITEMAP)
 		insert = mdb_mid2l_append;
 	else
 		insert = mdb_mid2l_insert;
-#endif
 	mid.mid = mp->mp_pgno;
 	mid.mptr = mp;
 	rc = insert(txn->mt_u.dirty_list, &mid);
@@ -2128,17 +1978,7 @@ static void mdb_page_dirty(MDB_txn *txn, MDB_page *mp) {
  * @return 0 on success, non-zero on failure.
  */
 static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
-#ifdef MDB_PARANOID /* Seems like we can ignore this now */
-	/* Get at most <Max_retries> more freeDB records once me_pghead
-	 * has enough pages.  If not enough, use new pages from the map.
-	 * If <Paranoid> and mc is updating the freeDB, only get new
-	 * records if me_pghead is empty. Then the freelist cannot play
-	 * catch-up with itself by growing while trying to save it.
-	 */
-	enum { Paranoid = 1, Max_retries = 500 };
-#else
 	enum { Paranoid = 0, Max_retries = I32_MAX /*infinite*/ };
-#endif
 	int rc, retry = num * 60;
 	MDB_txn *txn = mc->mc_txn;
 	MDB_env *env = txn->mt_env;
@@ -2190,17 +2030,6 @@ static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
 			last = env->me_pglast;
 			oldest = env->me_pgoldest;
 			mdb_cursor_init(&m2, txn, FREE_DBI, NULL);
-#if (MDB_DEVEL) & 2 /* "& 2" so MDB_DEVEL=1 won't hide bugs breaking freeDB */
-			/* Use original snapshot. TODO: Should need less care in
-			 * code which modifies the database. Maybe we can delete
-			 * some code?
-			 */
-			m2.mc_flags |= C_ORIG_RDONLY;
-			m2.mc_db = &env->me_metas[(txn->mt_txnid - 1) & 1]
-					->mm_dbs[FREE_DBI];
-			m2.mc_dbflag =
-			    (unsigned char *)""; /* probably unnecessary */
-#endif
 			if (last) {
 				op = MDB_SET_RANGE;
 				key.mv_data = &last; /* will look up last+1 */
@@ -2252,11 +2081,6 @@ static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
 			mop = env->me_pghead;
 		}
 		env->me_pglast = last;
-#if (MDB_DEBUG) > 1
-		DPRINTF(("IDL read txn %" Yu " root %" Yu " num %u", last,
-			 txn->mt_dbs[FREE_DBI].md_root, i));
-		for (j = i; j; j--) DPRINTF(("IDL %" Yu, idl[j]));
-#endif
 		/* Merge in descending sorted order */
 		mdb_midl_xmerge(mop, idl);
 		mop_len = mop[0];
@@ -2270,21 +2094,6 @@ static int mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp) {
 		rc = MDB_MAP_FULL;
 		goto fail;
 	}
-#if defined(_WIN32) && !defined(MDB_VL32)
-	if (!(env->me_flags & MDB_RDONLY)) {
-		void *p;
-		p = (MDB_page *)(env->me_map + env->me_psize * pgno);
-		p = VirtualAlloc(p, env->me_psize * num, MEM_COMMIT,
-				 (env->me_flags & MDB_WRITEMAP)
-				     ? PAGE_READWRITE
-				     : PAGE_READONLY);
-		if (!p) {
-			DPUTS("VirtualAlloc failed");
-			rc = ErrCode();
-			goto fail;
-		}
-	}
-#endif
 
 search_done:
 	if (env->me_flags & MDB_WRITEMAP) {
@@ -2497,12 +2306,7 @@ fail:
 int mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs) {
 	int rc = 0;
 	if (env->me_flags & MDB_RDONLY) return EACCES;
-	if (force
-#ifndef _WIN32 /* Sync is normally achieved in Windows by doing WRITE_THROUGH \
-		  writes */
-	    || !(env->me_flags & MDB_NOSYNC)
-#endif
-	) {
+	if (force) {
 		if (env->me_flags & MDB_WRITEMAP) {
 			int flags = ((env->me_flags & MDB_MAPASYNC) && !force)
 					? MS_ASYNC
@@ -2510,18 +2314,8 @@ int mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs) {
 			if (MDB_MSYNC(env->me_map, env->me_psize * numpgs,
 				      flags))
 				rc = ErrCode();
-#if defined(_WIN32) || defined(__APPLE__)
-			else if (flags == MS_SYNC && MDB_FDATASYNC(env->me_fd))
-				rc = ErrCode();
-#endif
 		} else {
-#ifdef BROKEN_FDATASYNC
-			if (env->me_flags & MDB_FSYNCONLY) {
-				if (fdatasync(env->me_fd)) rc = ErrCode();
-			} else
-#endif
-			    if (MDB_FDATASYNC(env->me_fd))
-				rc = ErrCode();
+			if (MDB_FDATASYNC(env->me_fd)) rc = ErrCode();
 		}
 	}
 	return rc;
@@ -2607,11 +2401,7 @@ static void mdb_cursors_close(MDB_txn *txn, unsigned merge) {
 	}
 }
 
-#if !(MDB_PIDLOCK) /* Currently the same as defined(_WIN32) */
-enum Pidlock_op { Pidset, Pidcheck };
-#else
 enum Pidlock_op { Pidset = F_SETLK, Pidcheck = F_GETLK };
-#endif
 
 /** Set or check a pid lock. Set returns 0 on success.
  * Check returns 0 if the process is certainly dead, nonzero if it may
@@ -2622,21 +2412,6 @@ enum Pidlock_op { Pidset = F_SETLK, Pidcheck = F_GETLK };
  * lock on the lockfile, set at an offset equal to the pid.
  */
 static int mdb_reader_pid(MDB_env *env, enum Pidlock_op op, MDB_PID_T pid) {
-#if !(MDB_PIDLOCK) /* Currently the same as defined(_WIN32) */
-	int ret = 0;
-	HANDLE h;
-	if (op == Pidcheck) {
-		h = OpenProcess(env->me_pidquery, FALSE, pid);
-		/* No documented "no such process" code, but other program use
-		 * this: */
-		if (!h) return ErrCode() != ERROR_INVALID_PARAMETER;
-		/* A process exists until all handles to it close. Has it
-		 * exited? */
-		ret = WaitForSingleObject(h, 0) != 0;
-		CloseHandle(h);
-	}
-	return ret;
-#else
 	for (;;) {
 		int rc;
 		struct flock lock_info;
@@ -2653,7 +2428,6 @@ static int mdb_reader_pid(MDB_env *env, enum Pidlock_op op, MDB_PID_T pid) {
 		}
 		return rc;
 	}
-#endif
 }
 
 /** Common code for #mdb_txn_begin() and #mdb_txn_renew().
@@ -2749,9 +2523,6 @@ static int mdb_txn_renew0(MDB_txn *txn) {
 			txn->mt_txnid = meta->mm_txnid;
 		}
 		txn->mt_txnid++;
-#if MDB_DEBUG
-		if (txn->mt_txnid == mdb_debug_start) mdb_debug = MDB_DBG_INFO;
-#endif
 		txn->mt_child = NULL;
 		txn->mt_loose_pgs = NULL;
 		txn->mt_loose_count = 0;
@@ -2771,9 +2542,6 @@ static int mdb_txn_renew0(MDB_txn *txn) {
 
 	/* Moved to here to avoid a data race in read TXNs */
 	txn->mt_next_pgno = meta->mm_last_pg + 1;
-#ifdef MDB_VL32
-	txn->mt_last_pgno = txn->mt_next_pgno - 1;
-#endif
 
 	txn->mt_flags = flags;
 
