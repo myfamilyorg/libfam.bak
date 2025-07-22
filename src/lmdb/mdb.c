@@ -4527,16 +4527,8 @@ static int mdb_page_get(MDB_cursor *mc, pgno_t pgno, MDB_page **ret, int *lvl) {
 	level = 0;
 
 mapped: {
-#ifdef MDB_VL32
-	int rc = mdb_rpage_get(txn, pgno, &p);
-	if (rc) {
-		txn->mt_flags |= MDB_TXN_ERROR;
-		return rc;
-	}
-#else
 	MDB_env *env = txn->mt_env;
 	p = (MDB_page *)(env->me_map + env->me_psize * pgno);
-#endif
 }
 
 done:
@@ -4714,20 +4706,10 @@ static int mdb_page_search(MDB_cursor *mc, MDB_val *key, int flags) {
 
 	mdb_cassert(mc, root > 1);
 	if (!mc->mc_pg[0] || mc->mc_pg[0]->mp_pgno != root) {
-#ifdef MDB_VL32
-		if (mc->mc_pg[0]) MDB_PAGE_UNREF(mc->mc_txn, mc->mc_pg[0]);
-#endif
 		if ((rc = mdb_page_get(mc, root, &mc->mc_pg[0], NULL)) != 0)
 			return rc;
 	}
 
-#ifdef MDB_VL32
-	{
-		int i;
-		for (i = 1; i < mc->mc_snum; i++)
-			MDB_PAGE_UNREF(mc->mc_txn, mc->mc_pg[i]);
-	}
-#endif
 	mc->mc_snum = 1;
 	mc->mc_top = 0;
 
@@ -4807,9 +4789,6 @@ static int mdb_ovpage_free(MDB_cursor *mc, MDB_page *mp) {
 		rc = mdb_midl_append_range(&txn->mt_free_pgs, pg, ovpages);
 		if (rc) return rc;
 	}
-#ifdef MDB_VL32
-	if (mc->mc_ovpg == mp) mc->mc_ovpg = NULL;
-#endif
 	mc->mc_db->md_overflow_pages -= ovpages;
 	return 0;
 }
@@ -4883,17 +4862,11 @@ static int mdb_cursor_sibling(MDB_cursor *mc, int move_right) {
 	int rc;
 	MDB_node *indx;
 	MDB_page *mp;
-#ifdef MDB_VL32
-	MDB_page *op;
-#endif
 
 	if (mc->mc_snum < 2) {
 		return MDB_NOTFOUND; /* root has no siblings */
 	}
 
-#ifdef MDB_VL32
-	op = mc->mc_pg[mc->mc_top];
-#endif
 	mdb_cursor_pop(mc);
 	DPRINTF(("parent page is page %" Yu ", index %u",
 		 mc->mc_pg[mc->mc_top]->mp_pgno, mc->mc_ki[mc->mc_top]));
@@ -8573,12 +8546,6 @@ static int mdb_drop0(MDB_cursor *mc, int subs) {
 			mdb_cursor_pop(mc);
 
 		mdb_cursor_copy(mc, &mx);
-#ifdef MDB_VL32
-		/* bump refcount for mx's pages */
-		for (i = 0; i < mc->mc_snum; i++)
-			mdb_page_get(&mx, mc->mc_pg[i]->mp_pgno, &mx.mc_pg[i],
-				     NULL);
-#endif
 		while (mc->mc_snum > 0) {
 			MDB_page *mp = mc->mc_pg[mc->mc_top];
 			unsigned n = NUMKEYS(mp);
@@ -8844,77 +8811,3 @@ static int ESECT mdb_reader_check0(MDB_env *env, int rlocked, int *dead) {
 	return rc;
 }
 
-#ifdef MDB_ROBUST_SUPPORTED
-/** Handle #LOCK_MUTEX0() failure.
- * Try to repair the lock file if the mutex owner died.
- * @param[in] env	the environment handle
- * @param[in] mutex	LOCK_MUTEX0() mutex
- * @param[in] rc	LOCK_MUTEX0() error (nonzero)
- * @return 0 on success with the mutex locked, or an error code on failure.
- */
-static int ESECT mdb_mutex_failed(MDB_env *env, mdb_mutexref_t mutex, int rc) {
-	int rlocked, rc2;
-	MDB_meta *meta;
-
-	if (rc == MDB_OWNERDEAD) {
-		/* We own the mutex. Clean up after dead previous owner. */
-		rc = MDB_SUCCESS;
-		rlocked = (mutex == env->me_rmutex);
-		if (!rlocked) {
-			/* Keep mti_txnid updated, otherwise next writer can
-			 * overwrite data which latest meta page refers to.
-			 */
-			meta = mdb_env_pick_meta(env);
-			env->me_txns->mti_txnid = meta->mm_txnid;
-			/* env is hosed if the dead thread was ours */
-			if (env->me_txn) {
-				env->me_flags |= MDB_FATAL_ERROR;
-				env->me_txn = NULL;
-				rc = MDB_PANIC;
-			}
-		}
-		DPRINTF(("%cmutex owner died, %s", (rlocked ? 'r' : 'w'),
-			 (rc ? "this process' env is hosed" : "recovering")));
-		rc2 = mdb_reader_check0(env, rlocked, NULL);
-		if (rc2 == 0) rc2 = mdb_mutex_consistent(mutex);
-		if (rc || (rc = rc2)) {
-			DPRINTF(("LOCK_MUTEX recovery failed, %s",
-				 mdb_strerror(rc)));
-			UNLOCK_MUTEX(mutex);
-		}
-	} else {
-#ifdef _WIN32
-		rc = ErrCode();
-#endif
-		DPRINTF(("LOCK_MUTEX failed, %s", mdb_strerror(rc)));
-	}
-
-	return rc;
-}
-#endif /* MDB_ROBUST_SUPPORTED */
-
-#if defined(_WIN32)
-/** Convert \b src to new wchar_t[] string with room for \b xtra extra chars */
-static int ESECT utf8_to_utf16(const char *src, MDB_name *dst, int xtra) {
-	int rc, need = 0;
-	wchar_t *result = NULL;
-	for (;;) { /* malloc result, then fill it in */
-		need = MultiByteToWideChar(CP_UTF8, 0, src, -1, result, need);
-		if (!need) {
-			rc = ErrCode();
-			release(result);
-			return rc;
-		}
-		if (!result) {
-			result = alloc(sizeof(wchar_t) * (need + xtra));
-			if (!result) return ENOMEM;
-			continue;
-		}
-		dst->mn_alloced = 1;
-		dst->mn_len = need - 1;
-		dst->mn_val = result;
-		return MDB_SUCCESS;
-	}
-}
-#endif /* defined(_WIN32) */
-       /** @} */
