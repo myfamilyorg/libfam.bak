@@ -188,8 +188,6 @@ typedef struct MDB_rxbody {
 	volatile i32 mrb_pid;
 } MDB_rxbody;
 
-typedef MDB_ID u64;
-
 typedef struct MDB_reader {
 	union {
 		MDB_rxbody mrx;
