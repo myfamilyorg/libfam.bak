@@ -109,49 +109,6 @@
 #define mdb_func_ __func__
 #define MDB_NO_ROOT (MDB_LAST_ERRCODE + 10)
 
-#ifdef _WIN32
-#define MDB_USE_HASH 1
-#define MDB_PIDLOCK 0
-#define THREAD_RET DWORD
-#define pthread_t HANDLE
-#define pthread_mutex_t HANDLE
-#define pthread_cond_t HANDLE
-typedef HANDLE mdb_mutex_t, mdb_mutexref_t;
-#define pthread_key_t DWORD
-#define pthread_self() GetCurrentThreadId()
-#define pthread_key_create(x, y) \
-	((*(x) = TlsAlloc()) == TLS_OUT_OF_INDEXES ? ErrCode() : 0)
-#define pthread_key_delete(x) TlsFree(x)
-#define pthread_getspecific(x) TlsGetValue(x)
-#define pthread_setspecific(x, y) (TlsSetValue(x, y) ? 0 : ErrCode())
-#define pthread_mutex_unlock(x) ReleaseMutex(*x)
-#define pthread_mutex_lock(x) WaitForSingleObject(*x, INFINITE)
-#define pthread_cond_signal(x) SetEvent(*x)
-#define pthread_cond_wait(cond, mutex)                               \
-	do {                                                         \
-		SignalObjectAndWait(*mutex, *cond, INFINITE, FALSE); \
-		WaitForSingleObject(*mutex, INFINITE);               \
-	} while (0)
-#define THREAD_CREATE(thr, start, arg) \
-	(((thr) = CreateThread(NULL, 0, start, arg, 0, NULL)) ? 0 : ErrCode())
-#define THREAD_FINISH(thr) (WaitForSingleObject(thr, INFINITE) ? ErrCode() : 0)
-#define LOCK_MUTEX0(mutex) WaitForSingleObject(mutex, INFINITE)
-#define UNLOCK_MUTEX(mutex) ReleaseMutex(mutex)
-#define mdb_mutex_consistent(mutex) 0
-#define getpid() GetCurrentProcessId()
-#define MDB_FDATASYNC(fd) (!FlushFileBuffers(fd))
-#define MDB_MSYNC(addr, len, flags) (!FlushViewOfFile(addr, len))
-#define ErrCode() GetLastError()
-#define GET_PAGESIZE(x) ((x) = PAGE_SIZE)
-
-#define close(fd) (CloseHandle(fd) ? 0 : -1)
-#define munmap(ptr, len) UnmapViewOfFile(ptr)
-#ifdef PROCESS_QUERY_LIMITED_INFORMATION
-#define MDB_PROCESS_QUERY_LIMITED_INFORMATION PROCESS_QUERY_LIMITED_INFORMATION
-#else
-#define MDB_PROCESS_QUERY_LIMITED_INFORMATION 0x1000
-#endif
-#else
 #define THREAD_RET void *
 #define THREAD_CREATE(thr, start, arg) pthread_create(&thr, NULL, start, arg)
 #define THREAD_FINISH(thr) pthread_join(thr, NULL)
@@ -159,52 +116,6 @@ typedef HANDLE mdb_mutex_t, mdb_mutexref_t;
 /** For MDB_LOCK_FORMAT: True if readers take a pid lock in the lockfile */
 #define MDB_PIDLOCK 1
 
-#ifdef MDB_USE_POSIX_SEM
-
-typedef sem_t *mdb_mutex_t, *mdb_mutexref_t;
-#define LOCK_MUTEX0(mutex) mdb_sem_wait(mutex)
-#define UNLOCK_MUTEX(mutex) sem_post(mutex)
-
-static int mdb_sem_wait(sem_t *sem) {
-	int rc;
-	while ((rc = sem_wait(sem)) && (rc = err) == EINTR);
-	return rc;
-}
-
-#elif defined MDB_USE_SYSV_SEM
-
-typedef struct mdb_mutex {
-	int semid;
-	int semnum;
-	int *locked;
-} mdb_mutex_t[1], *mdb_mutexref_t;
-
-#define LOCK_MUTEX0(mutex) mdb_sem_wait(mutex)
-#define UNLOCK_MUTEX(mutex)                          \
-	do {                                         \
-		struct sembuf sb = {0, 1, SEM_UNDO}; \
-		sb.sem_num = (mutex)->semnum;        \
-		*(mutex)->locked = 0;                \
-		semop((mutex)->semid, &sb, 1);       \
-	} while (0)
-
-static int mdb_sem_wait(mdb_mutexref_t sem) {
-	int rc, *locked = sem->locked;
-	struct sembuf sb = {0, -1, SEM_UNDO};
-	sb.sem_num = sem->semnum;
-	do {
-		if (!semop(sem->semid, &sb, 1)) {
-			rc = *locked ? MDB_OWNERDEAD : MDB_SUCCESS;
-			*locked = 1;
-			break;
-		}
-	} while ((rc = err) == EINTR);
-	return rc;
-}
-
-#define mdb_mutex_consistent(mutex) 0
-
-#else /* MDB_USE_POSIX_MUTEX: */
 /** Shared mutex/semaphore as the original is stored.
  *
  *	Not for copies.  Instead it can be assigned to an #mdb_mutexref_t.
@@ -224,7 +135,6 @@ typedef pthread_mutex_t *mdb_mutexref_t;
 /** Mark mutex-protected data as repaired, after death of previous owner.
  */
 #define mdb_mutex_consistent(mutex) pthread_mutex_consistent(mutex)
-#endif /* MDB_USE_POSIX_SEM || MDB_USE_SYSV_SEM */
 
 /** Get the error code for the last failed system function.
  */
@@ -247,7 +157,6 @@ typedef pthread_mutex_t *mdb_mutexref_t;
  *	fundamental to the use of memory-mapped files.
  */
 #define GET_PAGESIZE(x) ((x) = PAGE_SIZE)
-#endif
 
 #define Z MDB_FMT_Z    /**< printf/scanf format modifier for u64 */
 #define Yu MDB_PRIy(u) /**< printf format for #u64 */
