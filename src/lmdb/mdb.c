@@ -1,37 +1,27 @@
-/** @file mdb.c
- *	@brief Lightning memory-mapped database library
+/********************************************************************************
+ * MIT License
  *
- *	A Btree-based database management library modeled loosely on the
- *	BerkeleyDB API, but much simplified.
- */
-/*
- * Copyright 2011-2021 Howard Chu, Symas Corp.
- * All rights reserved.
+ * Copyright (c) 2025 Christopher Gilliard
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted only as authorized by the OpenLDAP
- * Public License.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * A copy of this license is available in the file LICENSE in the
- * top-level directory of the distribution or, alternatively, at
- * <http://www.OpenLDAP.org/license.html>.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * This code is derived from btree.c written by Martin Hedenfalk.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  *
- * Copyright (c) 2009, 2010 Martin Hedenfalk <martin@bzero.se>
- *
- * Permission to use, copy, modify, and distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *******************************************************************************/
 
 #define MDB_PID_T i32
 #define MDB_THR_T pthread_t
@@ -139,11 +129,7 @@ typedef pthread_mutex_t *mdb_mutexref_t;
 #define mdb_mutex_failed(env, mutex, rc) (rc)
 
 #ifndef MDB_DSYNC
-#ifdef O_DSYNC
-#define MDB_DSYNC O_DSYNC
-#else
 #define MDB_DSYNC O_SYNC
-#endif
 #endif
 #define MDB_FDATASYNC fdatasync
 
@@ -3610,11 +3596,7 @@ static int ESECT mdb_fname_init(const char *path, unsigned envflags,
 		if ((fname).mn_alloced) release((fname).mn_val); \
 	} while (0)
 
-#ifdef O_CLOEXEC /* POSIX.1-2008: Set FD_CLOEXEC atomically at open() */
-#define MDB_CLOEXEC O_CLOEXEC
-#else
 #define MDB_CLOEXEC 0
-#endif
 
 /** File type, access mode etc. for #mdb_fopen() */
 enum mdb_fopen_type {
@@ -7955,9 +7937,7 @@ void *ESECT mdb_env_get_userctx(MDB_env *env) {
 
 int ESECT mdb_env_set_assert(MDB_env *env, MDB_assert_func *func) {
 	if (!env) return EINVAL;
-#ifndef NDEBUG
 	env->me_assert_func = func;
-#endif
 	return MDB_SUCCESS;
 }
 
