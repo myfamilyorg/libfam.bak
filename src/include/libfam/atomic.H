@@ -28,6 +28,11 @@
 
 #include <libfam/types.H>
 
+#define __cas128(a, expected, desired)                           \
+	__atomic_compare_exchange_n(a, expected, desired, false, \
+				    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+
+#ifdef __aarch64__
 u32 __cas32(u32 *ptr, u32 *expected, u32 desired);
 u32 __and32(u32 *ptr, u32 value);
 u32 __add32(u32 *ptr, u32 value);
@@ -39,6 +44,26 @@ u64 __and64(u64 *ptr, u64 value);
 u64 __add64(u64 *ptr, u64 value);
 u64 __sub64(u64 *ptr, u64 value);
 u64 __or64(volatile u64 *a, u64 v);
+
+#elif defined(__amd64__)
+
+#define __add32(a, v) __atomic_fetch_add(a, v, __ATOMIC_SEQ_CST)
+#define __sub32(a, v) __atomic_fetch_sub(a, v, __ATOMIC_SEQ_CST)
+#define __or32(a, v) __atomic_or_fetch(a, v, __ATOMIC_SEQ_CST)
+#define __and32(a, v) __atomic_and_fetch(a, v, __ATOMIC_SEQ_CST)
+#define __cas32(a, expected, desired)                            \
+	__atomic_compare_exchange_n(a, expected, desired, false, \
+				    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+
+#define __add64(a, v) __atomic_fetch_add(a, v, __ATOMIC_SEQ_CST)
+#define __sub64(a, v) __atomic_fetch_sub(a, v, __ATOMIC_SEQ_CST)
+#define __or64(a, v) __atomic_or_fetch(a, v, __ATOMIC_SEQ_CST)
+#define __and64(a, v) __atomic_and_fetch(a, v, __ATOMIC_SEQ_CST)
+#define __cas64(a, expected, desired)                            \
+	__atomic_compare_exchange_n(a, expected, desired, false, \
+				    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+
+#endif
 
 #define ALOAD(a) __atomic_load_n(a, __ATOMIC_ACQUIRE)
 #define ASTORE(a, v) __atomic_store_n(a, v, __ATOMIC_RELEASE)
