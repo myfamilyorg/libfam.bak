@@ -3349,10 +3349,6 @@ static int _mdb_txn_commit(MDB_txn *txn) {
 	env->me_pghead = NULL;
 	mdb_midl_shrink(&txn->mt_free_pgs);
 
-#if (MDB_DEBUG) > 2
-	mdb_audit(txn);
-#endif
-
 	if ((rc = mdb_page_flush(txn, 0))) goto fail;
 	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC) &&
 	    (rc = mdb_env_sync0(env, 0, txn->mt_next_pgno)))
@@ -3401,17 +3397,7 @@ static int ESECT mdb_env_read_header(MDB_env *env, int prev, MDB_meta *meta) {
 	 */
 
 	for (i = off = 0; i < NUM_METAS; i++, off += meta->mm_psize) {
-#ifdef _WIN32
-		DWORD len;
-		OVERLAPPED ov;
-		memset(&ov, 0, sizeof(ov));
-		ov.Offset = off;
-		rc = ReadFile(env->me_fd, &pbuf, Size, &len, &ov) ? (int)len
-								  : -1;
-		if (rc == -1 && ErrCode() == ERROR_HANDLE_EOF) rc = 0;
-#else
 		rc = pread(env->me_fd, &pbuf, Size, off);
-#endif
 		if (rc != Size) {
 			if (rc == 0 && off == 0) return ENOENT;
 			rc = rc < 0 ? (int)ErrCode() : MDB_INVALID;
@@ -3468,16 +3454,6 @@ static int ESECT mdb_env_init_meta(MDB_env *env, MDB_meta *meta) {
 	MDB_page *p, *q;
 	int rc;
 	unsigned int psize;
-#ifdef _WIN32
-	DWORD len;
-	OVERLAPPED ov;
-	memset(&ov, 0, sizeof(ov));
-#define DO_PWRITE(rc, fd, ptr, size, len, pos)            \
-	do {                                              \
-		ov.Offset = pos;                          \
-		rc = WriteFile(fd, ptr, size, &len, &ov); \
-	} while (0)
-#else
 	int len;
 #define DO_PWRITE(rc, fd, ptr, size, len, pos)                 \
 	do {                                                   \
@@ -3486,7 +3462,6 @@ static int ESECT mdb_env_init_meta(MDB_env *env, MDB_meta *meta) {
 		rc = (len >= 0);                               \
 		break;                                         \
 	} while (1)
-#endif
 	DPUTS("writing new meta page");
 
 	psize = env->me_psize;
@@ -3526,11 +3501,7 @@ static int mdb_env_write_meta(MDB_txn *txn) {
 	int rc, len, toggle;
 	char *ptr;
 	HANDLE mfd;
-#ifdef _WIN32
-	OVERLAPPED ov;
-#else
 	int r2;
-#endif
 
 	toggle = txn->mt_txnid & 1;
 	DPRINTF(("writing meta page %d for root page %" Yu, toggle,
@@ -3543,8 +3514,6 @@ static int mdb_env_write_meta(MDB_txn *txn) {
 	/* Persist any increases of mapsize config */
 	if (mapsize < env->me_mapsize) mapsize = env->me_mapsize;
 
-#ifndef _WIN32 /* We don't want to ever use MSYNC/FlushViewOfFile in Windows \
-		*/
 	if (flags & MDB_WRITEMAP) {
 		mp->mm_mapsize = mapsize;
 		mp->mm_dbs[FREE_DBI] = txn->mt_dbs[FREE_DBI];
@@ -3572,7 +3541,6 @@ static int mdb_env_write_meta(MDB_txn *txn) {
 		}
 		goto done;
 	}
-#endif
 	metab.mm_txnid = mp->mm_txnid;
 	metab.mm_last_pg = mp->mm_last_pg;
 
@@ -3593,21 +3561,11 @@ static int mdb_env_write_meta(MDB_txn *txn) {
 	 */
 	mfd =
 	    (flags & (MDB_NOSYNC | MDB_NOMETASYNC)) ? env->me_fd : env->me_mfd;
-#ifdef _WIN32
-	{
-		memset(&ov, 0, sizeof(ov));
-		ov.Offset = off;
-		if (!WriteFile(mfd, ptr, len, (DWORD *)&rc, &ov)) rc = -1;
-	}
-#else
 retry_write:
 	rc = pwrite(mfd, ptr, len, off);
-#endif
 	if (rc != len) {
 		rc = rc < 0 ? ErrCode() : EIO;
-#ifndef _WIN32
 		if (rc == EINTR) goto retry_write;
-#endif
 		DPUTS("write failed, disk error?");
 		/* On a failure, the pagecache still contains the new data.
 		 * Write some old data back, to prevent it from being used.
@@ -3615,15 +3573,9 @@ retry_write:
 		 */
 		meta.mm_last_pg = metab.mm_last_pg;
 		meta.mm_txnid = metab.mm_txnid;
-#ifdef _WIN32
-		memset(&ov, 0, sizeof(ov));
-		ov.Offset = off;
-		WriteFile(env->me_fd, ptr, len, NULL, &ov);
-#else
 		r2 = pwrite(env->me_fd, ptr, len, off);
-		(void)r2; /* Silence warnings. We don't care about pwrite's
-			     return value */
-#endif
+		(void)r2; /* Silence warnings. We don't care about
+			     pwrite's return value */
 	fail:
 		env->me_flags |= MDB_FATAL_ERROR;
 		return rc;
@@ -3663,13 +3615,6 @@ int ESECT mdb_env_create(MDB_env **env) {
 	e->me_fd = INVALID_HANDLE_VALUE;
 	e->me_lfd = INVALID_HANDLE_VALUE;
 	e->me_mfd = INVALID_HANDLE_VALUE;
-#ifdef MDB_USE_POSIX_SEM
-	e->me_rmutex = SEM_FAILED;
-	e->me_wmutex = SEM_FAILED;
-#elif defined MDB_USE_SYSV_SEM
-	e->me_rmutex->semid = -1;
-	e->me_wmutex->semid = -1;
-#endif
 	e->me_pid = getpid();
 	GET_PAGESIZE(e->me_os_psize);
 	VGMEMP_CREATE(e, 0, 0);
@@ -3678,86 +3623,11 @@ int ESECT mdb_env_create(MDB_env **env) {
 	return MDB_SUCCESS;
 }
 
-#ifdef _WIN32
-/** @brief Map a result from an NTAPI call to WIN32. */
-static DWORD mdb_nt2win32(NTSTATUS st) {
-	OVERLAPPED o = {0};
-	DWORD br;
-	o.Internal = st;
-	GetOverlappedResult(NULL, &o, &br, FALSE);
-	return GetLastError();
-}
-#endif
-
 static int ESECT mdb_env_map(MDB_env *env, void *addr) {
 	MDB_page *p;
 	unsigned int flags = env->me_flags;
-#ifdef _WIN32
-	int rc;
-	int access = SECTION_MAP_READ;
-	HANDLE mh;
-	void *map;
-	SIZE_T msize;
-	ULONG pageprot = PAGE_READONLY, secprot, alloctype;
-
-	if (flags & MDB_WRITEMAP) {
-		access |= SECTION_MAP_WRITE;
-		pageprot = PAGE_READWRITE;
-	}
-	if (flags & MDB_RDONLY) {
-		secprot = PAGE_READONLY;
-		msize = 0;
-		alloctype = 0;
-	} else {
-		secprot = PAGE_READWRITE;
-		msize = env->me_mapsize;
-		alloctype = MEM_RESERVE;
-	}
-
-	/** Some users are afraid of seeing their disk space getting used
-	 * all at once, so the default is now to do incremental file growth.
-	 * But that has a large performance impact, so give the option of
-	 * allocating the file up front.
-	 */
-#ifdef MDB_FIXEDSIZE
-	LARGE_INTEGER fsize;
-	fsize.LowPart = msize & 0xffffffff;
-	fsize.HighPart = msize >> 16 >> 16;
-	rc = NtCreateSection(&mh, access, NULL, &fsize, secprot, SEC_RESERVE,
-			     env->me_fd);
-#else
-	rc = NtCreateSection(&mh, access, NULL, NULL, secprot, SEC_RESERVE,
-			     env->me_fd);
-#endif
-	if (rc) return mdb_nt2win32(rc);
-	map = addr;
-#ifdef MDB_VL32
-	msize = NUM_METAS * env->me_psize;
-#endif
-	rc = NtMapViewOfSection(mh, GetCurrentProcess(), &map, 0, 0, NULL,
-				&msize, ViewUnmap, alloctype, pageprot);
-#ifdef MDB_VL32
-	env->me_fmh = mh;
-#else
-	NtClose(mh);
-#endif
-	if (rc) return mdb_nt2win32(rc);
-	env->me_map = map;
-#else
 	int mmap_flags = MAP_SHARED;
 	int prot = PROT_READ;
-#ifdef MAP_NOSYNC /* Used on FreeBSD */
-	if (flags & MDB_NOSYNC) mmap_flags |= MAP_NOSYNC;
-#endif
-#ifdef MDB_VL32
-	(void)flags;
-	env->me_map = mmap(addr, NUM_METAS * env->me_psize, prot, mmap_flags,
-			   env->me_fd, 0);
-	if (env->me_map == MAP_FAILED) {
-		env->me_map = NULL;
-		return ErrCode();
-	}
-#else
 	if (flags & MDB_WRITEMAP) {
 		prot |= PROT_WRITE;
 		if (ftruncate(env->me_fd, env->me_mapsize) < 0)
@@ -3770,19 +3640,6 @@ static int ESECT mdb_env_map(MDB_env *env, void *addr) {
 		return ErrCode();
 	}
 
-	if (flags & MDB_NORDAHEAD) {
-		/* Turn off readahead. It's harmful when the DB is larger than
-		 * RAM. */
-#ifdef MADV_RANDOM
-		madvise(env->me_map, env->me_mapsize, MADV_RANDOM);
-#else
-#ifdef POSIX_MADV_RANDOM
-		posix_madvise(env->me_map, env->me_mapsize, POSIX_MADV_RANDOM);
-#endif /* POSIX_MADV_RANDOM */
-#endif /* MADV_RANDOM */
-	}
-#endif /* _WIN32 */
-
 	/* Can happen because the address argument to mmap() is just a
 	 * hint.  mmap() can pick another, e.g. if the range is in use.
 	 * The MAP_FIXED flag would prevent that, but then mmap could
@@ -3790,7 +3647,6 @@ static int ESECT mdb_env_map(MDB_env *env, void *addr) {
 	 */
 	if (addr && env->me_map != addr)
 		return EBUSY; /* TODO: Make a new MDB_* error code? */
-#endif
 
 	p = (MDB_page *)env->me_map;
 	env->me_metas[0] = METADATA(p);
@@ -3806,10 +3662,8 @@ int ESECT mdb_env_set_mapsize(MDB_env *env, u64 size) {
 	 */
 	if (env->me_map) {
 		MDB_meta *meta;
-#ifndef MDB_VL32
 		void *old;
 		int rc;
-#endif
 		if (env->me_txn) return EINVAL;
 		meta = mdb_env_pick_meta(env);
 		if (!size) size = meta->mm_mapsize;
@@ -3819,7 +3673,6 @@ int ESECT mdb_env_set_mapsize(MDB_env *env, u64 size) {
 			u64 minsize = (meta->mm_last_pg + 1) * env->me_psize;
 			if (size < minsize) size = minsize;
 		}
-#ifndef MDB_VL32
 		/* For MDB_VL32 this bit is a noop since we dynamically remap
 		 * chunks of the DB anyway.
 		 */
@@ -3828,7 +3681,6 @@ int ESECT mdb_env_set_mapsize(MDB_env *env, u64 size) {
 		old = (env->me_flags & MDB_FIXEDMAP) ? env->me_map : NULL;
 		rc = mdb_env_map(env, old);
 		if (rc) return rc;
-#endif /* !MDB_VL32 */
 	}
 	env->me_mapsize = size;
 	if (env->me_psize) env->me_maxpg = env->me_mapsize / env->me_psize;
@@ -3937,8 +3789,9 @@ enum mdb_fopen_type {
 	MDB_O_META = O_WRONLY | MDB_DSYNC | MDB_CLOEXEC, /**< for me_mfd */
 	MDB_O_COPY = O_WRONLY | O_CREAT | O_EXCL |
 		     MDB_CLOEXEC, /**< for #mdb_env_copy() */
-	/** Bitmask for open() flags in enum #mdb_fopen_type.  The other bits
-	 * distinguish otherwise-equal MDB_O_* constants from each other.
+	/** Bitmask for open() flags in enum #mdb_fopen_type.  The other
+	 * bits distinguish otherwise-equal MDB_O_* constants from each
+	 * other.
 	 */
 	MDB_O_MASK =
 	    MDB_O_RDWR | MDB_CLOEXEC | MDB_O_RDONLY | MDB_O_META | MDB_O_COPY,
@@ -4609,8 +4462,9 @@ static int ESECT mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode,
 		env->me_txns->mti_mutexid =
 		    mdb_hash(&idbuf, sizeof(idbuf))
 #ifdef MDB_SHORT_SEMNAMES
-		    /* Max 9 base85-digits.  We truncate here instead of in
-		     * mdb_env_mname_init() to keep the latter portable.
+		    /* Max 9 base85-digits.  We truncate here instead of
+		     * in mdb_env_mname_init() to keep the latter
+		     * portable.
 		     */
 		    % ((mdb_hash_t)85 * 85 * 85 * 85 * 85 * 85 * 85 * 85 * 85)
 #endif
