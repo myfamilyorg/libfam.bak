@@ -3985,15 +3985,7 @@ static int ESECT mdb_env_excl_lock(MDB_env *env, int *excl) {
  */
 static int ESECT mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode,
 				     int *excl) {
-#ifdef _WIN32
-#define MDB_ERRCODE_ROFS ERROR_WRITE_PROTECT
-#else
 #define MDB_ERRCODE_ROFS EROFS
-#endif
-#ifdef MDB_USE_SYSV_SEM
-	int semid;
-	union semun semu;
-#endif
 	int rc;
 	MDB_OFF_T size, rsize;
 
@@ -4010,14 +4002,6 @@ static int ESECT mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode,
 		rc = pthread_key_create(&env->me_txkey, mdb_env_reader_dest);
 		if (rc) goto fail;
 		env->me_flags |= MDB_ENV_TXKEY;
-#ifdef _WIN32
-		/* Windows TLS callbacks need help finding their TLS info. */
-		if (mdb_tls_nkeys >= MAX_TLS_KEYS) {
-			rc = MDB_TLS_FULL;
-			goto fail;
-		}
-		mdb_tls_keys[mdb_tls_nkeys++] = env->me_txkey;
-#endif
 	}
 
 	/* Try to get exclusive lock. If we succeed, then
@@ -4025,125 +4009,24 @@ static int ESECT mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode,
 	 */
 	if ((rc = mdb_env_excl_lock(env, excl))) goto fail;
 
-#ifdef _WIN32
-	size = GetFileSize(env->me_lfd, NULL);
-#else
 	size = lseek(env->me_lfd, 0, SEEK_END);
 	if (size == -1) goto fail_err;
-#endif
 	rsize =
 	    (env->me_maxreaders - 1) * sizeof(MDB_reader) + sizeof(MDB_txninfo);
 	if (size < rsize && *excl > 0) {
-#ifdef _WIN32
-		if (SetFilePointer(env->me_lfd, rsize, NULL, FILE_BEGIN) !=
-			(DWORD)rsize ||
-		    !SetEndOfFile(env->me_lfd))
-			goto fail_err;
-#else
 		if (ftruncate(env->me_lfd, rsize) != 0) goto fail_err;
-#endif
 	} else {
 		rsize = size;
 		size = rsize - sizeof(MDB_txninfo);
 		env->me_maxreaders = size / sizeof(MDB_reader) + 1;
 	}
 	{
-#ifdef _WIN32
-		HANDLE mh;
-		mh = CreateFileMapping(env->me_lfd, NULL, PAGE_READWRITE, 0, 0,
-				       NULL);
-		if (!mh) goto fail_err;
-		env->me_txns =
-		    MapViewOfFileEx(mh, FILE_MAP_WRITE, 0, 0, rsize, NULL);
-		CloseHandle(mh);
-		if (!env->me_txns) goto fail_err;
-#else
 		void *m = mmap(NULL, rsize, PROT_READ | PROT_WRITE, MAP_SHARED,
 			       env->me_lfd, 0);
 		if (m == MAP_FAILED) goto fail_err;
 		env->me_txns = m;
-#endif
 	}
 	if (*excl > 0) {
-#ifdef _WIN32
-		BY_HANDLE_FILE_INFORMATION stbuf;
-		struct {
-			DWORD volume;
-			DWORD nhigh;
-			DWORD nlow;
-		} idbuf;
-
-		if (!mdb_sec_inited) {
-			InitializeSecurityDescriptor(
-			    &mdb_null_sd, SECURITY_DESCRIPTOR_REVISION);
-			SetSecurityDescriptorDacl(&mdb_null_sd, TRUE, 0, FALSE);
-			mdb_all_sa.nLength = sizeof(SECURITY_ATTRIBUTES);
-			mdb_all_sa.bInheritHandle = FALSE;
-			mdb_all_sa.lpSecurityDescriptor = &mdb_null_sd;
-			mdb_sec_inited = 1;
-		}
-		if (!GetFileInformationByHandle(env->me_lfd, &stbuf))
-			goto fail_err;
-		idbuf.volume = stbuf.dwVolumeSerialNumber;
-		idbuf.nhigh = stbuf.nFileIndexHigh;
-		idbuf.nlow = stbuf.nFileIndexLow;
-		env->me_txns->mti_mutexid = mdb_hash(&idbuf, sizeof(idbuf));
-		mdb_env_mname_init(env);
-		env->me_rmutex =
-		    CreateMutexA(&mdb_all_sa, FALSE, MUTEXNAME(env, 'r'));
-		if (!env->me_rmutex) goto fail_err;
-		env->me_wmutex =
-		    CreateMutexA(&mdb_all_sa, FALSE, MUTEXNAME(env, 'w'));
-		if (!env->me_wmutex) goto fail_err;
-#elif defined(MDB_USE_POSIX_SEM)
-		struct stat stbuf;
-		struct {
-			dev_t dev;
-			ino_t ino;
-		} idbuf;
-
-#if defined(__NetBSD__)
-#define MDB_SHORT_SEMNAMES 1 /* limited to 14 chars */
-#endif
-		if (fstat(env->me_lfd, &stbuf)) goto fail_err;
-		memset(&idbuf, 0, sizeof(idbuf));
-		idbuf.dev = stbuf.st_dev;
-		idbuf.ino = stbuf.st_ino;
-		env->me_txns->mti_mutexid =
-		    mdb_hash(&idbuf, sizeof(idbuf))
-#ifdef MDB_SHORT_SEMNAMES
-		    /* Max 9 base85-digits.  We truncate here instead of
-		     * in mdb_env_mname_init() to keep the latter
-		     * portable.
-		     */
-		    % ((mdb_hash_t)85 * 85 * 85 * 85 * 85 * 85 * 85 * 85 * 85)
-#endif
-		    ;
-		mdb_env_mname_init(env);
-		/* Clean up after a previous run, if needed:  Try to
-		 * remove both semaphores before doing anything else.
-		 */
-		sem_unlink(MUTEXNAME(env, 'r'));
-		sem_unlink(MUTEXNAME(env, 'w'));
-		env->me_rmutex =
-		    sem_open(MUTEXNAME(env, 'r'), O_CREAT | O_EXCL, mode, 1);
-		if (env->me_rmutex == SEM_FAILED) goto fail_err;
-		env->me_wmutex =
-		    sem_open(MUTEXNAME(env, 'w'), O_CREAT | O_EXCL, mode, 1);
-		if (env->me_wmutex == SEM_FAILED) goto fail_err;
-#elif defined(MDB_USE_SYSV_SEM)
-		unsigned short vals[2] = {1, 1};
-		key_t key =
-		    ftok(fname->mn_val, 'M'); /* fname is lockfile path now */
-		if (key == -1) goto fail_err;
-		semid = semget(key, 2, (mode & 0777) | IPC_CREAT);
-		if (semid < 0) goto fail_err;
-		semu.array = vals;
-		if (semctl(semid, 0, SETALL, semu) < 0) goto fail_err;
-		env->me_txns->mti_semid = semid;
-		env->me_txns->mti_rlocked = 0;
-		env->me_txns->mti_wlocked = 0;
-#else /* MDB_USE_POSIX_MUTEX: */
 		pthread_mutexattr_t mattr;
 
 		/* Solaris needs this before initing a robust mutex.
@@ -4159,11 +4042,6 @@ static int ESECT mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode,
 		if ((rc = pthread_mutexattr_init(&mattr)) != 0) goto fail;
 		rc = pthread_mutexattr_setpshared(&mattr,
 						  PTHREAD_PROCESS_SHARED);
-#ifdef MDB_ROBUST_SUPPORTED
-		if (!rc)
-			rc = pthread_mutexattr_setrobust(&mattr,
-							 PTHREAD_MUTEX_ROBUST);
-#endif
 		if (!rc)
 			rc = pthread_mutex_init(env->me_txns->mti_rmutex,
 						&mattr);
@@ -4172,7 +4050,6 @@ static int ESECT mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode,
 						&mattr);
 		pthread_mutexattr_destroy(&mattr);
 		if (rc) goto fail;
-#endif /* _WIN32 || ... */
 
 		env->me_txns->mti_magic = MDB_MAGIC;
 		env->me_txns->mti_format = MDB_LOCK_FORMAT;
@@ -4180,9 +4057,6 @@ static int ESECT mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode,
 		env->me_txns->mti_numreaders = 0;
 
 	} else {
-#ifdef MDB_USE_SYSV_SEM
-		struct semid_ds buf;
-#endif
 		if (env->me_txns->mti_magic != MDB_MAGIC) {
 			DPUTS("lock region has invalid magic");
 			rc = MDB_INVALID;
@@ -4200,37 +4074,7 @@ static int ESECT mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode,
 		if (rc && rc != EACCES && rc != EAGAIN) {
 			goto fail;
 		}
-#ifdef _WIN32
-		mdb_env_mname_init(env);
-		env->me_rmutex =
-		    OpenMutexA(SYNCHRONIZE, FALSE, MUTEXNAME(env, 'r'));
-		if (!env->me_rmutex) goto fail_err;
-		env->me_wmutex =
-		    OpenMutexA(SYNCHRONIZE, FALSE, MUTEXNAME(env, 'w'));
-		if (!env->me_wmutex) goto fail_err;
-#elif defined(MDB_USE_POSIX_SEM)
-		mdb_env_mname_init(env);
-		env->me_rmutex = sem_open(MUTEXNAME(env, 'r'), 0);
-		if (env->me_rmutex == SEM_FAILED) goto fail_err;
-		env->me_wmutex = sem_open(MUTEXNAME(env, 'w'), 0);
-		if (env->me_wmutex == SEM_FAILED) goto fail_err;
-#elif defined(MDB_USE_SYSV_SEM)
-		semid = env->me_txns->mti_semid;
-		semu.buf = &buf;
-		/* check for read access */
-		if (semctl(semid, 0, IPC_STAT, semu) < 0) goto fail_err;
-		/* check for write access */
-		if (semctl(semid, 0, IPC_SET, semu) < 0) goto fail_err;
-#endif
 	}
-#ifdef MDB_USE_SYSV_SEM
-	env->me_rmutex->semid = semid;
-	env->me_wmutex->semid = semid;
-	env->me_rmutex->semnum = 0;
-	env->me_wmutex->semnum = 1;
-	env->me_rmutex->locked = &env->me_txns->mti_rlocked;
-	env->me_wmutex->locked = &env->me_txns->mti_wlocked;
-#endif
 
 	return MDB_SUCCESS;
 
@@ -4262,33 +4106,11 @@ int ESECT mdb_env_open(MDB_env *env, const u8 *path, unsigned int flags,
 	    (flags & ~(CHANGEABLE | CHANGELESS)))
 		return EINVAL;
 
-#ifdef MDB_VL32
-	if (flags & MDB_WRITEMAP) {
-		/* silently ignore WRITEMAP in 32 bit mode */
-		flags ^= MDB_WRITEMAP;
-	}
-	if (flags & MDB_FIXEDMAP) {
-		/* cannot support FIXEDMAP */
-		return EINVAL;
-	}
-#endif
 	flags |= env->me_flags;
 
 	rc = mdb_fname_init(path, flags, &fname);
 	if (rc) return rc;
 
-#ifdef MDB_VL32
-#ifdef _WIN32
-	env->me_rpmutex = CreateMutex(NULL, FALSE, NULL);
-	if (!env->me_rpmutex) {
-		rc = ErrCode();
-		goto leave;
-	}
-#else
-	rc = pthread_mutex_init(&env->me_rpmutex, NULL);
-	if (rc) goto leave;
-#endif
-#endif
 	flags |= MDB_ENV_ACTIVE; /* tell mdb_env_close0() to clean up */
 
 	if (flags & MDB_RDONLY) {
@@ -4304,18 +4126,6 @@ int ESECT mdb_env_open(MDB_env *env, const u8 *path, unsigned int flags,
 
 	env->me_flags = flags;
 	if (rc) goto leave;
-
-#ifdef MDB_VL32
-	{
-		env->me_rpages = alloc(MDB_ERPAGE_SIZE * sizeof(MDB_ID3));
-		if (!env->me_rpages) {
-			rc = ENOMEM;
-			goto leave;
-		}
-		env->me_rpages[0].mid = 0;
-		env->me_rpcheck = MDB_ERPAGE_SIZE / 2;
-	}
-#endif
 
 	env->me_path = strdup(path);
 	env->me_dbxs = calloc(env->me_maxdbs, sizeof(MDB_dbx));
@@ -4343,10 +4153,6 @@ int ESECT mdb_env_open(MDB_env *env, const u8 *path, unsigned int flags,
 		       (flags & MDB_RDONLY) ? MDB_O_RDONLY : MDB_O_RDWR, mode,
 		       &env->me_fd);
 	if (rc) goto leave;
-#ifdef _WIN32
-	rc = mdb_fopen(env, &fname, MDB_O_OVERLAPPED, mode, &env->me_ovfd);
-	if (rc) goto leave;
-#endif
 
 	if ((flags & (MDB_RDONLY | MDB_NOLOCK)) == MDB_RDONLY) {
 		rc = mdb_env_setup_locks(env, &fname, mode, &excl);
@@ -4388,17 +4194,6 @@ int ESECT mdb_env_open(MDB_env *env, const u8 *path, unsigned int flags,
 				    (unsigned char *)(txn->mt_dbiseqs +
 						      env->me_maxdbs);
 				txn->mt_env = env;
-#ifdef MDB_VL32
-				txn->mt_rpages =
-				    alloc(MDB_TRPAGE_SIZE * sizeof(MDB_ID3));
-				if (!txn->mt_rpages) {
-					release(txn);
-					rc = ENOMEM;
-					goto leave;
-				}
-				txn->mt_rpages[0].mid = 0;
-				txn->mt_rpcheck = MDB_TRPAGE_SIZE / 2;
-#endif
 				txn->mt_dbxs = env->me_dbxs;
 				txn->mt_flags = MDB_TXN_FINISHED;
 				env->me_txn0 = txn;
@@ -4437,51 +4232,17 @@ static void ESECT mdb_env_close0(MDB_env *env,
 	release(env->me_dbflags);
 	release(env->me_path);
 	release(env->me_dirty_list);
-#ifdef MDB_VL32
-	if (env->me_txn0 && env->me_txn0->mt_rpages)
-		release(env->me_txn0->mt_rpages);
-	if (env->me_rpages) {
-		MDB_ID3L el = env->me_rpages;
-		unsigned int x;
-		for (x = 1; x <= el[0].mid; x++)
-			munmap(el[x].mptr, el[x].mcnt * env->me_psize);
-		release(el);
-	}
-#endif
 	release(env->me_txn0);
 	mdb_midl_free(env->me_free_pgs);
 
 	if (env->me_flags & MDB_ENV_TXKEY) {
 		pthread_key_delete(env->me_txkey);
-#ifdef _WIN32
-		/* Delete our key from the global list */
-		for (i = 0; i < mdb_tls_nkeys; i++)
-			if (mdb_tls_keys[i] == env->me_txkey) {
-				mdb_tls_keys[i] =
-				    mdb_tls_keys[mdb_tls_nkeys - 1];
-				mdb_tls_nkeys--;
-				break;
-			}
-#endif
 	}
 
 	if (env->me_map) {
-#ifdef MDB_VL32
-		munmap(env->me_map, NUM_METAS * env->me_psize);
-#else
 		munmap(env->me_map, env->me_mapsize);
-#endif
 	}
 	if (env->me_mfd != INVALID_HANDLE_VALUE) (void)close(env->me_mfd);
-#ifdef _WIN32
-	if (env->ovs > 0) {
-		for (i = 0; i < env->ovs; i++) {
-			CloseHandle(env->ov[i].hEvent);
-		}
-		release(env->ov);
-	}
-	if (env->me_ovfd != INVALID_HANDLE_VALUE) (void)close(env->me_ovfd);
-#endif
 	if (env->me_fd != INVALID_HANDLE_VALUE) (void)close(env->me_fd);
 	if (env->me_txns) {
 		MDB_PID_T pid = getpid();
