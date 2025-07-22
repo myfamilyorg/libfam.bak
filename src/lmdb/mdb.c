@@ -162,45 +162,13 @@ typedef pthread_mutex_t *mdb_mutexref_t;
 #define Yu MDB_PRIy(u) /**< printf format for #u64 */
 #define Yd MDB_PRIy(d) /**< printf format for 'signed #u64' */
 
-#ifdef MDB_USE_SYSV_SEM
-#define MNAME_LEN (sizeof(int))
-#else
 #define MNAME_LEN (sizeof(pthread_mutex_t))
-#endif
-
-/** Initial part of #MDB_env.me_mutexname[].
- *	Changes to this code must be reflected in #MDB_LOCK_FORMAT.
- */
-#ifdef _WIN32
-#define MUTEXNAME_PREFIX "Global\\MDB"
-#elif defined MDB_USE_POSIX_SEM
-#define MUTEXNAME_PREFIX "/MDB"
-#endif
 
 /** @} */
 
-#ifdef MDB_ROBUST_SUPPORTED
-/** Lock mutex, handle any error, set rc = result.
- *	Return 0 on success, nonzero (not rc) on error.
- */
-#define LOCK_MUTEX(rc, env, mutex)      \
-	(((rc) = LOCK_MUTEX0(mutex)) && \
-	 ((rc) = mdb_mutex_failed(env, mutex, rc)))
-static int mdb_mutex_failed(MDB_env *env, mdb_mutexref_t mutex, int rc);
-#else
 #define LOCK_MUTEX(rc, env, mutex) ((rc) = LOCK_MUTEX0(mutex))
 #define mdb_mutex_failed(env, mutex, rc) (rc)
-#endif
 
-#ifndef _WIN32
-/**	A flag for opening a file and requesting synchronous data writes.
- *	This is only used when writing a meta page. It's not strictly needed;
- *	we could just do a normal write and then immediately perform a flush.
- *	But if this flag is available it saves us an extra system call.
- *
- *	@note If O_DSYNC is undefined but exists in /usr/include,
- * preferably set some compiler flag to get the definition.
- */
 #ifndef MDB_DSYNC
 #ifdef O_DSYNC
 #define MDB_DSYNC O_DSYNC
@@ -208,14 +176,7 @@ static int mdb_mutex_failed(MDB_env *env, mdb_mutexref_t mutex, int rc);
 #define MDB_DSYNC O_SYNC
 #endif
 #endif
-#endif
-
-/** Function for flushing the data of a file. Define this to fsync
- *	if fdatasync() is not supported.
- */
-#ifndef MDB_FDATASYNC
 #define MDB_FDATASYNC fdatasync
-#endif
 
 #ifndef MDB_MSYNC
 #define MDB_MSYNC(addr, len, flags) msync(addr, len, flags)
@@ -248,10 +209,6 @@ typedef MDB_ID txnid_t;
  *	@{
  */
 #ifndef MDB_DEBUG
-/**	Enable debug output.  Needs variable argument macros (a C99 feature).
- *	Set this to 1 for copious tracing. Set to 2 to add dumps of all IDLs
- *	read from and written to the database (used for free space management).
- */
 #define MDB_DEBUG 0
 #endif
 
@@ -558,18 +515,10 @@ typedef struct MDB_txbody {
 	 *	when readers release their slots.
 	 */
 	volatile unsigned mtb_numreaders;
-#if defined(_WIN32) || defined(MDB_USE_POSIX_SEM)
-	/** Binary form of names of the reader/writer locks */
-	mdb_hash_t mtb_mutexid;
-#elif defined(MDB_USE_SYSV_SEM)
-	int mtb_semid;
-	int mtb_rlocked;
-#else
 	/** Mutex protecting access to this table.
 	 *	This is the reader table lock used with LOCK_MUTEX().
 	 */
 	mdb_mutex_t mtb_rmutex;
-#endif
 } MDB_txbody;
 
 /** The actual reader table definition. */
@@ -589,18 +538,11 @@ typedef struct MDB_txninfo {
 		char pad[(sizeof(MDB_txbody) + CACHELINE - 1) &
 			 ~(CACHELINE - 1)];
 	} mt1;
-#if !(defined(_WIN32) || defined(MDB_USE_POSIX_SEM))
 	union {
-#ifdef MDB_USE_SYSV_SEM
-		int mt2_wlocked;
-#define mti_wlocked mt2.mt2_wlocked
-#else
 		mdb_mutex_t mt2_wmutex;
 #define mti_wmutex mt2.mt2_wmutex
-#endif
 		char pad[(MNAME_LEN + CACHELINE - 1) & ~(CACHELINE - 1)];
 	} mt2;
-#endif
 	MDB_reader mti_readers[1];
 } MDB_txninfo;
 
