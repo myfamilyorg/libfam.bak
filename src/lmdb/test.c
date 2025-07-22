@@ -93,10 +93,6 @@ Test(lmdb2) {
 	MDB_val key;
 	MDB_val val_put;
 	MDB_val val_get;
-	/*
-	char key_str[16];
-	char val_str[16];
-	*/
 	u32 readers;
 	i32 v;
 
@@ -167,6 +163,65 @@ Test(lmdb2) {
 
 	/* Drop */
 	ASSERT(!mdb_drop(txn, dbi, 1), "mdb_drop success");
+
+	ASSERT(!mdb_txn_commit(txn), "mdb_txn_commit success");
+
+	mdb_env_close(env);
+
+	unlink(path);
+	unlink(path_lock);
+
+	ASSERT_BYTES(0);
+}
+
+Test(lmdb3) {
+	const u8 *path;
+	const u8 *path_lock;
+	MDB_env *env;
+	MDB_txn *txn;
+	MDB_dbi dbi;
+	MDB_cursor *cursor;
+	MDB_val key;
+	MDB_val data;
+	u32 i;
+
+	path = "/tmp/lmdb3";
+	path_lock = "/tmp/lmdb3-lock";
+
+	unlink(path);
+	unlink(path_lock);
+
+	ASSERT_BYTES(0);
+
+	ASSERT(!mdb_env_create(&env), "mdb_env_create success");
+	ASSERT(!mdb_env_set_mapsize(env, 1024 * 1024 * 10),
+	       "mdb_env_set_mapsize success");
+	ASSERT(!mdb_env_open(env, path, MDB_NOSUBDIR | MDB_NOMETASYNC, 0664),
+	       "mdb_env_open success");
+
+	ASSERT(!mdb_txn_begin(env, NULL, 0, &txn), "mdb_txn_begin success");
+	ASSERT(!mdb_dbi_open(txn, NULL, MDB_CREATE | MDB_INTEGERKEY, &dbi),
+	       "mdb_dbi_open INTEGERKEY success");
+
+	/* Many inserts to create branch pages */
+	for (i = 0; i < 10000; i++) {
+		key.mv_size = sizeof(u64);
+		key.mv_data = &i;
+		data.mv_size = sizeof(u64);
+		data.mv_data = &i;
+		ASSERT(!mdb_put(txn, dbi, &key, &data, MDB_NOOVERWRITE),
+		       "mdb_put loop success");
+	}
+
+	/* Cursor to force branch merging via del */
+	ASSERT(!mdb_cursor_open(txn, dbi, &cursor), "mdb_cursor_open success");
+	for (i = 0; i < 5000; i++) {
+		key.mv_size = sizeof(u64);
+		key.mv_data = &i;
+		ASSERT(!mdb_cursor_get(cursor, &key, &data, MDB_SET),
+		       "mdb_cursor_get SET success");
+		ASSERT(!mdb_cursor_del(cursor, 0), "mdb_cursor_del success");
+	}
 
 	ASSERT(!mdb_txn_commit(txn), "mdb_txn_commit success");
 

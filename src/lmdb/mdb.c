@@ -2612,7 +2612,8 @@ i32 mdb_env_open(MDB_env *env, const u8 *path, u32 flags, mdb_mode_t mode) {
 			rc = ENOMEM;
 	}
 
-	env->me_flags = flags;
+	/* We don't support TLS */
+	env->me_flags = flags | MDB_NOTLS;
 	if (rc) goto leave;
 
 	env->me_path = strdup(path);

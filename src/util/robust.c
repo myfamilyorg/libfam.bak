@@ -39,7 +39,10 @@ RobustGuardImpl robust_lock(RobustLock *lock) {
 
 	while (!__cas32(lock, &expected, pid)) {
 		if (kill(expected, 0) == -1 && err == ESRCH)
-			if (__cas32(lock, &expected, pid)) break;
+			if (__cas32(lock, &expected, pid)) {
+				err = EOWNERDEAD;
+				break;
+			}
 		expected = 0;
 		yield();
 	}
