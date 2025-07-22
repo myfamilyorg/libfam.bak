@@ -3071,37 +3071,6 @@ static int mdb_page_flush(MDB_txn *txn, int keep) {
 			retry_write:
 				/* Write previous page(s) */
 				DPRINTF(("committing page %" Z "u", pgno));
-#ifdef _WIN32
-				OVERLAPPED *this_ov = &ov[async_i];
-				/* Clear status, and keep hEvent, we reuse that
-				 */
-				this_ov->Internal = 0;
-				this_ov->Offset = wpos & 0xffffffff;
-				this_ov->OffsetHigh = wpos >> 16 >> 16;
-				if (!F_ISSET(env->me_flags, MDB_NOSYNC) &&
-				    !this_ov->hEvent) {
-					HANDLE event = CreateEvent(NULL, FALSE,
-								   FALSE, NULL);
-					if (!event) {
-						rc = ErrCode();
-						DPRINTF(("CreateEvent: %s",
-							 strerror(rc)));
-						return rc;
-					}
-					this_ov->hEvent = event;
-				}
-				if (!WriteFile(fd, wdp, wsize, NULL, this_ov)) {
-					rc = ErrCode();
-					if (rc != ERROR_IO_PENDING) {
-						DPRINTF(("WriteFile: %d", rc));
-						return rc;
-					}
-				}
-				async_i++;
-#else
-#ifdef MDB_USE_PWRITEV
-				wres = pwritev(fd, iov, n, wpos);
-#else
 				if (n == 1) {
 					wres = pwrite(fd, iov[0].iov_base,
 						      wsize, wpos);
@@ -3117,7 +3086,6 @@ static int mdb_page_flush(MDB_txn *txn, int keep) {
 					}
 					wres = writev(fd, iov, n);
 				}
-#endif
 				if (wres != wsize) {
 					if (wres < 0) {
 						rc = ErrCode();
@@ -3134,55 +3102,19 @@ static int mdb_page_flush(MDB_txn *txn, int keep) {
 					}
 					return rc;
 				}
-#endif /* _WIN32 */
 				n = 0;
 			}
 			if (i > pagecount) break;
 			wpos = pos;
 			wsize = 0;
-#ifdef _WIN32
-			wdp = dp;
-		}
-#else
 		}
 		iov[n].iov_len = size;
 		iov[n].iov_base = (char *)dp;
-#endif /* _WIN32 */
 		DPRINTF(("committing page %" Yu, pgno));
 		next_pos = pos + size;
 		wsize += size;
 		n++;
 	}
-#ifdef MDB_VL32
-	if (pgno > txn->mt_last_pgno) txn->mt_last_pgno = pgno;
-#endif
-
-#ifdef _WIN32
-	if (!F_ISSET(env->me_flags, MDB_NOSYNC)) {
-		/* Now wait for all the asynchronous/overlapped
-		 * sync/write-through writes to complete. We start with the last
-		 * one so that all the others should already be complete and we
-		 * reduce thread suspend/resuming (in practice, typically
-		 * about 99.5% of writes are done after the last write is done)
-		 */
-		rc = 0;
-		while (--async_i >= 0) {
-			if (ov[async_i].hEvent) {
-				DWORD temp_wres;
-				if (!GetOverlappedResult(fd, &ov[async_i],
-							 &temp_wres, TRUE)) {
-					rc = ErrCode(); /* Continue on so that
-							   all the event signals
-							   are reset */
-				}
-				wres = temp_wres;
-			}
-		}
-		if (rc) { /* any error on GetOverlappedResult, exit now */
-			return rc;
-		}
-	}
-#endif /* _WIN32 */
 
 	if (!(env->me_flags & MDB_WRITEMAP)) {
 		/* Don't free pages when using writemap (can only get here in
@@ -4696,47 +4628,46 @@ static int ESECT mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode,
 		    sem_open(MUTEXNAME(env, 'w'), O_CREAT | O_EXCL, mode, 1);
 		if (env->me_wmutex == SEM_FAILED) goto fail_err;
 #elif defined(MDB_USE_SYSV_SEM)
-			unsigned short vals[2] = {1, 1};
-			key_t key = ftok(fname->mn_val,
-					 'M'); /* fname is lockfile path now */
-			if (key == -1) goto fail_err;
-			semid = semget(key, 2, (mode & 0777) | IPC_CREAT);
-			if (semid < 0) goto fail_err;
-			semu.array = vals;
-			if (semctl(semid, 0, SETALL, semu) < 0) goto fail_err;
-			env->me_txns->mti_semid = semid;
-			env->me_txns->mti_rlocked = 0;
-			env->me_txns->mti_wlocked = 0;
+		unsigned short vals[2] = {1, 1};
+		key_t key =
+		    ftok(fname->mn_val, 'M'); /* fname is lockfile path now */
+		if (key == -1) goto fail_err;
+		semid = semget(key, 2, (mode & 0777) | IPC_CREAT);
+		if (semid < 0) goto fail_err;
+		semu.array = vals;
+		if (semctl(semid, 0, SETALL, semu) < 0) goto fail_err;
+		env->me_txns->mti_semid = semid;
+		env->me_txns->mti_rlocked = 0;
+		env->me_txns->mti_wlocked = 0;
 #else /* MDB_USE_POSIX_MUTEX: */
-			pthread_mutexattr_t mattr;
+		pthread_mutexattr_t mattr;
 
-			/* Solaris needs this before initing a robust mutex.
-			 * Otherwise it may skip the init and return EBUSY
-			 * "seems someone already inited" or EINVAL "it was
-			 * inited differently".
-			 */
-			memset(env->me_txns->mti_rmutex, 0,
-			       sizeof(*env->me_txns->mti_rmutex));
-			memset(env->me_txns->mti_wmutex, 0,
-			       sizeof(*env->me_txns->mti_wmutex));
+		/* Solaris needs this before initing a robust mutex.
+		 * Otherwise it may skip the init and return EBUSY
+		 * "seems someone already inited" or EINVAL "it was
+		 * inited differently".
+		 */
+		memset(env->me_txns->mti_rmutex, 0,
+		       sizeof(*env->me_txns->mti_rmutex));
+		memset(env->me_txns->mti_wmutex, 0,
+		       sizeof(*env->me_txns->mti_wmutex));
 
-			if ((rc = pthread_mutexattr_init(&mattr)) != 0)
-				goto fail;
-			rc = pthread_mutexattr_setpshared(
-			    &mattr, PTHREAD_PROCESS_SHARED);
+		if ((rc = pthread_mutexattr_init(&mattr)) != 0) goto fail;
+		rc = pthread_mutexattr_setpshared(&mattr,
+						  PTHREAD_PROCESS_SHARED);
 #ifdef MDB_ROBUST_SUPPORTED
-			if (!rc)
-				rc = pthread_mutexattr_setrobust(
-				    &mattr, PTHREAD_MUTEX_ROBUST);
+		if (!rc)
+			rc = pthread_mutexattr_setrobust(&mattr,
+							 PTHREAD_MUTEX_ROBUST);
 #endif
-			if (!rc)
-				rc = pthread_mutex_init(
-				    env->me_txns->mti_rmutex, &mattr);
-			if (!rc)
-				rc = pthread_mutex_init(
-				    env->me_txns->mti_wmutex, &mattr);
-			pthread_mutexattr_destroy(&mattr);
-			if (rc) goto fail;
+		if (!rc)
+			rc = pthread_mutex_init(env->me_txns->mti_rmutex,
+						&mattr);
+		if (!rc)
+			rc = pthread_mutex_init(env->me_txns->mti_wmutex,
+						&mattr);
+		pthread_mutexattr_destroy(&mattr);
+		if (rc) goto fail;
 #endif /* _WIN32 || ... */
 
 		env->me_txns->mti_magic = MDB_MAGIC;
@@ -4780,12 +4711,12 @@ static int ESECT mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode,
 		env->me_wmutex = sem_open(MUTEXNAME(env, 'w'), 0);
 		if (env->me_wmutex == SEM_FAILED) goto fail_err;
 #elif defined(MDB_USE_SYSV_SEM)
-			semid = env->me_txns->mti_semid;
-			semu.buf = &buf;
-			/* check for read access */
-			if (semctl(semid, 0, IPC_STAT, semu) < 0) goto fail_err;
-			/* check for write access */
-			if (semctl(semid, 0, IPC_SET, semu) < 0) goto fail_err;
+		semid = env->me_txns->mti_semid;
+		semu.buf = &buf;
+		/* check for read access */
+		if (semctl(semid, 0, IPC_STAT, semu) < 0) goto fail_err;
+		/* check for write access */
+		if (semctl(semid, 0, IPC_SET, semu) < 0) goto fail_err;
 #endif
 	}
 #ifdef MDB_USE_SYSV_SEM
@@ -5083,15 +5014,14 @@ static void ESECT mdb_env_close0(MDB_env *env,
 			}
 		}
 #elif defined(MDB_USE_SYSV_SEM)
-			if (env->me_rmutex->semid != -1) {
-				/* If we have the filelock:  If we are the
-				 * only remaining user, clean up semaphores.
-				 */
-				if (excl == 0) mdb_env_excl_lock(env, &excl);
-				if (excl > 0)
-					semctl(env->me_rmutex->semid, 0,
-					       IPC_RMID);
-			}
+		if (env->me_rmutex->semid != -1) {
+			/* If we have the filelock:  If we are the
+			 * only remaining user, clean up semaphores.
+			 */
+			if (excl == 0) mdb_env_excl_lock(env, &excl);
+			if (excl > 0)
+				semctl(env->me_rmutex->semid, 0, IPC_RMID);
+		}
 #endif
 		munmap((void *)env->me_txns,
 		       (env->me_maxreaders - 1) * sizeof(MDB_reader) +
