@@ -59,24 +59,7 @@
 #include <libfam/pthread.H>
 #include <libfam/types.H>
 
-#define BYTE_ORDER 1234
-#define LITTLE_ENDIAN 1234
-#define BIG_ENDIAN 4321
-
-#if (((__clang_major__ << 8) | __clang_minor__) >= 0x0302) || \
-    (((__GNUC__ << 8) | __GNUC_MINOR__) >= 0x0403)
-#define ESECT __attribute__((cold))
-#else
-#ifdef __GNUC__
-#ifdef __APPLE__
-#define ESECT __attribute__((section("__TEXT,text_env")))
-#else
-#define ESECT __attribute__((section("text_env")))
-#endif
-#else
 #define ESECT
-#endif
-#endif
 
 #define CALL_CONV
 
@@ -3701,14 +3684,6 @@ static int ESECT mdb_fopen(const MDB_env *env, MDB_name *fname,
 			 * portable way to ask how much, so we require OS
 			 * pagesize alignment.
 			 */
-#ifdef O_DIRECT
-			/* open(...O_DIRECT...) would break on filesystems
-			 * without O_DIRECT support (ITS#7682). Try to set it
-			 * here instead.
-			 */
-			if ((flags = fcntl(fd, F_GETFL)) != -1)
-				(void)fcntl(fd, F_SETFL, flags | O_DIRECT);
-#endif
 		}
 	}
 
