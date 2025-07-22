@@ -134,9 +134,9 @@
 #else
 #define COPY_PGNO(dst, src)                   \
 	do {                                  \
-		unsigned short *s, *d;        \
-		s = (unsigned short *)&(src); \
-		d = (unsigned short *)&(dst); \
+		u16 *s, *d;        \
+		s = (u16 *)&(src); \
+		d = (u16 *)&(dst); \
 		*d++ = *s++;                  \
 		*d = *s;                      \
 	} while (0)
@@ -375,8 +375,8 @@ typedef struct MDB_node {
 #define F_SUBDATA 0x02
 #define F_DUPDATA 0x04
 #define NODE_ADD_FLAGS (F_DUPDATA | F_SUBDATA | MDB_RESERVE | MDB_APPEND)
-	unsigned short mn_flags;
-	unsigned short mn_ksize;
+	u16 mn_flags;
+	u16 mn_ksize;
 	char mn_data[1];
 } MDB_node;
 
@@ -435,7 +435,7 @@ struct MDB_txn {
 	} mt_u;
 	MDB_dbx *mt_dbxs;
 	MDB_db *mt_dbs;
-	unsigned int *mt_dbiseqs;
+	u32 *mt_dbiseqs;
 #define DB_DIRTY 0x01
 #define DB_STALE 0x02
 #define DB_NEW 0x04
@@ -456,8 +456,8 @@ struct MDB_txn {
 #define MDB_TXN_SPILLS 0x08
 #define MDB_TXN_HAS_CHILD 0x10
 #define MDB_TXN_BLOCKED (MDB_TXN_FINISHED | MDB_TXN_ERROR | MDB_TXN_HAS_CHILD)
-	unsigned int mt_flags;
-	unsigned int mt_dirty_room;
+	u32 mt_flags;
+	u32 mt_dirty_room;
 };
 
 struct MDB_xcursor;
@@ -471,8 +471,8 @@ struct MDB_cursor {
 	MDB_db *mc_db;
 	MDB_dbx *mc_dbx;
 	unsigned char *mc_dbflag;
-	unsigned short mc_snum;
-	unsigned short mc_top;
+	u16 mc_snum;
+	u16 mc_top;
 #define C_INITIALIZED 0x01
 #define C_EOF 0x02
 #define C_SUB 0x04
@@ -480,7 +480,7 @@ struct MDB_cursor {
 #define C_UNTRACK 0x40
 #define C_WRITEMAP MDB_TXN_WRITEMAP
 #define C_ORIG_RDONLY MDB_TXN_RDONLY
-	unsigned int mc_flags;
+	u32 mc_flags;
 	MDB_page *mc_pg[CURSOR_STACK];
 	u16 mc_ki[CURSOR_STACK];
 #define MC_OVPG(mc) ((MDB_page *)0)
@@ -508,9 +508,9 @@ struct MDB_env {
 #define MDB_ENV_TXKEY 0x10000000U
 #define MDB_FSYNCONLY 0x08000000U
 	u32 me_flags;
-	unsigned int me_psize;
-	unsigned int me_os_psize;
-	unsigned int me_maxreaders;
+	u32 me_psize;
+	u32 me_os_psize;
+	u32 me_maxreaders;
 	volatile int me_close_readers;
 	MDB_dbi me_numdbs;
 	MDB_dbi me_maxdbs;
@@ -527,7 +527,7 @@ struct MDB_env {
 	u64 me_maxpg;
 	MDB_dbx *me_dbxs;
 	u16 *me_dbflags;
-	unsigned int *me_dbiseqs;
+	u32 *me_dbiseqs;
 	pthread_key_t me_txkey;
 	u64 me_pgoldest;
 	MDB_pgstate me_pgstate;
@@ -537,9 +537,9 @@ struct MDB_env {
 	MDB_IDL me_free_pgs;
 	MDB_ID2L me_dirty_list;
 	int me_maxfree_1pg;
-	unsigned int me_nodemax;
+	u32 me_nodemax;
 #if !(MDB_MAXKEYSIZE)
-	unsigned int me_maxkey;
+	u32 me_maxkey;
 #endif
 	int me_live_reader;
 #define me_rmutex me_txns->mti_rmutex
@@ -624,7 +624,7 @@ static int mdb_page_search_root(MDB_cursor *mc, MDB_val *key, int modify);
 static int mdb_page_search(MDB_cursor *mc, MDB_val *key, int flags);
 static int mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst);
 static int mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata,
-			  u64 newpgno, unsigned int nflags);
+			  u64 newpgno, u32 nflags);
 
 static int mdb_env_read_header(MDB_env *env, int prev, MDB_meta *meta);
 static MDB_meta *mdb_env_pick_meta(const MDB_env *env);
@@ -633,7 +633,7 @@ static void mdb_env_close0(MDB_env *env, int excl);
 
 static MDB_node *mdb_node_search(MDB_cursor *mc, MDB_val *key, int *exactp);
 static int mdb_node_add(MDB_cursor *mc, u16 indx, MDB_val *key, MDB_val *data,
-			u64 pgno, unsigned int flags);
+			u64 pgno, u32 flags);
 static void mdb_node_del(MDB_cursor *mc, int ksize);
 static void mdb_node_shrink(MDB_page *mp, u16 indx);
 static int mdb_node_move(MDB_cursor *csrc, MDB_cursor *cdst, int fromleft);
@@ -647,9 +647,9 @@ static int mdb_update_key(MDB_cursor *mc, MDB_val *key);
 static void mdb_cursor_copy(const MDB_cursor *csrc, MDB_cursor *cdst);
 static void mdb_cursor_pop(MDB_cursor *mc);
 static int mdb_cursor_push(MDB_cursor *mc, MDB_page *mp);
-static int _mdb_cursor_del(MDB_cursor *mc, unsigned int flags);
+static int _mdb_cursor_del(MDB_cursor *mc, u32 flags);
 static int _mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
-			   unsigned int flags);
+			   u32 flags);
 
 static int mdb_cursor_del0(MDB_cursor *mc);
 static int mdb_del0(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data,
@@ -848,7 +848,7 @@ static int mdb_page_spill(MDB_cursor *m0, MDB_val *key, MDB_val *data) {
 	MDB_txn *txn = m0->mc_txn;
 	MDB_page *dp;
 	MDB_ID2L dl = txn->mt_u.dirty_list;
-	unsigned int i, j, need;
+	u32 i, j, need;
 	int rc;
 
 	if (m0->mc_flags & C_SUB) return MDB_SUCCESS;
@@ -868,7 +868,7 @@ static int mdb_page_spill(MDB_cursor *m0, MDB_val *key, MDB_val *data) {
 		if (!txn->mt_spill_pgs) return ENOMEM;
 	} else {
 		MDB_IDL sl = txn->mt_spill_pgs;
-		unsigned int num = sl[0];
+		u32 num = sl[0];
 		j = 0;
 		for (i = 1; i <= num; i++) {
 			if (!(sl[i] & 1)) sl[++j] = sl[i];
@@ -1074,7 +1074,7 @@ fail:
 	return rc;
 }
 
-static void mdb_page_copy(MDB_page *dst, MDB_page *src, unsigned int psize) {
+static void mdb_page_copy(MDB_page *dst, MDB_page *src, u32 psize) {
 	enum { Align = sizeof(u64) };
 	u16 upper = src->mp_upper, lower = src->mp_lower,
 	    unused = upper - lower;
@@ -1324,7 +1324,7 @@ static int mdb_txn_renew0(MDB_txn *txn) {
 	MDB_env *env = txn->mt_env;
 	MDB_txninfo *ti = env->me_txns;
 	MDB_meta *meta;
-	unsigned int i, nr, flags = txn->mt_flags;
+	u32 i, nr, flags = txn->mt_flags;
 	u16 x;
 	int rc, new_notls = 0;
 
@@ -1409,7 +1409,7 @@ static int mdb_txn_renew0(MDB_txn *txn) {
 		txn->mt_spill_pgs = NULL;
 		env->me_txn = txn;
 		memcpy(txn->mt_dbiseqs, env->me_dbiseqs,
-		       env->me_maxdbs * sizeof(unsigned int));
+		       env->me_maxdbs * sizeof(u32));
 	}
 
 	memcpy(txn->mt_dbs, meta->mm_dbs, CORE_DBS * sizeof(MDB_db));
@@ -1446,7 +1446,7 @@ int mdb_txn_renew(MDB_txn *txn) {
 	return rc;
 }
 
-int mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags,
+int mdb_txn_begin(MDB_env *env, MDB_txn *parent, u32 flags,
 		  MDB_txn **ret) {
 	MDB_txn *txn;
 	MDB_ntxn *ntxn;
@@ -1484,7 +1484,7 @@ int mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags,
 	txn->mt_env = env;
 
 	if (parent) {
-		unsigned int i;
+		u32 i;
 		txn->mt_cursors = (MDB_cursor **)(txn->mt_dbs + env->me_maxdbs);
 		txn->mt_dbiseqs = parent->mt_dbiseqs;
 		txn->mt_u.dirty_list = alloc(sizeof(MDB_ID2) * MDB_IDL_UM_SIZE);
@@ -1915,7 +1915,7 @@ static int mdb_env_share_locks(MDB_env *env, int *excl);
 
 static int _mdb_txn_commit(MDB_txn *txn) {
 	int rc;
-	unsigned int i, end_mode;
+	u32 i, end_mode;
 	MDB_env *env;
 
 	if (txn == NULL) return EINVAL;
@@ -2165,7 +2165,7 @@ static void mdb_env_init_meta0(MDB_env *env, MDB_meta *meta) {
 static int mdb_env_init_meta(MDB_env *env, MDB_meta *meta) {
 	MDB_page *p, *q;
 	int rc;
-	unsigned int psize;
+	u32 psize;
 	int len;
 #define DO_PWRITE(rc, fd, ptr, size, len, pos)                 \
 	do {                                                   \
@@ -2300,7 +2300,7 @@ int mdb_env_create(MDB_env **env) {
 
 static int mdb_env_map(MDB_env *env, void *addr) {
 	MDB_page *p;
-	unsigned int flags = env->me_flags;
+	u32 flags = env->me_flags;
 	int mmap_flags = MAP_SHARED;
 	int prot = PROT_READ;
 	if (flags & MDB_WRITEMAP) {
@@ -2354,13 +2354,13 @@ int mdb_env_set_maxdbs(MDB_env *env, MDB_dbi dbs) {
 	return MDB_SUCCESS;
 }
 
-int mdb_env_set_maxreaders(MDB_env *env, unsigned int readers) {
+int mdb_env_set_maxreaders(MDB_env *env, u32 readers) {
 	if (env->me_map || readers < 1) return EINVAL;
 	env->me_maxreaders = readers;
 	return MDB_SUCCESS;
 }
 
-int mdb_env_get_maxreaders(MDB_env *env, unsigned int *readers) {
+int mdb_env_get_maxreaders(MDB_env *env, u32 *readers) {
 	if (!env || !readers) return EINVAL;
 	*readers = env->me_maxreaders;
 	return MDB_SUCCESS;
@@ -2409,7 +2409,7 @@ static int mdb_fopen(const MDB_env *env, MDB_name *fname,
 }
 
 static int mdb_env_open2(MDB_env *env, int prev) {
-	unsigned int flags = env->me_flags;
+	u32 flags = env->me_flags;
 	int i, newenv = 0, rc;
 	MDB_meta meta;
 	u64 minsize;
@@ -2590,7 +2590,7 @@ fail:
 	return rc;
 }
 
-int mdb_env_open(MDB_env *env, const u8 *path, unsigned int flags,
+int mdb_env_open(MDB_env *env, const u8 *path, u32 flags,
 		 mdb_mode_t mode) {
 	int rc, excl = -1;
 	MDB_name fname;
@@ -2621,7 +2621,7 @@ int mdb_env_open(MDB_env *env, const u8 *path, unsigned int flags,
 	env->me_path = strdup(path);
 	env->me_dbxs = calloc(env->me_maxdbs, sizeof(MDB_dbx));
 	env->me_dbflags = calloc(env->me_maxdbs, sizeof(u16));
-	env->me_dbiseqs = calloc(env->me_maxdbs, sizeof(unsigned int));
+	env->me_dbiseqs = calloc(env->me_maxdbs, sizeof(u32));
 	if (!(env->me_dbxs && env->me_path && env->me_dbflags &&
 	      env->me_dbiseqs)) {
 		rc = ENOMEM;
@@ -2665,7 +2665,7 @@ int mdb_env_open(MDB_env *env, const u8 *path, unsigned int flags,
 			    size = tsize +
 				   env->me_maxdbs *
 				       (sizeof(MDB_db) + sizeof(MDB_cursor *) +
-					sizeof(unsigned int) + 1);
+					sizeof(u32) + 1);
 			if ((env->me_pbuf = calloc(1, env->me_psize)) &&
 			    (txn = calloc(1, size))) {
 				txn->mt_dbs = (MDB_db *)((char *)txn + tsize);
@@ -2673,7 +2673,7 @@ int mdb_env_open(MDB_env *env, const u8 *path, unsigned int flags,
 				    (MDB_cursor **)(txn->mt_dbs +
 						    env->me_maxdbs);
 				txn->mt_dbiseqs =
-				    (unsigned int *)(txn->mt_cursors +
+				    (u32 *)(txn->mt_cursors +
 						     env->me_maxdbs);
 				txn->mt_dbflags =
 				    (unsigned char *)(txn->mt_dbiseqs +
@@ -2761,27 +2761,27 @@ static int mdb_cmp_long(const MDB_val *a, const MDB_val *b) {
 }
 
 static int mdb_cmp_int(const MDB_val *a, const MDB_val *b) {
-	return (*(unsigned int *)a->mv_data < *(unsigned int *)b->mv_data)
+	return (*(u32 *)a->mv_data < *(u32 *)b->mv_data)
 		   ? -1
-		   : *(unsigned int *)a->mv_data > *(unsigned int *)b->mv_data;
+		   : *(u32 *)a->mv_data > *(u32 *)b->mv_data;
 }
 
 static int mdb_cmp_cint(const MDB_val *a, const MDB_val *b) {
-	unsigned short *u, *c;
+	u16 *u, *c;
 	int x;
 
-	u = (unsigned short *)((char *)a->mv_data + a->mv_size);
-	c = (unsigned short *)((char *)b->mv_data + a->mv_size);
+	u = (u16 *)((char *)a->mv_data + a->mv_size);
+	c = (u16 *)((char *)b->mv_data + a->mv_size);
 	do {
 		x = *--u - *--c;
-	} while (!x && u > (unsigned short *)a->mv_data);
+	} while (!x && u > (u16 *)a->mv_data);
 	return x;
 }
 
 static int mdb_cmp_memn(const MDB_val *a, const MDB_val *b) {
 	int diff;
 	i64 len_diff;
-	unsigned int len;
+	u32 len;
 
 	len = a->mv_size;
 	len_diff = (i64)a->mv_size - (i64)b->mv_size;
@@ -2817,7 +2817,7 @@ static int mdb_cmp_memnr(const MDB_val *a, const MDB_val *b) {
 }
 
 static MDB_node *mdb_node_search(MDB_cursor *mc, MDB_val *key, int *exactp) {
-	unsigned int i = 0, nkeys;
+	u32 i = 0, nkeys;
 	int low, high;
 	int rc = 0;
 	MDB_page *mp = mc->mc_pg[mc->mc_top];
@@ -3411,8 +3411,8 @@ static int mdb_cursor_set(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 			goto set1;
 		}
 		if (rc > 0) {
-			unsigned int i;
-			unsigned int nkeys = NUMKEYS(mp);
+			u32 i;
+			u32 nkeys = NUMKEYS(mp);
 			if (nkeys > 1) {
 				if (MP_FLAGS(mp) & P_LEAF2) {
 					nodekey.mv_data = LEAF2KEY(
@@ -3870,7 +3870,7 @@ static int mdb_cursor_touch(MDB_cursor *mc) {
 }
 
 static int _mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
-			   unsigned int flags) {
+			   u32 flags) {
 	MDB_env *env;
 	MDB_node *leaf = NULL;
 	MDB_page *fp, *mp, *sub_root = NULL;
@@ -3878,10 +3878,10 @@ static int _mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 	MDB_val xdata, *rdata, dkey, olddata;
 	MDB_db dummy;
 	int do_sub = 0, insert_key, insert_data;
-	unsigned int mcount = 0, dcount = 0, nospill;
+	u32 mcount = 0, dcount = 0, nospill;
 	u64 nsize;
 	int rc, rc2;
-	unsigned int nflags;
+	u32 nflags;
 
 	if (mc == NULL || key == NULL) return EINVAL;
 
@@ -3993,14 +3993,14 @@ static int _mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 	} else {
 		if (IS_LEAF2(mc->mc_pg[mc->mc_top])) {
 			char *ptr;
-			unsigned int ksize = mc->mc_db->md_pad;
+			u32 ksize = mc->mc_db->md_pad;
 			if (key->mv_size != ksize) return MDB_BAD_VALSIZE;
 			ptr = LEAF2KEY(mc->mc_pg[mc->mc_top],
 				       mc->mc_ki[mc->mc_top], ksize);
 			memcpy(ptr, key->mv_data, ksize);
 		fix_parent:
 			if (mc->mc_top && !mc->mc_ki[mc->mc_top]) {
-				unsigned short dtop = 1;
+				u16 dtop = 1;
 				mc->mc_top--;
 				while (mc->mc_top && !mc->mc_ki[mc->mc_top]) {
 					mc->mc_top--;
@@ -4367,12 +4367,12 @@ new_sub:
 }
 
 int mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
-		   unsigned int flags) {
+		   u32 flags) {
 	int rc = _mdb_cursor_put(mc, key, data, flags);
 	return rc;
 }
 
-static int _mdb_cursor_del(MDB_cursor *mc, unsigned int flags) {
+static int _mdb_cursor_del(MDB_cursor *mc, u32 flags) {
 	MDB_node *leaf;
 	MDB_page *mp;
 	int rc;
@@ -4474,7 +4474,7 @@ fail:
 	return rc;
 }
 
-int mdb_cursor_del(MDB_cursor *mc, unsigned int flags) {
+int mdb_cursor_del(MDB_cursor *mc, u32 flags) {
 	return _mdb_cursor_del(mc, flags);
 }
 
@@ -4516,8 +4516,8 @@ static u64 mdb_branch_size(MDB_env *env __attribute__((unused)), MDB_val *key) {
 }
 
 static int mdb_node_add(MDB_cursor *mc, u16 indx, MDB_val *key, MDB_val *data,
-			u64 pgno, unsigned int flags) {
-	unsigned int i;
+			u64 pgno, u32 flags) {
+	u32 i;
 	u64 node_size = NODESIZE;
 	i64 room;
 	u16 ofs;
@@ -4613,7 +4613,7 @@ full:
 static void mdb_node_del(MDB_cursor *mc, int ksize) {
 	MDB_page *mp = mc->mc_pg[mc->mc_top];
 	u16 indx = mc->mc_ki[mc->mc_top];
-	unsigned int sz;
+	u32 sz;
 	u16 i, j, numkeys, ptr;
 	MDB_node *node;
 	char *base;
@@ -4940,7 +4940,7 @@ static int mdb_node_move(MDB_cursor *csrc, MDB_cursor *cdst, int fromleft) {
 	u64 srcpg;
 	MDB_cursor mn;
 	int rc;
-	unsigned short flags;
+	u16 flags;
 
 	if ((rc = mdb_page_touch(csrc)) || (rc = mdb_page_touch(cdst)))
 		return rc;
@@ -4961,7 +4961,7 @@ static int mdb_node_move(MDB_cursor *csrc, MDB_cursor *cdst, int fromleft) {
 		flags = srcnode->mn_flags;
 		if (csrc->mc_ki[csrc->mc_top] == 0 &&
 		    IS_BRANCH(csrc->mc_pg[csrc->mc_top])) {
-			unsigned int snum = csrc->mc_snum;
+			u32 snum = csrc->mc_snum;
 			MDB_node *s2;
 			rc = mdb_page_search_lowest(csrc);
 			if (rc) return rc;
@@ -4986,7 +4986,7 @@ static int mdb_node_move(MDB_cursor *csrc, MDB_cursor *cdst, int fromleft) {
 	mn.mc_xcursor = NULL;
 	if (IS_BRANCH(cdst->mc_pg[cdst->mc_top]) &&
 	    cdst->mc_ki[cdst->mc_top] == 0) {
-		unsigned int snum = cdst->mc_snum;
+		u32 snum = cdst->mc_snum;
 		MDB_node *s2;
 		MDB_val bkey;
 		mdb_cursor_copy(cdst, &mn);
@@ -5221,7 +5221,7 @@ static int mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst) {
 	{
 		MDB_cursor *m2, *m3;
 		MDB_dbi dbi = csrc->mc_dbi;
-		unsigned int top = csrc->mc_top;
+		u32 top = csrc->mc_top;
 
 		for (m2 = csrc->mc_txn->mt_cursors[dbi]; m2; m2 = m2->mc_next) {
 			if (csrc->mc_flags & C_SUB)
@@ -5243,7 +5243,7 @@ static int mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst) {
 		}
 	}
 	{
-		unsigned int snum = cdst->mc_snum;
+		u32 snum = cdst->mc_snum;
 		u16 depth = cdst->mc_db->md_depth;
 		mdb_cursor_pop(cdst);
 		rc = mdb_rebalance(cdst);
@@ -5256,7 +5256,7 @@ static int mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst) {
 }
 
 static void mdb_cursor_copy(const MDB_cursor *csrc, MDB_cursor *cdst) {
-	unsigned int i;
+	u32 i;
 
 	cdst->mc_txn = csrc->mc_txn;
 	cdst->mc_dbi = csrc->mc_dbi;
@@ -5276,7 +5276,7 @@ static void mdb_cursor_copy(const MDB_cursor *csrc, MDB_cursor *cdst) {
 static int mdb_rebalance(MDB_cursor *mc) {
 	MDB_node *node;
 	int rc, fromleft;
-	unsigned int ptop, minkeys, thresh;
+	u32 ptop, minkeys, thresh;
 	MDB_cursor mn;
 	u16 oldki;
 
@@ -5426,7 +5426,7 @@ static int mdb_cursor_del0(MDB_cursor *mc) {
 	int rc;
 	MDB_page *mp;
 	u16 ki;
-	unsigned int nkeys;
+	u32 nkeys;
 	MDB_cursor *m2, *m3;
 	MDB_dbi dbi = mc->mc_dbi;
 
@@ -5563,8 +5563,8 @@ static int mdb_del0(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data,
 }
 
 static int mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata,
-			  u64 newpgno, unsigned int nflags) {
-	unsigned int flags;
+			  u64 newpgno, u32 nflags) {
+	u32 flags;
 	int rc = MDB_SUCCESS, new_root = 0, did_split = 0;
 	u16 newindx;
 	u64 pgno = 0;
@@ -5626,7 +5626,7 @@ static int mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata,
 		if (IS_LEAF2(rp)) {
 			char *split, *ins;
 			int x;
-			unsigned int lsize, rsize, ksize;
+			u32 lsize, rsize, ksize;
 			x = mc->mc_ki[mc->mc_top] - split_indx;
 			ksize = mc->mc_db->md_pad;
 			split = LEAF2KEY(mp, split_indx, ksize);
@@ -5933,7 +5933,7 @@ done:
 }
 
 int mdb_put(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data,
-	    unsigned int flags) {
+	    u32 flags) {
 	MDB_cursor mc;
 	MDB_xcursor mx;
 	int rc;
@@ -5972,7 +5972,7 @@ typedef struct mdb_copy {
 	volatile int mc_error;
 } mdb_copy;
 
-int mdb_env_set_flags(MDB_env *env, unsigned int flag, int onoff) {
+int mdb_env_set_flags(MDB_env *env, u32 flag, int onoff) {
 	if (flag & ~CHANGEABLE) return EINVAL;
 	if (onoff)
 		env->me_flags |= flag;
@@ -5981,7 +5981,7 @@ int mdb_env_set_flags(MDB_env *env, unsigned int flag, int onoff) {
 	return MDB_SUCCESS;
 }
 
-int mdb_env_get_flags(MDB_env *env, unsigned int *arg) {
+int mdb_env_get_flags(MDB_env *env, u32 *arg) {
 	if (!env || !arg) return EINVAL;
 
 	*arg = env->me_flags & (CHANGEABLE | CHANGELESS);
@@ -6068,14 +6068,14 @@ static void mdb_default_cmp(MDB_txn *txn, MDB_dbi dbi) {
 		       : ((f & MDB_REVERSEDUP) ? mdb_cmp_memnr : mdb_cmp_memn));
 }
 
-int mdb_dbi_open(MDB_txn *txn, const u8 *name, unsigned int flags,
+int mdb_dbi_open(MDB_txn *txn, const u8 *name, u32 flags,
 		 MDB_dbi *dbi) {
 	MDB_val key, data;
 	MDB_dbi i;
 	MDB_cursor mc;
 	MDB_db dummy;
 	int rc, dbflag, exact;
-	unsigned int unused = 0, seq;
+	u32 unused = 0, seq;
 	char *namedup;
 	u64 len;
 
@@ -6151,7 +6151,7 @@ int mdb_dbi_open(MDB_txn *txn, const u8 *name, unsigned int flags,
 	if (rc) {
 		release(namedup);
 	} else {
-		unsigned int slot = unused ? unused : txn->mt_numdbs;
+		u32 slot = unused ? unused : txn->mt_numdbs;
 		txn->mt_dbxs[slot].md_name.mv_data = namedup;
 		txn->mt_dbxs[slot].md_name.mv_size = len;
 		txn->mt_dbxs[slot].md_rel = NULL;
@@ -6196,7 +6196,7 @@ void mdb_dbi_close(MDB_env *env, MDB_dbi dbi) {
 	}
 }
 
-int mdb_dbi_flags(MDB_txn *txn, MDB_dbi dbi, unsigned int *flags) {
+int mdb_dbi_flags(MDB_txn *txn, MDB_dbi dbi, u32 *flags) {
 	if (!TXN_DBI_EXIST(txn, dbi, DB_USRVALID)) return EINVAL;
 	*flags = txn->mt_dbs[dbi].md_flags & PERSISTENT_FLAGS;
 	return MDB_SUCCESS;
@@ -6210,7 +6210,7 @@ static int mdb_drop0(MDB_cursor *mc, int subs) {
 		MDB_txn *txn = mc->mc_txn;
 		MDB_node *ni;
 		MDB_cursor mx;
-		unsigned int i;
+		u32 i;
 
 		if ((mc->mc_flags & C_SUB) ||
 		    (!subs && !mc->mc_db->md_overflow_pages))
@@ -6406,7 +6406,7 @@ int mdb_reader_check(MDB_env *env, int *dead) {
 
 static int mdb_reader_check0(MDB_env *env, int rlocked, int *dead) {
 	mdb_mutexref_t rmutex = rlocked ? NULL : env->me_rmutex;
-	unsigned int i, j, rdrs;
+	u32 i, j, rdrs;
 	MDB_reader *mr;
 	i32 *pids, pid;
 	int rc = MDB_SUCCESS, count = 0;
