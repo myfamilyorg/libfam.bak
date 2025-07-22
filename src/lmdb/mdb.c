@@ -77,20 +77,10 @@
 #define LITTLE_ENDIAN 1234
 #define BIG_ENDIAN 4321
 
-#if (BYTE_ORDER == LITTLE_ENDIAN) == (BYTE_ORDER == BIG_ENDIAN)
-#error "Unknown or unsupported endianness (BYTE_ORDER)"
-#elif (-6 & 5) || CHAR_BIT != 8 || U32_MAX != 0xffffffff || \
-    MDB_SIZE_MAX % U32_MAX
-#error "Two's complement, reasonably sized integer types, please"
-#endif
-
 #if (((__clang_major__ << 8) | __clang_minor__) >= 0x0302) || \
     (((__GNUC__ << 8) | __GNUC_MINOR__) >= 0x0403)
-/** Mark infrequently used env functions as cold. This puts them in a separate
- *  section, and optimizes them for size */
 #define ESECT __attribute__((cold))
 #else
-/* On older compilers, use a separate section */
 #ifdef __GNUC__
 #ifdef __APPLE__
 #define ESECT __attribute__((section("__TEXT,text_env")))
@@ -102,11 +92,7 @@
 #endif
 #endif
 
-#ifdef _WIN32
-#define CALL_CONV WINAPI
-#else
 #define CALL_CONV
-#endif
 
 /** @defgroup internal	LMDB Internals
  *	@{
@@ -119,66 +105,9 @@
  *	@{
  */
 
-/** Features under development */
-#ifndef MDB_DEVEL
 #define MDB_DEVEL 0
-#endif
-
-/** Wrapper around __func__, which is a C99 feature */
-#if __STDC_VERSION__ >= 199901L
 #define mdb_func_ __func__
-#elif __GNUC__ >= 2 || _MSC_VER >= 1300
-#define mdb_func_ __FUNCTION__
-#else
-/* If a debug message says <mdb_unknown>(), update the #if statements above */
-#define mdb_func_ "<mdb_unknown>"
-#endif
-
-/* Internal error codes, not exposed outside liblmdb */
 #define MDB_NO_ROOT (MDB_LAST_ERRCODE + 10)
-#ifdef _WIN32
-#define MDB_OWNERDEAD ((int)WAIT_ABANDONED)
-#elif defined MDB_USE_SYSV_SEM
-#define MDB_OWNERDEAD (MDB_LAST_ERRCODE + 11)
-#elif defined(MDB_USE_POSIX_MUTEX) && defined(EOWNERDEAD)
-#define MDB_OWNERDEAD EOWNERDEAD /**< #LOCK_MUTEX0() result if dead owner */
-#endif
-
-#ifdef __GLIBC__
-#define GLIBC_VER ((__GLIBC__ << 16) | __GLIBC_MINOR__)
-#endif
-/** Some platforms define the EOWNERDEAD error code
- * even though they don't support Robust Mutexes.
- * Compile with -DMDB_USE_ROBUST=0, or use some other
- * mechanism like -DMDB_USE_SYSV_SEM instead of
- * -DMDB_USE_POSIX_MUTEX. (SysV semaphores are
- * also Robust, but some systems don't support them
- * either.)
- */
-#ifndef MDB_USE_ROBUST
-/* Android currently lacks Robust Mutex support. So does glibc < 2.4. */
-#if defined(MDB_USE_POSIX_MUTEX) && \
-    (defined(__ANDROID__) || (defined(__GLIBC__) && GLIBC_VER < 0x020004))
-#define MDB_USE_ROBUST 0
-#else
-#define MDB_USE_ROBUST 1
-#endif
-#endif /* !MDB_USE_ROBUST */
-
-#if defined(MDB_USE_POSIX_MUTEX) && (MDB_USE_ROBUST)
-/* glibc < 2.12 only provided _np API */
-#if (defined(__GLIBC__) && GLIBC_VER < 0x02000c) || \
-    (defined(PTHREAD_MUTEX_ROBUST_NP) && !defined(PTHREAD_MUTEX_ROBUST))
-#define PTHREAD_MUTEX_ROBUST PTHREAD_MUTEX_ROBUST_NP
-#define pthread_mutexattr_setrobust(attr, flag) \
-	pthread_mutexattr_setrobust_np(attr, flag)
-#define pthread_mutex_consistent(mutex) pthread_mutex_consistent_np(mutex)
-#endif
-#endif /* MDB_USE_POSIX_MUTEX && MDB_USE_ROBUST */
-
-#if defined(MDB_OWNERDEAD) && (MDB_USE_ROBUST)
-#define MDB_ROBUST_SUPPORTED 1
-#endif
 
 #ifdef _WIN32
 #define MDB_USE_HASH 1
