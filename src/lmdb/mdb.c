@@ -254,6 +254,22 @@
 		*tp = tracked->mc_next;                          \
 	} while (0)
 
+#define MDB_NAME(str) str
+#define mdb_name_cpy strcpy
+#define MDB_SUFFLEN 9
+
+#define mdb_fname_destroy(fname)                                 \
+	do {                                                     \
+		if ((fname).mn_alloced) release((fname).mn_val); \
+	} while (0)
+
+#define MDB_CLOEXEC 0
+
+#ifndef MDB_WBUF
+#define MDB_WBUF (1024 * 1024)
+#endif
+#define MDB_EOF 0x10
+
 #define STATIC_ASSERT(condition, message) \
 	typedef u8 static_assert_##message[(condition) ? 1 : -1]
 
@@ -548,6 +564,29 @@ enum {
 };
 
 enum Pidlock_op { Pidset = F_SETLK, Pidcheck = F_GETLK };
+
+enum mdb_fopen_type {
+	MDB_O_RDONLY = O_RDONLY,
+	MDB_O_RDWR = O_RDWR | O_CREAT,
+	MDB_O_META = O_WRONLY | MDB_DSYNC | MDB_CLOEXEC,
+	MDB_O_COPY = O_WRONLY | O_CREAT | O_EXCL | MDB_CLOEXEC,
+	MDB_O_MASK =
+	    MDB_O_RDWR | MDB_CLOEXEC | MDB_O_RDONLY | MDB_O_META | MDB_O_COPY,
+	MDB_O_LOCKS =
+	    MDB_O_RDWR | MDB_CLOEXEC | ((MDB_O_MASK + 1) & ~MDB_O_MASK)
+};
+
+typedef char mdb_nchar_t;
+
+typedef struct MDB_name {
+	int mn_len;
+	int mn_alloced;
+	mdb_nchar_t *mn_val;
+} MDB_name;
+
+static const mdb_nchar_t *const mdb_suffixes[2][2] = {
+    {MDB_NAME("/data.mdb"), MDB_NAME("")},
+    {MDB_NAME("/lock.mdb"), MDB_NAME("-lock")}};
 
 static char *const mdb_errstr[] = {
     "MDB_KEYEXIST: Key/data pair already exists",
@@ -2327,22 +2366,6 @@ int mdb_env_get_maxreaders(MDB_env *env, unsigned int *readers) {
 	return MDB_SUCCESS;
 }
 
-typedef char mdb_nchar_t;
-#define MDB_NAME(str) str
-#define mdb_name_cpy strcpy
-
-typedef struct MDB_name {
-	int mn_len;
-	int mn_alloced;
-	mdb_nchar_t *mn_val;
-} MDB_name;
-
-static const mdb_nchar_t *const mdb_suffixes[2][2] = {
-    {MDB_NAME("/data.mdb"), MDB_NAME("")},
-    {MDB_NAME("/lock.mdb"), MDB_NAME("-lock")}};
-
-#define MDB_SUFFLEN 9
-
 static int mdb_fname_init(const char *path, unsigned envflags,
 			  MDB_name *fname) {
 	int no_suffix = F_ISSET(envflags, MDB_NOSUBDIR | MDB_NOLOCK);
@@ -2358,24 +2381,6 @@ static int mdb_fname_init(const char *path, unsigned envflags,
 		return ENOMEM;
 	return MDB_SUCCESS;
 }
-
-#define mdb_fname_destroy(fname)                                 \
-	do {                                                     \
-		if ((fname).mn_alloced) release((fname).mn_val); \
-	} while (0)
-
-#define MDB_CLOEXEC 0
-
-enum mdb_fopen_type {
-	MDB_O_RDONLY = O_RDONLY,
-	MDB_O_RDWR = O_RDWR | O_CREAT,
-	MDB_O_META = O_WRONLY | MDB_DSYNC | MDB_CLOEXEC,
-	MDB_O_COPY = O_WRONLY | O_CREAT | O_EXCL | MDB_CLOEXEC,
-	MDB_O_MASK =
-	    MDB_O_RDWR | MDB_CLOEXEC | MDB_O_RDONLY | MDB_O_META | MDB_O_COPY,
-	MDB_O_LOCKS =
-	    MDB_O_RDWR | MDB_CLOEXEC | ((MDB_O_MASK + 1) & ~MDB_O_MASK)
-};
 
 static int mdb_fopen(const MDB_env *env, MDB_name *fname,
 		     enum mdb_fopen_type which, mdb_mode_t mode, HANDLE *res) {
@@ -5950,11 +5955,6 @@ int mdb_put(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data,
 	txn->mt_cursors[dbi] = mc.mc_next;
 	return rc;
 }
-
-#ifndef MDB_WBUF
-#define MDB_WBUF (1024 * 1024)
-#endif
-#define MDB_EOF 0x10
 
 typedef struct mdb_copy {
 	MDB_env *mc_env;
