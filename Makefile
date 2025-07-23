@@ -13,7 +13,7 @@ ASM_DIR	= $(SRCDIR)/asm
 SRC_DIRS   = core store net crypto util lmdb
 
 PREFIX ?= /usr
-INSTALL_LIBDIR = $(PREFIX)/lib64
+INSTALL_LIBDIR = $(PREFIX)/local/lib
 INCDIR = $(PREFIX)/include
 INSTALL = install
 INSTALL_LIB = $(INSTALL) -m 755
@@ -144,11 +144,14 @@ install: lib/libfam.so
 	$(INSTALL_LIB) lib/libfam.so $(INSTALL_LIBDIR)/libfam.so
 	mkdir -p $(DESTDIR)$(INCDIR)/libfam
 	$(INSTALL_DATA) src/include/libfam/*.H $(DESTDIR)$(INCDIR)/libfam
+	cp ./resources/libfam.conf /etc/ld.so.conf.d/
+	ldconfig
 
 # Uninstall rule
 uninstall:
 	rm -f $(INSTALL_LIBDIR)/libfam.so
 	rm -f $(DESTDIR)$(INCDIR)/libfam/*.H
+	rm -f /etc/ld.so.conf.d/libfam.conf
 
 # Phony targets
 .PHONY: all test clean install uninstall
