@@ -218,16 +218,16 @@ Test(resize1) {
 
 Test(calloc1) {
 	i32 i;
-	void *ptr1 = calloc(100, 10);
+	u8 *ptr1 = calloc(100, 10), *ptr2;
 	ASSERT(ptr1, "ptr1!=NULL");
-	for (i = 0; i < 1000; i++) ASSERT(!((u8 *)ptr1)[i], "byte 0");
+	for (i = 0; i < 1000; i++) ASSERT(!ptr1[i], "ptr[i] == NULL");
 	release(ptr1);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #pragma GCC diagnostic ignored "-Walloc-size-larger-than="
-	ptr1 = calloc(I64_MAX - 1, I64_MAX - 1);
+	ptr2 = calloc(I64_MAX - 1, I64_MAX - 1);
 #pragma GCC pop
-	ASSERT(!ptr1, "ptr1==NULL");
+	ASSERT(!ptr2, "ptr2==NULL");
 
 	ASSERT_BYTES(0);
 }
