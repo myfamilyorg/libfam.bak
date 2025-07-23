@@ -41,7 +41,7 @@ static i32 env_count(void) {
 	return count;
 }
 
-void init_environ(void) {
+PUBLIC void init_environ(void) {
 	i32 count = env_count();
 	i32 i;
 
@@ -71,7 +71,7 @@ void init_environ(void) {
 #endif
 }
 
-u8 *getenv(const u8 *name) {
+PUBLIC u8 *getenv(const u8 *name) {
 	u8 **env;
 	if (!name || !environ) return 0;
 

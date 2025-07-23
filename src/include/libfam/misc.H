@@ -28,28 +28,28 @@
 
 #include <libfam/types.H>
 
-PUBLIC u64 strlen(const u8 *S);
-PUBLIC u8 *strcpy(u8 *dest, const u8 *src);
-PUBLIC u8 *strcat(u8 *dest, const u8 *src);
-PUBLIC i32 strcmp(const u8 *s1, const u8 *s2);
-PUBLIC i32 strcmpn(const u8 *s1, const u8 *s2, u64 n);
-PUBLIC u8 *strdup(const u8 *s);
-PUBLIC u8 *substr(const u8 *s, const u8 *sub);
-PUBLIC u8 *substrn(const u8 *s, const u8 *sub, u64 n);
-PUBLIC u8 *strchr(const u8 *s, i32 c);
-PUBLIC void *memset(void *ptr, i32 x, u64 n);
-PUBLIC void *memcpy(void *dst, const void *src, u64 n);
-PUBLIC i32 memcmp(const void *s1, const void *s2, u64 n);
-PUBLIC void *memorymove(void *dst, const void *src, u64 n);
-PUBLIC void byteszero(void *dst, u64 n);
-PUBLIC u64 u128_to_string(u8 *buf, u128 v);
-PUBLIC u64 i128_to_string(u8 *buf, i128 v);
-PUBLIC u64 u128_to_string_impl(u8 *buf, u128 v, bool hex, bool upper);
-PUBLIC u64 i128_to_string_impl(u8 *buf, i128 v, bool hex, bool upper);
-PUBLIC u64 double_to_string(u8 *buf, double v, i32 max_decimals);
-PUBLIC u64 b64_encode(const u8 *in, u64 in_len, u8 *out, u64 out_max);
-PUBLIC u64 b64_decode(const u8 *in, u64 in_len, u8 *out, u64 out_max);
-PUBLIC u128 string_to_uint128(const u8 *buf, u64 len);
-PUBLIC i128 string_to_int128(const u8 *buf, u64 len);
+u64 strlen(const u8 *S);
+u8 *strcpy(u8 *dest, const u8 *src);
+u8 *strcat(u8 *dest, const u8 *src);
+i32 strcmp(const u8 *s1, const u8 *s2);
+i32 strcmpn(const u8 *s1, const u8 *s2, u64 n);
+u8 *strdup(const u8 *s);
+u8 *substr(const u8 *s, const u8 *sub);
+u8 *substrn(const u8 *s, const u8 *sub, u64 n);
+u8 *strchr(const u8 *s, i32 c);
+void *memset(void *ptr, i32 x, u64 n);
+void *memcpy(void *dst, const void *src, u64 n);
+i32 memcmp(const void *s1, const void *s2, u64 n);
+void *memorymove(void *dst, const void *src, u64 n);
+void byteszero(void *dst, u64 n);
+u64 u128_to_string(u8 *buf, u128 v);
+u64 i128_to_string(u8 *buf, i128 v);
+u64 u128_to_string_impl(u8 *buf, u128 v, bool hex, bool upper);
+u64 i128_to_string_impl(u8 *buf, i128 v, bool hex, bool upper);
+u64 double_to_string(u8 *buf, double v, i32 max_decimals);
+u64 b64_encode(const u8 *in, u64 in_len, u8 *out, u64 out_max);
+u64 b64_decode(const u8 *in, u64 in_len, u8 *out, u64 out_max);
+u128 string_to_uint128(const u8 *buf, u64 len);
+i128 string_to_int128(const u8 *buf, u64 len);
 
 #endif /* _MISC_H */

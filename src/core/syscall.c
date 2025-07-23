@@ -433,7 +433,7 @@ i32 sched_yield(void) {
 void __gcov_dump(void);
 #endif /* COVERAGE */
 
-void exit(i32 status) {
+PUBLIC void exit(i32 status) {
 	execute_exits();
 #ifdef COVERAGE
 	SYSCALL_EXIT_COV

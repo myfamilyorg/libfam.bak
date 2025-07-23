@@ -28,31 +28,31 @@
 
 #include <libfam/types.H>
 
-PUBLIC const u8 *get_dimmed(void);
+const u8 *get_dimmed(void);
 #define DIMMED get_dimmed()
 
-PUBLIC const u8 *get_red(void);
+const u8 *get_red(void);
 #define RED get_red()
 
-PUBLIC const u8 *get_bright_red(void);
+const u8 *get_bright_red(void);
 #define BRIGHT_RED get_bright_red()
 
-PUBLIC const u8 *get_green(void);
+const u8 *get_green(void);
 #define GREEN get_green()
 
-PUBLIC const u8 *get_yellow(void);
+const u8 *get_yellow(void);
 #define YELLOW get_yellow()
 
-PUBLIC const u8 *get_cyan(void);
+const u8 *get_cyan(void);
 #define CYAN get_cyan()
 
-PUBLIC const u8 *get_magenta(void);
+const u8 *get_magenta(void);
 #define MAGENTA get_magenta()
 
-PUBLIC const u8 *get_blue(void);
+const u8 *get_blue(void);
 #define BLUE get_blue()
 
-PUBLIC const u8 *get_reset(void);
+const u8 *get_reset(void);
 #define RESET get_reset()
 
 #endif /* _COLORS_H */

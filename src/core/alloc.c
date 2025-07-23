@@ -555,7 +555,9 @@ void *calloc_impl(Alloc *a, u64 nelem, u64 elsize) {
 	return ret;
 }
 
-void reset_allocated_bytes(void) { reset_allocated_bytes_impl(_alloc_ptr__); }
+PUBLIC void reset_allocated_bytes(void) {
+	reset_allocated_bytes_impl(_alloc_ptr__);
+}
 
 u64 get_allocated_bytes(void) { return allocated_bytes_impl(_alloc_ptr__); }
 
