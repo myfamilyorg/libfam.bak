@@ -31,7 +31,7 @@
 #include <libfam/sys.H>
 #include <libfam/types.H>
 
-u64 strlen(const u8 *X) {
+PUBLIC u64 strlen(const u8 *X) {
 	const u8 *Y;
 	if (X == NULL) return 0;
 	Y = X;
@@ -39,7 +39,7 @@ u64 strlen(const u8 *X) {
 	return X - Y;
 }
 
-u8 *strdup(const u8 *s) {
+PUBLIC u8 *strdup(const u8 *s) {
 	u64 len = strlen(s);
 	u8 *ret = alloc(len + 1);
 	if (!ret) return NULL;
@@ -48,20 +48,20 @@ u8 *strdup(const u8 *s) {
 	return ret;
 }
 
-u8 *strcpy(u8 *dest, const u8 *src) {
+PUBLIC u8 *strcpy(u8 *dest, const u8 *src) {
 	u8 *ptr = dest;
 	while ((*ptr++ = *src++));
 	return dest;
 }
 
-u8 *strcat(u8 *dest, const u8 *src) {
+PUBLIC u8 *strcat(u8 *dest, const u8 *src) {
 	u8 *ptr = dest;
 	while (*ptr) ptr++;
 	while ((*ptr++ = *src++));
 	return dest;
 }
 
-i32 strcmp(const u8 *X, const u8 *Y) {
+PUBLIC i32 strcmp(const u8 *X, const u8 *Y) {
 	if (X == NULL || Y == NULL) {
 		if (X == Y) return 0;
 		return X == NULL ? -1 : 1;
@@ -75,7 +75,7 @@ i32 strcmp(const u8 *X, const u8 *Y) {
 	return 0;
 }
 
-i32 strcmpn(const u8 *X, const u8 *Y, u64 n) {
+PUBLIC i32 strcmpn(const u8 *X, const u8 *Y, u64 n) {
 	while (n > 0 && *X == *Y && *X != '\0' && *Y != '\0') {
 		X++;
 		Y++;
@@ -85,7 +85,7 @@ i32 strcmpn(const u8 *X, const u8 *Y, u64 n) {
 	return (u8)*X - (u8)*Y;
 }
 
-u8 *substr(const u8 *s, const u8 *sub) {
+PUBLIC u8 *substr(const u8 *s, const u8 *sub) {
 	if (s == NULL || sub == NULL) return NULL;
 	for (; *s; s++) {
 		const u8 *tmps = s, *tmpsub = sub;
@@ -98,7 +98,7 @@ u8 *substr(const u8 *s, const u8 *sub) {
 	return NULL;
 }
 
-u8 *substrn(const u8 *s, const u8 *sub, u64 n) {
+PUBLIC u8 *substrn(const u8 *s, const u8 *sub, u64 n) {
 	u64 i;
 	if (s == NULL || sub == NULL || n == 0) return NULL;
 	if (*sub == '\0') return (u8 *)s;
@@ -116,7 +116,7 @@ u8 *substrn(const u8 *s, const u8 *sub, u64 n) {
 	return NULL;
 }
 
-u8 *strchr(const u8 *s, i32 c) {
+PUBLIC u8 *strchr(const u8 *s, i32 c) {
 	while (*s) {
 		if (*s == c) return (u8 *)s;
 		s++;
@@ -124,7 +124,7 @@ u8 *strchr(const u8 *s, i32 c) {
 	return (*s == c) ? (u8 *)s : 0;
 }
 
-void *memset(void *dest, i32 c, u64 n) {
+PUBLIC void *memset(void *dest, i32 c, u64 n) {
 	u8 *s = (u8 *)dest;
 	u64 i;
 
@@ -138,7 +138,7 @@ void *memset(void *dest, i32 c, u64 n) {
 	return dest;
 }
 
-i32 memcmp(const void *s1, const void *s2, u64 n) {
+PUBLIC i32 memcmp(const void *s1, const void *s2, u64 n) {
 	/* Cast pointers to u8 for byte-by-byte comparison */
 	const u8 *p1 = (const u8 *)s1;
 	const u8 *p2 = (const u8 *)s2;
@@ -153,7 +153,7 @@ i32 memcmp(const void *s1, const void *s2, u64 n) {
 	return 0;
 }
 
-void *memcpy(void *dest, const void *src, u64 n) {
+PUBLIC void *memcpy(void *dest, const void *src, u64 n) {
 	u8 *d = (u8 *)dest;
 	const u8 *s = (u8 *)src;
 	u64 i;
@@ -168,7 +168,7 @@ void *memcpy(void *dest, const void *src, u64 n) {
 	return dest;
 }
 
-void *memorymove(void *dest, const void *src, u64 n) {
+PUBLIC void *memorymove(void *dest, const void *src, u64 n) {
 	u8 *d = (u8 *)dest;
 	const u8 *s = (u8 *)src;
 	u64 i;
@@ -190,9 +190,9 @@ void *memorymove(void *dest, const void *src, u64 n) {
 	return dest;
 }
 
-void byteszero(void *s, u64 len) { memset(s, 0, len); }
+PUBLIC void byteszero(void *s, u64 len) { memset(s, 0, len); }
 
-u64 u128_to_string_impl(u8 *buf, u128 v, bool hex, bool upper) {
+PUBLIC u64 u128_to_string_impl(u8 *buf, u128 v, bool hex, bool upper) {
 	u8 temp[64] = {0};
 	i32 i = 0, j = 0;
 	u16 hex_mod = hex ? 16 : 10;
@@ -224,7 +224,7 @@ u64 u128_to_string_impl(u8 *buf, u128 v, bool hex, bool upper) {
 	return j;
 }
 
-u64 u128_to_string(u8 *buf, u128 v) {
+PUBLIC u64 u128_to_string(u8 *buf, u128 v) {
 	return u128_to_string_impl(buf, v, false, false);
 }
 
@@ -248,7 +248,7 @@ u64 i128_to_string_impl(u8 *buf, i128 v, bool hex, bool upper) {
 	return is_negative ? len + 1 : len;
 }
 
-u64 i128_to_string(u8 *buf, i128 v) {
+PUBLIC u64 i128_to_string(u8 *buf, i128 v) {
 	return i128_to_string_impl(buf, v, false, false);
 }
 
@@ -299,7 +299,7 @@ u128 string_to_uint128(const u8 *buf, u64 len) {
 }
 
 /* Convert string to signed 128-bit integer using string_to_uint128 */
-i128 string_to_int128(const u8 *buf, u64 len) {
+PUBLIC i128 string_to_int128(const u8 *buf, u64 len) {
 	u64 i;
 	i32 sign;
 	u128 abs_value;
@@ -354,7 +354,7 @@ i128 string_to_int128(const u8 *buf, u64 len) {
 	return result;
 }
 
-u64 double_to_string(u8 *buf, double v, i32 max_decimals) {
+PUBLIC u64 double_to_string(u8 *buf, double v, i32 max_decimals) {
 	u8 temp[41];
 	u64 pos = 0;
 	u64 len;
@@ -601,7 +601,7 @@ u128 __udivti3(u128 a, u128 b) {
 }
 
 /* Base64 encode */
-u64 b64_encode(const u8 *in, u64 in_len, u8 *out, u64 out_max) {
+PUBLIC u64 b64_encode(const u8 *in, u64 in_len, u8 *out, u64 out_max) {
 	u64 i;
 	u64 j;
 	static const u8 *b64_table =
@@ -647,7 +647,7 @@ u64 b64_encode(const u8 *in, u64 in_len, u8 *out, u64 out_max) {
 }
 
 /* Base64 decode */
-u64 b64_decode(const u8 *in, u64 in_len, u8 *out, u64 out_max) {
+PUBLIC u64 b64_decode(const u8 *in, u64 in_len, u8 *out, u64 out_max) {
 	u64 i;
 	u64 j;
 	i32 b0;

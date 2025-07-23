@@ -29,8 +29,8 @@
 #include <libfam/syscall_const.H>
 #include <libfam/types.H>
 
-bool _debug_no_write = false;
-bool _debug_no_exit = false;
+PUBLIC bool _debug_no_write = false;
+PUBLIC bool _debug_no_exit = false;
 bool _debug_fail_getsockbyname = false;
 bool _debug_fail_pipe2 = false;
 bool _debug_fail_listen = false;
@@ -413,7 +413,7 @@ i32 unlinkat(i32 dfd, const u8 *path, i32 flags) {
 	SET_ERR
 }
 
-i64 write(i32 fd, const void *buf, u64 count) {
+PUBLIC i64 write(i32 fd, const void *buf, u64 count) {
 	i64 ret = 0;
 	if ((fd == 1 || fd == 2) && _debug_no_write) return count;
 	ret = syscall_write(fd, buf, count);

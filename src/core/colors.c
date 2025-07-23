@@ -28,12 +28,12 @@
 #include <libfam/misc.H>
 #include <libfam/types.H>
 
-i32 no_color(void) {
+PUBLIC i32 no_color(void) {
 	u8 *noc = getenv("NO_COLOR");
 	return noc != NULL;
 }
 
-const u8 *get_dimmed(void) {
+PUBLIC const u8 *get_dimmed(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -41,7 +41,7 @@ const u8 *get_dimmed(void) {
 	}
 }
 
-const u8 *get_red(void) {
+PUBLIC const u8 *get_red(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -49,7 +49,7 @@ const u8 *get_red(void) {
 	}
 }
 
-const u8 *get_bright_red(void) {
+PUBLIC const u8 *get_bright_red(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -57,7 +57,7 @@ const u8 *get_bright_red(void) {
 	}
 }
 
-const u8 *get_green(void) {
+PUBLIC const u8 *get_green(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -65,7 +65,7 @@ const u8 *get_green(void) {
 	}
 }
 
-const u8 *get_yellow(void) {
+PUBLIC const u8 *get_yellow(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -73,7 +73,7 @@ const u8 *get_yellow(void) {
 	}
 }
 
-const u8 *get_cyan(void) {
+PUBLIC const u8 *get_cyan(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -81,7 +81,7 @@ const u8 *get_cyan(void) {
 	}
 }
 
-const u8 *get_magenta(void) {
+PUBLIC const u8 *get_magenta(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -89,7 +89,7 @@ const u8 *get_magenta(void) {
 	}
 }
 
-const u8 *get_blue(void) {
+PUBLIC const u8 *get_blue(void) {
 	if (no_color()) {
 		return "";
 	} else {
@@ -97,7 +97,7 @@ const u8 *get_blue(void) {
 	}
 }
 
-const u8 *get_reset(void) {
+PUBLIC const u8 *get_reset(void) {
 	if (no_color()) {
 		return "";
 	} else {
