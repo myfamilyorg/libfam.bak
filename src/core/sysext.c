@@ -32,7 +32,8 @@ PUBLIC i32 file(const u8 *path) {
 	i32 ret = open(path, O_CREAT | O_RDWR, 0600);
 	return ret;
 }
-i32 exists(const u8 *path) {
+
+PUBLIC i32 exists(const u8 *path) {
 	i32 fd = open(path, O_RDWR, 0600);
 	if (fd > 0) {
 		close(fd);
@@ -62,7 +63,7 @@ i32 sleep(u64 millis) {
 	return ret;
 }
 
-i64 fsize(i32 fd) {
+PUBLIC i64 fsize(i32 fd) {
 	i64 ret = lseek(fd, 0, SEEK_END);
 	return ret;
 }
@@ -78,7 +79,7 @@ void *map(u64 length) {
 	if (v == MAP_FAILED) return NULL;
 	return v;
 }
-void *fmap(i32 fd, i64 size, i64 offset) {
+PUBLIC void *fmap(i32 fd, i64 size, i64 offset) {
 	void *v =
 	    mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, offset);
 	if (v == MAP_FAILED) return NULL;

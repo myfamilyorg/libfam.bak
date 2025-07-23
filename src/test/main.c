@@ -30,7 +30,6 @@
 #include <libfam/sys.H>
 #include <libfam/test.H>
 
-u8 **environ = 0;
 i32 cur_tests = 0;
 i32 exe_test = 0;
 

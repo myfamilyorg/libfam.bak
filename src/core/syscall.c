@@ -441,12 +441,12 @@ PUBLIC void exit(i32 status) {
 	SYSCALL_EXIT
 #endif /* COVERAGE */
 }
-i32 munmap(void *addr, u64 len) {
+PUBLIC i32 munmap(void *addr, u64 len) {
 	i32 ret = syscall_munmap(addr, len);
 	SET_ERR
 }
 
-i32 close(i32 fd) {
+PUBLIC i32 close(i32 fd) {
 	i32 ret = syscall_close(fd);
 	if (ret < 0) perror("close");
 	SET_ERR

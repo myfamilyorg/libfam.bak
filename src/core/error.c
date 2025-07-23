@@ -27,7 +27,7 @@
 #include <libfam/misc.H>
 #include <libfam/sys.H>
 
-i32 err = 0;
+PUBLIC i32 err = 0;
 i32 *__error(void) { return &err; }
 
 void perror(const u8 *s) {

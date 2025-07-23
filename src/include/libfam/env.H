@@ -28,6 +28,8 @@
 
 #include <libfam/types.H>
 
+extern u8 **environ;
+
 u8 *getenv(const u8 *name);
 i32 unsetenv(const u8 *name);
 i32 setenv(const u8 *name, const u8 *value, i32 overwrite);

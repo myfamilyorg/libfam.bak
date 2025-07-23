@@ -31,7 +31,7 @@
 #define MEMSAN 0
 #endif /* MEMSAN */
 
-extern u8 **environ;
+PUBLIC u8 **environ;
 
 static i32 env_count(void) {
 	i32 count = 0;
