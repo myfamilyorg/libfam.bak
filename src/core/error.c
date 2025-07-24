@@ -27,9 +27,9 @@
 #include <libfam/misc.H>
 #include <libfam/sys.H>
 
-PUBLIC i32 err_value = 0;
+i32 err_value = 0;
 i32 *__error(void) { return &err_value; }
-i32 *__err_location(void) { return &err_value; }
+PUBLIC i32 *__err_location(void) { return &err_value; }
 
 void perror(const u8 *s) {
 	i32 len = 0, v = 2;

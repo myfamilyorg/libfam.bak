@@ -167,7 +167,6 @@
 
 i32 *__err_location(void);
 #define err (*__err_location())
-extern i32 err;
 
 const u8 *strerror(i32 err_code);
 void perror(const u8 *);
