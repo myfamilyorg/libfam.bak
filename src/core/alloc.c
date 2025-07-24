@@ -559,16 +559,18 @@ PUBLIC void reset_allocated_bytes(void) {
 	reset_allocated_bytes_impl(_alloc_ptr__);
 }
 
-u64 get_allocated_bytes(void) { return allocated_bytes_impl(_alloc_ptr__); }
+PUBLIC u64 get_allocated_bytes(void) {
+	return allocated_bytes_impl(_alloc_ptr__);
+}
 
-void *alloc(u64 size) { return alloc_impl(_alloc_ptr__, size); }
+PUBLIC void *alloc(u64 size) { return alloc_impl(_alloc_ptr__, size); }
 
-void release(void *ptr) { release_impl(_alloc_ptr__, ptr); }
+PUBLIC void release(void *ptr) { release_impl(_alloc_ptr__, ptr); }
 
-void *calloc(u64 nelem, u64 elsize) {
+PUBLIC void *calloc(u64 nelem, u64 elsize) {
 	return calloc_impl(_alloc_ptr__, nelem, elsize);
 }
 
-void *resize(void *ptr, u64 size) {
+PUBLIC void *resize(void *ptr, u64 size) {
 	return resize_impl(_alloc_ptr__, ptr, size);
 }
