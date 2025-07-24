@@ -165,6 +165,8 @@
 #define EKEYREJECTED 129   /* Key was rejected by service */
 #define EOWNERDEAD 1001	   /* Owner process is dead */
 
+i32 *__err_location(void);
+#define err (*__err_location())
 extern i32 err;
 
 const u8 *strerror(i32 err_code);
