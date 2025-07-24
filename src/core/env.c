@@ -31,6 +31,7 @@
 #define MEMSAN 0
 #endif /* MEMSAN */
 
+void reset_allocated_bytes(void);
 PUBLIC u8 **environ;
 
 static i32 env_count(void) {

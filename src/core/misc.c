@@ -25,7 +25,6 @@
 
 #include <libfam/alloc.H>
 #include <libfam/error.H>
-#include <libfam/format.H>
 #include <libfam/limits.H>
 #include <libfam/misc.H>
 #include <libfam/sys.H>
